@@ -55,10 +55,41 @@ func installZFS(tag string) {
 	out, err := ce.Exec("docker", "run", "--privileged", "--rm", "titandata/docker-desktop-zfs-kernel:" + tag)
 	if err != nil {
 		if strings.Contains(out, "manifest unknown") {
-			fmt.Println("Unknown Docker Desktop version. Please open an issue at https://github.com/titan-data/titan and include the following information: " + getKernel())
+			fmt.Println("Pre-built ZFS kernel modules not available for kernel version " + tag)
+			fmt.Println("Falling back to building ZFS from source...")
+			buildZFSFromSource(tag)
+		} else {
+			fmt.Println("Unable to install ZFS for Docker Desktop")
+			fmt.Println(err)
+			os.Exit(1)
 		}
-		fmt.Println("Unable to install ZFS for Docker Desktop")
-		fmt.Println(err)
+	}
+}
+
+func buildZFSFromSource(tag string) {
+	fmt.Println("Building ZFS kernel modules from source (this may take 10-30 minutes)...")
+	
+	// Use the zfs-builder to compile modules for the current kernel
+	buildArgs := []string{
+		"run", "--rm", "--privileged",
+		"-v", "/var/run/docker.sock:/var/run/docker.sock",
+		"-e", "ZFS_VERSION=zfs-0.8.2",
+		"-e", "ZFS_CONFIG=kernel",
+		"titandata/zfs-builder:latest",
+	}
+	
+	out, err := ce.Exec("docker", buildArgs...)
+	if err != nil {
+		fmt.Println("Failed to build ZFS from source:")
+		fmt.Println(out)
+		fmt.Println("Error:", err)
+		fmt.Println("")
+		fmt.Println("You may need to:")
+		fmt.Println("1. Ensure Docker Desktop is using a supported kernel version")
+		fmt.Println("2. Try a different Docker Desktop version")
+		fmt.Println("3. Install ZFS manually on your system")
 		os.Exit(1)
 	}
+	
+	fmt.Println("ZFS kernel modules built successfully")
 }

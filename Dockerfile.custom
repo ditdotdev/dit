@@ -1,0 +1,7 @@
+FROM titan:latest
+
+# Copy our custom ZFS compatibility script
+COPY custom-zfs.sh /titan/zfs.sh
+
+# Make sure the script is executable
+RUN chmod +x /titan/zfs.sh

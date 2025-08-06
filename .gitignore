@@ -28,3 +28,7 @@ build
 sshKey
 sshKey.pub
 
+# Large installer files (exceeds GitHub 100MB limit)
+Docker*.exe
+"Docker Desktop Installer*.exe"
+
