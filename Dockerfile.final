@@ -1,0 +1,22 @@
+FROM ubuntu:22.04
+
+# Install required packages and ZFS 2.1.x userspace tools
+RUN apt-get update && \
+    DEBIAN_FRONTEND=noninteractive apt-get install -y \
+        zfsutils-linux libzfs4linux zfs-zed \
+        curl wget jq docker.io util-linux kmod \
+        postgresql postgresql-contrib \
+        openjdk-11-jre-headless && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/* && \
+    # Create symlink for PostgreSQL compatibility (Titan expects v12, Ubuntu 22.04 has v14)
+    ln -sf /usr/lib/postgresql/14 /usr/lib/postgresql/12
+
+# Copy titan binaries and scripts from the original image
+COPY --from=titan:latest /titan /titan
+
+# Copy our custom ZFS compatibility script
+COPY custom-zfs.sh /titan/zfs.sh
+
+# Make sure the script is executable
+RUN chmod +x /titan/zfs.sh

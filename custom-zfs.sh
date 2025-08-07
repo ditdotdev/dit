@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# Custom ZFS compatibility script for Docker Desktop 2.1.0.5 with ZFS 0.8.2
+# Custom ZFS compatibility script for WSL2 kernel with ZFS 2.1.5
 #
 
 # Modified minimum ZFS version for legacy compatibility
@@ -8,7 +8,7 @@ min_zfs_version=0.8.0
 
 # Return the tag in the ZFS repository we should be using to build ZFS binaries.
 function get_zfs_build_version() {
-  echo "0.8.2"
+  echo "2.1.5"
 }
 
 # Modified version compatibility for ZFS 0.8.x series
@@ -19,6 +19,11 @@ function zfs_version_compatible() {
   
   # For ZFS 0.8.x series, allow any 0.8.x version
   if [[ ${req_components[0]} -eq 0 && ${req_components[1]} -eq 8 ]]; then
+    return 0
+  fi
+  
+  # For ZFS 2.1.x series, allow any 2.1.x version
+  if [[ ${req_components[0]} -eq 2 && ${req_components[1]} -eq 1 ]]; then
     return 0
   fi
   
@@ -42,11 +47,34 @@ function get_asset_url() {
 }
 
 function is_zfs_loaded() {
-  lsmod | grep "^zfs " >/dev/null 2>&1
+  # Check for ZFS as a loadable module
+  if lsmod | grep "^zfs " >/dev/null 2>&1; then
+    return 0
+  fi
+  
+  # Check for ZFS built into the kernel (no modules needed)
+  if grep -q "^nodev.*zfs" /proc/filesystems 2>/dev/null; then
+    return 0
+  fi
+  
+  return 1
 }
 
 function get_running_zfs_version() {
-  cat /sys/module/zfs/version 2>/dev/null
+  # Try to get version from module info first
+  if [ -f /sys/module/zfs/version ]; then
+    cat /sys/module/zfs/version 2>/dev/null
+    return
+  fi
+  
+  # For built-in ZFS, try to get version from zfs command
+  if command -v zfs >/dev/null 2>&1; then
+    zfs version 2>/dev/null | grep zfs- | head -n1 | cut -d- -f2
+    return
+  fi
+  
+  # Fallback - no version available
+  echo "unknown"
 }
 
 function get_filesystem_zfs_version() {
@@ -57,6 +85,14 @@ function get_filesystem_zfs_version() {
 
 function load_zfs_module() {
   local directory=$1
+  
+  # First check if ZFS is already built into the kernel
+  if grep -q "^nodev.*zfs" /proc/filesystems 2>/dev/null; then
+    echo "ZFS is built into the kernel - no module loading needed"
+    return 0
+  fi
+  
+  # Try to load ZFS as a module
   depmod -b $directory >/dev/null 2>&1
   modprobe -d $directory zfs >/dev/null 2>&1
 }
@@ -204,10 +240,25 @@ function compile_and_load_zfs() {
     -e ZFS_VERSION=zfs-$(get_zfs_build_version) \
     -e ZFS_CONFIG=kernel titandata/zfs-builder:latest || log_error "ZFS build failed"
   log_end
-  if ! load_zfs_module $dstdir; then
-    log_error "Failed to load compiled modules"
+  
+  # Check if modules were actually built (not the case for built-in ZFS)
+  if [ -f "$dstdir/lib/modules/$(uname -r)/extra/zfs/zfs.ko" ]; then
+    # Modules were built, try to load them
+    if ! load_zfs_module $dstdir; then
+      log_error "Failed to load compiled modules"
+    fi
+    echo $dstdir > $install_dir/installed_zfs
+  else
+    # No modules were built, assume ZFS is built into kernel
+    echo "No kernel modules found - ZFS appears to be built into kernel"
+    # Check if ZFS is actually available in the kernel
+    if is_zfs_loaded; then
+      echo "Built-in ZFS detected and working"
+      echo "builtin" > $install_dir/installed_zfs
+    else
+      log_error "Expected built-in ZFS but it's not available"
+    fi
   fi
-  echo $dstdir > $install_dir/installed_zfs
 }
 
 function check_zfs() {
