@@ -235,13 +235,25 @@ function compile_and_load_zfs() {
   local install_dir=$2
   log_start "Building ZFS kernel modules (this could take 30 minutes, submit a request for $(uname -r) prebuilt binaries)"
   mkdir -p $dstdir
+  
+  # First check if ZFS is built into the kernel
+  if grep -q "^nodev.*zfs" /proc/filesystems 2>/dev/null; then
+    echo "ZFS is built into the kernel - no module compilation needed"
+    echo "Built-in ZFS detected and working"
+    mkdir -p $install_dir
+    echo "builtin" > $install_dir/installed_zfs
+    log_end
+    return 0
+  fi
+  
+  # If not built-in, try to build modules
   docker run --rm -v $dstdir:/build \
     -v /var/run/docker.sock:/var/run/docker.sock \
     -e ZFS_VERSION=zfs-$(get_zfs_build_version) \
     -e ZFS_CONFIG=kernel titandata/zfs-builder:latest || log_error "ZFS build failed"
   log_end
   
-  # Check if modules were actually built (not the case for built-in ZFS)
+  # Check if modules were actually built
   if [ -f "$dstdir/lib/modules/$(uname -r)/extra/zfs/zfs.ko" ]; then
     # Modules were built, try to load them
     if ! load_zfs_module $dstdir; then
@@ -249,15 +261,7 @@ function compile_and_load_zfs() {
     fi
     echo $dstdir > $install_dir/installed_zfs
   else
-    # No modules were built, assume ZFS is built into kernel
-    echo "No kernel modules found - ZFS appears to be built into kernel"
-    # Check if ZFS is actually available in the kernel
-    if is_zfs_loaded; then
-      echo "Built-in ZFS detected and working"
-      echo "builtin" > $install_dir/installed_zfs
-    else
-      log_error "Expected built-in ZFS but it's not available"
-    fi
+    log_error "No ZFS modules found and ZFS not built into kernel"
   fi
 }
 

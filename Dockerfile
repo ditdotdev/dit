@@ -8,7 +8,8 @@ RUN apt-get update && \
         zfsutils-linux libzfs4linux zfs-zed \
         curl wget jq docker.io util-linux kmod \
         postgresql postgresql-contrib \
-        openjdk-11-jre-headless && \
+        openjdk-11-jre-headless \
+        socat && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/* && \
     # Create symlink for PostgreSQL compatibility (Titan expects v12, Ubuntu 22.04 has v14)

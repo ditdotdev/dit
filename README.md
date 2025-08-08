@@ -20,6 +20,23 @@ Titan is distributed as a binary with accompanying docker image. Install Titan b
 titan install
 ```
 
+## <a id="development"></a> Development and Testing
+
+### Clean Slate Testing
+
+For comprehensive testing of the Titan system, including automated environment setup and troubleshooting tools, see the [`cleanslate`](cleanslate/) folder which contains:
+
+- Complete automation scripts for clean slate testing
+- Docker troubleshooting and diagnostic tools  
+- ZFS pool management utilities
+- Detailed testing documentation
+
+Quick start for developers:
+```powershell
+cd cleanslate
+.\clean-slate-automation.ps1 -Verbose
+```
+
 ## <a id="contribute"></a>Contributing
 
 This project follows the Titan community best practices:
