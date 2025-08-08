@@ -29,12 +29,17 @@ func Install(latest string, registry string, verbose bool, port int, context str
 	docker.Version()
 
 	if !docker.TitanLatestIsDownloaded(registry, app.Version{}.FromString(latest)) {
+		var pullRegistry = registry
+		if registry == "local" {
+			// If local registry specified but no local image, fall back to titandata
+			pullRegistry = "titandata"
+		}
 		s.Prefix = "Pulling titan docker image (may take a while) "
 		s.FinalMSG = "Latest docker image downloaded"
 		s.Start()
-		docker.Pull(registry + "/titan:" + latest)
-		docker.Tag(registry + "/titan:" + latest, "titan:" + latest)
-		docker.Tag(registry + "/titan:" + latest, "titan")
+		docker.Pull(pullRegistry + "/titan:" + latest)
+		docker.Tag(pullRegistry + "/titan:" + latest, "titan:" + latest)
+		docker.Tag(pullRegistry + "/titan:" + latest, "titan")
 		s.Stop()
 		fmt.Println()
 	}

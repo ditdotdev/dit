@@ -7,18 +7,88 @@ param(
     [switch]$VerifyDocker = $false
 )
 
+# Function to ensure Docker is running
+function Ensure-DockerRunning {
+    Write-Host "Checking Docker status..." -ForegroundColor Cyan
+    
+    # First, try to connect to Docker
+    try {
+        $dockerVersion = docker version --format json 2>$null | ConvertFrom-Json
+        if ($dockerVersion -and $dockerVersion.Server) {
+            Write-Host "✓ Docker is running - Client: $($dockerVersion.Client.Version), Server: $($dockerVersion.Server.Version)" -ForegroundColor Green
+            return $true
+        }
+    } catch {
+        # Docker command failed, continue to startup logic
+    }
+    
+    Write-Host "Docker is not running. Attempting to start Docker Desktop..." -ForegroundColor Yellow
+    
+    # Check if Docker Desktop process is running
+    $dockerProcess = Get-Process -Name "Docker Desktop" -ErrorAction SilentlyContinue
+    if (-not $dockerProcess) {
+        # Start Docker Desktop
+        Write-Host "Starting Docker Desktop..." -ForegroundColor Yellow
+        try {
+            $dockerPath = "C:\Program Files\Docker\Docker\Docker Desktop.exe"
+            if (Test-Path $dockerPath) {
+                Start-Process $dockerPath -WindowStyle Hidden
+                Write-Host "Docker Desktop started. Waiting for initialization..." -ForegroundColor Yellow
+            } else {
+                Write-Error "Docker Desktop not found at expected location: $dockerPath"
+                Write-Host "Please install Docker Desktop or start it manually." -ForegroundColor Red
+                return $false
+            }
+        } catch {
+            Write-Error "Failed to start Docker Desktop: $($_.Exception.Message)"
+            return $false
+        }
+    } else {
+        Write-Host "Docker Desktop process is running but daemon is not ready. Waiting..." -ForegroundColor Yellow
+    }
+    
+    # Wait for Docker daemon to be ready (up to 60 seconds)
+    $timeout = 60
+    $elapsed = 0
+    $interval = 5
+    
+    Write-Host "Waiting for Docker daemon to be ready..." -ForegroundColor Yellow
+    while ($elapsed -lt $timeout) {
+        Start-Sleep $interval
+        $elapsed += $interval
+        
+        try {
+            $dockerVersion = docker version --format json 2>$null | ConvertFrom-Json
+            if ($dockerVersion -and $dockerVersion.Server) {
+                Write-Host "✓ Docker is now ready - Client: $($dockerVersion.Client.Version), Server: $($dockerVersion.Server.Version)" -ForegroundColor Green
+                return $true
+            }
+        } catch {
+            # Continue waiting
+        }
+        
+        Write-Host "Still waiting... ($elapsed/$timeout seconds)" -ForegroundColor Gray
+    }
+    
+    Write-Error "Docker failed to start within $timeout seconds. Please check Docker Desktop manually."
+    return $false
+}
+
 Write-Host "Setting up ZFS pools for Titan..." -ForegroundColor Green
 
-# Optional Docker verification
+# Always ensure Docker is running
+if (-not (Ensure-DockerRunning)) {
+    Write-Error "Cannot proceed without Docker. Please ensure Docker Desktop is installed and can start."
+    exit 1
+}
+
+# Optional additional Docker verification
 if ($VerifyDocker) {
-    Write-Host "Verifying Docker environment..." -ForegroundColor Cyan
+    Write-Host "Performing additional Docker environment verification..." -ForegroundColor Cyan
     try {
-        $dockerVersion = docker version --format json | ConvertFrom-Json
-        Write-Host "✓ Docker is accessible - Client: $($dockerVersion.Client.Version)" -ForegroundColor Green
-        
         # Check for potential container conflicts
         $existingContainers = docker ps -a --format "{{.Names}}"
-        $potentialConflicts = @("testpostgres", "testredis", "testhello")
+        $potentialConflicts = @("testpostgres", "testredis", "testhello", "cleanslatetest", "pgtest")
         foreach ($name in $potentialConflicts) {
             if ($existingContainers -contains $name) {
                 Write-Host "⚠ Found existing container: $name" -ForegroundColor Yellow
@@ -26,15 +96,14 @@ if ($VerifyDocker) {
             }
         }
     } catch {
-        Write-Error "Docker is not accessible. Please ensure Docker Desktop is running."
-        exit 1
+        Write-Warning "Could not check for container conflicts: $($_.Exception.Message)"
     }
 }
 
 if ($Clean) {
     Write-Host "Clean slate requested - removing existing ZFS pools..." -ForegroundColor Yellow
     
-    # Remove existing pools
+    # Remove existing pools (ignore errors if pools don't exist)
     Write-Host "Destroying existing ZFS pools..."
     wsl sudo zpool destroy titan-docker 2>$null
     wsl sudo zpool destroy titan 2>$null

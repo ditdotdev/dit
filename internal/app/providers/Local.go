@@ -66,8 +66,15 @@ func (l local) Delete(repo string, commit string, tags []string) {
 }
 
 func (l local) Install(properties []string, verbose bool) {
-	//TODO review properties
-	lcl.Install(l.titanServerVersion, l.dockerRegistryUrl, verbose, l.portNum, l.contextName)
+	registry := l.dockerRegistryUrl // default
+	// Parse properties to override registry if specified
+	for _, prop := range properties {
+		if strings.HasPrefix(prop, "registry=") {
+			registry = strings.TrimPrefix(prop, "registry=")
+			break
+		}
+	}
+	lcl.Install(l.titanServerVersion, registry, verbose, l.portNum, l.contextName)
 }
 
 func (l local) List(context string) {

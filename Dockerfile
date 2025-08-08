@@ -18,8 +18,11 @@ RUN apt-get update && \
 # Copy titan binaries and scripts from the original image
 COPY --from=titan:latest /titan /titan
 
-# Copy our custom ZFS compatibility script
-COPY custom-zfs.sh /titan/zfs.sh
+# Remove the old zfs.sh file to ensure clean replacement
+RUN rm -f /titan/zfs.sh
+
+# Copy the canonical ZFS compatibility script from zfs-builder
+COPY --from=titandata/zfs-builder:latest /custom-zfs.sh /titan/zfs.sh
 
 # Make sure the script is executable
 RUN chmod +x /titan/zfs.sh

@@ -24,14 +24,34 @@ function Write-Status {
 # Check Docker daemon status
 Write-Status "Checking Docker daemon status..."
 try {
-    $dockerVersion = docker version --format json | ConvertFrom-Json
-    Write-Status "Docker daemon is running - Client: $($dockerVersion.Client.Version), Server: $($dockerVersion.Server.Version)" "OK"
+    $dockerVersion = docker version --format json 2>$null | ConvertFrom-Json
+    if ($dockerVersion -and $dockerVersion.Server) {
+        Write-Status "Docker daemon is running - Client: $($dockerVersion.Client.Version), Server: $($dockerVersion.Server.Version)" "OK"
+    } else {
+        throw "Docker server not responding"
+    }
 } catch {
     Write-Status "Docker daemon is not accessible!" "ERROR"
     if ($Fix) {
-        Write-Status "Attempting to restart Docker service..."
-        Restart-Service -Name docker -Force
-        Start-Sleep 10
+        Write-Status "Attempting to start Docker Desktop..."
+        try {
+            $dockerPath = "C:\Program Files\Docker\Docker\Docker Desktop.exe"
+            if (Test-Path $dockerPath) {
+                $dockerProcess = Get-Process -Name "Docker Desktop" -ErrorAction SilentlyContinue
+                if (-not $dockerProcess) {
+                    Start-Process $dockerPath -WindowStyle Hidden
+                    Write-Status "Docker Desktop started. Please wait a moment and try again."
+                } else {
+                    Write-Status "Docker Desktop is running but daemon not ready. Please wait and try again."
+                }
+            } else {
+                Write-Status "Docker Desktop not found. Please install Docker Desktop."
+            }
+        } catch {
+            Write-Status "Failed to start Docker Desktop: $($_.Exception.Message)" "ERROR"
+        }
+    } else {
+        Write-Status "Use -Fix parameter to attempt Docker startup"
     }
     exit 1
 }

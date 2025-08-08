@@ -45,11 +45,13 @@ cd cleanslate
 
 Before running these scripts, ensure you have:
 - Windows Subsystem for Linux 2 (WSL2) installed and running
-- Docker Desktop installed and running
+- Docker Desktop installed (scripts will automatically start it if not running)
 - PowerShell 5.1 or higher
 - Administrative privileges for ZFS operations
 - Custom ZFS-enabled WSL2 kernel
 - Git repositories: `titan` and `zfs-builder`
+
+> **Note**: The scripts now automatically detect and start Docker Desktop if it's not running, so you don't need to manually start Docker before running the clean slate tests.
 
 ## Key Fixes Implemented
 
@@ -58,6 +60,7 @@ Before running these scripts, ensure you have:
 - **Error Diagnostics**: Created comprehensive troubleshooting tools for Docker execution issues
 - **Process Automation**: Complete clean slate process can now be run with a single command
 - **Docker Execution**: Fixed "exit status 127" during container creation by adding socat package to Dockerfile - volume driver now works correctly for all container types including PostgreSQL
+- **Docker Auto-Start**: Scripts automatically detect and start Docker Desktop if not running, eliminating manual startup requirements
 
 ## Overview
 
@@ -220,7 +223,7 @@ docker exec titan-docker-launch docker exec pgtest psql -U postgres -c "INSERT I
 
 #### Docker Desktop Not Running
 **Issue**: "Cannot connect to the Docker daemon"
-**Solution**: Ensure Docker Desktop is running and WSL2 integration is enabled
+**Solution**: Scripts automatically detect and start Docker Desktop. If manual intervention is needed, ensure Docker Desktop is installed and WSL2 integration is enabled. Use `.\troubleshoot-docker.ps1 -Fix` for automatic startup.
 
 ### Diagnostic Commands
 

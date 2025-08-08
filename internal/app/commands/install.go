@@ -26,14 +26,15 @@ var installCmd = &cobra.Command{
 	Short: "Install titan infrastructure",
 
 	Run: func(cmd *cobra.Command, args []string) {
+		registry, _ := cmd.Flags().GetString("registry")
 		provider = providers.Create(context, contextType, providers.GetAvailablePort())
-		provider.Install(nil, verbose) //TODO get properties
+		provider.Install([]string{"registry=" + registry}, verbose)
 		providers.AddProvider(provider)
 	},
 }
 
 func init() {
 	rootCmd.AddCommand(installCmd)
-	installCmd.LocalFlags().String("registry","titandata", "Registry URL for titan docker image, defaults to titandata")
+	installCmd.Flags().String("registry","titandata", "Registry URL for titan docker image, defaults to titandata")
 	installCmd.Flags().BoolVarP(&verbose, "verbose", "v", false, "Verbose output of Titan Server installation steps.")
 }

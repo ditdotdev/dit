@@ -170,6 +170,16 @@ func (d docker) FetchLogs (container string) []string  {
 }
 
 func (d docker) TitanLatestIsDownloaded(registry string, latest app.Version) bool {
+	// If registry is "local", check for local titan:latest first
+	if registry == "local" {
+		localOut, _ := ce.Exec("docker", "images", "titan", "--format", `"{{.Repository}}:{{.Tag}}"`)
+		if strings.Contains(localOut, "titan:latest") {
+			return true // Use local titan:latest image
+		}
+		// If no local image found, fall back to checking titandata registry
+		registry = "titandata"
+	}
+	
 	out, _ := ce.Exec("docker", "images", registry + "/titan", "--format", `"{{.Tag}}"`)
 	tags := strings.Split(string(out), EOL)
 	for _, item := range tags {
