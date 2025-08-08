@@ -1,3 +1,5 @@
+# Used to create titan:latest. Until we update Docker Hub, use this locally to build titan:latest container.
+
 FROM ubuntu:22.04
 
 # Install required packages and ZFS 2.1.x userspace tools
