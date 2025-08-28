@@ -6,7 +6,7 @@ toolchain go1.24.5
 
 require (
 	github.com/antihax/optional v1.0.0
-	github.com/briandowns/spinner v1.23.0
+	github.com/briandowns/spinner v1.23.2
 	github.com/buger/jsonparser v1.1.1
 	github.com/datadatdat/nop-remote-go v0.2.2
 	github.com/datadatdat/remote-sdk-go v0.2.4
