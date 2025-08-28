@@ -1,5 +1,5 @@
 #!/bin/bash
-# Build script to create the missing titandata/docker-desktop-zfs-kernel:4.9.184 image
+# Build script to create the missing datadatdat/docker-desktop-zfs-kernel:4.9.184 image
 
 set -e
 
@@ -52,7 +52,7 @@ RUN chmod +x /install-zfs.sh
 CMD ["/install-zfs.sh"]
 EOF
 
-docker build -t "titandata/docker-desktop-zfs-kernel:${KERNEL_VERSION%%-*}" -f kernel.dockerfile .
+docker build -t "datadatdat/docker-desktop-zfs-kernel:${KERNEL_VERSION%%-*}" -f kernel.dockerfile .
 
-echo "Built image: titandata/docker-desktop-zfs-kernel:${KERNEL_VERSION%%-*}"
-echo "You can now test with: docker run --privileged --rm titandata/docker-desktop-zfs-kernel:${KERNEL_VERSION%%-*}"
+echo "Built image: datadatdat/docker-desktop-zfs-kernel:${KERNEL_VERSION%%-*}"
+echo "You can now test with: docker run --privileged --rm datadatdat/docker-desktop-zfs-kernel:${KERNEL_VERSION%%-*}"

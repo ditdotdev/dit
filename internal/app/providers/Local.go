@@ -155,6 +155,6 @@ func Local(contextName string, host string, port int) Provider {
 		host:               host,
 		portNum:            port,
 		titanServerVersion: "0.8.7",
-		dockerRegistryUrl:  "titandata",
+		dockerRegistryUrl:  "datadatdat",
 	}
 }
