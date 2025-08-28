@@ -140,6 +140,6 @@ func Kubernetes(contextName string, host string, port int) Provider {
 		host:host,
 		portNum:port,
 		titanServerVersion: "0.8.1",
-		dockerRegistryUrl: "titandata",
+		dockerRegistryUrl: "datadatdat",
 	}
 }

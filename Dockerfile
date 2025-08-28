@@ -22,7 +22,7 @@ COPY --from=titan:latest /titan /titan
 RUN rm -f /titan/zfs.sh
 
 # Copy the canonical ZFS compatibility script from zfs-builder
-COPY --from=titandata/zfs-builder:latest /custom-zfs.sh /titan/zfs.sh
+COPY --from=datadatdat/zfs-builder:latest /custom-zfs.sh /titan/zfs.sh
 
 # Make sure the script is executable
 RUN chmod +x /titan/zfs.sh

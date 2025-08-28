@@ -52,7 +52,7 @@ func zfsInstalled() bool {
 
 func installZFS(tag string) {
 	fmt.Println("Installing ZFS for Docker Desktop")
-	out, err := ce.Exec("docker", "run", "--privileged", "--rm", "titandata/docker-desktop-zfs-kernel:" + tag)
+	out, err := ce.Exec("docker", "run", "--privileged", "--rm", "datadatdat/docker-desktop-zfs-kernel:" + tag)
 	if err != nil {
 		if strings.Contains(out, "manifest unknown") {
 			fmt.Println("Pre-built ZFS kernel modules not available for kernel version " + tag)
@@ -75,7 +75,7 @@ func buildZFSFromSource(tag string) {
 		"-v", "/var/run/docker.sock:/var/run/docker.sock",
 		"-e", "ZFS_VERSION=zfs-0.8.2",
 		"-e", "ZFS_CONFIG=kernel",
-		"titandata/zfs-builder:latest",
+		"datadatdat/zfs-builder:latest",
 	}
 	
 	out, err := ce.Exec("docker", buildArgs...)

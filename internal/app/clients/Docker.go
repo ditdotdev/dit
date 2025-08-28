@@ -176,8 +176,8 @@ func (d docker) TitanLatestIsDownloaded(registry string, latest app.Version) boo
 		if strings.Contains(localOut, "titan:latest") {
 			return true // Use local titan:latest image
 		}
-		// If no local image found, fall back to checking titandata registry
-		registry = "titandata"
+		// If no local image found, fall back to checking datadatdat registry
+		registry = "datadatdat"
 	}
 	
 	out, _ := ce.Exec("docker", "images", registry + "/titan", "--format", `"{{.Tag}}"`)

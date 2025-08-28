@@ -57,8 +57,8 @@ test-db-matrix:
 	$(VEXRUN) -f $(PWD)/tests/endtoend/db-matrix/databases.yml
 
 test-docker-context:
-	docker pull titandata/nginx-test
-	docker tag titandata/nginx-test nginx-test
+	docker pull datadatdat/nginx-test
+	docker tag datadatdat/nginx-test nginx-test
 	$(VEXRUN) -d $(PWD)/tests/endtoend/context/docker
 
 test-s3-workflow:

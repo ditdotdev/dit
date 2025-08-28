@@ -106,8 +106,8 @@ if (-not $SkipBuild) {
     
     Write-Step "Removing outdated containers from Docker Hub..."
     # Only remove docker hub versions, not our local ones
-    docker rmi titandata/titan:latest 2>$null | Out-Null
-    # Don't remove titan:latest or titandata/zfs-builder:latest as they might be our fixed versions
+    docker rmi datadatdat/titan:latest 2>$null | Out-Null
+    # Don't remove titan:latest or datadatdat/zfs-builder:latest as they might be our fixed versions
     
     Write-Step "Building updated ZFS builder container from local repo..."
     Push-Location ..\..\zfs-builder
@@ -118,9 +118,9 @@ if (-not $SkipBuild) {
     }
     
     # Check if we need to rebuild zfs-builder
-    $zfsBuilderExists = docker images titandata/zfs-builder:latest --format "{{.Repository}}" 2>$null
+    $zfsBuilderExists = docker images datadatdat/zfs-builder:latest --format "{{.Repository}}" 2>$null
     if (-not $zfsBuilderExists -or $ForceRebuild) {
-        docker build -t titandata/zfs-builder:latest . --no-cache
+        docker build -t datadatdat/zfs-builder:latest . --no-cache
         if ($LASTEXITCODE -ne 0) {
             Write-Step "ZFS builder build failed!" "ERROR"
             Pop-Location
@@ -144,8 +144,8 @@ if (-not $SkipBuild) {
     $titanExists = docker images titan:latest --format "{{.Repository}}" 2>$null
     if (-not $titanExists) {
         Write-Step "Pulling base titan image for multi-stage build..."
-        docker pull titandata/titan:latest
-        docker tag titandata/titan:latest titan:latest
+        docker pull datadatdat/titan:latest
+        docker tag datadatdat/titan:latest titan:latest
     } else {
         Write-Step "Using existing titan:latest image for multi-stage build..."
     }
@@ -160,8 +160,8 @@ if (-not $SkipBuild) {
     }
     Write-Step "Custom Titan container built successfully" "OK"
     
-    # Also tag as titandata/titan to override Docker Hub version
-    docker tag titan:latest titandata/titan:latest
+    # Also tag as datadatdat/titan to override Docker Hub version
+    docker tag titan:latest datadatdat/titan:latest
     Pop-Location
     
     Write-Step "Container rebuilding completed successfully" "OK"
