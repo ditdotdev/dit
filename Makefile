@@ -39,7 +39,7 @@ unlink:
 	rm  $(TITAN_BIN)
 
 test-setup:
-	curl -Ls https://github.com/mcred/vexrun/releases/download/v0.0.5/vexrun-0.0.5.jar -z $(VEXRUN_FILE) -o $(VEXRUN_FILE)
+	curl -Ls https://github.com/datadatdat/vexrun/releases/download/v0.0.5/vexrun-0.0.5.jar -z $(VEXRUN_FILE) -o $(VEXRUN_FILE)
 
 test-install:
 	$(VEXRUN) -f $(PWD)/tests/endtoend/infrastructure/Install.yml

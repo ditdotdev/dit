@@ -6,11 +6,11 @@ tests:
   - "titan server is not running":
       command: docker inspect --type container --format='{{.State.Status}}' titan-docker-server
       exitValue: 1
-      stderr: "Error: No such container: titan-docker-server"
+      stderr: "Error response from daemon: No such container: titan-docker-server"
   - "titan launch is not running":
       command: docker inspect --type container --format='{{.State.Status}}' titan-docker-launch
       exitValue: 1
-      stderr: "Error: No such container: titan-docker-launch"
+      stderr: "Error response from daemon: No such container: titan-docker-launch"
   - "titan docker images not removed":
       command: docker inspect --type image --format='{{.RepoTags}}' titan:latest
       stdout:
