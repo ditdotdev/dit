@@ -124,5 +124,39 @@ If issues arise, revert to previous working state:
 3. Use original `titandata` images until fixes are validated
 
 ---
+
+## Next Priority: End-to-End Test Failures 🚧
+
+### Current Status
+- ✅ **Infrastructure Tests PASSED** - Registry migration and ZFS WSL2 fixes working perfectly
+- ✅ `can install titan: PASSED`
+- ✅ `titan server is running: PASSED` 
+- ✅ `titan launch is running: PASSED`
+
+### Issues to Address
+
+#### 1. **PostgreSQL Demo Data Corruption** (High Priority)
+- **Problem**: `titan clone s3web://demo.titan-data.io/hello-world/postgres` fails with schema error
+- **Error**: `ERROR: column "timestamp" is of type timestamp without time zone but expression is of type character varying`
+- **Root Cause**: Remote demo data at `s3web://demo.titan-data.io/hello-world/postgres` has corrupted/incompatible SQL
+- **Impact**: Breaks `can clone hello-world/postgres` and `can get contents of hello-world/postgres` tests
+- **Solution Needed**: 
+  - Create new clean hello-world/postgres demo data
+  - Should contain simple `messages` table with `Hello, World!` data
+  - Pattern based on DynamoDB demo: `CREATE TABLE messages (message TEXT); INSERT INTO messages VALUES ('Hello, World!');`
+
+#### 2. **MongoDB Checkout Test Logic** (Medium Priority)  
+- **Problem**: `mongo-test checkout was successful` test fails
+- **Error**: After `titan checkout`, both Ada Lovelace and Grace Hopper records present, but test expects Grace to be missing
+- **Root Cause**: Either `titan checkout` not working properly, or test assertion logic incorrect
+- **Impact**: False negative test failure
+- **Investigation Needed**: Verify if checkout functionality or test expectations are wrong
+
+### Next Steps 📋
+1. **Fix PostgreSQL Demo Data** - Create clean hello-world/postgres dataset
+2. **Debug MongoDB Checkout** - Verify titan checkout functionality  
+3. **Re-run Tests** - Validate all e2e tests pass after fixes
+
+---
 **Last Updated**: September 12, 2025  
-**Status**: Ready for complete e2e testing and validation
+**Status**: Infrastructure migration complete ✅ - Application test fixes needed ⚠️
