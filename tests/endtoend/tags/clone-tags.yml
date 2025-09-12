@@ -22,7 +22,7 @@ tests:
                 delimiter: " "
                 position: 1
   - "can add s3 remote":
-      command: titan remote add s3://titan-data-testdata/e2etest postgres
+      command: titan remote add s3://datadatdat-testdata/e2etest postgres
   - "can push tag=two":
       command: titan push -t tag=two postgres
   - "commit two exists in remote":
@@ -46,7 +46,7 @@ tests:
   - "can remove postgres":
       command: titan rm -f postgres
   - "can clone tag=one":
-      command: titan clone -n postgres s3://titan-data-testdata/e2etest?tag=tag=one
+      command: titan clone -n postgres s3://datadatdat-testdata/e2etest?tag=tag=one
   - "commit one exists locally":
       command: titan log postgres
       stdout:
@@ -57,7 +57,7 @@ tests:
   - "can remove cloned postgres":
       command: titan rm -f postgres
   - "clone of non-existent tag fails":
-      command: titan clone -n postgres2 s3://titan-data-testdata/e2etest?tag=tag=three
+      command: titan clone -n postgres2 s3://datadatdat-testdata/e2etest?tag=tag=three
       exitValue: 1
   - "can cleanup S3 assets":
-      command: aws s3 rm s3://titan-data-testdata/e2etest --recursive
+      command: aws s3 rm s3://datadatdat-testdata/e2etest --recursive

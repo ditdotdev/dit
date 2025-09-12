@@ -115,9 +115,9 @@ tests:
   - "create new directory in ssh server":
       command: docker exec sshHost mkdir -p /sshtest
   - "add private ssh key to ssh server":
-      command: [docker, exec, sshHost, sh, -c, cat sshKey.pub > /root/.ssh/authorized_keys]
+      command: [docker, exec, sshHost, sh, -c, "cat /workdir/tests/endtoend/remotes/ssh/sshKey.pub > /root/.ssh/authorized_keys"]
   - "add remote with ssh key succeeds":
-      command: [titan, remote, add, -p, keyFile=$PWD/sshKey, ssh://root@$SSH_HOST/sshtest, sshTest]
+      command: [titan, remote, add, -p, keyFile=$PWD/tests/endtoend/remotes/ssh/sshKey, ssh://root@$SSH_HOST/sshtest, sshTest]
       env:
         get:
           - PWD

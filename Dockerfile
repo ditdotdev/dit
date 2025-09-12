@@ -9,14 +9,14 @@ RUN apt-get update && \
         curl wget jq docker.io util-linux kmod \
         postgresql postgresql-contrib \
         openjdk-11-jre-headless \
-        socat && \
+        socat sshpass openssh-client rsync && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/* && \
     # Create symlink for PostgreSQL compatibility (Titan expects v12, Ubuntu 22.04 has v14)
     ln -sf /usr/lib/postgresql/14 /usr/lib/postgresql/12
 
 # Copy titan binaries and scripts from the original image
-COPY --from=titan:latest /titan /titan
+COPY --from=datadatdat/titan:latest /titan /titan
 
 # Remove the old zfs.sh file to ensure clean replacement
 RUN rm -f /titan/zfs.sh
