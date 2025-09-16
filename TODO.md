@@ -156,6 +156,10 @@ If issues arise, revert to previous working state:
 1. **Fix PostgreSQL Demo Data** - Create clean hello-world/postgres dataset
 2. **Debug MongoDB Checkout** - Verify titan checkout functionality  
 3. **Re-run Tests** - Validate all e2e tests pass after fixes
+4. **Update CDN Configuration** - Update `download.titan-data.io` CDN to point to `datadatdat` organization instead of `titan-data`
+   - Currently docker-volume-proxy downloads directly from S3: `https://datadatdat-maven.s3.amazonaws.com/titan-docker-proxy/docker-volume-proxy`
+   - Should be updated to use CDN: `https://download.titan-data.io/titan-docker-proxy/docker-volume-proxy`
+   - See `titan-server/server/docker/server.Dockerfile` for current S3 workaround
 
 ---
 **Last Updated**: September 12, 2025  
