@@ -75,7 +75,8 @@ func Run(container string, repository string, envVars []string, args []string, d
 	argList := []string{"-d", "--label", "io.titandata.titan"}
 	var metaVols []map[string]string
 	for i, path := range vols {
-		volName := containerName + "/v" + strconv.Itoa(i)
+		volumeName := "v" + strconv.Itoa(i)
+		volName := docker.FormatVolumeName(containerName, volumeName)
 		path := strings.Split(path, ":")[0]
 		path = strings.ReplaceAll(path, `"`, "")
 
@@ -84,7 +85,7 @@ func Run(container string, repository string, envVars []string, args []string, d
 		argList = append(argList, "--mount")
 		argList = append(argList, "type=volume,src="+volName+",dst="+path+",volume-driver=titan-"+docker.GetIdentity())
 		addVol := make(map[string]string)
-		addVol["name"] = "v" + strconv.Itoa(i)
+		addVol["name"] = volumeName
 		addVol["path"] = path
 		metaVols = append(metaVols, addVol)
 	}
@@ -104,8 +105,13 @@ func Run(container string, repository string, envVars []string, args []string, d
 	ports := docker.GetSliceFromImage(image + ":" + tag, "Config", "ExposedPorts")
 	for _, rawPort := range ports {
 		rawPort = strings.ReplaceAll(rawPort, `"`, "")
-		port := strings.Split(rawPort, "/")[0]
-		protocol := strings.Split(strings.Split(rawPort, "/")[1], ":")[0]
+		portParts := strings.Split(rawPort, "/")
+		if len(portParts) < 2 {
+			continue // Skip malformed port entries
+		}
+		port := portParts[0]
+		protocolPart := portParts[1]
+		protocol := strings.Split(protocolPart, ":")[0]
 		if !disablePortMap {
 			argList = append(argList, "-p")
 			argList = append(argList, port + ":" + port + "/" + protocol)
