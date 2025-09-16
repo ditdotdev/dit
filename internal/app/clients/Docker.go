@@ -16,6 +16,12 @@ type docker struct {
 	registry string
 }
 
+// FormatVolumeName creates a Docker-compatible volume name using underscores
+// Uses underscores for universal compatibility across all platforms
+func (d docker) FormatVolumeName(repoName, volumeName string) string {
+	return repoName + "_" + volumeName
+}
+
 func Docker(i string, p int) docker {
 	if i == "" {
 		i = "docker"
@@ -317,7 +323,7 @@ func (d docker) ListVolumes(repo string) []string {
 		vols := strings.Split(s, "\n")
 		vols = vols[:len(vols)-1]
 		for _, v := range vols {
-			if strings.Contains(v, repo + "/v") {
+			if strings.Contains(v, repo + "_v") {
 				r = append(r, v)
 			}
 		}

@@ -1,7 +1,20 @@
 ## End to End Tests
 
+### Prerequisites
+
+**Windows/WSL2 users**: Before running end-to-end tests, you must set up ZFS pools:
+
+```powershell
+cd cleanslate
+powershell -ExecutionPolicy Bypass -File setup-zfs-pools.ps1
 ```
-make test-e2e
+
+This creates the necessary ZFS infrastructure in WSL2 that Titan containers require. This step is only needed once per WSL2 environment.
+
+### Running Tests
+
+```
+make e2e
 ```
 
 ## Manual Install
