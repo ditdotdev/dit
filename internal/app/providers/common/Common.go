@@ -3,7 +3,7 @@ package common
 import (
 	"context"
 	"fmt"
-	client "github.com/titan-data/titan-client-go"
+	client "github.com/datadatdat/titan-client-go"
 	"os"
 	"strings"
 )

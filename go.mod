@@ -13,12 +13,12 @@ require (
 	github.com/mitchellh/go-testing-interface v1.0.0 // indirect
 	github.com/spf13/cobra v1.6.1
 	github.com/spf13/viper v1.15.0
-	github.com/datadatdat/nop-remote-go v0.2.1
-	github.com/datadatdat/remote-sdk-go v0.2.1
-	github.com/datadatdat/s3-remote-go v0.2.1
-	github.com/datadatdat/s3web-remote-go v0.2.0
-	github.com/datadatdat/ssh-remote-go v0.2.0
-	github.com/datadatdat/titan-client-go v0.1.1
+	github.com/datadatdat/nop-remote-go v0.2.2
+	github.com/datadatdat/remote-sdk-go v0.2.4
+	github.com/datadatdat/s3-remote-go v0.2.2
+	github.com/datadatdat/s3web-remote-go v0.2.1
+	github.com/datadatdat/ssh-remote-go v0.2.1
+	github.com/datadatdat/titan-client-go v0.1.2
 	k8s.io/api v0.20.1
 	k8s.io/apimachinery v0.20.1
 	k8s.io/client-go v0.20.1

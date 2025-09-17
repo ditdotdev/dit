@@ -4,7 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	titanclient "github.com/titan-data/titan-client-go"
+	titanclient "github.com/datadatdat/titan-client-go"
 	v1Apps "k8s.io/api/apps/v1"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
