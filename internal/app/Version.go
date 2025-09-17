@@ -1,6 +1,7 @@
 package app
 
 import (
+	"fmt"
 	"strconv"
 	"strings"
 )
@@ -13,6 +14,20 @@ type Version struct {
 
 func (Version) FromString(version string) Version {
 	v := strings.Split(version, ".")
+	fmt.Printf("DEBUG Version.FromString: version='%s', split result=%v, length=%d\n", version, v, len(v))
+	if len(v) < 3 {
+		// Handle malformed version strings gracefully
+		major, _ := strconv.Atoi(v[0])
+		minor := 0
+		micro := 0
+		if len(v) > 1 {
+			minor, _ = strconv.Atoi(v[1])
+		}
+		if len(v) > 2 {
+			micro, _ = strconv.Atoi(v[2])
+		}
+		return Version{major, minor, micro}
+	}
 	major, _ := strconv.Atoi(v[0])
 	minor, _ := strconv.Atoi(v[1])
 	micro, _ := strconv.Atoi(v[2])
