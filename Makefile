@@ -5,7 +5,15 @@ TITAN_BIN := /usr/local/bin/titan
 RELEASE_DIR := $(PWD)/release
 OS := "macos-latest"
 
-.PHONY: build release darwin-amd64 darwin-arm64 linux-amd64 linux-arm64 windows
+.PHONY: build release darwin-amd64 darwin-arm64 linux-amd64 linux-arm64 windows clean
+
+clean:
+	rm -rf $(RELEASE_DIR)
+	rm -rf $(PWD)/build
+	rm -f $(PWD)/titan.exe
+	rm -f $(PWD)/titan
+	go clean -cache -modcache -testcache
+	@echo "Cleaned all build artifacts and caches"
 
 windows:
 	GOOS=windows GOARCH=amd64 go build -o $(RELEASE_DIR)/windows/titan.exe $(PWD)/cmd/titan/titan.go
@@ -30,7 +38,9 @@ darwin-arm64:
 release: darwin-amd64 darwin-arm64 linux-amd64 linux-arm64 windows
 
 build:
+	@echo "Building titan..."
 	go build -o $(TITAN_TARGET) $(PWD)/cmd/titan/titan.go
+	@echo "Build complete: $(TITAN_TARGET)"
 
 link:
 	ln -s $(TITAN_TARGET) $(TITAN_BIN)
@@ -57,8 +67,8 @@ test-db-matrix:
 	$(VEXRUN) -f $(PWD)/tests/endtoend/db-matrix/databases.yml
 
 test-docker-context:
-	docker pull datadatdat/nginx-test
-	docker tag datadatdat/nginx-test nginx-test
+	docker pull datadatdat/nginx-test:latest
+	docker tag datadatdat/nginx-test:latest nginx-test
 	$(VEXRUN) -d $(PWD)/tests/endtoend/context/docker
 
 test-s3-workflow:
