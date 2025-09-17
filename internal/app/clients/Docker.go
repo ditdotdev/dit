@@ -13,6 +13,13 @@ const EOL  = "\n"
 type docker struct {
 	identity string
 	port int
+	registry string
+}
+
+// FormatVolumeName creates a Docker-compatible volume name using underscores
+// Uses underscores for universal compatibility across all platforms
+func (d docker) FormatVolumeName(repoName, volumeName string) string {
+	return repoName + "_" + volumeName
 }
 
 func Docker(i string, p int) docker {
@@ -22,7 +29,27 @@ func Docker(i string, p int) docker {
 	if p == 0 {
 		p = 5001
 	}
-	return docker{i, p}
+	return docker{i, p, "datadatdat"}
+}
+
+func DockerWithRegistry(i string, p int, r string) docker {
+	if i == "" {
+		i = "docker"
+	}
+	if p == 0 {
+		p = 5001
+	}
+	if r == "" {
+		r = "datadatdat"
+	}
+	return docker{i, p, r}
+}
+
+func (d docker) getImageName(image string) string {
+	if d.registry == "local" || strings.Contains(image, "/") {
+		return image
+	}
+	return d.registry + "/" + image
 }
 
 /**
@@ -208,17 +235,18 @@ func (d docker) TitanLaunchIsAvailable() (bool, error) {
 }
 
 func (d docker) LaunchTitanServers() (string, error) {
+	titanImage := d.getImageName("titan:latest")
 	args := d.getLocalLaunchArgs()
 	args = append(
 		args,
 		"-e",
 		"TITAN_PORT=" + strconv.Itoa(d.port),
 		"-e",
-		"TITAN_IMAGE=titan:latest",
+		"TITAN_IMAGE=" + titanImage,
 		"-e",
 		"TITAN_IDENTITY=titan-" + d.identity,
 	)
-	return d.Run("titan:latest", "/bin/bash /titan/launch", args)
+	return d.Run(titanImage, "/bin/bash /titan/launch", args)
 }
 
 func (d docker) getKubernetesLaunchArgs() []string {
@@ -237,12 +265,13 @@ func (d docker) getKubernetesLaunchArgs() []string {
 }
 
 func (d docker) LaunchTitanKubernetesServers() (string, error) {
+	titanImage := d.getImageName("titan:latest")
 	config := os.Getenv("TITAN_CONFIG")
 	args := d.getKubernetesLaunchArgs()
 	if config != "" {
 		args = append(args, "-e", "TITAN_CONFIG=" + config)
 	}
-	return d.Run("titan:latest", "/bin/bash /titan/run", args)
+	return d.Run(titanImage, "/bin/bash /titan/run", args)
 }
 
 func (d docker) FetchLaunchLogs() []string {
@@ -250,13 +279,14 @@ func (d docker) FetchLaunchLogs() []string {
 }
 
 func (d docker) TeardownTitanServers() (string, error) {
+	titanImage := d.getImageName("titan:latest")
 	args := d.getLocalLaunchArgs()
 	args = RemoveFromSlice(args,"-d")
 	args = RemoveFromSlice(args,"--restart")
 	args = RemoveFromSlice(args,"always")
 	args = RemoveFromSlice(args,"--name=titan-" + d.identity + "-launch")
 	args = append(args, "-e", "TITAN_IDENTITY=titan-" + d.identity, "--rm")
-	return d.Run("titan:latest", "/bin/bash /titan/teardown", args)
+	return d.Run(titanImage, "/bin/bash /titan/teardown", args)
 }
 
 func (d *docker) RemoveTitanImages(version string) (string, error) {
@@ -293,7 +323,7 @@ func (d docker) ListVolumes(repo string) []string {
 		vols := strings.Split(s, "\n")
 		vols = vols[:len(vols)-1]
 		for _, v := range vols {
-			if strings.Contains(v, repo + "/v") {
+			if strings.Contains(v, repo + "_v") {
 				r = append(r, v)
 			}
 		}

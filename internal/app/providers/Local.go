@@ -10,6 +10,7 @@ import (
 )
 
 var ce = utils.CommandExecutor(60, false)
+
 var user, _ = ce.Exec("git", "config", "user.name")
 var email, _ = ce.Exec("git", "config", "user.email")
 

@@ -3,7 +3,7 @@ package local
 import (
 	"encoding/json"
 	"fmt"
-	titanclient "github.com/titan-data/titan-client-go"
+	titanclient "github.com/datadatdat/titan-client-go"
 	"os"
 	"strconv"
 	"strings"
@@ -67,7 +67,7 @@ func Migrate(container string, name string, user string, email string, commit Co
 		path := strings.Split(p, ":")[0]
 		path = strings.ReplaceAll(path, `"`, "")
 		v := "v" + strconv.Itoa(i)
-		volName := name + "/" + v
+		volName := docker.FormatVolumeName(name, v)
 		fmt.Println("Creating docker volume " + volName + " with path " + path)
 		docker.CreateVolume(volName, path)
 		localSrc := getLocalSrcFromPath(path, mounts)

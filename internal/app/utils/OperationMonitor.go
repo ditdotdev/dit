@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/antihax/optional"
-	titanclient "github.com/titan-data/titan-client-go"
+	titanclient "github.com/datadatdat/titan-client-go"
 	"strconv"
 	"time"
 )

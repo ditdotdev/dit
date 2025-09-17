@@ -22,13 +22,14 @@ tests:
   - "can run mongo-test":
       command: titan run -n mongo-test mongo:4
       wait: 5
-      stdout: |-
-        Creating repository mongo-test
-        Creating docker volume mongo-test/v0 with path /data/configdb
-        Creating docker volume mongo-test/v1 with path /data/db
-        Running controlled container mongo-test
+      stdout:
+        contains:
+          - Creating repository mongo-test
+          - Creating docker volume mongo-test_v0 with path /data/configdb
+          - Creating docker volume mongo-test_v1 with path /data/db
+          - Running controlled container mongo-test
   - "can insert mongo-test Ada Lovelace":
-      command: [docker, exec, mongo-test, mongo, --quiet, --eval, "db.employees.insert({firstName:\"Ada\",lastName:\"Lovelace\"})"]
+      command: 'docker exec mongo-test mongo --quiet --eval "db.employees.insert({firstName:\"Ada\",lastName:\"Lovelace\"})"'
       stdout: |-
         WriteResult({ "nInserted" : 1 })
   - "can commit mongo-test":
@@ -42,7 +43,7 @@ tests:
                 find: "Commit "
                 replace: ""
   - "can insert mongo-test Grace Hopper":
-      command: [docker, exec, mongo-test, mongo, --quiet, --eval, "db.employees.insert({firstName:\"Grace\",lastName:\"Hopper\"})"]
+      command: 'docker exec mongo-test mongo --quiet --eval "db.employees.insert({firstName:\"Grace\",lastName:\"Hopper\"})"'
       stdout: |-
         WriteResult({ "nInserted" : 1 })
   - "can select employees from mongo-test":

@@ -2,7 +2,7 @@ package local
 
 import (
 	"fmt"
-	client "github.com/titan-data/titan-client-go"
+	client "github.com/datadatdat/titan-client-go"
 	"os"
 	"strconv"
 	"strings"
@@ -10,6 +10,7 @@ import (
 )
 
 func Run(container string, repository string, envVars []string, args []string, disablePortMap bool, createRepo bool, port int, context string) (string, error) {
+	fmt.Printf("DEBUG: Start of Run function, container=%s, repository=%s, args=%v\n", container, repository, args)
 	cfg.BasePath = "http://localhost:" + strconv.Itoa(port)
 	docker := clients.Docker(context, port)
 
@@ -38,8 +39,14 @@ func Run(container string, repository string, envVars []string, args []string, d
 	}
 
 	var tag string
+	fmt.Printf("DEBUG: About to parse container tag from: %s\n", container)
 	if strings.Contains(container, ":") {
-		tag = strings.Split(container, ":")[1]
+		containerParts := strings.Split(container, ":")
+		if len(containerParts) > 1 {
+			tag = containerParts[1]
+		} else {
+			tag = "latest"
+		}
 	} else {
 		tag = "latest"
 	}
@@ -54,6 +61,7 @@ func Run(container string, repository string, envVars []string, args []string, d
 		os.Exit(1)
 	}
  	vols := docker.GetSliceFromImage(image + ":" + tag, "Config", "Volumes")
+	fmt.Printf("DEBUG: Got vols from image %s:%s: %v (length: %d)\n", image, tag, vols, len(vols))
 	if len(vols) < 1 {
 		fmt.Println("No volumes found for image " + image)
 		os.Exit(1)
@@ -75,28 +83,51 @@ func Run(container string, repository string, envVars []string, args []string, d
 	argList := []string{"-d", "--label", "io.titandata.titan"}
 	var metaVols []map[string]string
 	for i, path := range vols {
-		volName := containerName + "/v" + strconv.Itoa(i)
+		volumeName := "v" + strconv.Itoa(i)
+		volName := docker.FormatVolumeName(containerName, volumeName)
 		path := strings.Split(path, ":")[0]
 		path = strings.ReplaceAll(path, `"`, "")
 
 		fmt.Println("Creating docker volume " + volName + " with path " + path)
-		docker.CreateVolume(volName, path)
-		argList = append(argList, "--mount")
-		argList = append(argList, "type=volume,src="+volName+",dst="+path+",volume-driver=titan-"+docker.GetIdentity())
+		fmt.Printf("DEBUG: About to call docker.CreateVolume(%s, %s)\n", volName, path)
+		result, err := docker.CreateVolume(volName, path)
+		fmt.Printf("DEBUG: CreateVolume result=%s, err=%v\n", result, err)
+		if err != nil {
+			fmt.Printf("DEBUG: CreateVolume failed: %v\n", err)
+			return "", err
+		}
+		argList = append(argList, "-v")
+		argList = append(argList, volName+":"+path)
 		addVol := make(map[string]string)
-		addVol["name"] = "v" + strconv.Itoa(i)
+		addVol["name"] = volumeName
 		addVol["path"] = path
 		metaVols = append(metaVols, addVol)
 	}
-	for i, n := range args{
-		if "--name" == n {
-			args = append(args[:i], args[i+2:]...)
-		}
-		if image + ":" + tag == n{
-			args = append(args[:i], args[i+1:]...)
+	// Filter out --name and image arguments from args
+	var filteredArgs []string
+	imageTag := image + ":" + tag
+	i := 0
+	for i < len(args) {
+		if args[i] == "--name" {
+			// Skip --name and the next argument
+			if i+1 < len(args) {
+				i += 2 // Skip both --name and its value
+			} else {
+				i += 1 // Just skip --name if no value follows
+			}
+		} else if args[i] == imageTag {
+			// Skip the image:tag argument
+			i += 1
+		} else {
+			// Keep this argument
+			filteredArgs = append(filteredArgs, args[i])
+			i += 1
 		}
 	}
-	argList = append(argList, args...)
+	argList = append(argList, filteredArgs...)
+	fmt.Printf("DEBUG: About to append --name and containerName\n")
+	fmt.Printf("DEBUG: argList before: %v\n", argList)
+	fmt.Printf("DEBUG: containerName: %s\n", containerName)
 	argList = append(argList,"--name")
 	argList = append(argList,containerName)
 
@@ -104,8 +135,13 @@ func Run(container string, repository string, envVars []string, args []string, d
 	ports := docker.GetSliceFromImage(image + ":" + tag, "Config", "ExposedPorts")
 	for _, rawPort := range ports {
 		rawPort = strings.ReplaceAll(rawPort, `"`, "")
-		port := strings.Split(rawPort, "/")[0]
-		protocol := strings.Split(strings.Split(rawPort, "/")[1], ":")[0]
+		portParts := strings.Split(rawPort, "/")
+		if len(portParts) < 2 {
+			continue // Skip malformed port entries
+		}
+		port := portParts[0]
+		protocolPart := portParts[1]
+		protocol := strings.Split(protocolPart, ":")[0]
 		if !disablePortMap {
 			argList = append(argList, "-p")
 			argList = append(argList, port + ":" + port + "/" + protocol)
@@ -126,7 +162,14 @@ func Run(container string, repository string, envVars []string, args []string, d
 	repoDigest = strings.ReplaceAll(repoDigest, "]", "")
 	repoDigest = strings.ReplaceAll(repoDigest, " ", "")
 	repoDigest = strings.ReplaceAll(repoDigest, `"`, "")
+	repoDigest = strings.ReplaceAll(repoDigest, "\n", "")
 	repoDigest = strings.TrimSpace(repoDigest)
+	
+	// If multiple digests are present (separated by commas), take the first one
+	if strings.Contains(repoDigest, ",") {
+		digestParts := strings.Split(repoDigest, ",")
+		repoDigest = strings.TrimSpace(digestParts[0])
+	}
 
 	var dockerRunCmd string
 	if len(repoDigest) == 0 {
