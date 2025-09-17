@@ -81,14 +81,25 @@ We have successfully migrated the Titan infrastructure from the `titan-data` Git
    # End-to-end tests ✅ PASSING
    cd /c/dev/titan && make e2e
    
-   # Unit tests - TBD
-   cd /c/dev/titan && go test ./...
+   # Unit tests - ⚠️ NO UNIT TESTS FOUND
+   cd /c/dev/titan && go test ./...  # Returns "no test files"
    
    # Integration tests - TBD 
    cd /c/dev/titan/tests/integration && make test
    ```
 
-4. **Fix Shell Tests** (Optional - functionality works)
+4. **Add Unit Test Coverage to Titan CLI** - NEW PRIORITY
+   - **Issue**: Titan CLI repository has no Go unit tests (*_test.go files)
+   - **Current State**: Only end-to-end tests exist and are passing
+   - **Need**: Add unit test coverage for core functionality:
+     - `internal/app/clients/` - Docker client functionality
+     - `internal/app/providers/` - Provider implementations
+     - `internal/app/commands/` - CLI command logic
+     - `internal/app/utils/` - Utility functions
+   - **Impact**: Medium - improves code quality and regression detection
+   - **Benefit**: Faster feedback than e2e tests, better code coverage
+
+5. **Fix Shell Tests** (Optional - functionality works)
    - Debug remaining test failures in `titan-server/src/scripts-test/test-zfs.sh`
    - Ensure all ZFS compatibility version tests pass
    - May need to update test environment or mock functions
@@ -137,6 +148,7 @@ We have successfully migrated the Titan infrastructure from the `titan-data` Git
 - [x] **Protobuf namespace conflicts resolved** ✅ COMPLETED
 - [x] **Titan CLI builds successfully** ✅ COMPLETED
 - [x] **End-to-end test suite passes** ✅ COMPLETED
+- [ ] **Unit test coverage added to Titan CLI** - NEW REQUIREMENT
 - [ ] Complete titan installation works in WSL2 without ZFS errors
 - [ ] All unit and integration tests pass
 - [ ] Docker images pull from `datadatdat` registry successfully
