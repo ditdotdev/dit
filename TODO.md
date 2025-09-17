@@ -1,11 +1,26 @@
-# Titan Project TODO - Docker Registry Migration & ZFS WSL2 Compatibility
+# Titan Project TODO - Dependency Migration & Infrastructure Updates
 
 ## Project Overview
-We are migrating the Titan infrastructure from the `titandata` Docker Hub organization to `datadatdat` and fixing ZFS kernel module loading issues in WSL2 environments.
+We have successfully migrated the Titan infrastructure from the `titan-data` GitHub organization to `datadatdat` for both Docker images and Go module dependencies, and fixed ZFS kernel module loading issues in WSL2 environments.
 
 ## Completed Work ✅
 
-### 1. Docker Registry Migration
+### 1. Go Module Dependency Migration (NEW - September 17, 2025)
+- **Complete Migration**: Successfully migrated all 6 Go dependencies from `github.com/titan-data/*` to `github.com/datadatdat/*`
+- **Repositories Updated**:
+  - `remote-sdk-go` → v0.2.4 (corrected module paths and internal imports)
+  - `s3-remote-go` → v0.2.2 (updated to use datadatdat/remote-sdk-go v0.2.4)  
+  - `ssh-remote-go` → v0.2.1 (updated to use datadatdat/remote-sdk-go v0.2.4)
+  - `nop-remote-go` → v0.2.2 (updated to use datadatdat/remote-sdk-go v0.2.4)
+  - `s3web-remote-go` → v0.2.1 (updated to use datadatdat/remote-sdk-go v0.2.4)
+  - `titan-client-go` → v0.1.2 (module path updated to datadatdat)
+- **Titan CLI Updated**: All go.mod dependencies and Go source import statements migrated
+- **Protobuf Conflict Resolution**: Fixed namespace conflicts by migrating all dependencies simultaneously
+- **Windows Compatibility**: Added titan.exe for proper Windows executable recognition
+- **Verification**: All builds successful with `make build` and e2e tests passing with `make e2e`
+- **Version Control**: All changes committed and pushed to datadatdat/titan repository
+
+### 2. Docker Registry Migration
 - **titan CLI**: Updated `internal/app/clients/Docker.go` with registry-aware Docker client
   - Added `DockerWithRegistry()` constructor
   - Added `getImageName()` method for registry prefixing
@@ -17,7 +32,7 @@ We are migrating the Titan infrastructure from the `titandata` Docker Hub organi
   - `datadatdat/zfs-builder:latest`
 - **Verification**: Confirmed images pull correctly from new registry via debug logging
 
-### 2. ZFS WSL2 Kernel Compatibility
+### 3. ZFS WSL2 Kernel Compatibility
 - **Root Cause**: WSL2 has ZFS compiled into kernel (built-in) rather than as loadable module
 - **Fix Applied**: Enhanced `titan-server/src/scripts/zfs.sh` `load_zfs_module()` function:
   ```bash
@@ -34,12 +49,16 @@ We are migrating the Titan infrastructure from the `titandata` Docker Hub organi
 ## Current Status 🚧
 
 ### Working Components
+- ✅ **Go module dependency migration complete and functional** (NEW)
+- ✅ All 6 dependencies successfully migrated to datadatdat organization  
+- ✅ Protobuf namespace conflicts resolved through simultaneous migration
 - ✅ Docker registry migration complete and functional
 - ✅ ZFS built-in kernel detection implemented 
 - ✅ Updated containers deployed to Docker Hub
 - ✅ Registry-aware titan CLI built and tested
 
 ### Known Issues
+- ✅ **Dependency migration complete** - No known issues with Go modules
 - ⚠️ Shell tests in titan-server failing (non-blocking - functional code works)
 - ⚠️ Need to test complete e2e flow with new images
 
@@ -92,11 +111,18 @@ We are migrating the Titan infrastructure from the `titandata` Docker Hub organi
 ## Technical Context 🔧
 
 ### Key Files Modified
-- `titan/internal/app/clients/Docker.go` - Registry-aware Docker client
-- `titan/internal/app/providers/local/Install.go` - Registry parameter support
-- `titan/internal/app/providers/Local.go` - Version management
-- `titan-server/src/scripts/zfs.sh` - ZFS built-in kernel detection
-- `titan/Dockerfile` - Updated to use `datadatdat` registry
+- **Go Module Migration (NEW)**:
+  - `titan/go.mod` - Updated all 6 dependencies to datadatdat organization
+  - `titan/go.sum` - Updated checksums for new dependency versions
+  - All Go source files (`internal/app/**/*.go`) - Updated import statements
+  - `titan.exe` - Added Windows executable for compatibility
+- **Docker Registry Migration**:
+  - `titan/internal/app/clients/Docker.go` - Registry-aware Docker client
+  - `titan/internal/app/providers/local/Install.go` - Registry parameter support
+  - `titan/internal/app/providers/Local.go` - Version management
+  - `titan/Dockerfile` - Updated to use `datadatdat` registry
+- **ZFS WSL2 Compatibility**:
+  - `titan-server/src/scripts/zfs.sh` - ZFS built-in kernel detection
 
 ### WSL2 ZFS Issue Details
 - **Problem**: `modprobe zfs` fails because ZFS is compiled into WSL2 kernel
@@ -111,6 +137,9 @@ We are migrating the Titan infrastructure from the `titandata` Docker Hub organi
 - **Backward Compatibility**: Default registry can be overridden via CLI flag
 
 ## Success Criteria 🎯
+- [x] **Go module dependencies migrated to datadatdat organization** (NEW)
+- [x] **All builds and e2e tests pass with new dependencies** (NEW)  
+- [x] **Protobuf namespace conflicts resolved** (NEW)
 - [ ] Complete titan installation works in WSL2 without ZFS errors
 - [ ] All unit, integration, and e2e tests pass
 - [ ] Docker images pull from `datadatdat` registry successfully
@@ -162,5 +191,5 @@ If issues arise, revert to previous working state:
    - See `titan-server/server/docker/server.Dockerfile` for current S3 workaround
 
 ---
-**Last Updated**: September 12, 2025  
-**Status**: Infrastructure migration complete ✅ - Application test fixes needed ⚠️
+**Last Updated**: September 17, 2025  
+**Status**: Infrastructure and dependency migration complete ✅ - Application test fixes needed ⚠️
