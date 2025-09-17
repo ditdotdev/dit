@@ -3,7 +3,7 @@ package local
 import (
 	"context"
 	"fmt"
-	client "github.com/titan-data/titan-client-go"
+	client "github.com/datadatdat/titan-client-go"
 	"os"
 	"strings"
 )
@@ -11,6 +11,10 @@ import (
 func init() {
 	_, d := os.LookupEnv("TITAN_DEBUG")
 	cfg.Debug = d
+	// Enable command executor debug mode if TITAN_DEBUG is set
+	if d {
+		ce.SetDebug(true)
+	}
 }
 
 var cfg = client.NewConfiguration()

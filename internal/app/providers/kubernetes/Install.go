@@ -25,9 +25,14 @@ func Install(latest string, registry string, verbose bool, port int, context str
 		s.Prefix = "Pulling titan docker image (may take a while) "
 		s.FinalMSG = "Latest docker image downloaded"
 		s.Start()
-		docker.Pull(registry + "/titan:" + latest)
-		docker.Tag(registry + "/titan:" + latest, "titan:" + latest)
-		docker.Tag(registry + "/titan:" + latest, "titan")
+		pullImage := registry + "/titan:" + latest
+		fmt.Printf("DEBUG: Pulling image: %s\n", pullImage)
+		docker.Pull(pullImage)
+		tagLatest := "titan:" + latest
+		fmt.Printf("DEBUG: Tagging %s as %s\n", pullImage, tagLatest)
+		docker.Tag(pullImage, tagLatest)
+		fmt.Printf("DEBUG: Tagging %s as titan\n", pullImage)
+		docker.Tag(pullImage, "titan")
 		s.Stop()
 		fmt.Println()
 	}

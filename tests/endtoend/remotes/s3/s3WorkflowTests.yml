@@ -9,12 +9,12 @@ files:
   - ../RemoteWorkflowTests.yml:
       parameters:
         REMOTE: s3
-        URI: s3://titan-data-testdata/e2etest
+        URI: s3://datadatdat-testdata/e2etest
         REPO: hello-world
   - s3Cleanup.yml:
       parameters:
         REMOTE: s3
-        URI: s3://titan-data-testdata/e2etest
+        URI: s3://datadatdat-testdata/e2etest
         REPO: hello-world
 after:
   clearVars: true

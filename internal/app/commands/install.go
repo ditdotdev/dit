@@ -35,6 +35,6 @@ var installCmd = &cobra.Command{
 
 func init() {
 	rootCmd.AddCommand(installCmd)
-	installCmd.Flags().String("registry","titandata", "Registry URL for titan docker image, defaults to titandata")
+	installCmd.Flags().String("registry","datadatdat", "Registry URL for titan docker image, defaults to datadatdat")
 	installCmd.Flags().BoolVarP(&verbose, "verbose", "v", false, "Verbose output of Titan Server installation steps.")
 }

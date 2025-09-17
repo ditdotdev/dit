@@ -1,7 +1,7 @@
 package common
 
 import (
-	titanclient "github.com/titan-data/titan-client-go"
+	titanclient "github.com/datadatdat/titan-client-go"
 	"strconv"
 	"strings"
 )

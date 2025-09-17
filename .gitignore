@@ -32,3 +32,4 @@ sshKey.pub
 Docker*.exe
 "Docker Desktop Installer*.exe"
 
+utils/vexrun.jar
