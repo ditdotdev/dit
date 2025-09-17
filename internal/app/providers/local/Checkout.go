@@ -3,7 +3,7 @@ package local
 import (
 	"fmt"
 	"github.com/antihax/optional"
-	titanclient "github.com/titan-data/titan-client-go"
+	titanclient "github.com/datadatdat/titan-client-go"
 	"os"
 	"strconv"
 	"titan/internal/app/clients"

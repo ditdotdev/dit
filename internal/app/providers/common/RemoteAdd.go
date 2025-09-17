@@ -2,12 +2,12 @@ package common
 
 import (
 	"fmt"
-	_ "github.com/titan-data/nop-remote-go/nop"
-	"github.com/titan-data/remote-sdk-go/remote"
-	_ "github.com/titan-data/s3-remote-go/s3"
-	_ "github.com/titan-data/s3web-remote-go/s3web"
-	_ "github.com/titan-data/ssh-remote-go/ssh"
-	client "github.com/titan-data/titan-client-go"
+	_ "github.com/datadatdat/nop-remote-go/nop"
+	"github.com/datadatdat/remote-sdk-go/remote"
+	_ "github.com/datadatdat/s3-remote-go/s3"
+	_ "github.com/datadatdat/s3web-remote-go/s3web"
+	_ "github.com/datadatdat/ssh-remote-go/ssh"
+	client "github.com/datadatdat/titan-client-go"
 	"os"
 	"strconv"
 )
