@@ -15,7 +15,7 @@ require (
 	github.com/datadatdat/ssh-remote-go v0.2.1
 	github.com/datadatdat/titan-client-go v0.1.2
 	github.com/google/uuid v1.6.0
-	github.com/spf13/cobra v1.6.1
+	github.com/spf13/cobra v1.10.1
 	github.com/spf13/viper v1.21.0
 	k8s.io/api v0.20.1
 	k8s.io/apimachinery v0.20.1
@@ -38,7 +38,7 @@ require (
 	github.com/hashicorp/go-plugin v1.0.1 // indirect
 	github.com/hashicorp/yamux v0.0.0-20180604194846-3520598351bb // indirect
 	github.com/imdario/mergo v0.3.11 // indirect
-	github.com/inconshreveable/mousetrap v1.0.1 // indirect
+	github.com/inconshreveable/mousetrap v1.1.0 // indirect
 	github.com/jmespath/go-jmespath v0.3.0 // indirect
 	github.com/json-iterator/go v1.1.10 // indirect
 	github.com/mattn/go-colorable v0.1.4 // indirect
