@@ -17,9 +17,9 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
       - name: Configure Git for private modules
         run: |
-          git config --global url."https://${{ secrets.GITHUB_TOKEN }}@github.com/".insteadOf "https://github.com/"
-          echo "https://${{ secrets.GITHUB_TOKEN }}@github.com" > ~/.git-credentials
+          git config --global url."https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/".insteadOf "https://github.com/"
           git config --global credential.helper store
+          echo "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com" > ~/.git-credentials
         shell: bash
       - uses: actions/setup-go@v5
         with:
@@ -31,9 +31,18 @@ jobs:
           go env -w GONOSUMDB=github.com/datadatdat/*
           go env -w GOPROXY=direct
         shell: bash
+        env:
+          GOPRIVATE: github.com/datadatdat/*
+          GONOPROXY: github.com/datadatdat/*
+          GONOSUMDB: github.com/datadatdat/*
       - name: Test Build
         run: make build
         shell: bash
+        env:
+          GOPRIVATE: github.com/datadatdat/*
+          GONOPROXY: github.com/datadatdat/*
+          GONOSUMDB: github.com/datadatdat/*
+          GIT_TERMINAL_PROMPT: 0
   docs:
     name: Build Documentation
     runs-on: ubuntu-latest
