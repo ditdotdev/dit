@@ -14,7 +14,7 @@ require (
 	github.com/datadatdat/s3web-remote-go v0.2.1
 	github.com/datadatdat/ssh-remote-go v0.2.1
 	github.com/datadatdat/titan-client-go v0.1.2
-	github.com/google/uuid v1.3.0
+	github.com/google/uuid v1.6.0
 	github.com/spf13/cobra v1.6.1
 	github.com/spf13/viper v1.21.0
 	k8s.io/api v0.20.1
