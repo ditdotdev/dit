@@ -1,7 +1,7 @@
 name: Pull Request
 
 # This workflow runs tests and builds documentation for pull requests
-# Updated to use GO_MODULES_TOKEN with write permissions for private repo access
+# Updated to use GO_MODULES_TOKEN with classic token for private repo access
 on:
   pull_request:
     types: [opened, synchronize, reopened]
