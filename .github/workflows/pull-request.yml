@@ -16,7 +16,9 @@ jobs:
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
       - name: Configure Git for private modules
-        run: git config --global url."https://${{ secrets.GITHUB_TOKEN }}@github.com/".insteadOf "https://github.com/"
+        run: |
+          git config --global url."https://${{ secrets.GITHUB_TOKEN }}@github.com/".insteadOf "https://github.com/"
+          git config --global credential.helper store
         shell: bash
       - uses: actions/setup-go@v5
         with:
@@ -24,6 +26,8 @@ jobs:
       - name: Configure Go for private modules
         run: |
           go env -w GOPRIVATE=github.com/datadatdat/*
+          go env -w GONOPROXY=github.com/datadatdat/*
+          go env -w GONOSUMDB=github.com/datadatdat/*
           go env -w GOPROXY=direct
         shell: bash
       - name: Test Build
