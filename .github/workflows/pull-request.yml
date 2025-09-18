@@ -1,5 +1,6 @@
 name: Pull Request
 
+# This workflow runs tests and builds documentation for pull requests
 on:
   pull_request:
     types: [opened, synchronize, reopened]
