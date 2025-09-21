@@ -86,6 +86,7 @@ Pull Request CI workflows are not triggering in **nop-remote-go** and **remote-s
 ### Affected Repositories
 - **nop-remote-go**: Multiple PRs created (#1-#8) but none trigger CI workflow checks ("No checks" status)
 - **remote-sdk-go**: 5 Dependabot PRs successfully rebased but need CI validation
+- **ssh-remote-go**: New dependency update PR (#4) created - needs CI workflow verification
 
 ### Investigation Summary
 **Identical Configuration Analysis**:
