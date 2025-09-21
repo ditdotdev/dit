@@ -143,14 +143,13 @@ Pull Request CI workflows are not triggering in **nop-remote-go** and **remote-s
      - Remote provider containers using updated Kotlin dependencies
    - **Priority**: High - Required for complete dependency update chain
 
-3. **Maven Repository URL Migration**
+3. **Maven Repository URL Migration** ✅ COMPLETED (September 21, 2025)
    - **Issue**: Multiple references to old `maven.titan-data.io` repository URL throughout codebase
-   - **Action Required**: Update all Maven repository URLs from `maven.titan-data.io` to datadatdat Maven repositories
-   - **Files Affected**: 
+   - **Action Taken**: Updated all Maven repository URLs from `maven.titan-data.io` to direct S3 access `datadatdat-maven.s3.amazonaws.com`
+   - **Files Updated**: 
      - All `build.gradle.kts` files in Kotlin repositories (s3-remote, ssh-remote, s3web-remote, nop-remote, delphix-remote, remote-sdk, plugin-launcher)
-     - `community-aws/community/maven.tf` - Terraform configuration for CDN aliases
-   - **Current Pattern**: `url = uri("https://maven.titan-data.io")`
-   - **Target Pattern**: Update to datadatdat Maven repository URL
+   - **Pattern Changed**: `url = uri("https://maven.titan-data.io")` → `url = uri("https://datadatdat-maven.s3.amazonaws.com")`
+   - **Status**: ✅ COMPLETED - All repositories now use direct S3 access
    - **Priority**: High - Required for proper dependency resolution after organization migration
 
 4. **Dependency Version Updates**
@@ -348,6 +347,37 @@ dependencies {
 8. **Registry Cleanup** (Optional)
    - Consider deprecating old `titandata` images
    - Update any remaining references in other repositories
+
+9. **CDN Infrastructure Recreation** (Long-term)
+   - **Issue**: Currently using direct S3 access (`datadatdat-maven.s3.amazonaws.com`) instead of CDN
+   - **Goal**: Recreate CDN infrastructure to serve Maven repository via `maven.titan-data.io` 
+   - **Requirements**:
+     - Update Terraform configuration in `community-aws/community/maven.tf`
+     - Point CloudFront distribution to `datadatdat-maven` S3 bucket (already configured)
+     - Update DNS records to point to new CloudFront distribution
+     - Test CDN functionality and performance
+   - **Benefits**: Improved performance, caching, and professional URL structure
+   - **Impact**: Low priority - direct S3 access is functional for now
+   - **Timeline**: Future enhancement when time permits
+
+10. **Maven Repository Security Investigation** (Medium Priority)
+   - **Issue**: S3 bucket `datadatdat-maven` configured for public read access for Maven repository functionality
+   - **Current State**: Public read access required for Gradle builds to access Maven artifacts via HTTPS
+   - **Security Concerns**: 
+     - Public bucket allows anyone to download Maven artifacts
+     - No access control or audit trail for artifact downloads
+     - Potential for bandwidth abuse or unauthorized usage
+   - **Investigation Needed**:
+     - Research secure Maven repository solutions (Nexus, Artifactory, AWS CodeArtifact)
+     - Evaluate AWS CodeArtifact as managed alternative with IAM integration
+     - Analyze cost/benefit of private vs public Maven repositories
+     - Design secure access pattern with IAM roles for CI/CD pipelines
+   - **Alternatives to Consider**:
+     - AWS CodeArtifact with IAM authentication
+     - CloudFront with signed URLs for artifact access
+     - VPN-only access to Maven repository
+     - Migrate to GitHub Packages for Maven artifacts
+   - **Timeline**: Investigate when security requirements become priority
 
 ## Technical Context 🔧
 
