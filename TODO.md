@@ -471,3 +471,10 @@ If issues arise, revert to previous working state:
 ---
 **Last Updated**: September 17, 2025  
 **Status**: Infrastructure, dependency migration, and complete workspace validation ‚úÖ COMPLETED - Application test fixes needed ‚ö†Ô∏è
+- Ì∫® **Hardcoded Version String** - NEEDS RESOLUTION
+  - **Issue**: Titan CLI version is hardcoded to "0.7.1" in `internal/app/commands/root.go`
+  - **Impact**: Binary reports incorrect version regardless of release tag or build VERSION parameter
+  - **Current**: `titan --version` shows "titan version 0.7.1" even for v0.5.0 release
+  - **Solution Needed**: Make version dynamic based on build-time parameter or git tag
+  - **Location**: `internal/app/commands/root.go` line with `rootCmd.Version = "0.7.1"`
+  - **Priority**: Medium - cosmetic issue but affects user experience and support
