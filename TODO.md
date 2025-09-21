@@ -76,8 +76,85 @@ We have successfully migrated the Titan infrastructure from the `titan-data` Git
 - ✅ **End-to-End Test Suite** - Successfully running with `make e2e` (RESOLVED)
 - ⚠️ Shell tests in titan-server failing (non-blocking - functional code works)
 - ⚠️ **plugin-launcher CI Environment Test Incompatibility** - INVESTIGATION NEEDED
+- 🚨 **Pull Request CI Workflow Checks Not Triggering** - URGENT INVESTIGATION NEEDED
+
+## Critical Issue - Pull Request Workflow Checks 🚨
+
+### Problem Statement
+Pull Request CI workflows are not triggering in **nop-remote-go** and **remote-sdk-go** repositories, preventing automated testing and validation of dependency updates.
+
+### Affected Repositories
+- **nop-remote-go**: Multiple PRs created (#1-#8) but none trigger CI workflow checks ("No checks" status)
+- **remote-sdk-go**: 5 Dependabot PRs successfully rebased but need CI validation
+
+### Investigation Summary
+**Identical Configuration Analysis**:
+- ✅ **Secrets**: Both repos have `GO_MODULES_TOKEN` configured correctly
+- ✅ **Actions Permissions**: Both have `enabled: true, allowed_actions: all`  
+- ✅ **Repository Settings**: Both private, not archived, created same day
+- ✅ **Workflow Files**: Copied exact working configuration from s3-remote-go
+- ✅ **Master Branch Updates**: Workflow definitions committed to master (required for GitHub recognition)
+
+**Comparison with Working Repository**:
+- ✅ **s3-remote-go**: Pull request workflows trigger and run successfully (confirmed recent runs)
+- ❌ **nop-remote-go**: Zero pull request workflow runs despite multiple PR attempts
+- ❌ **remote-sdk-go**: Status unknown - needs verification
+
+### Troubleshooting Attempts
+1. **Workflow File Variations**: Tested minimal, complex, and exact s3-remote-go copies
+2. **Trigger Configuration**: Tried with/without `branches: [master]`, `workflow_dispatch`, various trigger types
+3. **GitHub Recognition**: Added comment changes, workflow renames, multiple commit approaches
+4. **Complete .github Copy**: Copied entire working .github directory from s3-remote-go with repository-specific updates
+
+### Next Actions Required
+1. **Verify remote-sdk-go Status**: Check if rebased PRs trigger CI workflows
+2. **GitHub Support Investigation**: May require GitHub support ticket for repository-level workflow recognition issue
+3. **Alternative Approach**: Consider recreating repositories or using GitHub API to force workflow recognition
+4. **Workaround Strategy**: Manual testing and validation while investigating automation fix
+
+### Impact
+- **High**: Blocks automated validation of critical dependency updates
+- **Risk**: Manual testing required for Dependabot PRs and infrastructure changes
+- **Timeline**: Urgent - needed for remote-sdk-go dependency update validation
 
 ## Next Steps 📋
+
+### Critical - Release Management (URGENT - September 19, 2025) 🚨
+1. **Maven Dependency Releases Required**
+   - **Issue**: All plugin-launcher PRs have been merged successfully with updated dependencies
+   - **Action Required**: Create releases for all Maven dependencies to publish updated versions
+   - **Repositories Needing Releases**:
+     - `plugin-launcher` - New version with ktlint 0.51.0-FINAL and updated dependencies
+     - `remote-sdk` - Updated Kotlin dependencies (needs Gradle/Kotlin upgrade first)
+     - `command-executor` - Updated Kotlin dependencies (needs Gradle/Kotlin upgrade first)
+     - `s3-remote`, `ssh-remote`, `s3web-remote`, `nop-remote` - Updated Kotlin dependencies
+     - `delphix-remote` - Updated Kotlin dependencies
+   - **Priority**: High - Required before updating consumers to use latest versions
+
+2. **Docker Container Releases Required** 
+   - **Issue**: Docker containers need to be rebuilt and released with updated Maven dependencies
+   - **Action Required**: Build and push new Docker container versions after Maven releases
+   - **Containers Needing Updates**:
+     - `datadatdat/titan-server` - Update with latest plugin-launcher and remote dependencies
+     - `datadatdat/titan` - Update CLI container with latest server version
+     - Remote provider containers using updated Kotlin dependencies
+   - **Priority**: High - Required for complete dependency update chain
+
+3. **Maven Repository URL Migration**
+   - **Issue**: Multiple references to old `maven.titan-data.io` repository URL throughout codebase
+   - **Action Required**: Update all Maven repository URLs from `maven.titan-data.io` to datadatdat Maven repositories
+   - **Files Affected**: 
+     - All `build.gradle.kts` files in Kotlin repositories (s3-remote, ssh-remote, s3web-remote, nop-remote, delphix-remote, remote-sdk, plugin-launcher)
+     - `community-aws/community/maven.tf` - Terraform configuration for CDN aliases
+   - **Current Pattern**: `url = uri("https://maven.titan-data.io")`
+   - **Target Pattern**: Update to datadatdat Maven repository URL
+   - **Priority**: High - Required for proper dependency resolution after organization migration
+
+4. **Dependency Version Updates**
+   - **Action Required**: Update Maven and Docker references throughout titan repositories
+   - **After**: Maven releases and Docker builds are complete
+   - **Files to Update**: All pom.xml, build.gradle.kts, and Docker references to use new versions
+   - **Priority**: Medium - Final step in dependency update process
 
 ### Critical Investigation (High Priority) - NEW
 1. **plugin-launcher CI Environment Test Incompatibility** 🔍
@@ -116,12 +193,27 @@ We have successfully migrated the Titan infrastructure from the `titan-data` Git
    - [ ] **command-executor** - Kotlin project with build.gradle.kts (needs upgrade)
    - [ ] **delphix-remote** - Kotlin project with build.gradle.kts (needs upgrade)
 
-2. **Apply GO_MODULES_TOKEN to Go Repositories** - PENDING
-   - [ ] **s3-remote-go** - Apply working token: `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`
+2. **Apply GO_MODULES_TOKEN to Go Repositories** - IN PROGRESS
+   - ✅ **s3-remote-go** - Applied working token: `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`
    - [ ] **s3web-remote-go** - Apply working token  
    - [ ] **ssh-remote-go** - Apply working token
    - [ ] **nop-remote-go** - Apply working token
    - [ ] **remote-sdk-go** - Apply working token
+
+3. **Verify GO_MODULES_TOKEN Configuration** - ✅ COMPLETED
+   - **Task**: Verify all Go repositories have GO_MODULES_TOKEN secret set to `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`
+   - **Repositories Updated**:
+     - ✅ **titan** - Updated with new token
+     - ✅ **titan-server** - Added new token
+     - ✅ **titan-client-go** - Added new token
+     - ✅ **s3-remote-go** - Updated with new token
+     - ✅ **s3web-remote-go** - Updated with new token
+     - ✅ **ssh-remote-go** - Updated with new token
+     - ✅ **nop-remote-go** - Updated with new token
+     - ✅ **remote-sdk-go** - Updated with new token
+   - **Verification Command**: `gh secret list` in each repository
+   - **Update Command**: `gh secret set GO_MODULES_TOKEN --body "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"`
+   - **Status**: ✅ COMPLETED - All 8 Go repositories now have the working token
 
 ### Gradle & Kotlin Upgrade Process (Proven Working)
 **⚠️ CRITICAL**: Upgrade Gradle wrapper AND Kotlin version simultaneously to avoid compatibility issues.
