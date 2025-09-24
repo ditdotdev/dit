@@ -5,12 +5,15 @@ on:
     - cron: '30 3 * * *'
   workflow_dispatch:
 
+permissions:
+  contents: read
+
 jobs:
   test-linux:
     name: Test Linux
     runs-on: ubuntu-22.04
     steps:
-      - uses: actions/checkout@v1
+      - uses: actions/checkout@v4
       - name: Config Git
         run: |
           git config --global user.name "test.runner"

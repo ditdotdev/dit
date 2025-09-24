@@ -9,14 +9,17 @@ on:
       - 'docs/*/*/*'
       - 'docs/*/*/*/*'
 
+permissions:
+  contents: read
+
 jobs:
   build:
     name: Build Documentation
-    runs-on: ubuntu-18.04
+    runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
       - name: Configure GitHub SSH access
-        uses: webfactory/ssh-agent@v0.5.0
+        uses: webfactory/ssh-agent@v0.9.0
         with:
           ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
       - name: Install virtualenv
