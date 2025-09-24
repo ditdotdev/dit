@@ -77,6 +77,7 @@ We have successfully migrated the Titan infrastructure from the `titan-data` Git
 - ⚠️ Shell tests in titan-server failing (non-blocking - functional code works)
 - ⚠️ **plugin-launcher CI Environment Test Incompatibility** - INVESTIGATION NEEDED
 - 🚨 **Pull Request CI Workflow Checks Not Triggering** - URGENT INVESTIGATION NEEDED
+- 🚨 **delphix-remote Pull Request Build Checks Failing** - URGENT INVESTIGATION NEEDED (Added September 24, 2025)
 
 ## Critical Issue - Pull Request Workflow Checks 🚨
 
@@ -101,6 +102,7 @@ Pull Request CI workflows are not triggering in **nop-remote-go** and **remote-s
 - **nop-remote-go**: Multiple PRs created (#1-#8) but none trigger CI workflow checks ("No checks" status)
 - **remote-sdk-go**: 5 Dependabot PRs successfully rebased but need CI validation
 - **ssh-remote-go**: New dependency update PR (#4) created - needs CI workflow verification
+- **delphix-remote**: Pull Request build checks not performing properly - workflows appear to start but fail or hang during execution
 - **titan-data.github.io**: Missing CI workflows - needs GitHub Pages and content validation workflows
 - **zfs-linuxkit**: Missing CI workflows - needs build and test automation
 
@@ -125,9 +127,10 @@ Pull Request CI workflows are not triggering in **nop-remote-go** and **remote-s
 
 ### Next Actions Required
 1. **Verify remote-sdk-go Status**: Check if rebased PRs trigger CI workflows
-2. **GitHub Support Investigation**: May require GitHub support ticket for repository-level workflow recognition issue
-3. **Alternative Approach**: Consider recreating repositories or using GitHub API to force workflow recognition
-4. **Workaround Strategy**: Manual testing and validation while investigating automation fix
+2. **Investigate delphix-remote Build Issues**: Despite workflow modernization (actions/checkout@v4, actions/setup-java@v4, Gradle wrapper validation), pull request checks are still not performing properly - may need further debugging of Gradle build configuration or Java/Temurin setup
+3. **GitHub Support Investigation**: May require GitHub support ticket for repository-level workflow recognition issue
+4. **Alternative Approach**: Consider recreating repositories or using GitHub API to force workflow recognition
+5. **Workaround Strategy**: Manual testing and validation while investigating automation fix
 
 ### Impact
 - **High**: Blocks automated validation of critical dependency updates
