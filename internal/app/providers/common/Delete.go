@@ -7,7 +7,7 @@ import (
 	"strings"
 )
 
-func DeleteCommit(repo string, commit string, port int)  {
+func DeleteCommit(repo string, commit string, port int) {
 	cfg.BasePath = "http://localhost:" + strconv.Itoa(port)
 
 	commitsApi.DeleteCommit(ctx, repo, commit)

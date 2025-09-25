@@ -6,7 +6,7 @@ import (
 	"strconv"
 )
 
-func RemoteList(repo string, port int)  {
+func RemoteList(repo string, port int) {
 	cfg.BasePath = "http://localhost:" + strconv.Itoa(port)
 
 	remotes, _, _ := remotesApi.ListRemotes(ctx, repo)

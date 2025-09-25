@@ -13,7 +13,7 @@ func Uninstall(force bool, removeImages bool, context string, port int) {
 	cfg.BasePath = "http://localhost:" + strconv.Itoa(port)
 	docker := clients.Docker(context, port)
 
-	available, _ :=  docker.TitanServerIsAvailable()
+	available, _ := docker.TitanServerIsAvailable()
 	if available {
 		repos, _, _ := repositoriesApi.ListRepositories(ctx)
 		for _, repo := range repos {
@@ -22,7 +22,7 @@ func Uninstall(force bool, removeImages bool, context string, port int) {
 				os.Exit(1)
 			}
 		}
-		docker.Remove("titan-" + context + "-server", true)
+		docker.Remove("titan-"+context+"-server", true)
 	}
 
 	s := spinner.New(spinner.CharSets[9], 100*time.Millisecond)
@@ -31,7 +31,7 @@ func Uninstall(force bool, removeImages bool, context string, port int) {
 	s.Prefix = "Removing Titan Docker volume "
 	s.FinalMSG = "Titan Docker volume removed"
 	s.Start()
-	docker.RemoveVolume("titan-" + context + "-date", true)
+	docker.RemoveVolume("titan-"+context+"-date", true)
 	s.Stop()
 	fmt.Println()
 

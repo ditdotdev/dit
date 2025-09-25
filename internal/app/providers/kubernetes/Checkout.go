@@ -9,7 +9,7 @@ import (
 	"time"
 )
 
-func Checkout(repoName string, guid string, tags []string, port int)  {
+func Checkout(repoName string, guid string, tags []string, port int) {
 	cfg.BasePath = "http://localhost:" + strconv.Itoa(port)
 
 	var sourceCommit string

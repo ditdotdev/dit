@@ -9,7 +9,7 @@ import (
 	"titan/internal/app/clients"
 )
 
-func Checkout(repo string, guid string, tags[]string, port int, context string) {
+func Checkout(repo string, guid string, tags []string, port int, context string) {
 	cfg.BasePath = "http://localhost:" + strconv.Itoa(port)
 	docker := clients.Docker(context, port)
 
