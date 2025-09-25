@@ -78,6 +78,7 @@ We have successfully migrated the Titan infrastructure from the `titan-data` Git
 - ⚠️ **plugin-launcher CI Environment Test Incompatibility** - INVESTIGATION NEEDED
 - 🚨 **Pull Request CI Workflow Checks Not Triggering** - URGENT INVESTIGATION NEEDED
 - 🚨 **delphix-remote Pull Request Build Checks Failing** - URGENT INVESTIGATION NEEDED (Added September 24, 2025)
+- 🔄 **Go Version Upgrade Investigation** - INVESTIGATE Go 1.25.1 compilation upgrade across all repositories (Added September 25, 2025)
 
 ## Critical Issue - Pull Request Workflow Checks 🚨
 
@@ -131,6 +132,7 @@ Pull Request CI workflows are not triggering in **nop-remote-go** and **remote-s
 3. **GitHub Support Investigation**: May require GitHub support ticket for repository-level workflow recognition issue
 4. **Alternative Approach**: Consider recreating repositories or using GitHub API to force workflow recognition
 5. **Workaround Strategy**: Manual testing and validation while investigating automation fix
+6. **Go 1.25.1 Upgrade Investigation**: Evaluate upgrading all Go compilation from current versions (1.21-1.23) to latest stable Go 1.25.1 across titan ecosystem
 
 ### Impact
 - **High**: Blocks automated validation of critical dependency updates
@@ -174,6 +176,34 @@ Pull Request CI workflows are not triggering in **nop-remote-go** and **remote-s
    - **After**: Maven releases and Docker builds are complete
    - **Files to Update**: All pom.xml, build.gradle.kts, and Docker references to use new versions
    - **Priority**: Medium - Final step in dependency update process
+
+### Go Version Upgrade Investigation (Medium Priority) - NEW (September 25, 2025) 🔄
+1. **Go 1.25.1 Compilation Upgrade Assessment**
+   - **Current State**: Mixed Go versions across repositories
+     - **nop-remote-go**: Testing Go 1.21, 1.22, 1.23 in CI matrix
+     - **Other Go repos**: Various version configurations
+     - **Titan CLI**: Using older Go versions in workflows
+   - **Target**: Upgrade to **Go 1.25.1** (latest stable as of September 2025)
+   - **Benefits**:
+     - **Performance**: Latest Go runtime optimizations embedded in binaries
+     - **Security**: Latest security fixes and patches
+     - **Language Features**: Access to newest Go language features and standard library improvements
+     - **Compatibility**: Future-proofing for Go ecosystem evolution
+   - **Investigation Areas**:
+     - **Binary Runtime Impact**: Since Go binaries embed the runtime, users get the Go 1.25.1 runtime automatically
+     - **Dependency Compatibility**: Verify all titan dependencies work with Go 1.25.1
+     - **CI/CD Workflows**: Update GitHub Actions matrix testing to include/focus on 1.25.1
+     - **Build Performance**: Measure compilation speed improvements with latest Go version
+     - **Breaking Changes**: Review Go 1.24 → 1.25 release notes for breaking changes
+   - **Repositories to Evaluate**:
+     - `titan` (CLI) - Core binary compilation
+     - `titan-server` - Server binary compilation  
+     - `titan-client-go` - Client library compilation
+     - `remote-sdk-go` - Remote SDK compilation
+     - `s3-remote-go`, `ssh-remote-go`, `nop-remote-go`, `s3web-remote-go` - Remote provider binaries
+   - **Risk Assessment**: Low-Medium (Go maintains excellent backward compatibility)
+   - **Timeline**: Investigate Q4 2025, implement early 2026
+   - **Success Criteria**: All repositories build and test successfully with Go 1.25.1
 
 ### Critical Investigation (High Priority) - NEW
 1. **plugin-launcher CI Environment Test Incompatibility** 🔍
