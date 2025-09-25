@@ -1,0 +1,323 @@
+#
+# Pull Request 2 - Comprehensive CI/CD Pipeline with Best Practices
+# This workflow includes enhanced testing, security scanning, and quality checks
+#
+name: Pull Request 2
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+    branches: [ master, main ]
+  workflow_dispatch:
+    inputs:
+      debug_enabled:
+        type: boolean
+        description: 'Enable debug logging'
+        required: false
+        default: false
+
+env:
+  GO_VERSION: '1.22'
+  GOPRIVATE: github.com/datadatdat/*
+  GONOPROXY: github.com/datadatdat/*
+  GONOSUMDB: github.com/datadatdat/*
+  GOPROXY: direct
+  GIT_TERMINAL_PROMPT: 0
+
+jobs:
+  # Security and dependency scanning
+  security:
+    name: Security Scan
+    runs-on: ubuntu-latest
+    if: github.event.pull_request.draft == false
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache: true
+
+      - name: Configure Git for private modules
+        run: |
+          git config --global url."https://x-access-token:${{ secrets.GO_MODULES_TOKEN }}@github.com/".insteadOf "https://github.com/"
+          git config --global credential.helper store
+          echo "https://x-access-token:${{ secrets.GO_MODULES_TOKEN }}@github.com" > ~/.git-credentials
+
+      - name: Download dependencies
+        run: go mod download
+
+      - name: Verify dependencies
+        run: go mod verify
+
+      - name: Run Go security scanner (gosec)
+        run: |
+          go install github.com/securego/gosec/v2/cmd/gosec@latest
+          gosec ./...
+        continue-on-error: true
+
+      - name: Run Nancy vulnerability scanner
+        run: |
+          # Generate dependency list for Nancy
+          go list -json -m all > go.list
+          # Use Nancy GitHub Action
+          echo "Nancy scan will be performed by GitHub Action"
+        continue-on-error: true
+        
+      - name: Nancy Security Scan
+        uses: sonatype-nexus-community/nancy-github-action@main
+        continue-on-error: true
+
+  # Code quality and linting
+  quality:
+    name: Code Quality
+    runs-on: ubuntu-latest
+    if: github.event.pull_request.draft == false
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache: true
+
+      - name: Configure Git for private modules
+        run: |
+          git config --global url."https://x-access-token:${{ secrets.GO_MODULES_TOKEN }}@github.com/".insteadOf "https://github.com/"
+          git config --global credential.helper store
+          echo "https://x-access-token:${{ secrets.GO_MODULES_TOKEN }}@github.com" > ~/.git-credentials
+
+      - name: Download dependencies
+        run: go mod download
+
+      - name: Run gofmt
+        run: |
+          if [ "$(gofmt -s -l . | wc -l)" -gt 0 ]; then
+            echo "The following files are not formatted:"
+            gofmt -s -l .
+            exit 1
+          fi
+
+      - name: Run go vet
+        run: go vet ./...
+
+      - name: Install staticcheck
+        run: go install honnef.co/go/tools/cmd/staticcheck@latest
+
+      - name: Run staticcheck
+        run: staticcheck ./...
+
+      - name: Install golangci-lint
+        uses: golangci/golangci-lint-action@v6
+        with:
+          version: v1.61.0
+          args: --timeout=5m
+
+  # Build and test across multiple versions
+  build-test:
+    name: Build and Test
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        go-version: ['1.21', '1.22', '1.23']
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Go ${{ matrix.go-version }}
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ matrix.go-version }}
+          cache: true
+
+      - name: Configure Git for private modules (Unix)
+        if: runner.os != 'Windows'
+        run: |
+          git config --global url."https://x-access-token:${{ secrets.GO_MODULES_TOKEN }}@github.com/".insteadOf "https://github.com/"
+          git config --global credential.helper store
+          echo "https://x-access-token:${{ secrets.GO_MODULES_TOKEN }}@github.com" > ~/.git-credentials
+
+      - name: Configure Git for private modules (Windows)
+        if: runner.os == 'Windows'
+        run: |
+          git config --global url."https://x-access-token:${{ secrets.GO_MODULES_TOKEN }}@github.com/".insteadOf "https://github.com/"
+          git config --global credential.helper store
+          echo "https://x-access-token:${{ secrets.GO_MODULES_TOKEN }}@github.com" | Out-File -FilePath "$env:USERPROFILE\.git-credentials" -Encoding UTF8
+        shell: pwsh
+
+      - name: Configure Go environment
+        run: |
+          go env -w GOPRIVATE=github.com/datadatdat/*
+          go env -w GONOPROXY=github.com/datadatdat/*
+          go env -w GONOSUMDB=github.com/datadatdat/*
+          go env -w GOPROXY=direct
+
+      - name: Download dependencies
+        run: go mod download
+
+      - name: Build
+        run: go build -v ./...
+
+      - name: Run tests
+        run: |
+          if [ "${{ runner.os }}" != "Windows" ]; then
+            export CGO_ENABLED=1
+            go test -v -race -coverprofile=coverage.out ./...
+          else
+            go test -v -coverprofile=coverage.out ./...
+          fi
+
+      - name: Generate coverage report
+        if: matrix.os == 'ubuntu-latest' && matrix.go-version == '1.22'
+        run: go tool cover -html=coverage.out -o coverage.html
+
+      - name: Upload coverage to Codecov
+        if: matrix.os == 'ubuntu-latest' && matrix.go-version == '1.22'
+        uses: codecov/codecov-action@v4
+        with:
+          file: ./coverage.out
+          flags: unittests
+          name: codecov-umbrella
+        continue-on-error: true
+
+      - name: Upload coverage artifact
+        if: matrix.os == 'ubuntu-latest' && matrix.go-version == '1.22'
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: coverage.html
+
+  # Integration tests (if they exist)
+  integration:
+    name: Integration Tests
+    runs-on: ubuntu-latest
+    if: github.event.pull_request.draft == false
+    needs: [build-test]
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache: true
+
+      - name: Configure Git for private modules
+        run: |
+          git config --global url."https://x-access-token:${{ secrets.GO_MODULES_TOKEN }}@github.com/".insteadOf "https://github.com/"
+          git config --global credential.helper store
+          echo "https://x-access-token:${{ secrets.GO_MODULES_TOKEN }}@github.com" > ~/.git-credentials
+
+      - name: Download dependencies
+        run: go mod download
+
+      - name: Run integration tests
+        run: |
+          if [ -d "integration" ] || grep -r "integration" . --include="*.go" | grep -q "build.*integration"; then
+            echo "Running integration tests..."
+            go test -v -tags=integration ./...
+          else
+            echo "No integration tests found, skipping..."
+          fi
+
+  # Performance benchmarks
+  benchmark:
+    name: Performance Benchmarks
+    runs-on: ubuntu-latest
+    if: github.event.pull_request.draft == false
+    needs: [build-test]
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache: true
+
+      - name: Configure Git for private modules
+        run: |
+          git config --global url."https://x-access-token:${{ secrets.GO_MODULES_TOKEN }}@github.com/".insteadOf "https://github.com/"
+          git config --global credential.helper store
+          echo "https://x-access-token:${{ secrets.GO_MODULES_TOKEN }}@github.com" > ~/.git-credentials
+
+      - name: Download dependencies
+        run: go mod download
+
+      - name: Run benchmarks
+        run: |
+          if go test -list . | grep -q "Benchmark"; then
+            echo "Running benchmarks..."
+            go test -v -bench=. -benchmem ./... | tee benchmark.txt
+          else
+            echo "No benchmarks found, skipping..."
+          fi
+
+      - name: Upload benchmark results
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: benchmark-results
+          path: benchmark.txt
+        continue-on-error: true
+
+  # Final status check
+  pr-check:
+    name: Pull Request Check
+    runs-on: ubuntu-latest
+    needs: [security, quality, build-test, integration, benchmark]
+    if: always()
+    steps:
+      - name: Check all jobs status
+        run: |
+          echo "Security: ${{ needs.security.result }}"
+          echo "Quality: ${{ needs.quality.result }}"
+          echo "Build-Test: ${{ needs.build-test.result }}"
+          echo "Integration: ${{ needs.integration.result }}"
+          echo "Benchmark: ${{ needs.benchmark.result }}"
+          
+          if [[ "${{ needs.security.result }}" == "failure" ]] || [[ "${{ needs.quality.result }}" == "failure" ]] || [[ "${{ needs.build-test.result }}" == "failure" ]]; then
+            echo "❌ Critical jobs failed"
+            exit 1
+          else
+            echo "✅ All critical jobs passed"
+          fi
+
+      - name: Comment PR with results
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const results = {
+              security: '${{ needs.security.result }}',
+              quality: '${{ needs.quality.result }}',
+              build: '${{ needs.build-test.result }}',
+              integration: '${{ needs.integration.result }}',
+              benchmark: '${{ needs.benchmark.result }}'
+            };
+            
+            let body = '## 🔍 Pull Request 2 - CI Results\n\n';
+            
+            for (const [job, result] of Object.entries(results)) {
+              const emoji = result === 'success' ? '✅' : result === 'failure' ? '❌' : result === 'skipped' ? '⏭️' : '⚠️';
+              body += `${emoji} **${job.charAt(0).toUpperCase() + job.slice(1)}**: ${result}\n`;
+            }
+            
+            body += '\n*This comment was generated by Pull Request 2 workflow*';
+            
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: body
+            });
