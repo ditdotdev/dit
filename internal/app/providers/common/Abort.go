@@ -6,7 +6,7 @@ import (
 	"strconv"
 )
 
-func Abort(repo string, port int){
+func Abort(repo string, port int) {
 	cfg.BasePath = "http://localhost:" + strconv.Itoa(port)
 
 	var operations, _, _ = operationsApi.ListOperations(ctx, nil) //TODO handle error

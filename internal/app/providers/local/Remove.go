@@ -24,11 +24,11 @@ func Remove(repo string, force bool, port int, context string) {
 		containerRunning, _ := docker.ContainerIsRunning(repo)
 		if containerRunning {
 			_, _ = docker.Remove(repo, force)
-		} else  {
+		} else {
 			docker.RemoveStopped(repo)
 		}
 	}
-	volumes, _, _ := volumesApi.ListVolumes(ctx,repo)
+	volumes, _, _ := volumesApi.ListVolumes(ctx, repo)
 	for _, volume := range volumes {
 		fmt.Println("Deleting volume " + volume.Name)
 		_, err := volumesApi.DeactivateVolume(ctx, repo, volume.Name)

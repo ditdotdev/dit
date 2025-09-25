@@ -10,7 +10,7 @@ import (
 	"titan/internal/app/clients"
 )
 
-func Install(latest string, registry string, verbose bool, port int, context string){
+func Install(latest string, registry string, verbose bool, port int, context string) {
 	cfg.BasePath = "http://localhost:" + strconv.Itoa(port)
 	docker := clients.Docker(context, port)
 

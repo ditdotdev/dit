@@ -15,7 +15,7 @@ var operationsApi = apiClient.OperationsApi
 var ctx = context.Background()
 
 type operationMonitor struct {
-	repo string
+	repo      string
 	operation titanclient.Operation
 }
 
@@ -40,7 +40,7 @@ func (om operationMonitor) Monitor(port int) bool {
 	var lastId int32 = 0
 
 	for !om.IsTerminal(state) {
-		p := &titanclient.GetOperationProgressOpts{LastId:optional.NewInt32(lastId)}
+		p := &titanclient.GetOperationProgressOpts{LastId: optional.NewInt32(lastId)}
 		entries, _, err := operationsApi.GetOperationProgress(ctx, om.operation.Id, p)
 		if err == nil {
 			if len(entries) > 0 {
@@ -57,7 +57,7 @@ func (om operationMonitor) Monitor(port int) bool {
 					if len(m) > padLen {
 						padLen = len(m)
 					}
-					fmt.Printf("\r%s", m[0:(padLen - len(m)+ 1)])
+					fmt.Printf("\r%s", m[0:(padLen-len(m)+1)])
 				}
 				if e.Id > lastId {
 					lastId = e.Id
@@ -94,12 +94,12 @@ func (om operationMonitor) Monitor(port int) bool {
 		opText = "Push"
 	}
 	switch state {
-		case "COMPLETE":
-			fmt.Println(opText + " completed successfully")
-		case "FAILED":
-			fmt.Println(opText + " failed")
-		case "ABORT":
-			fmt.Println(opText + " aborted")
+	case "COMPLETE":
+		fmt.Println(opText + " completed successfully")
+	case "FAILED":
+		fmt.Println(opText + " failed")
+	case "ABORT":
+		fmt.Println(opText + " aborted")
 	}
 	return state == "COMPLETE"
 }

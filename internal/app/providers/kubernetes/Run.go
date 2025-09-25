@@ -53,7 +53,7 @@ func Run(container string, repository string, envVars []string, args []string, d
 		fmt.Println("Image information is not available")
 		os.Exit(1)
 	}
-	vols := docker.GetSliceFromImage(image + ":" + tag, "Config", "Volumes")
+	vols := docker.GetSliceFromImage(image+":"+tag, "Config", "Volumes")
 	if len(vols) < 1 {
 		fmt.Println("No volumes found for image " + image)
 		os.Exit(1)
@@ -61,7 +61,7 @@ func Run(container string, repository string, envVars []string, args []string, d
 
 	fmt.Println("Creating repository " + repoName)
 	repo := client.Repository{
-		Name:      repoName,
+		Name:       repoName,
 		Properties: nil,
 	}
 	if createRepo {
@@ -117,7 +117,7 @@ func Run(container string, repository string, envVars []string, args []string, d
 		}
 	}
 
-	repoDigest := docker.GetValFromImage(image + ":" + tag, "RepoDigests")
+	repoDigest := docker.GetValFromImage(image+":"+tag, "RepoDigests")
 	repoDigest = strings.ReplaceAll(repoDigest, "[", "")
 	repoDigest = strings.ReplaceAll(repoDigest, "]", "")
 	repoDigest = strings.ReplaceAll(repoDigest, " ", "")
@@ -133,19 +133,19 @@ func Run(container string, repository string, envVars []string, args []string, d
 
 	metadata := map[string]interface{}{
 		"container": imageId,
-		"image": image,
-		"tag": tag,
-		"digest": repoDigest,
-		"runtime": map[string]interface{}{},
+		"image":     image,
+		"tag":       tag,
+		"digest":    repoDigest,
+		"runtime":   map[string]interface{}{},
 	}
 	updateRepo := client.Repository{
-		Name:      repoName,
+		Name:       repoName,
 		Properties: metadata,
 	}
 	repositoriesApi.UpdateRepository(ctx, repoName, updateRepo)
 
 	var metaPorts []map[string]string
-	dockerPorts := docker.GetSliceFromImage(image + ":" + tag, "Config", "ExposedPorts")
+	dockerPorts := docker.GetSliceFromImage(image+":"+tag, "Config", "ExposedPorts")
 	ports := make([]int, len(dockerPorts))
 	for _, rawPort := range dockerPorts {
 		rawPort = strings.ReplaceAll(rawPort, `"`, "")
@@ -160,21 +160,21 @@ func Run(container string, repository string, envVars []string, args []string, d
 	}
 
 	metadata = map[string]interface{}{
-		"v2" : map[string]interface{}{
+		"v2": map[string]interface{}{
 			"image": map[string]interface{}{
-				"image": image,
-				"tag": tag,
+				"image":  image,
+				"tag":    tag,
 				"digest": repoDigest,
 			},
-			"environment": envVars,
-			"ports": metaPorts,
-			"volumes": metaVolumes,
+			"environment":        envVars,
+			"ports":              metaPorts,
+			"volumes":            metaVolumes,
 			"disablePortMapping": disablePortMap,
 		},
 	}
 
 	updateRepo = client.Repository{
-		Name:      repoName,
+		Name:       repoName,
 		Properties: metadata,
 	}
 	repositoriesApi.UpdateRepository(ctx, repoName, updateRepo)

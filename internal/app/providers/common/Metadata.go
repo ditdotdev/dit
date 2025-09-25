@@ -7,7 +7,7 @@ import (
 
 type Version string
 
-const(
+const (
 	V2 Version = "v2"
 	V1 Version = "v1"
 )
@@ -27,24 +27,24 @@ type volume struct {
 }
 
 type Metadata struct {
-	version Version
-	user string
-	email string
-	message string
-	source string
-	tags map[string]string
-	timestamp string
-	image image
+	version     Version
+	user        string
+	email       string
+	message     string
+	source      string
+	tags        map[string]string
+	timestamp   string
+	image       image
 	environment []interface{}
-	ports []port
-	volumes []volume
+	ports       []port
+	volumes     []volume
 }
 
 func (m *Metadata) SetUser(s string) {
 	m.user = s
 }
 
-func (m *Metadata) SetEmail(s string)  {
+func (m *Metadata) SetEmail(s string) {
 	m.email = s
 }
 
@@ -81,11 +81,11 @@ func (m Metadata) ToMap() map[string]interface{} {
 		returnMap["timestamp"] = m.timestamp
 	}
 	if m.version == V2 {
-		returnMap["v2"] = map[string]interface{} {
-			"image": m.image,
+		returnMap["v2"] = map[string]interface{}{
+			"image":       m.image,
 			"environment": m.environment,
-			"ports": m.ports,
-			"volumes": m.volumes,
+			"ports":       m.ports,
+			"volumes":     m.volumes,
 		}
 	}
 	if m.version == V1 {
@@ -99,7 +99,7 @@ func (m Metadata) ToMap() map[string]interface{} {
 
 func (m Metadata) Load(metaMap map[string]interface{}) Metadata {
 	_, ok := metaMap["v2"]
-	if ok  {
+	if ok {
 		return m.MapV2(metaMap)
 	} else {
 		return m.MapV1(metaMap)
@@ -153,7 +153,7 @@ func (m Metadata) MapV2(metaMap map[string]interface{}) Metadata {
 
 	metaPorts := meta["ports"].([]interface{})
 	var ports []port
-	for _, v := range metaPorts{
+	for _, v := range metaPorts {
 		mapPort := v.(map[string]interface{})
 		ports = append(ports, port{
 			Protocol: fmt.Sprintf("%v", mapPort["protocol"]),
@@ -165,8 +165,8 @@ func (m Metadata) MapV2(metaMap map[string]interface{}) Metadata {
 	for _, v := range metaVols {
 		metaVol := v.(map[string]interface{})
 		volumes = append(volumes, volume{
-			Name: fmt.Sprintf("%v",metaVol["name"]),
-			Path: fmt.Sprintf("%v",metaVol["path"]),
+			Name: fmt.Sprintf("%v", metaVol["name"]),
+			Path: fmt.Sprintf("%v", metaVol["path"]),
 		})
 	}
 
@@ -229,11 +229,11 @@ func (m Metadata) MapV1(metaMap map[string]interface{}) Metadata {
 	runtimeString = strings.TrimLeft(runtimeString, "[")
 	runtimeString = strings.TrimRight(runtimeString, "]")
 	runtime := strings.Split(runtimeString, " ")
-	for i, n := range runtime{
-		if strings.Contains(n,"--mount") {
+	for i, n := range runtime {
+		if strings.Contains(n, "--mount") {
 			runtime = append(runtime[:i], runtime[i+1:]...)
 		}
-		if strings.Contains(n,"type=volume"){
+		if strings.Contains(n, "type=volume") {
 			runtime = append(runtime[:i], runtime[i+1:]...)
 		}
 	}
@@ -248,7 +248,7 @@ func (m Metadata) MapV1(metaMap map[string]interface{}) Metadata {
 		}
 		if n == "-p" {
 			var p string
-			if strings.Contains(runtime[i+1], ":"){
+			if strings.Contains(runtime[i+1], ":") {
 				p = strings.Split(runtime[i+1], ":")[1]
 			} else {
 				p = runtime[i+1]

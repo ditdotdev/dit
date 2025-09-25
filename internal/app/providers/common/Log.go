@@ -12,7 +12,7 @@ func Log(repo string, tags []string, port int) {
 
 	first := true
 	o := optional.NewInterface(tags)
-	opts := client.ListCommitsOpts{Tag:o}
+	opts := client.ListCommitsOpts{Tag: o}
 	commits, _, _ := commitsApi.ListCommits(ctx, repo, &opts)
 
 	for _, commit := range commits {
@@ -34,7 +34,7 @@ func Log(repo string, tags []string, port int) {
 			for t, v := range tags {
 				if len(v.(string)) > 0 {
 					fmt.Printf("%v=%v ", t, v)
-				} else  {
+				} else {
 					fmt.Printf("%v ", t)
 				}
 			}
@@ -47,5 +47,3 @@ func Log(repo string, tags []string, port int) {
 		}
 	}
 }
-
-

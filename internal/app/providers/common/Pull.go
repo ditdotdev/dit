@@ -50,12 +50,12 @@ func Pull(repoName string, guid string, remoteName string, tags []string, metada
 		}
 		commit = remoteCommits[0]
 	}
- 	if commit.Id == "" {
- 		fmt.Println("remote commit not found")
- 		os.Exit(1)
+	if commit.Id == "" {
+		fmt.Println("remote commit not found")
+		os.Exit(1)
 	}
 	pullOpts := &titanclient.PullOpts{
-		MetadataOnly:     optional.NewBool(metadataOnly),
+		MetadataOnly: optional.NewBool(metadataOnly),
 	}
 	op, _, _ := operationsApi.Pull(ctx, repoName, remote.Name, commit.Id, params, pullOpts)
 

@@ -50,7 +50,7 @@ func Push(repoName string, guid string, remoteName string, tags []string, metada
 			commit, _, _ = commitsApi.GetCommit(ctx, repoName, repoStatus.LastCommit)
 		} else {
 			optTags := optional.NewInterface(tags)
-			commitsOpts := &titanclient.ListCommitsOpts{Tag:optTags}
+			commitsOpts := &titanclient.ListCommitsOpts{Tag: optTags}
 			commits, _, _ := commitsApi.ListCommits(ctx, repoName, commitsOpts)
 			if len(commits) == 0 {
 				fmt.Println("no matching commits found, unable to push latest")
@@ -64,7 +64,7 @@ func Push(repoName string, guid string, remoteName string, tags []string, metada
 		os.Exit(1)
 	}
 	pushOpts := &titanclient.PushOpts{
-		MetadataOnly:     optional.NewBool(metadataOnly),
+		MetadataOnly: optional.NewBool(metadataOnly),
 	}
 	op, _, err := operationsApi.Push(ctx, repoName, remote.Name, commit.Id, params, pushOpts)
 	if err != nil {

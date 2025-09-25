@@ -5,7 +5,7 @@ Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
-    http://www.apache.org/licenses/LICENSE-2.0
+	http://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
@@ -20,7 +20,7 @@ import (
 )
 
 var (
-	path string
+	path     string
 	finalize bool
 )
 
@@ -35,9 +35,9 @@ var upgradeCmd = &cobra.Command{
 
 func init() {
 	rootCmd.AddCommand(upgradeCmd)
-	upgradeCmd.Flags().BoolVarP(&force,"force", "f", false, "destroy all repositories")
-	upgradeCmd.Flags().StringVarP(&path,"path", "p", "", "full installation path of Titan")
-	upgradeCmd.Flags().BoolVar(&force,"finalize", false,  "")
+	upgradeCmd.Flags().BoolVarP(&force, "force", "f", false, "destroy all repositories")
+	upgradeCmd.Flags().StringVarP(&path, "path", "p", "", "full installation path of Titan")
+	upgradeCmd.Flags().BoolVar(&force, "finalize", false, "")
 	upgradeCmd.Flags().SortFlags = false
 	upgradeCmd.Flags().MarkHidden("finalize")
 }

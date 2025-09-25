@@ -25,7 +25,7 @@ func RemoteLog(repo string, remoteName string, tags []string, port int) {
 			Properties: gp,
 		}
 		o := optional.NewInterface(tags)
-		opts := client.ListRemoteCommitsOpts{Tag:o}
+		opts := client.ListRemoteCommitsOpts{Tag: o}
 		commits, _, err := remotesApi.ListRemoteCommits(ctx, repo, r.Name, p, &opts)
 		if err == nil {
 			for _, c := range commits {
@@ -45,7 +45,7 @@ func RemoteLog(repo string, remoteName string, tags []string, port int) {
 					for t, v := range remoteTags {
 						if len(v.(string)) > 0 {
 							fmt.Printf("%v=%v ", t, v)
-						} else  {
+						} else {
 							fmt.Printf("%v ", t)
 						}
 					}
@@ -54,7 +54,7 @@ func RemoteLog(repo string, remoteName string, tags []string, port int) {
 				ifContainsPrint(c.Properties, "message")
 			}
 		} else {
-			fmt.Println( r.Name + " has not been initialized.")
+			fmt.Println(r.Name + " has not been initialized.")
 		}
 	}
 }

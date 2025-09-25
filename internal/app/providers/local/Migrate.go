@@ -96,9 +96,9 @@ func Migrate(container string, name string, user string, email string, commit Co
 		hostPort := port[0]["HostPort"]
 		args = append(args, "-p")
 		if ok && hostIp != "" {
-			args = append(args, hostIp + ":" + hostPort + ":" + containerPort)
+			args = append(args, hostIp+":"+hostPort+":"+containerPort)
 		} else {
-			args = append(args, hostPort + ":" + containerPort)
+			args = append(args, hostPort+":"+containerPort)
 		}
 	}
 	args = append(args, "--name", name)

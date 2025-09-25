@@ -8,12 +8,12 @@ import (
 	k8s "titan/internal/app/providers/kubernetes"
 )
 
-type kubernetes struct{
-	contextName string
-	host string
-	portNum int
+type kubernetes struct {
+	contextName        string
+	host               string
+	portNum            int
 	titanServerVersion string
-	dockerRegistryUrl string
+	dockerRegistryUrl  string
 }
 
 func (k kubernetes) GetType() string {
@@ -102,7 +102,7 @@ func (k kubernetes) RemoteRemove(repo string, remote string) {
 	cmn.RemoteRemove(repo, remote, k.portNum)
 }
 
-func (k kubernetes) Remove (repo string, force bool)  {
+func (k kubernetes) Remove(repo string, force bool) {
 	k8s.Remove(repo, force, k.portNum)
 }
 
@@ -136,10 +136,10 @@ func (k kubernetes) Upgrade(force bool, version string, finalize bool, path stri
 
 func Kubernetes(contextName string, host string, port int) Provider {
 	return kubernetes{
-		contextName:contextName,
-		host:host,
-		portNum:port,
+		contextName:        contextName,
+		host:               host,
+		portNum:            port,
 		titanServerVersion: "0.8.1",
-		dockerRegistryUrl: "datadatdat",
+		dockerRegistryUrl:  "datadatdat",
 	}
 }

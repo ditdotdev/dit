@@ -5,7 +5,7 @@ Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
-    http://www.apache.org/licenses/LICENSE-2.0
+	http://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
@@ -33,7 +33,7 @@ var remoteCmd = &cobra.Command{
 var remoteAddCmd = &cobra.Command{
 	Use:   "add [URI] [REPOSITORY]",
 	Short: "Set remote destination for a repository",
-	Args: cobra.ExactArgs(2),
+	Args:  cobra.ExactArgs(2),
 	Run: func(cmd *cobra.Command, args []string) {
 		uri := args[0]
 		repo := args[1]
@@ -45,7 +45,7 @@ var remoteAddCmd = &cobra.Command{
 				fmt.Println("Parameters must be in key=value format.")
 				os.Exit(1)
 			}
-			fp[s[0]]=s[1]
+			fp[s[0]] = s[1]
 		}
 		provider.RemoteAdd(repo, uri, name, fp)
 	},
@@ -55,7 +55,7 @@ var remoteAddCmd = &cobra.Command{
 var remoteListCmd = &cobra.Command{
 	Use:   "ls [REPOSITORY]",
 	Short: "List remotes for a repository",
-	Args: cobra.ExactArgs(1),
+	Args:  cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
 		repo := args[0]
 		provider = providers.Default()
@@ -67,7 +67,7 @@ var remoteListCmd = &cobra.Command{
 var remoteLogCmd = &cobra.Command{
 	Use:   "log [REPOSITORY]",
 	Short: "Display log on remote",
-	Args: cobra.ExactArgs(1),
+	Args:  cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
 		repo := args[0]
 		provider.RemoteLog(repo, remote, tags)
@@ -78,7 +78,7 @@ var remoteLogCmd = &cobra.Command{
 var remoteRemoveCmd = &cobra.Command{
 	Use:   "rm [REPOSITORY] [REMOTE]",
 	Short: "Remove remote from a repository",
-	Args: cobra.ExactArgs(2),
+	Args:  cobra.ExactArgs(2),
 	Run: func(cmd *cobra.Command, args []string) {
 		repo := args[0]
 		remote := args[1]
@@ -93,7 +93,7 @@ func init() {
 	remoteCmd.AddCommand(remoteLogCmd)
 	remoteCmd.AddCommand(remoteRemoveCmd)
 
-	remoteAddCmd.Flags().StringVarP(&name, "remote","r", "","name of the remote provider, defaults to origin")
+	remoteAddCmd.Flags().StringVarP(&name, "remote", "r", "", "name of the remote provider, defaults to origin")
 	remoteAddCmd.Flags().StringSliceVarP(&params, "parameters", "p", nil, "provider specific parameters. key=value format")
 	remoteAddCmd.Flags().SortFlags = false
 

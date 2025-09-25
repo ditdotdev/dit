@@ -46,7 +46,7 @@ func zfsInstalled() bool {
 	mod, _ := ce.Exec("docker", "run", "alpine:latest", "lsmod")
 	for _, l := range strings.Split(mod, "\n") {
 		for i, w := range strings.Split(l, " ") {
-			if i == 0 && w == "zfs"{
+			if i == 0 && w == "zfs" {
 				return true
 			}
 		}
@@ -56,7 +56,7 @@ func zfsInstalled() bool {
 
 func installZFS(tag string) {
 	fmt.Println("Installing ZFS for Docker Desktop")
-	out, err := ce.Exec("docker", "run", "--privileged", "--rm", "datadatdat/docker-desktop-zfs-kernel:" + tag)
+	out, err := ce.Exec("docker", "run", "--privileged", "--rm", "datadatdat/docker-desktop-zfs-kernel:"+tag)
 	if err != nil {
 		if strings.Contains(out, "manifest unknown") {
 			fmt.Println("Pre-built ZFS kernel modules not available for kernel version " + tag)
@@ -72,7 +72,7 @@ func installZFS(tag string) {
 
 func buildZFSFromSource(tag string) {
 	fmt.Println("Building ZFS kernel modules from source (this may take 10-30 minutes)...")
-	
+
 	// Use the zfs-builder to compile modules for the current kernel
 	buildArgs := []string{
 		"run", "--rm", "--privileged",
@@ -81,7 +81,7 @@ func buildZFSFromSource(tag string) {
 		"-e", "ZFS_CONFIG=kernel",
 		"datadatdat/zfs-builder:latest",
 	}
-	
+
 	out, err := ce.Exec("docker", buildArgs...)
 	if err != nil {
 		fmt.Println("Failed to build ZFS from source:")
@@ -94,6 +94,6 @@ func buildZFSFromSource(tag string) {
 		fmt.Println("3. Install ZFS manually on your system")
 		os.Exit(1)
 	}
-	
+
 	fmt.Println("ZFS kernel modules built successfully")
 }
