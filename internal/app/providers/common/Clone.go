@@ -35,14 +35,14 @@ func Clone(uri string, repo string, guid string, params []string, args []string,
 		Name:       repoName,
 		Properties: make(map[string]interface{}),
 	}
- 	plainUri := parsedUri.Scheme + "://" + parsedUri.Host + parsedUri.Path
+	plainUri := parsedUri.Scheme + "://" + parsedUri.Host + parsedUri.Path
 	if len(parsedUri.Query()) > 0 {
 		tag := parsedUri.Query().Get("tag")
 		tags = append(tags, tag)
 	}
 	var err error
 	cleanup := false
-	_, _ , err = repositoriesApi.CreateRepository(ctx, repository)
+	_, _, err = repositoriesApi.CreateRepository(ctx, repository)
 	if err != nil && err.Error() == "409 Conflict" {
 		removeRepo(repoName, port, context)
 	} else {
@@ -56,11 +56,11 @@ func Clone(uri string, repo string, guid string, params []string, args []string,
 		}
 		commit := client.Commit{
 			Id:         "id",
-			Properties: map[string]interface{}{"foo":"bar"},
+			Properties: map[string]interface{}{"foo": "bar"},
 		}
 		if commitId == "" {
 			optTags := optional.NewInterface(tags)
-			commitsOpts := &client.ListRemoteCommitsOpts{Tag:optTags}
+			commitsOpts := &client.ListRemoteCommitsOpts{Tag: optTags}
 			remoteCommits, _, _ := remotesApi.ListRemoteCommits(ctx, repoName, rm.Name, p, commitsOpts)
 			if len(remoteCommits) == 0 {
 				fmt.Println("unable to find any matching commits in remote repository")
@@ -76,7 +76,7 @@ func Clone(uri string, repo string, guid string, params []string, args []string,
 			}
 			c, _, _ := remotesApi.GetRemoteCommit(ctx, repoName, rm.Name, commitId, p)
 			commit = client.Commit{
-				Id:        	c.Id,
+				Id:         c.Id,
 				Properties: c.Properties,
 			}
 		}
@@ -90,9 +90,13 @@ func Clone(uri string, repo string, guid string, params []string, args []string,
 			}
 		}
 		_, err = docker.Pull(metadata.image.Digest)
+		if err != nil {
+			fmt.Printf("Failed to pull image %s: %v\n", metadata.image.Digest, err)
+			os.Exit(1)
+		}
 		var envs []string
 		for _, v := range metadata.environment {
-			envs = append(envs, fmt.Sprintf("%v",v))
+			envs = append(envs, fmt.Sprintf("%v", v))
 		}
 		m, err := local.Run(metadata.image.Digest, repoName, envs, args, disablePortMap, false, port, context)
 		if err == nil {

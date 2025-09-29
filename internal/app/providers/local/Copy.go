@@ -10,12 +10,11 @@ import (
 )
 
 type mount struct {
-	Type string
-	Source string
-	Target string
+	Type        string
+	Source      string
+	Target      string
 	Destination string
 }
-
 
 func Copy(repo string, driver string, source string, path string, port int, context string) {
 	cfg.BasePath = "http://localhost:" + strconv.Itoa(port)
@@ -36,12 +35,16 @@ func Copy(repo string, driver string, source string, path string, port int, cont
 	if running {
 		Stop(repo, port)
 	}
-	m, _ := docker.GetValFromContainer(repo,"HostConfig", "Mounts")
+	m, _ := docker.GetValFromContainer(repo, "HostConfig", "Mounts")
 	var mounts []mount
 	err = json.Unmarshal([]byte(m), &mounts)
- 	if len(mounts) > 1 {
- 		fmt.Println(repo + " has more than 1 volume mount. --path is required.")
- 		os.Exit(1)
+	if err != nil {
+		fmt.Printf("Failed to unmarshal mounts: %v\n", err)
+		os.Exit(1)
+	}
+	if len(mounts) > 1 {
+		fmt.Println(repo + " has more than 1 volume mount. --path is required.")
+		os.Exit(1)
 	}
 	if path == "" {
 		path = mounts[0].Target
@@ -53,13 +56,15 @@ func Copy(repo string, driver string, source string, path string, port int, cont
 			_, _ = volumesApi.ActivateVolume(ctx, repo, v)
 			vol, _, _ := volumesApi.GetVolume(ctx, repo, v)
 			/*
-			   TODO add multiple cp sources
-			   when(driver) {
-				   else -> docker.cp(source.removeSuffix("/"), volumeName)
-			   }
+				   TODO add multiple cp sources
+				   when(driver) {
+					   else -> docker.cp(source.removeSuffix("/"), volumeName)
+				   }
 			*/
 			target := fmt.Sprintf("%v", vol.Config["mountpoint"])
-			docker.Cp(strings.TrimRight(source, "/"), target)
+			if _, err := docker.Cp(strings.TrimRight(source, "/"), target); err != nil {
+				fmt.Printf("Warning: Failed to copy data to volume: %v\n", err)
+			}
 			_, _ = volumesApi.DeactivateVolume(ctx, repo, v)
 		}
 	}

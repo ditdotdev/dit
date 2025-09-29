@@ -6,6 +6,7 @@ import (
 	client "github.com/datadatdat/titan-client-go"
 	"os"
 	"strings"
+	"unicode"
 )
 
 func init() {
@@ -25,7 +26,9 @@ var ctx = context.Background()
 func ifContainsPrint(m map[string]interface{}, k string) {
 	v, ok := m[k]
 	if ok {
-		out := fmt.Sprintf("%v: %v", strings.Title(k), v)
+		// Replace deprecated strings.Title with manual title case
+		title := strings.ToUpper(string(unicode.ToUpper(rune(k[0])))) + k[1:]
+		out := fmt.Sprintf("%v: %v", title, v)
 		fmt.Println(out)
 	}
 }

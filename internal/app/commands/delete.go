@@ -5,7 +5,7 @@ Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
-    http://www.apache.org/licenses/LICENSE-2.0
+	http://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
@@ -23,7 +23,7 @@ import (
 var deleteCmd = &cobra.Command{
 	Use:   "delete [REPOSITORY]",
 	Short: "Delete objects from titan",
-	Args: cobra.ExactArgs(1),
+	Args:  cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
 		repo := args[0]
 		provider.Delete(repo, guid, tags)
@@ -32,6 +32,6 @@ var deleteCmd = &cobra.Command{
 
 func init() {
 	rootCmd.AddCommand(deleteCmd)
-	deleteCmd.Flags().StringVarP(&guid, "commit","c", "","commit GUID to delete")
+	deleteCmd.Flags().StringVarP(&guid, "commit", "c", "", "commit GUID to delete")
 	deleteCmd.Flags().StringSliceVarP(&tags, "tags", "t", nil, "tags to remove from a commit")
 }

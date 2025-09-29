@@ -6,7 +6,7 @@ import (
 	"titan/internal/app/clients"
 )
 
-//TODO pass this from provider as param
+// TODO pass this from provider as param
 func getContainersStatus(port int, context string) []runtimeStatus {
 	cfg.BasePath = "http://localhost:" + strconv.Itoa(port)
 	docker := clients.Docker(context, port)
@@ -24,9 +24,10 @@ func getContainersStatus(port int, context string) []runtimeStatus {
 	return r
 }
 
-/**
+/*
+*
 https://programming.guide/go/formatting-byte-size-to-human-readable-format.html
- */
+*/
 func ByteCountBinary(b int64) string {
 	const unit = 1024
 	if b < unit {

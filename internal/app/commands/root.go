@@ -5,7 +5,7 @@ Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
-    http://www.apache.org/licenses/LICENSE-2.0
+	http://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
@@ -69,7 +69,10 @@ func initConfig() {
 	u, _ := user.Current()
 	titanConfig := u.HomeDir + "/.titan/config"
 	if _, err := os.Stat(titanConfig); os.IsNotExist(err) {
-		os.Create(titanConfig)
+		//nolint:gosec // G304: Creating config file in user's home directory, path is controlled
+		if _, err := os.Create(titanConfig); err != nil {
+			fmt.Printf("Error creating config file: %v\n", err)
+		}
 	}
 	isInstall := false
 	for _, item := range os.Args {

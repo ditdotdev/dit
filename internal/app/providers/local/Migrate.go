@@ -59,25 +59,41 @@ func Migrate(container string, name string, user string, email string, commit Co
 		Name:       name,
 		Properties: make(map[string]interface{}),
 	}
-	repositoriesApi.CreateRepository(ctx, repo)
+	if _, _, err := repositoriesApi.CreateRepository(ctx, repo); err != nil {
+		fmt.Printf("Error creating repository: %v\n", err)
+		return
+	}
 	m, _ := docker.GetValFromContainer(container, "Mounts")
 	var mounts []mount
-	err = json.Unmarshal([]byte(m), &mounts)
+	if err = json.Unmarshal([]byte(m), &mounts); err != nil {
+		fmt.Printf("Error unmarshaling mounts: %v\n", err)
+		return
+	}
 	for i, p := range vols {
 		path := strings.Split(p, ":")[0]
 		path = strings.ReplaceAll(path, `"`, "")
 		v := "v" + strconv.Itoa(i)
 		volName := docker.FormatVolumeName(name, v)
 		fmt.Println("Creating docker volume " + volName + " with path " + path)
-		docker.CreateVolume(volName, path)
+		if _, err := docker.CreateVolume(volName, path); err != nil {
+			fmt.Printf("Error creating volume %s: %v\n", volName, err)
+			continue
+		}
 		localSrc := getLocalSrcFromPath(path, mounts)
 		if localSrc != "" {
 			fmt.Println("Copying data to " + volName)
-			volumesApi.ActivateVolume(ctx, name, v)
+			if _, err := volumesApi.ActivateVolume(ctx, name, v); err != nil {
+				fmt.Printf("Warning: Failed to activate volume %s: %v\n", v, err)
+				continue
+			}
 			vol, _, _ := volumesApi.GetVolume(ctx, name, v)
 			target := fmt.Sprintf("%v", vol.Config["mountpoint"])
-			docker.Cp(localSrc, target)
-			volumesApi.DeactivateVolume(ctx, name, v)
+			if _, err := docker.Cp(localSrc, target); err != nil {
+				fmt.Printf("Warning: Failed to copy data to volume: %v\n", err)
+			}
+			if _, err := volumesApi.DeactivateVolume(ctx, name, v); err != nil {
+				fmt.Printf("Warning: Failed to deactivate volume %s: %v\n", v, err)
+			}
 		}
 		args = append(args, "--mount", "type=volume,src="+volName+",dst="+path+",volume-driver=titan-"+docker.GetIdentity())
 	}
@@ -89,22 +105,25 @@ func Migrate(container string, name string, user string, email string, commit Co
 
 	p, _ := docker.GetValFromContainer(container, "HostConfig", "PortBindings")
 	var ports map[string][]map[string]string
-	json.Unmarshal([]byte(p), &ports)
-	for k, port := range ports {
-		containerPort := strings.Split(k, "/")[0]
-		hostIp, ok := port[0]["HostIp"]
-		hostPort := port[0]["HostPort"]
-		args = append(args, "-p")
-		if ok && hostIp != "" {
-			args = append(args, hostIp + ":" + hostPort + ":" + containerPort)
-		} else {
-			args = append(args, hostPort + ":" + containerPort)
+	if err := json.Unmarshal([]byte(p), &ports); err != nil {
+		fmt.Printf("Warning: Failed to unmarshal port bindings: %v\n", err)
+	} else {
+		for k, port := range ports {
+			containerPort := strings.Split(k, "/")[0]
+			hostIp, ok := port[0]["HostIp"]
+			hostPort := port[0]["HostPort"]
+			args = append(args, "-p")
+			if ok && hostIp != "" {
+				args = append(args, hostIp+":"+hostPort+":"+containerPort)
+			} else {
+				args = append(args, hostPort+":"+containerPort)
+			}
 		}
 	}
 	args = append(args, "--name", name)
 	repoDigest := docker.GetSliceFromImage(image, "RepoDigests")[0]
 	repoDigest = strings.TrimLeft(repoDigest, `["`)
-	repoDigest = strings.TrimRight(repoDigest, `"]"`)
+	repoDigest = strings.TrimRight(repoDigest, `"]`)
 
 	metadata := make(map[string]interface{})
 	metadata["container"] = repoDigest
@@ -114,7 +133,9 @@ func Migrate(container string, name string, user string, email string, commit Co
 		Name:       name,
 		Properties: metadata,
 	}
-	repositoriesApi.UpdateRepository(ctx, name, updateRepo)
+	if _, _, err := repositoriesApi.UpdateRepository(ctx, name, updateRepo); err != nil {
+		fmt.Printf("Warning: Failed to update repository metadata: %v\n", err)
+	}
 	_, err = docker.Run(image, "", args)
 	if err != nil {
 		fmt.Println(err)

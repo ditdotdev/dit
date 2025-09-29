@@ -8,11 +8,11 @@ import (
 	"titan/internal/app"
 )
 
-const EOL  = "\n"
+const EOL = "\n"
 
 type docker struct {
 	identity string
-	port int
+	port     int
 	registry string
 }
 
@@ -52,7 +52,8 @@ func (d docker) getImageName(image string) string {
 	return d.registry + "/" + image
 }
 
-/**
+/*
+*
 https://yourbasic.org/golang/find-search-contains-slice/
 */
 func Find(a []string, x string) int {
@@ -64,7 +65,8 @@ func Find(a []string, x string) int {
 	return len(a)
 }
 
-/**
+/*
+*
 https://stackoverflow.com/a/37335777
 */
 func RemoveFromSlice(a []string, x string) []string {
@@ -72,7 +74,7 @@ func RemoveFromSlice(a []string, x string) []string {
 	return append(a[:s], a[s+1:]...)
 }
 
-func (d docker) GetIdentity() string  {
+func (d docker) GetIdentity() string {
 	return d.identity
 }
 
@@ -83,11 +85,11 @@ func (d docker) getLocalLaunchArgs() []string {
 		"--network=host",
 		"-d",
 		"--restart", "always",
-		"--name=titan-"+d.identity+"-launch",
+		"--name=titan-" + d.identity + "-launch",
 		"-v", "/var/lib:/var/lib",
 		"-v", "/run/docker:/run/docker",
-		"-v", "/lib:/var/lib/titan-"+d.identity+"/system",
-		"-v", "titan-"+d.identity+"-data:/var/lib/titan-"+d.identity+"/data",
+		"-v", "/lib:/var/lib/titan-" + d.identity + "/system",
+		"-v", "titan-" + d.identity + "-data:/var/lib/titan-" + d.identity + "/data",
 		"-v", "/var/run/docker.sock:/var/run/docker.sock",
 	}
 }
@@ -127,7 +129,7 @@ func (d docker) RemoveStopped(repo string) (string, error) {
 }
 
 func (d docker) RemoveVolume(name string, force bool) (string, error) {
-	args := [] string {
+	args := []string{
 		"volume", "rm",
 	}
 	if force {
@@ -171,7 +173,7 @@ func (d docker) GetValFromImage(image string, key ...string) string {
 	return string(out)
 }
 
-func (d docker) GetSliceFromImage(image string, key ...string) []string  {
+func (d docker) GetSliceFromImage(image string, key ...string) []string {
 	raw := d.GetValFromImage(image, key...)
 	raw = strings.TrimLeft(raw, "{")
 	raw = strings.TrimRight(raw, "}")
@@ -190,7 +192,7 @@ func (d docker) Run(image string, entry string, args []string) (string, error) {
 	return ce.Exec("docker", args...)
 }
 
-func (d docker) FetchLogs (container string) []string  {
+func (d docker) FetchLogs(container string) []string {
 	output, _ := ce.Exec("docker", "logs", container)
 	lines := strings.Split(output, EOL)
 	return lines
@@ -206,11 +208,11 @@ func (d docker) TitanLatestIsDownloaded(registry string, latest app.Version) boo
 		// If no local image found, fall back to checking datadatdat registry
 		registry = "datadatdat"
 	}
-	
-	out, _ := ce.Exec("docker", "images", registry + "/titan", "--format", `"{{.Tag}}"`)
+
+	out, _ := ce.Exec("docker", "images", registry+"/titan", "--format", `"{{.Tag}}"`)
 	tags := strings.Split(string(out), EOL)
 	for _, item := range tags {
-		tag := strings.Trim(item,"\"")
+		tag := strings.Trim(item, "\"")
 		if tag != "latest" && tag != "" {
 			v := app.Version{}.FromString(tag)
 			if v.Compare(latest) == 0 {
@@ -221,17 +223,17 @@ func (d docker) TitanLatestIsDownloaded(registry string, latest app.Version) boo
 	return false
 }
 
-func (d docker)ContainerIsRunning(container string) (bool, error) {
+func (d docker) ContainerIsRunning(container string) (bool, error) {
 	out, err := ce.Exec("docker", "ps", "-f", "name=^/"+container+`$`, "--format", `"{{.Names}}"`)
 	return len(out) > 0, err
 }
 
 func (d docker) TitanServerIsAvailable() (bool, error) {
-	return d.ContainerIsRunning("titan-"+d.identity+"-server")
+	return d.ContainerIsRunning("titan-" + d.identity + "-server")
 }
 
 func (d docker) TitanLaunchIsAvailable() (bool, error) {
-	return d.ContainerIsRunning("titan-"+d.identity+"-launch")
+	return d.ContainerIsRunning("titan-" + d.identity + "-launch")
 }
 
 func (d docker) LaunchTitanServers() (string, error) {
@@ -240,11 +242,11 @@ func (d docker) LaunchTitanServers() (string, error) {
 	args = append(
 		args,
 		"-e",
-		"TITAN_PORT=" + strconv.Itoa(d.port),
+		"TITAN_PORT="+strconv.Itoa(d.port),
 		"-e",
-		"TITAN_IMAGE=" + titanImage,
+		"TITAN_IMAGE="+titanImage,
 		"-e",
-		"TITAN_IDENTITY=titan-" + d.identity,
+		"TITAN_IDENTITY=titan-"+d.identity,
 	)
 	return d.Run(titanImage, "/bin/bash /titan/launch", args)
 }
@@ -255,9 +257,9 @@ func (d docker) getKubernetesLaunchArgs() []string {
 	return []string{
 		"-d",
 		"--restart", "always",
-		"--name=titan-"+d.identity+"-server",
+		"--name=titan-" + d.identity + "-server",
 		"-v", kube + ":/root/.kube",
-		"-v", "titan-"+d.identity+"-data:/var/lib/" + d.identity,
+		"-v", "titan-" + d.identity + "-data:/var/lib/" + d.identity,
 		"-e", "TITAN_CONTEXT=kubernetes-csi",
 		"-e", "TITAN_IDENTITY=titan-" + d.identity,
 		"-p", strconv.Itoa(d.port) + ":5001",
@@ -269,7 +271,7 @@ func (d docker) LaunchTitanKubernetesServers() (string, error) {
 	config := os.Getenv("TITAN_CONFIG")
 	args := d.getKubernetesLaunchArgs()
 	if config != "" {
-		args = append(args, "-e", "TITAN_CONFIG=" + config)
+		args = append(args, "-e", "TITAN_CONFIG="+config)
 	}
 	return d.Run(titanImage, "/bin/bash /titan/run", args)
 }
@@ -281,41 +283,41 @@ func (d docker) FetchLaunchLogs() []string {
 func (d docker) TeardownTitanServers() (string, error) {
 	titanImage := d.getImageName("titan:latest")
 	args := d.getLocalLaunchArgs()
-	args = RemoveFromSlice(args,"-d")
-	args = RemoveFromSlice(args,"--restart")
-	args = RemoveFromSlice(args,"always")
-	args = RemoveFromSlice(args,"--name=titan-" + d.identity + "-launch")
-	args = append(args, "-e", "TITAN_IDENTITY=titan-" + d.identity, "--rm")
+	args = RemoveFromSlice(args, "-d")
+	args = RemoveFromSlice(args, "--restart")
+	args = RemoveFromSlice(args, "always")
+	args = RemoveFromSlice(args, "--name=titan-"+d.identity+"-launch")
+	args = append(args, "-e", "TITAN_IDENTITY=titan-"+d.identity, "--rm")
 	return d.Run(titanImage, "/bin/bash /titan/teardown", args)
 }
 
 func (d *docker) RemoveTitanImages(version string) (string, error) {
-	var imageId, _ = ce.Exec("docker", "images", "titan:" + version, "--format", "{{.ID}}")
+	var imageId, _ = ce.Exec("docker", "images", "titan:"+version, "--format", "{{.ID}}")
 	imageId = strings.TrimSuffix(imageId, "\n")
 	return ce.Exec("docker", "rmi", imageId, "-f")
 }
 
 func (d docker) RemoveTitanServer() (string, error) {
-	return d.Remove("titan-" + d.identity + "-server", true)
+	return d.Remove("titan-"+d.identity+"-server", true)
 }
 
 func (d docker) RemoveTitanLaunch() (string, error) {
-	return d.Remove("titan-" + d.identity + "-launch", true)
+	return d.Remove("titan-"+d.identity+"-launch", true)
 }
 
 func (d docker) RemoveTitanVolume() (string, error) {
-	return d.RemoveVolume("titan-" + d.identity + "-data", false)
+	return d.RemoveVolume("titan-"+d.identity+"-data", false)
 }
 
 func (d docker) CreateVolume(name string, path string) (string, error) {
-	return ce.Exec("docker", "volume", "create", "-d", "titan-" + d.identity, "-o", "path=" + path, name)
+	return ce.Exec("docker", "volume", "create", "-d", "titan-"+d.identity, "-o", "path="+path, name)
 }
 
 func (d docker) ListVolumes(repo string) []string {
 	var args []string
 	var r []string
 	args = append(args,
-		"volume", "ls", "-f", "driver=titan-docker", "-f", "name=" + repo,
+		"volume", "ls", "-f", "driver=titan-docker", "-f", "name="+repo,
 		"--format", "{{.Name}}",
 	)
 	s, err := ce.Exec("docker", args...)
@@ -323,14 +325,13 @@ func (d docker) ListVolumes(repo string) []string {
 		vols := strings.Split(s, "\n")
 		vols = vols[:len(vols)-1]
 		for _, v := range vols {
-			if strings.Contains(v, repo + "_v") {
+			if strings.Contains(v, repo+"_v") {
 				r = append(r, v)
 			}
 		}
 	}
 	return r
 }
-
 
 func (d docker) Stop(repo string) (string, error) {
 	return ce.Exec("docker", "stop", repo)
@@ -341,5 +342,5 @@ func (d docker) Start(repo string) (string, error) {
 }
 
 func (d docker) Cp(source string, target string) (string, error) {
-	return ce.Exec("docker", "cp", "-a", source + "/.", "titan-" + d.identity + "-server:" + target)
+	return ce.Exec("docker", "cp", "-a", source+"/.", "titan-"+d.identity+"-server:"+target)
 }

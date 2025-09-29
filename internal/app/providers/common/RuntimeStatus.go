@@ -1,7 +1,7 @@
 package common
 
 type runtimeStatus struct {
-	name string
+	name   string
 	status string
 }
 
