@@ -38,6 +38,10 @@ func Copy(repo string, driver string, source string, path string, port int, cont
 	m, _ := docker.GetValFromContainer(repo, "HostConfig", "Mounts")
 	var mounts []mount
 	err = json.Unmarshal([]byte(m), &mounts)
+	if err != nil {
+		fmt.Printf("Failed to unmarshal mounts: %v\n", err)
+		os.Exit(1)
+	}
 	if len(mounts) > 1 {
 		fmt.Println(repo + " has more than 1 volume mount. --path is required.")
 		os.Exit(1)
@@ -58,7 +62,9 @@ func Copy(repo string, driver string, source string, path string, port int, cont
 				   }
 			*/
 			target := fmt.Sprintf("%v", vol.Config["mountpoint"])
-			docker.Cp(strings.TrimRight(source, "/"), target)
+			if _, err := docker.Cp(strings.TrimRight(source, "/"), target); err != nil {
+				fmt.Printf("Warning: Failed to copy data to volume: %v\n", err)
+			}
 			_, _ = volumesApi.DeactivateVolume(ctx, repo, v)
 		}
 	}

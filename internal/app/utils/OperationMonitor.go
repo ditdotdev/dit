@@ -9,6 +9,12 @@ import (
 	"time"
 )
 
+const (
+	OperationStateComplete = "COMPLETE"
+	OperationStateFailed   = "FAILED"
+	OperationStateAbort    = "ABORT"
+)
+
 var cfg = titanclient.NewConfiguration()
 var apiClient = titanclient.NewAPIClient(cfg)
 var operationsApi = apiClient.OperationsApi
@@ -27,7 +33,7 @@ func OperationMonitor(r string, o titanclient.Operation) operationMonitor {
 }
 
 func (om operationMonitor) IsTerminal(state string) bool {
-	r := state == "FAILED" || state == "ABORT" || state == "COMPLETE"
+	r := state == OperationStateFailed || state == OperationStateAbort || state == OperationStateComplete
 	return r
 }
 
@@ -71,19 +77,9 @@ func (om operationMonitor) Monitor(port int) bool {
 			 * mashing Ctrl-C), then we let them exit out in case there's something seriously broken on the
 			 * server.
 			 */
-			//TODO catch this error
-
-			//		if (aborted) {
-			//			throw e
-			//		} else {
-			//			try {
-			//				operationsApi.deleteOperation(operation.id)
-			//			} catch (e: ClientException) {
-			//				if (e.code != "NoSuchObjectException") {
-			//					throw e
-			//				}
-			//			}
-			//			aborted = true
+			// Handle error by breaking the loop and returning false
+			fmt.Printf("Error monitoring operation: %v\n", err)
+			break
 		}
 	}
 
@@ -94,12 +90,12 @@ func (om operationMonitor) Monitor(port int) bool {
 		opText = "Push"
 	}
 	switch state {
-	case "COMPLETE":
+	case OperationStateComplete:
 		fmt.Println(opText + " completed successfully")
-	case "FAILED":
+	case OperationStateFailed:
 		fmt.Println(opText + " failed")
-	case "ABORT":
+	case OperationStateAbort:
 		fmt.Println(opText + " aborted")
 	}
-	return state == "COMPLETE"
+	return state == OperationStateComplete
 }

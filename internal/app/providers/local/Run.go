@@ -53,7 +53,9 @@ func Run(container string, repository string, envVars []string, args []string, d
 
 	imageInfo, err := docker.InspectImage(image + ":" + tag)
 	if err != nil {
-		docker.Pull(image + ":" + tag)
+		if _, err := docker.Pull(image + ":" + tag); err != nil {
+			fmt.Printf("Warning: Failed to pull image %s:%s: %v\n", image, tag, err)
+		}
 		imageInfo, _ = docker.InspectImage(image + ":" + tag)
 	}
 	if len(imageInfo) == 0 {
@@ -108,17 +110,18 @@ func Run(container string, repository string, envVars []string, args []string, d
 	imageTag := image + ":" + tag
 	i := 0
 	for i < len(args) {
-		if args[i] == "--name" {
+		switch args[i] {
+		case "--name":
 			// Skip --name and the next argument
 			if i+1 < len(args) {
 				i += 2 // Skip both --name and its value
 			} else {
 				i += 1 // Just skip --name if no value follows
 			}
-		} else if args[i] == imageTag {
+		case imageTag:
 			// Skip the image:tag argument
 			i += 1
-		} else {
+		default:
 			// Keep this argument
 			filteredArgs = append(filteredArgs, args[i])
 			i += 1

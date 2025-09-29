@@ -114,9 +114,9 @@ jobs:
         run: staticcheck -checks="inherit,-SA1019" ./...
 
       - name: Install golangci-lint
-        uses: golangci/golangci-lint-action@v6
+        uses: golangci/golangci-lint-action@v7
         with:
-          version: v1.61.0
+          version: latest
           args: --timeout=5m
 
   # Build and test across multiple versions
@@ -174,6 +174,7 @@ jobs:
           else
             go test -v -coverprofile=coverage.out ./...
           fi
+        shell: bash
 
       - name: Generate coverage report
         if: matrix.os == 'ubuntu-latest' && matrix.go-version == '1.22'

@@ -46,7 +46,10 @@ func Run(container string, repository string, envVars []string, args []string, d
 
 	imageInfo, err := docker.InspectImage(image + ":" + tag)
 	if err != nil {
-		docker.Pull(image + ":" + tag)
+		if _, err := docker.Pull(image + ":" + tag); err != nil {
+			fmt.Printf("Error pulling image %s:%s: %v\n", image, tag, err)
+			os.Exit(1)
+		}
 		imageInfo, _ = docker.InspectImage(image + ":" + tag)
 	}
 	if len(imageInfo) == 0 {
@@ -89,7 +92,9 @@ func Run(container string, repository string, envVars []string, args []string, d
 		//TODO BAD REQUEST
 
 		if err != nil {
-			repositoriesApi.DeleteRepository(ctx, repoName)
+			if _, err := repositoriesApi.DeleteRepository(ctx, repoName); err != nil {
+				fmt.Printf("Warning: Failed to delete repository after volume creation failure: %v\n", err)
+			}
 			panic(err)
 			//TODO REMOVE VOLUME AND EXIT
 		}
@@ -142,7 +147,9 @@ func Run(container string, repository string, envVars []string, args []string, d
 		Name:       repoName,
 		Properties: metadata,
 	}
-	repositoriesApi.UpdateRepository(ctx, repoName, updateRepo)
+	if _, _, err := repositoriesApi.UpdateRepository(ctx, repoName, updateRepo); err != nil {
+		fmt.Printf("Warning: Failed to update repository metadata: %v\n", err)
+	}
 
 	var metaPorts []map[string]string
 	dockerPorts := docker.GetSliceFromImage(image+":"+tag, "Config", "ExposedPorts")
@@ -177,10 +184,15 @@ func Run(container string, repository string, envVars []string, args []string, d
 		Name:       repoName,
 		Properties: metadata,
 	}
-	repositoriesApi.UpdateRepository(ctx, repoName, updateRepo)
+	if _, _, err := repositoriesApi.UpdateRepository(ctx, repoName, updateRepo); err != nil {
+		fmt.Printf("Warning: Failed to update repository runtime metadata: %v\n", err)
+	}
 
 	fmt.Println("Creating " + repoName + " deployment")
-	k8s.CreateStatefulSet(repoName, imageId, ports, titanVolumes, envVars)
+	if err := k8s.CreateStatefulSet(repoName, imageId, ports, titanVolumes, envVars); err != nil {
+		fmt.Printf("Error creating stateful set: %v\n", err)
+		os.Exit(1)
+	}
 
 	fmt.Println("Waiting for deployment to be ready")
 	k8s.WaitForStatefulSet(repoName)

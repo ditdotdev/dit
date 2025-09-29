@@ -7,6 +7,11 @@ import (
 	"strings"
 )
 
+const (
+	ProviderTypeDocker     = "docker"
+	ProviderTypeKubernetes = "kubernetes"
+)
+
 /**
  * The provider factory is responsible for managing multiple providers (contexts to the user). We keep track of
  * providers in the ~/.titan/config file, which is a YAML file that contains a list of contexts and their
@@ -63,17 +68,21 @@ func init() {
 	err := viper.ReadInConfig()
 	if err != nil {
 		// Likely config file does not exists, create one.
-		_ = os.Mkdir(home+"/.titan", 0755)
-		_, _ = os.Create(home + "/.titan/config")
+		_ = os.Mkdir(home+"/.titan", 0750)
+		configPath := home + "/.titan/config"
+		//nolint:gosec // G304: Creating config file in user's home directory, path is controlled
+		if _, err := os.Create(configPath); err != nil {
+			panic("failed to create config file: " + err.Error())
+		}
 	}
 	Providers = make(map[string]Provider)
 	contexts := viper.GetStringMap("contexts")
 	for index, item := range contexts {
 		context := loadContext(item)
 		switch context.contextType {
-		case "docker":
+		case ProviderTypeDocker:
 			Providers[index] = Local(index, context.host, context.port)
-		case "kubernetes":
+		case ProviderTypeKubernetes:
 			Providers[index] = Kubernetes(index, context.host, context.port)
 		}
 	}
@@ -103,6 +112,9 @@ func List() map[string]Provider {
 }
 
 func GetAvailablePort() int {
+	// G102: Intentionally binding to all interfaces to find an available port
+	// This is a common pattern for port discovery and is closed immediately
+	//nolint:gosec // G102: Binding to all interfaces for port discovery, closed immediately
 	l, err := net.Listen("tcp", ":0")
 	if err != nil {
 		panic(err)
@@ -118,9 +130,9 @@ func Create(name string, provider string, port int) Provider {
 	}
 	var p Provider
 	switch provider {
-	case "docker":
+	case ProviderTypeDocker:
 		p = Local(name, "localhost", port) //TODO confirm provider host
-	case "kubernetes":
+	case ProviderTypeKubernetes:
 		p = Kubernetes(name, "localhost", port)
 	}
 	return p
@@ -147,7 +159,7 @@ func Remove(n string) {
 	current := loadContext(contexts[n])
 	delete(contexts, n)
 	// If we delete the default provider, just pick first one to be default
-	if current.isDefault == true && len(contexts) > 0 {
+	if current.isDefault && len(contexts) > 0 {
 		for k, c := range contexts {
 			context := loadContext(c)
 			context.isDefault = true

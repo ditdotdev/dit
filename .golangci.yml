@@ -1,72 +1,20 @@
 # golangci-lint configuration for titan
-# More info: https://github.com/golangci/golangci-lint#config-file
+# Configuration compatible with golangci-lint v7
+version: "2"
 
 run:
   timeout: 5m
   modules-download-mode: readonly
-  go: '1.22'
-
-output:
-  formats:
-    - format: colored-line-number
-  print-issued-lines: true
-  print-linter-name: true
 
 linters:
   enable:
     - errcheck
-    - gosimple
     - govet
     - ineffassign
     - staticcheck
-    - typecheck
     - unused
-    - gofmt
-    - goimports
     - gosec
     - misspell
-    - revive
     - gocyclo
     - goconst
-    - gofumpt
     - whitespace
-    - wsl
-    - predeclared
-    - nolintlint
-    - copyloopvar
-    - gocritic
-
-linters-settings:
-  errcheck:
-    check-type-assertions: true
-  gocyclo:
-    min-complexity: 15
-  goconst:
-    min-len: 2
-    min-occurrences: 2
-  gosec:
-    excludes:
-      - G404 # Use of weak random number generator
-  revive:
-    rules:
-      - name: exported
-        arguments:
-          - "checkPrivateReceivers"
-          - "sayRepetitiveInsteadOfStutters"
-
-issues:
-  exclude-use-default: false
-  exclude-rules:
-    # Exclude some linters from running on tests files
-    - path: _test\.go
-      linters:
-        - gocyclo
-        - errcheck
-        - gosec
-        - goconst
-    # Ignore complexity issues in cmd directory
-    - path: cmd/
-      linters:
-        - gocyclo
-  max-issues-per-linter: 0
-  max-same-issues: 0

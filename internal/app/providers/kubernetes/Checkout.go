@@ -31,7 +31,6 @@ func Checkout(repoName string, guid string, tags []string, port int) {
 			}
 			sourceCommit = status.SourceCommit
 		}
-
 	} else {
 		if len(tags) > 0 {
 			fmt.Println("tags and commit cannot both be specified")
@@ -55,7 +54,10 @@ func Checkout(repoName string, guid string, tags []string, port int) {
 	}
 
 	fmt.Println("Checkout " + sourceCommit)
-	commitsApi.CheckoutCommit(ctx, repoName, sourceCommit)
+	if _, err := commitsApi.CheckoutCommit(ctx, repoName, sourceCommit); err != nil {
+		fmt.Printf("Error checking out commit %s: %v\n", sourceCommit, err)
+		os.Exit(1)
+	}
 
 	fmt.Println("Stopping port forwarding")
 	k8s.StopPortForwarding(repoName)

@@ -16,6 +16,7 @@ limitations under the License.
 package commands
 
 import (
+	"fmt"
 	"github.com/spf13/cobra"
 )
 
@@ -39,5 +40,7 @@ func init() {
 	upgradeCmd.Flags().StringVarP(&path, "path", "p", "", "full installation path of Titan")
 	upgradeCmd.Flags().BoolVar(&force, "finalize", false, "")
 	upgradeCmd.Flags().SortFlags = false
-	upgradeCmd.Flags().MarkHidden("finalize")
+	if err := upgradeCmd.Flags().MarkHidden("finalize"); err != nil {
+		fmt.Printf("Warning: Failed to mark finalize flag as hidden: %v\n", err)
+	}
 }

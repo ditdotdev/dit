@@ -14,7 +14,9 @@ func Abort(repo string, port int) {
 	for _, operation := range operations {
 		if operation.State == "RUNNING" {
 			fmt.Println("aborting operation " + operation.Id)
-			operationsApi.AbortOperation(ctx, operation.Id)
+			if _, err := operationsApi.AbortOperation(ctx, operation.Id); err != nil {
+				fmt.Printf("Warning: Failed to abort operation %s: %v\n", operation.Id, err)
+			}
 			abortCount++
 		}
 	}
