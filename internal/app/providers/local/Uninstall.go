@@ -39,14 +39,20 @@ func Uninstall(version string, force bool, removeImages bool, port int, context 
 	}
 
 	fmt.Println("Tearing down Titan servers")
-	docker.TeardownTitanServers() //TODO track this
+	if _, err := docker.TeardownTitanServers(); err != nil { //TODO track this
+		fmt.Printf("Warning: Failed to teardown titan servers: %v\n", err)
+	}
 
 	fmt.Println("Removing titan-data Docker volume")
-	docker.RemoveTitanVolume() //TODO track this
+	if _, err := docker.RemoveTitanVolume(); err != nil { //TODO track this
+		fmt.Printf("Warning: Failed to remove titan volume: %v\n", err)
+	}
 
 	if removeImages {
 		fmt.Println("Removing Titan Docker image")
-		docker.RemoveTitanImages(version) //TODO track this
+		if _, err := docker.RemoveTitanImages(version); err != nil { //TODO track this
+			fmt.Printf("Warning: Failed to remove titan images: %v\n", err)
+		}
 	}
 	fmt.Println("Uninstalled titan infrastructure")
 }

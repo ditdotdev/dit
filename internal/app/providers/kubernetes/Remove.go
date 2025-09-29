@@ -14,8 +14,13 @@ func Remove(repo string, force bool, port int) {
 	k8s.DeleteStatefulSpec(repo)
 	vols, _, _ := volumesApi.ListVolumes(ctx, repo)
 	for _, volume := range vols {
-		volumesApi.DeleteVolume(ctx, repo, volume.Name)
+		if _, err := volumesApi.DeleteVolume(ctx, repo, volume.Name); err != nil {
+			fmt.Printf("Warning: Failed to delete volume %s: %v\n", volume.Name, err)
+		}
 	}
-	repositoriesApi.DeleteRepository(ctx, repo)
+	if _, err := repositoriesApi.DeleteRepository(ctx, repo); err != nil {
+		fmt.Printf("Error deleting repository %s: %v\n", repo, err)
+		return
+	}
 	fmt.Println(repo + " removed")
 }

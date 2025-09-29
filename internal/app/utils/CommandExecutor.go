@@ -7,7 +7,7 @@ import (
 
 type commandExecutor struct {
 	timeout int
-	debug bool
+	debug   bool
 }
 
 func CommandExecutor(timeout int, debug bool) commandExecutor {
@@ -18,7 +18,7 @@ func CommandExecutor(timeout int, debug bool) commandExecutor {
 	} else {
 		t = 60
 	}
-	if debug != false {
+	if debug {
 		d = debug
 	} else {
 		d = false

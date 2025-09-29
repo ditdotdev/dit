@@ -2,8 +2,8 @@ package common
 
 import (
 	"fmt"
-	"github.com/google/uuid"
 	client "github.com/datadatdat/titan-client-go"
+	"github.com/google/uuid"
 	"strconv"
 	"strings"
 )

@@ -3,6 +3,7 @@ package local
 import (
 	"fmt"
 	"github.com/briandowns/spinner"
+	"os"
 	"strconv"
 	"strings"
 	"time"
@@ -11,13 +12,11 @@ import (
 	"titan/internal/app/utils"
 )
 
-
 var ce = utils.CommandExecutor(60, false)
 
 func Install(latest string, registry string, verbose bool, port int, context string) {
 	cfg.BasePath = "http://localhost:" + strconv.Itoa(port)
 	docker := clients.DockerWithRegistry(context, port, registry)
-
 
 	s := spinner.New(spinner.CharSets[9], 100*time.Millisecond)
 	s.HideCursor = true
@@ -26,7 +25,10 @@ func Install(latest string, registry string, verbose bool, port int, context str
 	fmt.Println("Checking docker installation")
 
 	// Make sure Docker is running or panic
-	docker.Version()
+	if _, err := docker.Version(); err != nil {
+		fmt.Printf("Error checking docker version: %v\n", err)
+		os.Exit(1)
+	}
 
 	if !docker.TitanLatestIsDownloaded(registry, app.Version{}.FromString(latest)) {
 		var pullRegistry = registry
@@ -39,12 +41,19 @@ func Install(latest string, registry string, verbose bool, port int, context str
 		s.Start()
 		pullImage := pullRegistry + "/titan:" + latest
 		fmt.Printf("DEBUG: Pulling image: %s\n", pullImage)
-		docker.Pull(pullImage)
+		if _, err := docker.Pull(pullImage); err != nil {
+			fmt.Printf("Error pulling image %s: %v\n", pullImage, err)
+			os.Exit(1)
+		}
 		tagLatest := "titan:" + latest
 		fmt.Printf("DEBUG: Tagging %s as %s\n", pullImage, tagLatest)
-		docker.Tag(pullImage, tagLatest)
+		if _, err := docker.Tag(pullImage, tagLatest); err != nil {
+			fmt.Printf("Error tagging image: %v\n", err)
+		}
 		fmt.Printf("DEBUG: Tagging %s as titan\n", pullImage)
-		docker.Tag(pullImage, "titan")
+		if _, err := docker.Tag(pullImage, "titan"); err != nil {
+			fmt.Printf("Error tagging image as titan: %v\n", err)
+		}
 		s.Stop()
 		fmt.Println()
 	}
@@ -54,7 +63,9 @@ func Install(latest string, registry string, verbose bool, port int, context str
 		s.Prefix = "Removing titan server "
 		s.FinalMSG = "Old titan server removed"
 		s.Start()
-		docker.Remove("titan-docker-server", true)
+		if _, err := docker.Remove("titan-docker-server", true); err != nil {
+			fmt.Printf("Warning: Failed to remove titan server: %v\n", err)
+		}
 		s.Stop()
 	}
 
@@ -63,7 +74,9 @@ func Install(latest string, registry string, verbose bool, port int, context str
 		s.Prefix = "Removing stale titan-launch container "
 		s.FinalMSG = "Stale titan-launch container removed"
 		s.Start()
-		docker.Remove("titan-docker-launch", true)
+		if _, err := docker.Remove("titan-docker-launch", true); err != nil {
+			fmt.Printf("Warning: Failed to remove titan launch container: %v\n", err)
+		}
 		s.Stop()
 	}
 

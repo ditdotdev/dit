@@ -24,11 +24,13 @@ func Remove(repo string, force bool, port int, context string) {
 		containerRunning, _ := docker.ContainerIsRunning(repo)
 		if containerRunning {
 			_, _ = docker.Remove(repo, force)
-		} else  {
-			docker.RemoveStopped(repo)
+		} else {
+			if _, err := docker.RemoveStopped(repo); err != nil {
+				fmt.Printf("Warning: Failed to remove stopped container %s: %v\n", repo, err)
+			}
 		}
 	}
-	volumes, _, _ := volumesApi.ListVolumes(ctx,repo)
+	volumes, _, _ := volumesApi.ListVolumes(ctx, repo)
 	for _, volume := range volumes {
 		fmt.Println("Deleting volume " + volume.Name)
 		_, err := volumesApi.DeactivateVolume(ctx, repo, volume.Name)
@@ -44,7 +46,9 @@ func Remove(repo string, force bool, port int, context string) {
 			 * not allow it to be removed. Falling back on the VolumeApi
 			 * fixes this condition.
 			 */
-			volumesApi.DeleteVolume(ctx, repo, volume.Name)
+			if _, err := volumesApi.DeleteVolume(ctx, repo, volume.Name); err != nil {
+				fmt.Printf("Warning: Failed to delete volume %s: %v\n", volume.Name, err)
+			}
 		}
 	}
 

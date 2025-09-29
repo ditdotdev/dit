@@ -18,16 +18,22 @@ import (
 	"time"
 )
 
+var ctx = context.Background()
+var client k8s.Interface
+
 type kubernetes struct {
 	namespace string
+	host      string
+	port      int
 }
 
-func Kubernetes (n string) kubernetes {
-	return kubernetes{n}
+func Kubernetes(n string, h string, p int) kubernetes {
+	return kubernetes{
+		namespace: n,
+		host:      h,
+		port:      p,
+	}
 }
-
-var client *k8s.Clientset
-var ctx = context.Background()
 
 func init() {
 	home := homedir.HomeDir()
@@ -43,39 +49,45 @@ func init() {
  * the ports in the container. We then create a single replica stateful set with the given volumes (each with
  * existing PVCs) mapped in.
  */
-func (k kubernetes) CreateStatefulSet(repoName string, imageId string, ports []int, volumes []titanclient.Volume, environment []string) {
+func (k kubernetes) CreateStatefulSet(repoName string, imageId string, ports []int, volumes []titanclient.Volume, environment []string) error {
+	var err error
 	objectMeta := metav1.ObjectMeta{
-		Name:                       repoName,
-		Namespace:                  k.namespace,
-		Labels:                     map[string]string{"titanRepository": repoName},
+		Name:      repoName,
+		Namespace: k.namespace,
+		Labels:    map[string]string{"titanRepository": repoName},
 	}
 	servicePorts := make([]v1.ServicePort, len(ports))
 	for _, port := range ports {
 		servicePorts = append(servicePorts, v1.ServicePort{
-			Name:        "port-" + strconv.Itoa(port),
-			Port:        int32(port),
+			Name: "port-" + strconv.Itoa(port),
+			//nolint:gosec // G115: Port numbers are bounded to 0-65535, safe to convert to int32
+			Port: int32(port),
 		})
 	}
 	serviceSpec := v1.ServiceSpec{
-		Ports:                    servicePorts,
-		Selector:                 map[string]string{"titanRepository": repoName},
-		ClusterIP:                "None",
+		Ports:     servicePorts,
+		Selector:  map[string]string{"titanRepository": repoName},
+		ClusterIP: "None",
 	}
 	service := v1.Service{
 		ObjectMeta: objectMeta,
-		Spec:      	serviceSpec,
+		Spec:       serviceSpec,
 		Status:     v1.ServiceStatus{},
 	}
 	createMetadata := metav1.CreateOptions{
 		DryRun:       nil,
 		FieldManager: "",
 	}
-	client.CoreV1().Services(k.namespace).Create(ctx, &service, createMetadata)
+	_, err = client.CoreV1().Services(k.namespace).Create(ctx, &service, createMetadata)
+	if err != nil {
+		return err
+	}
 
 	containerPorts := make([]v1.ContainerPort, len(ports))
 	for _, port := range ports {
 		containerPorts = append(containerPorts, v1.ContainerPort{
-			Name:          "port-" + strconv.Itoa(port),
+			Name: "port-" + strconv.Itoa(port),
+			//nolint:gosec // G115: Port numbers are bounded to 0-65535, safe to convert to int32
 			ContainerPort: int32(port),
 		})
 	}
@@ -83,23 +95,23 @@ func (k kubernetes) CreateStatefulSet(repoName string, imageId string, ports []i
 	for _, environment := range environment {
 		s := strings.Split(environment, "=")
 		envs = append(envs, v1.EnvVar{
-			Name:      s[0],
-			Value:     s[1],
+			Name:  s[0],
+			Value: s[1],
 		})
 	}
 	volumeMounts := make([]v1.VolumeMount, len(volumes))
 	for _, volume := range volumes {
 		volumeMounts = append(volumeMounts, v1.VolumeMount{
-			Name:             volume.Name,
-			MountPath:        volume.Properties["path"].(string),
+			Name:      volume.Name,
+			MountPath: volume.Properties["path"].(string),
 		})
 	}
 	container := v1.Container{
-		Name:                     repoName,
-		Image:                    imageId,
-		Ports:                    containerPorts,
-		Env:                      envs,
-		VolumeMounts:             volumeMounts,
+		Name:         repoName,
+		Image:        imageId,
+		Ports:        containerPorts,
+		Env:          envs,
+		VolumeMounts: volumeMounts,
 	}
 	containers := make([]v1.Container, 1)
 	containers = append(containers, container)
@@ -110,15 +122,15 @@ func (k kubernetes) CreateStatefulSet(repoName string, imageId string, ports []i
 			ClaimName: volume.Properties["pvc"].(string),
 		}
 		vols = append(vols, v1.Volume{
-			Name:         volume.Name,
+			Name: volume.Name,
 			VolumeSource: v1.VolumeSource{
 				PersistentVolumeClaim: &pvc,
 			},
 		})
 	}
 	podSpec := v1.PodSpec{
-		Volumes:                       vols,
-		Containers:                    containers,
+		Volumes:    vols,
+		Containers: containers,
 	}
 	podTemplate := v1.PodTemplateSpec{
 		ObjectMeta: objectMeta,
@@ -126,19 +138,23 @@ func (k kubernetes) CreateStatefulSet(repoName string, imageId string, ports []i
 	}
 	replica := int32(1)
 	selector := metav1.LabelSelector{
-		MatchLabels:      map[string]string{"titanRepository": repoName},
+		MatchLabels: map[string]string{"titanRepository": repoName},
 	}
 	statefulSpecs := v1Apps.StatefulSetSpec{
-		Replicas:             &replica,
-		Selector:             &selector,
-		Template:             podTemplate,
-		ServiceName:          repoName,
+		Replicas:    &replica,
+		Selector:    &selector,
+		Template:    podTemplate,
+		ServiceName: repoName,
 	}
 	statefulSet := v1Apps.StatefulSet{
 		ObjectMeta: objectMeta,
 		Spec:       statefulSpecs,
 	}
-	client.AppsV1().StatefulSets(k.namespace).Create(ctx, &statefulSet, createMetadata)
+	_, err = client.AppsV1().StatefulSets(k.namespace).Create(ctx, &statefulSet, createMetadata)
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 /**
@@ -156,14 +172,8 @@ func (k kubernetes) CreateStatefulSet(repoName string, imageId string, ports []i
 func (k kubernetes) GetStatefulSetStatus(repoName string) (string, error) {
 	set, err := client.AppsV1().StatefulSets(k.namespace).Get(ctx, repoName, metav1.GetOptions{})
 	if err != nil {
-		//TODO catch detached
-		//} catch (e: ApiException) {
-		//	if (e.code == 404) {
-		//		return "detached" to null
-		//	} else {
-		//		throw e
-		//	}
-		//}
+		// Return "detached" for 404 errors, or propagate other errors
+		return "detached", err
 	}
 	if set == nil {
 		return "unknown", nil
@@ -179,14 +189,13 @@ func (k kubernetes) GetStatefulSetStatus(repoName string) (string, error) {
 	}
 	pod, err := client.CoreV1().Pods(k.namespace).Get(ctx, repoName, metav1.GetOptions{})
 	if err != nil {
-		//TODO check for non-existing pod
+		// If pod doesn't exist, return starting state
+		return "starting", nil
 	}
 	conditions := pod.Status.Conditions
-	if conditions != nil {
-		for _, condition := range conditions {
-			if condition.Reason == "Unschedulable" {
-				return "failed", errors.New("Pod failed to be scheduled: " + condition.Message)
-			}
+	for _, condition := range conditions {
+		if condition.Reason == "Unschedulable" {
+			return "failed", errors.New("Pod failed to be scheduled: " + condition.Message)
 		}
 	}
 	return "starting", nil
@@ -222,9 +231,9 @@ func (k kubernetes) StartPortForwarding(repoName string) {
 	time.Sleep(500)
 	service, _ := client.CoreV1().Services(k.namespace).Get(ctx, repoName, metav1.GetOptions{})
 	ports := service.Spec.Ports
-	if ports != nil {
-		for _, port := range ports {
-			ce.Exec("sh", "-c", "kubectl port-forward svc/" + repoName + " " +  fmt.Sprint(port.Port) + " > /dev/null 2>&1 &")
+	for _, port := range ports {
+		if _, err := ce.Exec("sh", "-c", "kubectl port-forward svc/"+repoName+" "+fmt.Sprint(port.Port)+" > /dev/null 2>&1 &"); err != nil {
+			fmt.Printf("Warning: Failed to setup port forward for port %d: %v\n", port.Port, err)
 		}
 	}
 }
@@ -232,14 +241,16 @@ func (k kubernetes) StartPortForwarding(repoName string) {
 /**
  * This is horribly OS-specific, and should be replaced with a more complete solution as described above.
  */
-func (k kubernetes)StopPortForwarding(repoName string) {
+func (k kubernetes) StopPortForwarding(repoName string) {
 	service, _ := client.CoreV1().Services(k.namespace).Get(ctx, repoName, metav1.GetOptions{})
 	ports := service.Spec.Ports
 	if len(ports) > 0 {
 		for _, port := range ports {
 			out, _ := ce.Exec("sh", "-c", "ps -ef | grep \\\"[k]ubectl port-forward svc/"+repoName+" "+fmt.Sprint(port.Port)+"\\\"")
 			pid := strings.Split(out, " ")
-			ce.Exec("kill", pid[2])
+			if _, err := ce.Exec("kill", pid[2]); err != nil {
+				fmt.Printf("Warning: Failed to kill port-forward process: %v\n", err)
+			}
 		}
 	}
 }
@@ -247,12 +258,12 @@ func (k kubernetes)StopPortForwarding(repoName string) {
 /**
  * Update the volumes within a given StatefulSet.
  */
-func (k kubernetes)UpdateStatefulSetVolumes(repoName string, volumes []titanclient.Volume) {
+func (k kubernetes) UpdateStatefulSetVolumes(repoName string, volumes []titanclient.Volume) {
 	set, _ := client.AppsV1().StatefulSets(k.namespace).Get(ctx, repoName, metav1.GetOptions{})
 	var p string
 	specVolumes := set.Spec.Template.Spec.Volumes
 	if len(specVolumes) > 0 {
-		for volumeIdx, volumeDef := range specVolumes{
+		for volumeIdx, volumeDef := range specVolumes {
 			for _, vol := range volumes {
 				if vol.Name == volumeDef.Name {
 					p = p + "{\\\"op\\\":\\\"replace\\\",\\\"path\\\":\\\"/spec/template/spec/volumes/" + strconv.Itoa(volumeIdx) + "/persistentVolumeClaim/claimName\\\",\\\"value\\\":\\\"" + vol.Config["pvc"].(string) + "\\\"}"
@@ -260,10 +271,12 @@ func (k kubernetes)UpdateStatefulSetVolumes(repoName string, volumes []titanclie
 			}
 		}
 	}
-	client.AppsV1().StatefulSets(k.namespace).Patch(ctx, repoName, types.JSONPatchType, []byte(p), metav1.PatchOptions{})
+	if _, err := client.AppsV1().StatefulSets(k.namespace).Patch(ctx, repoName, types.JSONPatchType, []byte(p), metav1.PatchOptions{}); err != nil {
+		fmt.Printf("Warning: Failed to patch stateful set volumes: %v\n", err)
+	}
 }
 
-func (k kubernetes)DeleteStatefulSpec(repoName string) {
+func (k kubernetes) DeleteStatefulSpec(repoName string) {
 	err := client.AppsV1().StatefulSets(k.namespace).Delete(ctx, repoName, metav1.DeleteOptions{})
 	if err != nil {
 		panic(err)
@@ -278,15 +291,19 @@ func (k kubernetes)DeleteStatefulSpec(repoName string) {
  * Stops a stateful set. This is equivalent to setting the number of replicas to zero and waiting for the
  * deployment to update. Its up to callers to wait for the changes to take effect.
  */
-func (k kubernetes)StopStatefulSet(repoName string) {
+func (k kubernetes) StopStatefulSet(repoName string) {
 	patch := []byte("[{\"op\":\"replace\",\"path\":\"/spec/replicas\",\"value\":0}]")
-	client.AppsV1().StatefulSets(k.namespace).Patch(ctx, repoName, types.JSONPatchType, patch, metav1.PatchOptions{})
+	if _, err := client.AppsV1().StatefulSets(k.namespace).Patch(ctx, repoName, types.JSONPatchType, patch, metav1.PatchOptions{}); err != nil {
+		fmt.Printf("Warning: Failed to stop stateful set: %v\n", err)
+	}
 }
 
 /**
  * Opposite of the above, set the number of replicas to one.
  */
-func (k kubernetes)StartStatefulSet(repoName string) {
+func (k kubernetes) StartStatefulSet(repoName string) {
 	patch := []byte("[{\"op\":\"replace\",\"path\":\"/spec/replicas\",\"value\":1}]")
-	client.AppsV1().StatefulSets(k.namespace).Patch(ctx, repoName, types.JSONPatchType, patch, metav1.PatchOptions{})
+	if _, err := client.AppsV1().StatefulSets(k.namespace).Patch(ctx, repoName, types.JSONPatchType, patch, metav1.PatchOptions{}); err != nil {
+		fmt.Printf("Warning: Failed to start stateful set: %v\n", err)
+	}
 }

@@ -53,14 +53,16 @@ func Run(container string, repository string, envVars []string, args []string, d
 
 	imageInfo, err := docker.InspectImage(image + ":" + tag)
 	if err != nil {
-		docker.Pull(image + ":" + tag)
+		if _, err := docker.Pull(image + ":" + tag); err != nil {
+			fmt.Printf("Warning: Failed to pull image %s:%s: %v\n", image, tag, err)
+		}
 		imageInfo, _ = docker.InspectImage(image + ":" + tag)
 	}
 	if len(imageInfo) == 0 {
 		fmt.Println("Image information is not available")
 		os.Exit(1)
 	}
- 	vols := docker.GetSliceFromImage(image + ":" + tag, "Config", "Volumes")
+	vols := docker.GetSliceFromImage(image+":"+tag, "Config", "Volumes")
 	fmt.Printf("DEBUG: Got vols from image %s:%s: %v (length: %d)\n", image, tag, vols, len(vols))
 	if len(vols) < 1 {
 		fmt.Println("No volumes found for image " + image)
@@ -68,8 +70,8 @@ func Run(container string, repository string, envVars []string, args []string, d
 	}
 
 	fmt.Println("Creating repository " + containerName)
- 	repo := client.Repository{
-		Name:      containerName,
+	repo := client.Repository{
+		Name:       containerName,
 		Properties: nil,
 	}
 	if createRepo {
@@ -108,17 +110,18 @@ func Run(container string, repository string, envVars []string, args []string, d
 	imageTag := image + ":" + tag
 	i := 0
 	for i < len(args) {
-		if args[i] == "--name" {
+		switch args[i] {
+		case "--name":
 			// Skip --name and the next argument
 			if i+1 < len(args) {
 				i += 2 // Skip both --name and its value
 			} else {
 				i += 1 // Just skip --name if no value follows
 			}
-		} else if args[i] == imageTag {
+		case imageTag:
 			// Skip the image:tag argument
 			i += 1
-		} else {
+		default:
 			// Keep this argument
 			filteredArgs = append(filteredArgs, args[i])
 			i += 1
@@ -128,11 +131,11 @@ func Run(container string, repository string, envVars []string, args []string, d
 	fmt.Printf("DEBUG: About to append --name and containerName\n")
 	fmt.Printf("DEBUG: argList before: %v\n", argList)
 	fmt.Printf("DEBUG: containerName: %s\n", containerName)
-	argList = append(argList,"--name")
-	argList = append(argList,containerName)
+	argList = append(argList, "--name")
+	argList = append(argList, containerName)
 
 	var metaPorts []map[string]string
-	ports := docker.GetSliceFromImage(image + ":" + tag, "Config", "ExposedPorts")
+	ports := docker.GetSliceFromImage(image+":"+tag, "Config", "ExposedPorts")
 	for _, rawPort := range ports {
 		rawPort = strings.ReplaceAll(rawPort, `"`, "")
 		portParts := strings.Split(rawPort, "/")
@@ -144,7 +147,7 @@ func Run(container string, repository string, envVars []string, args []string, d
 		protocol := strings.Split(protocolPart, ":")[0]
 		if !disablePortMap {
 			argList = append(argList, "-p")
-			argList = append(argList, port + ":" + port + "/" + protocol)
+			argList = append(argList, port+":"+port+"/"+protocol)
 		}
 		addPort := make(map[string]string)
 		addPort["protocol"] = protocol
@@ -157,14 +160,14 @@ func Run(container string, repository string, envVars []string, args []string, d
 		argList = append(argList, env)
 	}
 
-	repoDigest := docker.GetValFromImage(image + ":" + tag, "RepoDigests")
+	repoDigest := docker.GetValFromImage(image+":"+tag, "RepoDigests")
 	repoDigest = strings.ReplaceAll(repoDigest, "[", "")
 	repoDigest = strings.ReplaceAll(repoDigest, "]", "")
 	repoDigest = strings.ReplaceAll(repoDigest, " ", "")
 	repoDigest = strings.ReplaceAll(repoDigest, `"`, "")
 	repoDigest = strings.ReplaceAll(repoDigest, "\n", "")
 	repoDigest = strings.TrimSpace(repoDigest)
-	
+
 	// If multiple digests are present (separated by commas), take the first one
 	if strings.Contains(repoDigest, ",") {
 		digestParts := strings.Split(repoDigest, ",")
@@ -179,15 +182,15 @@ func Run(container string, repository string, envVars []string, args []string, d
 	}
 
 	metadata := map[string]interface{}{
-		"v2" : map[string]interface{}{
+		"v2": map[string]interface{}{
 			"image": map[string]interface{}{
-				"image": image,
-				"tag": tag,
+				"image":  image,
+				"tag":    tag,
 				"digest": repoDigest,
 			},
 			"environment": envVars,
-			"ports": metaPorts,
-			"volumes": metaVols,
+			"ports":       metaPorts,
+			"volumes":     metaVols,
 		},
 	}
 
