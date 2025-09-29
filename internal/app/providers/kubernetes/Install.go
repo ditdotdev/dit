@@ -3,6 +3,7 @@ package kubernetes
 import (
 	"fmt"
 	"github.com/briandowns/spinner"
+	"os"
 	"strconv"
 	"strings"
 	"time"
@@ -20,19 +21,29 @@ func Install(latest string, registry string, verbose bool, port int, context str
 	fmt.Println("Initializing titan infrastructure")
 	fmt.Println("Checking docker installation")
 
-	docker.Version()
+	if _, err := docker.Version(); err != nil {
+		fmt.Printf("Error checking docker version: %v\n", err)
+		os.Exit(1)
+	}
 	if !docker.TitanLatestIsDownloaded(registry, app.Version{}.FromString(latest)) {
 		s.Prefix = "Pulling titan docker image (may take a while) "
 		s.FinalMSG = "Latest docker image downloaded"
 		s.Start()
 		pullImage := registry + "/titan:" + latest
 		fmt.Printf("DEBUG: Pulling image: %s\n", pullImage)
-		docker.Pull(pullImage)
+		if _, err := docker.Pull(pullImage); err != nil {
+			fmt.Printf("Error pulling image %s: %v\n", pullImage, err)
+			os.Exit(1)
+		}
 		tagLatest := "titan:" + latest
 		fmt.Printf("DEBUG: Tagging %s as %s\n", pullImage, tagLatest)
-		docker.Tag(pullImage, tagLatest)
+		if _, err := docker.Tag(pullImage, tagLatest); err != nil {
+			fmt.Printf("Error tagging image: %v\n", err)
+		}
 		fmt.Printf("DEBUG: Tagging %s as titan\n", pullImage)
-		docker.Tag(pullImage, "titan")
+		if _, err := docker.Tag(pullImage, "titan"); err != nil {
+			fmt.Printf("Error tagging image as titan: %v\n", err)
+		}
 		s.Stop()
 		fmt.Println()
 	}
@@ -42,7 +53,9 @@ func Install(latest string, registry string, verbose bool, port int, context str
 		s.Prefix = "Removing titan server "
 		s.FinalMSG = "Old titan server removed"
 		s.Start()
-		docker.Remove("titan-kubernetes-server", true)
+		if _, err := docker.Remove("titan-kubernetes-server", true); err != nil {
+			fmt.Printf("Warning: Failed to remove old titan server: %v\n", err)
+		}
 		s.Stop()
 	}
 
@@ -51,7 +64,9 @@ func Install(latest string, registry string, verbose bool, port int, context str
 		s.Prefix = "Removing stale titan-launch container "
 		s.FinalMSG = "Stale titan-launch container removed"
 		s.Start()
-		docker.Remove("titan-kubernetes-launch", true)
+		if _, err := docker.Remove("titan-kubernetes-launch", true); err != nil {
+			fmt.Printf("Warning: Failed to remove titan-launch container: %v\n", err)
+		}
 		s.Stop()
 	}
 

@@ -104,5 +104,4 @@ func init() {
 	contextInstallCmd.Flags().SortFlags = false //TODO review flag sorting
 
 	contextUninstallCmd.Flags().BoolVarP(&force, "force", "f", false, "destroy all repositories")
-
 }

@@ -10,7 +10,10 @@ import (
 func DeleteCommit(repo string, commit string, port int) {
 	cfg.BasePath = "http://localhost:" + strconv.Itoa(port)
 
-	commitsApi.DeleteCommit(ctx, repo, commit)
+	if _, err := commitsApi.DeleteCommit(ctx, repo, commit); err != nil {
+		fmt.Printf("Error deleting commit %s: %v\n", commit, err)
+		return
+	}
 	fmt.Println(commit + " deleted")
 }
 
@@ -39,5 +42,7 @@ func DeleteTags(repo string, commit string, tags []string, port int) {
 		Id:         c.Id,
 		Properties: metadata.ToMap(),
 	}
-	commitsApi.UpdateCommit(ctx, repo, c.Id, cm)
+	if _, _, err := commitsApi.UpdateCommit(ctx, repo, c.Id, cm); err != nil {
+		fmt.Printf("Error updating commit tags: %v\n", err)
+	}
 }

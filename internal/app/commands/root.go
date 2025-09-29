@@ -69,7 +69,10 @@ func initConfig() {
 	u, _ := user.Current()
 	titanConfig := u.HomeDir + "/.titan/config"
 	if _, err := os.Stat(titanConfig); os.IsNotExist(err) {
-		os.Create(titanConfig)
+		//nolint:gosec // G304: Creating config file in user's home directory, path is controlled
+		if _, err := os.Create(titanConfig); err != nil {
+			fmt.Printf("Error creating config file: %v\n", err)
+		}
 	}
 	isInstall := false
 	for _, item := range os.Args {

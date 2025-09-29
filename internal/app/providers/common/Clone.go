@@ -90,6 +90,10 @@ func Clone(uri string, repo string, guid string, params []string, args []string,
 			}
 		}
 		_, err = docker.Pull(metadata.image.Digest)
+		if err != nil {
+			fmt.Printf("Failed to pull image %s: %v\n", metadata.image.Digest, err)
+			os.Exit(1)
+		}
 		var envs []string
 		for _, v := range metadata.environment {
 			envs = append(envs, fmt.Sprintf("%v", v))

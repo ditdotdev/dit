@@ -22,7 +22,9 @@ func Uninstall(force bool, removeImages bool, context string, port int) {
 				os.Exit(1)
 			}
 		}
-		docker.Remove("titan-"+context+"-server", true)
+		if _, err := docker.Remove("titan-"+context+"-server", true); err != nil {
+			fmt.Printf("Warning: Failed to remove titan server container: %v\n", err)
+		}
 	}
 
 	s := spinner.New(spinner.CharSets[9], 100*time.Millisecond)
@@ -31,7 +33,9 @@ func Uninstall(force bool, removeImages bool, context string, port int) {
 	s.Prefix = "Removing Titan Docker volume "
 	s.FinalMSG = "Titan Docker volume removed"
 	s.Start()
-	docker.RemoveVolume("titan-"+context+"-date", true)
+	if _, err := docker.RemoveVolume("titan-"+context+"-date", true); err != nil {
+		fmt.Printf("Warning: Failed to remove titan docker volume: %v\n", err)
+	}
 	s.Stop()
 	fmt.Println()
 
@@ -39,7 +43,9 @@ func Uninstall(force bool, removeImages bool, context string, port int) {
 		s.Prefix = "Removing Titan Docker image "
 		s.FinalMSG = "Titan Docker image removed"
 		s.Start()
-		docker.RemoveTitanImages("latest")
+		if _, err := docker.RemoveTitanImages("latest"); err != nil {
+			fmt.Printf("Warning: Failed to remove titan docker images: %v\n", err)
+		}
 		s.Stop()
 		fmt.Println()
 	}

@@ -10,12 +10,16 @@ import (
 	util "titan/internal/app/utils"
 )
 
+const (
+	DefaultRemoteName = "origin"
+)
+
 func Pull(repoName string, guid string, remoteName string, tags []string, metadataOnly bool, port int) {
 	cfg.BasePath = "http://localhost:" + strconv.Itoa(port)
 
 	var name string
 	if remoteName == "" {
-		name = "origin"
+		name = DefaultRemoteName
 	} else {
 		name = remoteName
 	}
