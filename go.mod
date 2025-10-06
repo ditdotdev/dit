@@ -1,6 +1,6 @@
 module titan
 
-go 1.24.0
+go 1.25.1
 
 toolchain go1.24.5
 
