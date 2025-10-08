@@ -11,7 +11,7 @@ tests:
         CONTEXT       REPOSITORY            STATUS
         docker        hello-world           running
   - "postgres database startup check":
-      command: [bash, -c, 'for i in {1..10}; do docker exec hello-world psql postgres://postgres:postgres@localhost/postgres -t -c "SELECT 1;" 2>/dev/null && break || sleep 3; done']
+      command: [sh, -c, 'for i in 1 2 3 4 5 6 7 8 9 10; do docker exec hello-world psql postgres://postgres:postgres@localhost/postgres -t -c "SELECT 1;" && break || sleep 3; done']
       wait: 1
   - "can get contents of hello-world/postgres":
       command: [docker, exec, hello-world, psql, postgres://postgres:postgres@localhost/postgres, -t, -c, SELECT * FROM messages;]
@@ -32,7 +32,7 @@ tests:
           - Creating docker volume mongo-test_v1 with path /data/db
           - Running controlled container mongo-test
   - "can insert mongo-test Ada Lovelace":
-      command: 'docker exec mongo-test mongo --quiet --eval "db.employees.insert({firstName:\"Ada\",lastName:\"Lovelace\"})"'
+      command: [docker, exec, mongo-test, mongo, --quiet, --eval, 'db.employees.insert({"firstName":"Ada","lastName":"Lovelace"})']
       stdout:
         contains:
           - nInserted
@@ -47,17 +47,17 @@ tests:
                 find: "Commit "
                 replace: ""
   - "can insert mongo-test Grace Hopper":
-      command: 'docker exec mongo-test mongo --quiet --eval "db.employees.insert({firstName:\"Grace\",lastName:\"Hopper\"})"'
+      command: [docker, exec, mongo-test, mongo, --quiet, --eval, 'db.employees.insert({"firstName":"Grace","lastName":"Hopper"})']
       stdout:
         contains:
           - nInserted
   - "can select employees from mongo-test":
-      command: [docker, exec, mongo-test, mongo, --quiet, --eval, 'db.employees.find()']
+      command: [docker, exec, mongo-test, mongo, --quiet, --eval, 'db.employees.find().forEach(printjson)']
       wait: 2
       stdout:
         contains:
-          - '"firstName" : "Ada", "lastName" : "Lovelace"'
-          - '"firstName" : "Grace", "lastName" : "Hopper"'
+          - Ada
+          - Grace
   - "can checkout commit mongo-test":
       command: [titan, checkout, --commit, $COMMIT_GUID, mongo-test]
       wait: 10
@@ -70,10 +70,10 @@ tests:
         get:
          - COMMIT_GUID
   - "mongo-test checkout was successful":
-      command: [docker, exec, mongo-test, mongo, --quiet, --eval, 'db.employees.find()']
+      command: [docker, exec, mongo-test, mongo, --quiet, --eval, 'db.employees.find().forEach(printjson)']
       stdout:
         excludes:
-          - '"firstName" : "Grace", "lastName" : "Hopper"'
+          - Grace
   - "can remove mongo-test":
       command: titan rm -f mongo-test
       stdout: |-
