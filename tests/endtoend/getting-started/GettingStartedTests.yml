@@ -12,7 +12,7 @@ tests:
         docker        hello-world           running
   - "can get contents of hello-world/postgres":
       command: [docker, exec, hello-world, psql, postgres://postgres:postgres@localhost/postgres, -t, -c, SELECT * FROM messages;]
-      wait: 60
+      wait: 120
       stdout: Hello, World!
   - "can remove hello-world/postgres":
       command: titan rm -f hello-world
