@@ -41,14 +41,20 @@ jobs:
           ./build/titan --version
       - name: Install OpenZFS
         run: |
-          echo "Installing OpenZFS kernel module and userspace tools..."
+          echo "Installing ZFS for Ubuntu $(lsb_release -rs) kernel $(uname -r)..."
           sudo apt-get update
-          sudo apt-get install -y zfsutils-linux zfs-dkms
-          echo "Loading ZFS kernel module..."
+          
+          echo "Installing ZFS userspace tools and kernel modules..."
+          sudo apt-get install -y zfsutils-linux
+          
+          echo "Loading ZFS kernel modules..."
           sudo modprobe zfs
+          
           echo "Verifying ZFS installation..."
           zfs version
           zpool version
+          lsmod | grep zfs
+          
           echo "Testing ZFS functionality..."
           # Create a test file for ZFS pool
           sudo dd if=/dev/zero of=/tmp/zfs-test-file bs=1M count=100
