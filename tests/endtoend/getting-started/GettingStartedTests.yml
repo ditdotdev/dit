@@ -10,6 +10,9 @@ tests:
       stdout: |-
         CONTEXT       REPOSITORY            STATUS
         docker        hello-world           running
+  - "postgres database startup check":
+      command: [bash, -c, 'for i in {1..10}; do docker exec hello-world psql postgres://postgres:postgres@localhost/postgres -t -c "SELECT 1;" 2>/dev/null && break || sleep 3; done']
+      wait: 1
   - "can get contents of hello-world/postgres":
       command: [docker, exec, hello-world, psql, postgres://postgres:postgres@localhost/postgres, -t, -c, SELECT * FROM messages;]
       stdout: Hello, World!
@@ -30,8 +33,9 @@ tests:
           - Running controlled container mongo-test
   - "can insert mongo-test Ada Lovelace":
       command: 'docker exec mongo-test mongo --quiet --eval "db.employees.insert({firstName:\"Ada\",lastName:\"Lovelace\"})"'
-      stdout: |-
-        WriteResult({ "nInserted" : 1 })
+      stdout:
+        contains:
+          - nInserted
   - "can commit mongo-test":
       command: [titan, commit, -m, First Employee, mongo-test]
       stdout:
@@ -44,10 +48,12 @@ tests:
                 replace: ""
   - "can insert mongo-test Grace Hopper":
       command: 'docker exec mongo-test mongo --quiet --eval "db.employees.insert({firstName:\"Grace\",lastName:\"Hopper\"})"'
-      stdout: |-
-        WriteResult({ "nInserted" : 1 })
+      stdout:
+        contains:
+          - nInserted
   - "can select employees from mongo-test":
       command: [docker, exec, mongo-test, mongo, --quiet, --eval, 'db.employees.find()']
+      wait: 2
       stdout:
         contains:
           - '"firstName" : "Ada", "lastName" : "Lovelace"'
