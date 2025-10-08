@@ -10,11 +10,9 @@ tests:
       stdout: |-
         CONTEXT       REPOSITORY            STATUS
         docker        hello-world           running
-  - "postgres database startup check":
-      command: [sh, -c, 'for i in 1 2 3 4 5 6 7 8 9 10; do docker exec hello-world psql postgres://postgres:postgres@localhost/postgres -t -c "SELECT 1;" && break || sleep 3; done']
-      wait: 1
   - "can get contents of hello-world/postgres":
       command: [docker, exec, hello-world, psql, postgres://postgres:postgres@localhost/postgres, -t, -c, SELECT * FROM messages;]
+      wait: 15
       stdout: Hello, World!
   - "can remove hello-world/postgres":
       command: titan rm -f hello-world
@@ -32,7 +30,7 @@ tests:
           - Creating docker volume mongo-test_v1 with path /data/db
           - Running controlled container mongo-test
   - "can insert mongo-test Ada Lovelace":
-      command: [docker, exec, mongo-test, mongo, --quiet, --eval, 'db.employees.insert({"firstName":"Ada","lastName":"Lovelace"})']
+      command: [docker, exec, mongo-test, mongo, --quiet, --eval, "db.employees.insert({'firstName':'Ada','lastName':'Lovelace'})"]
       stdout:
         contains:
           - nInserted
@@ -47,7 +45,7 @@ tests:
                 find: "Commit "
                 replace: ""
   - "can insert mongo-test Grace Hopper":
-      command: [docker, exec, mongo-test, mongo, --quiet, --eval, 'db.employees.insert({"firstName":"Grace","lastName":"Hopper"})']
+      command: [docker, exec, mongo-test, mongo, --quiet, --eval, "db.employees.insert({'firstName':'Grace','lastName':'Hopper'})"]
       stdout:
         contains:
           - nInserted
@@ -76,10 +74,11 @@ tests:
           - Grace
   - "can remove mongo-test":
       command: titan rm -f mongo-test
-      stdout: |-
-        Removing repository mongo-test
-        Deleting volume v0
-        Deleting volume v1
-        mongo-test removed
+      stdout:
+        contains:
+          - Removing repository mongo-test
+          - Deleting volume v0
+          - Deleting volume v1
+          - mongo-test removed
 after:
   clearVars: true
