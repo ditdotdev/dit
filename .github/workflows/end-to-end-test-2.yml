@@ -39,6 +39,25 @@ jobs:
           echo "Using pre-built titan binary:"
           ls -la build/titan
           ./build/titan --version
+      - name: Install OpenZFS
+        run: |
+          echo "Installing OpenZFS kernel module and userspace tools..."
+          sudo apt-get update
+          sudo apt-get install -y zfsutils-linux zfs-dkms
+          echo "Loading ZFS kernel module..."
+          sudo modprobe zfs
+          echo "Verifying ZFS installation..."
+          zfs version
+          zpool version
+          echo "Testing ZFS functionality..."
+          # Create a test file for ZFS pool
+          sudo dd if=/dev/zero of=/tmp/zfs-test-file bs=1M count=100
+          sudo zpool create testpool /tmp/zfs-test-file
+          sudo zfs create testpool/testfs
+          sudo zfs list
+          sudo zpool destroy testpool
+          rm -f /tmp/zfs-test-file
+          echo "ZFS installation and test completed successfully!"
       - name: Setup Test Requirements
         run: |
           ssh-keygen -b 2048 -t rsa -f ./sshKey -q -N ""
