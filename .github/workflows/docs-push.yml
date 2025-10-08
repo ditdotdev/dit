@@ -4,10 +4,7 @@ on:
     branches:
       - master
     paths:
-      - 'docs/*'
-      - 'docs/*/*'
-      - 'docs/*/*/*'
-      - 'docs/*/*/*/*'
+      - 'docs/**'
 
 permissions:
   contents: read
