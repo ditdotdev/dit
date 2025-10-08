@@ -67,7 +67,7 @@ jobs:
       - name: Setup Test Requirements
         run: |
           ssh-keygen -b 2048 -t rsa -f ./sshKey -q -N ""
-      - name: Run Test Suit
+      - name: Run Test Suite
         run: |
           export PATH=$GITHUB_WORKSPACE/build:$PATH
           make e2e
