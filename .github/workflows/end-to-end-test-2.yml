@@ -66,7 +66,9 @@ jobs:
           echo "ZFS installation and test completed successfully!"
       - name: Setup Test Requirements
         run: |
-          ssh-keygen -b 2048 -t rsa -f ./sshKey -q -N ""
+          # Generate SSH keys using the project's generateKey.sh script
+          cd tests/endtoend/remotes/ssh
+          ./generateKey.sh ubuntu-22.04
       - name: Run Test Suite
         run: |
           export PATH=$GITHUB_WORKSPACE/build:$PATH
