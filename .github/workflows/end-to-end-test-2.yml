@@ -62,7 +62,7 @@ jobs:
           sudo zfs create testpool/testfs
           sudo zfs list
           sudo zpool destroy testpool
-          rm -f /tmp/zfs-test-file
+          sudo rm -f /tmp/zfs-test-file  # Use sudo for cleanup
           echo "ZFS installation and test completed successfully!"
       - name: Setup Test Requirements
         run: |
