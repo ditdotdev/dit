@@ -34,7 +34,7 @@ jobs:
       - name: Setup Pre-built Titan Binary
         run: |
           mkdir -p build
-          cp build/titan-linux build/titan
+          cp titan-linux build/titan
           chmod +x build/titan
           echo "Using pre-built titan binary:"
           ls -la build/titan
