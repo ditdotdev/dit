@@ -27,18 +27,32 @@ jobs:
         run: |
           git config --global user.name "test.runner"
           git config --global user.email "test@runner.com"
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.25.1'
+      - name: Configure Go for private modules
+        run: |
+          go env -w GOPRIVATE=github.com/datadatdat/*
+          go env -w GONOPROXY=github.com/datadatdat/*
+          go env -w GONOSUMDB=github.com/datadatdat/*
+          go env -w GOPROXY=direct
+        shell: bash
+        env:
+          GOPRIVATE: github.com/datadatdat/*
+          GONOPROXY: github.com/datadatdat/*
+          GONOSUMDB: github.com/datadatdat/*
       - name: Output Kernel Info
         run: |
          docker pull busybox
          docker run busybox uname -a
-      - name: Setup Pre-built Titan Binary
-        run: |
-          mkdir -p build
-          cp titan-linux build/titan
-          chmod +x build/titan
-          echo "Using pre-built titan binary:"
-          ls -la build/titan
-          ./build/titan --version
+      - name: Build Titan
+        run: make build
+        shell: bash
+        env:
+          GOPRIVATE: github.com/datadatdat/*
+          GONOPROXY: github.com/datadatdat/*
+          GONOSUMDB: github.com/datadatdat/*
+          GIT_TERMINAL_PROMPT: 0
       - name: Install OpenZFS
         run: |
           echo "Installing ZFS for Ubuntu $(lsb_release -rs) kernel $(uname -r)..."
@@ -69,6 +83,10 @@ jobs:
           # Generate SSH keys using the project's generateKey.sh script
           cd tests/endtoend/remotes/ssh
           ./generateKey.sh ubuntu-22.04
+          cd ../../../../
+          # Also create keys in root directory for backward compatibility
+          cp tests/endtoend/remotes/ssh/sshKey ./sshKey
+          cp tests/endtoend/remotes/ssh/sshKey.pub ./sshKey.pub
       - name: Run Test Suite
         run: |
           export PATH=$GITHUB_WORKSPACE/build:$PATH
