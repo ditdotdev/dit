@@ -49,11 +49,36 @@ titan-server (Docker container with ZFS + PostgreSQL)
 3. **CLI Independence**: Titan CLI version advances independently but must reference compatible dependency versions
 4. **Server Alignment**: titan-server version should generally align with titan CLI for major releases
 
-## Step-by-Step Release Process
+## Complete Titan Release Process - Step by Step
 
-### Phase 1: Prepare Foundation Components
+### Pre-Release Phase (1-2 days before)
 
-#### 1. Release remote-sdk-go
+#### 1. Pre-Release Planning
+```bash
+# Determine version increments for all components
+# Check for breaking changes that require major version bumps
+# Coordinate with team on release timing
+```
+
+#### 2. Documentation Review
+```bash
+cd /c/dev/titan-data.github.io
+# Review and update documentation for new features
+# Prepare release notes and changelog entries
+```
+
+#### 3. OpenAPI Specification Sync
+```bash
+cd /c/dev/titan-server
+# Ensure OpenAPI spec (openapi/titan.yml) reflects all server changes
+# This will trigger titan-client-go regeneration in next phase
+```
+
+### Release Phase Day
+
+#### Phase 1: Foundation Components (Go Modules)
+
+##### 1.1 Release remote-sdk-go
 ```bash
 cd /c/dev/remote-sdk-go
 
@@ -61,79 +86,120 @@ cd /c/dev/remote-sdk-go
 go test -v ./...
 
 # Update version and create tag
-export NEW_VERSION="v0.2.6"  # Increment appropriately
-git tag $NEW_VERSION
-git push origin $NEW_VERSION
+export NEW_SDK_VERSION="v0.2.6"  # Increment appropriately
+git tag $NEW_SDK_VERSION
+git push origin $NEW_SDK_VERSION
 
-# Publish draft release on GitHub (manual step)
-# Go to https://github.com/datadatdat/remote-sdk-go/releases
-# Create release from tag with release notes
+# GitHub Action automatically creates draft release
+# Manually publish the draft release with release notes
 ```
 
-#### 2. Update Remote Providers (Parallel)
-For each remote provider (s3-remote-go, ssh-remote-go, s3web-remote-go, nop-remote-go):
+##### 1.2 Update and Release Remote Providers (Go) - Parallel Process
+For each provider (s3-remote-go, ssh-remote-go, s3web-remote-go, nop-remote-go):
 
 ```bash
 cd /c/dev/s3-remote-go  # Repeat for each provider
 
 # Update dependency to new remote-sdk-go version
-go get github.com/datadatdat/remote-sdk-go@v0.2.6
+go get github.com/datadatdat/remote-sdk-go@$NEW_SDK_VERSION
 go mod tidy
 
 # Run tests to ensure compatibility
 go test -v ./...
 
 # Create release
-export NEW_VERSION="v0.2.4"  # Increment appropriately
+export NEW_PROVIDER_VERSION="v0.2.4"  # Increment appropriately
 git add go.mod go.sum
-git commit -m "Update remote-sdk-go to $NEW_VERSION"
-git tag $NEW_VERSION
+git commit -m "Update remote-sdk-go to $NEW_SDK_VERSION"
+git tag $NEW_PROVIDER_VERSION
 git push origin master
-git push origin $NEW_VERSION
+git push origin $NEW_PROVIDER_VERSION
 
-# Publish draft release on GitHub (manual step)
+# GitHub Action automatically creates draft release
+# Manually publish the draft release
 ```
 
-### Phase 2: Update and Release titan-client-go
+#### Phase 2: Kotlin Remote Providers (Maven JARs) - Parallel Process
 
+For each Kotlin remote (s3-remote, ssh-remote, s3web-remote, nop-remote):
+
+```bash
+cd /c/dev/s3-remote  # Repeat for each Kotlin remote
+
+# Update remote-sdk dependency if needed
+# Edit build.gradle.kts to update version
+
+# Test build locally
+./gradlew build test
+
+# Create git tag (triggers automated Maven publishing)
+export NEW_VERSION="v0.2.3"  # Increment appropriately  
+git tag $NEW_VERSION
+git push origin $NEW_VERSION
+
+# GitHub Action automatically:
+# - Builds and tests the JAR
+# - Publishes to S3 Maven bucket (datadatdat-maven)
+# - Creates GitHub draft release
+```
+
+#### Phase 3: Auto-Generated Client
+
+##### 3.1 Regenerate titan-client-go
 ```bash
 cd /c/dev/titan-client-go
 
-# titan-client-go is auto-generated from titan-server OpenAPI spec
-# Ensure it's up to date with latest server changes
-# This may require coordination with titan-server team
+# If OpenAPI spec changed, regenerate client
+# (This may be automated or require manual trigger)
 
-# Create release (no dependency updates needed as it's auto-generated)
-export NEW_VERSION="v0.1.4"  # Increment appropriately
-git tag $NEW_VERSION
-git push origin $NEW_VERSION
+# Create release
+export NEW_CLIENT_VERSION="v0.1.4"  # Increment appropriately
+git tag $NEW_CLIENT_VERSION
+git push origin $NEW_CLIENT_VERSION
 
-# Publish draft release on GitHub (manual step)
+# Simple tag-based release (no artifacts to build)
 ```
 
-### Phase 3: Update and Release titan CLI
+#### Phase 4: Main CLI Release
 
+##### 4.1 Update titan CLI Dependencies
 ```bash
 cd /c/dev/titan
 
-# Update all dependencies to latest versions
-go get github.com/datadatdat/nop-remote-go@v0.2.4
-go get github.com/datadatdat/remote-sdk-go@v0.2.6
-go get github.com/datadatdat/s3-remote-go@v0.2.4
-go get github.com/datadatdat/s3web-remote-go@v0.2.3
-go get github.com/datadatdat/ssh-remote-go@v0.2.3
-go get github.com/datadatdat/titan-client-go@v0.1.4
+# Update all dependencies to latest released versions
+go get github.com/datadatdat/nop-remote-go@$NEW_PROVIDER_VERSION
+go get github.com/datadatdat/remote-sdk-go@$NEW_SDK_VERSION
+go get github.com/datadatdat/s3-remote-go@$NEW_PROVIDER_VERSION
+go get github.com/datadatdat/s3web-remote-go@$NEW_PROVIDER_VERSION
+go get github.com/datadatdat/ssh-remote-go@$NEW_PROVIDER_VERSION
+go get github.com/datadatdat/titan-client-go@$NEW_CLIENT_VERSION
 go mod tidy
 
+# Verify no version conflicts
+go mod graph | grep datadatdat | grep remote-sdk-go
+# All providers should use same remote-sdk-go version
+```
+
+##### 4.2 Test and Build CLI
+```bash
 # Run full test suite
 make e2e
-# If tests fail, run: ./titan.exe uninstall -f
-# Then retry: make e2e
+# If tests fail: ./titan.exe uninstall -f && make e2e
 
-# Build cross-platform releases
+# Build cross-platform releases  
 export VERSION="v0.5.2"  # Increment appropriately
 make release
 
+# Creates artifacts in release/ directory:
+# - titan-cli-$VERSION-windows_amd64.zip
+# - titan-cli-$VERSION-darwin_amd64.zip  
+# - titan-cli-$VERSION-darwin_arm64.zip
+# - titan-cli-$VERSION-linux_amd64.tar
+# - titan-cli-$VERSION-linux_arm64.tar
+```
+
+##### 4.3 Release CLI
+```bash
 # Create git tag and push
 git add go.mod go.sum
 git commit -m "Update dependencies for release $VERSION"
@@ -141,26 +207,43 @@ git tag $VERSION
 git push origin master
 git push origin $VERSION
 
-# Manual release creation required (no automated workflow exists)
-# Upload release artifacts from release/ directory to GitHub
+# MANUAL STEP: Create GitHub release and upload artifacts
+# Go to https://github.com/datadatdat/titan/releases
+# Create release from tag, upload all files from release/ directory
 ```
 
-### Phase 4: Release titan-server (Docker Container)
+#### Phase 5: Docker Container Release
 
+##### 5.1 Release titan-server
 ```bash
 cd /c/dev/titan-server
 
 # Ensure compatibility with new titan CLI version
 # Update any version references if needed
 
-# Create tag - this triggers automated Docker publishing
-export NEW_VERSION="v0.8.20"  # Increment appropriately
-git tag $NEW_VERSION
-git push origin $NEW_VERSION
+# Create tag - this triggers automated publishing
+export NEW_SERVER_VERSION="v0.8.20"  # Increment appropriately
+git tag $NEW_SERVER_VERSION
+git push origin $NEW_SERVER_VERSION
 
-# Automated workflow publishes:
-# - Docker image to datadatdat/titan:latest and datadatdat/titan:$NEW_VERSION
+# GitHub Action automatically:
+# - Runs full test suite including E2E tests
+# - Builds multi-arch Docker image (linux/amd64, linux/arm64)  
+# - Publishes to DockerHub as datadatdat/titan:$NEW_SERVER_VERSION
+# - Tags and publishes datadatdat/titan:latest
 # - Creates GitHub draft release
+```
+
+#### Phase 6: Documentation Publication
+
+##### 6.1 Release Documentation
+```bash
+# Documentation is automatically published when CLI is tagged
+# The .github/workflows/docs-release.yml triggers on titan CLI tags
+
+# Manual verification:
+# Check https://titan-data.io for updated docs
+# Verify version-specific docs are published
 ```
 
 ## Release Validation
@@ -291,26 +374,152 @@ make release
 
 ## Manual Release Checklist
 
-### Pre-Release
-- [ ] All components have passing tests
-- [ ] Dependencies are up to date and compatible
-- [ ] Version numbers are properly incremented
-- [ ] Release notes are prepared
+### Pre-Release (1-2 days before)
+- [ ] Plan version increments for all components
+- [ ] Review documentation for accuracy
+- [ ] Ensure OpenAPI spec reflects all server changes
+- [ ] Coordinate release timing with team
+- [ ] Prepare release notes and changelogs
 
-### Release Execution
-- [ ] Release remote-sdk-go
-- [ ] Release all remote providers (verify dependency updates)
-- [ ] Release titan-client-go
-- [ ] Release titan CLI (includes cross-platform builds)
-- [ ] Release titan-server (triggers Docker publishing)
+### Foundation Release (Day 1 - Morning)
+- [ ] Release remote-sdk-go with proper version tag
+- [ ] Update and release all Go remote providers (parallel)
+  - [ ] s3-remote-go
+  - [ ] ssh-remote-go
+  - [ ] s3web-remote-go
+  - [ ] nop-remote-go
+- [ ] Update and release all Kotlin remote providers (parallel)
+  - [ ] s3-remote (publishes to Maven)
+  - [ ] ssh-remote (publishes to Maven)
+  - [ ] s3web-remote (publishes to Maven)
+  - [ ] nop-remote (publishes to Maven)
+- [ ] Verify all providers reference same remote-sdk-go version
 
-### Post-Release Validation
-- [ ] All GitHub releases are published
-- [ ] Docker images are available on DockerHub
-- [ ] End-to-end tests pass with new versions
-- [ ] Documentation is updated with new version numbers
+### Client and CLI Release (Day 1 - Afternoon)
+- [ ] Release titan-client-go (regenerate from OpenAPI if needed)
+- [ ] Update titan CLI dependencies to latest versions
+- [ ] Verify dependency compatibility with `go mod graph`
+- [ ] Run full end-to-end test suite
+- [ ] Build cross-platform CLI releases
+- [ ] Create CLI git tag and GitHub release
+- [ ] Upload CLI artifacts to GitHub release
 
-### Communication
-- [ ] Update main README.md with latest version
-- [ ] Announce release in community channels
-- [ ] Update any deployment documentation
+### Container and Documentation (Day 1 - Evening)
+- [ ] Release titan-server (triggers Docker publishing automatically)
+- [ ] Verify Docker images published to DockerHub
+- [ ] Verify documentation published to titan-data.io
+- [ ] Test complete installation flow with new versions
+
+### Post-Release Validation (Day 2)
+- [ ] Integration testing across all platforms
+- [ ] Download and installation verification
+- [ ] Documentation accessibility verification  
+- [ ] Community communication and announcements
+- [ ] Update main README.md with new version numbers
+
+### Emergency Procedures (If needed)
+- [ ] Rollback procedures documented and tested
+- [ ] Communication plan for critical issues
+- [ ] Patch release process for urgent fixes
+
+### Post-Release Validation (Same Day)
+
+#### 1. Integration Testing
+```bash
+# Test the complete release pipeline
+cd /c/dev/titan
+
+# Download and test new CLI
+# wget/curl the new release from GitHub releases
+# Test with fresh titan-server container
+
+./titan.exe install
+./titan.exe run --name test-release -e POSTGRES_PASSWORD=password postgres
+./titan.exe commit -m "Release validation test" test-release
+./titan.exe log test-release
+./titan.exe stop test-release
+./titan.exe rm test-release
+```
+
+#### 2. Documentation Verification
+```bash
+# Verify documentation is live
+curl -I https://titan-data.io/  # Should return 200
+# Check version-specific documentation exists
+# Test getting started guide with new release
+```
+
+#### 3. Download Verification
+```bash
+# Test all platform downloads from GitHub releases
+# Verify checksums if provided
+# Test installation on clean systems
+```
+
+#### 4. Community Communication
+```bash
+# Update main README.md with new version numbers
+# Announce in community channels (Discord, Slack, etc.)
+# Post on community forums/social media
+# Update any partner integrations
+```
+
+### Emergency Rollback Procedures
+
+#### If CLI Release Fails
+```bash
+# Delete problematic GitHub release
+# Revert git tag if needed
+git tag -d v0.5.2
+git push origin --delete v0.5.2
+
+# Fix issues and re-release with patch version
+```
+
+#### If Docker Container Fails
+```bash
+# Docker images cannot be "untagged" once published to DockerHub
+# Release a patch version immediately with fixes
+# Communicate the issue to users immediately
+
+# Emergency rollback for users:
+docker pull datadatdat/titan:v0.8.19  # Previous working version
+# Update documentation with temporary workaround
+```
+
+#### If Maven Dependencies Fail
+```bash
+# Maven artifacts in S3 bucket cannot be deleted easily
+# Release patch versions of affected components
+# Ensure new versions resolve the issues
+```
+
+### Automation Gaps to Address
+
+#### Critical Missing Automation
+1. **titan CLI release workflow** - No GitHub Action exists
+2. **Cross-component dependency updates** - Manual coordination required
+3. **Release validation testing** - No automated post-release verification
+4. **Rollback automation** - No automated rollback procedures
+
+#### Proposed GitHub Actions Improvements
+```yaml
+# .github/workflows/release.yml for titan CLI
+name: Release
+on:
+  create:
+    tags: ['v*']
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+      - name: Build cross-platform
+        run: make release VERSION=${GITHUB_REF#refs/tags/}
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        with:
+          draft: true
+          files: release/*
+```
