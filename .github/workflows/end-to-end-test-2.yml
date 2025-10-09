@@ -83,10 +83,6 @@ jobs:
           # Generate SSH keys using the project's generateKey.sh script
           cd tests/endtoend/remotes/ssh
           ./generateKey.sh ubuntu-22.04
-          cd ../../../../
-          # Also create keys in root directory for backward compatibility
-          cp tests/endtoend/remotes/ssh/sshKey ./sshKey
-          cp tests/endtoend/remotes/ssh/sshKey.pub ./sshKey.pub
       - name: Run Test Suite
         run: |
           export PATH=$GITHUB_WORKSPACE/build:$PATH
