@@ -79,6 +79,88 @@ We have successfully migrated the Titan infrastructure from the `titan-data` Git
 - 🚨 **Pull Request CI Workflow Checks Not Triggering** - URGENT INVESTIGATION NEEDED
 - 🚨 **delphix-remote Pull Request Build Checks Failing** - URGENT INVESTIGATION NEEDED (Added September 24, 2025)
 - 🔄 **Go Version Upgrade Investigation** - INVESTIGATE Go 1.25.1 compilation upgrade across all repositories (Added September 25, 2025)
+- 🚨 **Draft Release Workflow Failures** - URGENT FIX NEEDED (Added October 9, 2025)
+
+## Critical Issue - Draft Release Workflow Failures 🚨 **NEW**
+
+### Problem Statement
+Draft Release workflows are failing across multiple repositories due to deprecated GitHub Action reference.
+
+### Root Cause Analysis
+The action `toolmantim/release-drafter@v5.2.0` repository no longer exists on GitHub, causing workflow failures:
+```
+ERROR: Unable to resolve action. Repository not found: toolmantim/release-drafter
+```
+
+### Affected Repositories
+- **titan-server**: ❌ Failed runs (last failure: October 9, 2025 at 17:09 UTC)
+  - Using: `toolmantim/release-drafter@v5.2.0`
+  - Error: Repository not found
+- **s3-remote**: ❌ Failed runs (last failure: October 9, 2025 at 17:09 UTC)  
+  - Using: `toolmantim/release-drafter@v5.2.0`
+  - Error: Repository not found
+- **delphix-remote**: ⚠️ Configuration issues (last failure: October 9, 2025 at 17:09 UTC)
+  - Using: `release-drafter/release-drafter@v6` (correct action)
+  - Error: Missing configuration file `.github/release-drafter.yml`
+
+### Investigation Results (October 9, 2025)
+```bash
+# titan-server - 5 recent failures, all with "Repository not found"
+gh run list --workflow="Draft Release" --limit=5
+# STATUS: X (failed) for all recent runs
+
+# s3-remote - Similar pattern of failures
+gh run list --workflow="Draft Release" --limit=3  
+# STATUS: X (failed) for all recent runs
+
+# delphix-remote - Different issue, using correct action but missing config
+gh run view 18383494270 --log-failed
+# ERROR: Configuration file .github/release-drafter.yml is not found
+```
+
+### Solution Required
+1. **Update Draft Release Workflows** (titan-server, s3-remote):
+   ```yaml
+   # FROM (broken):
+   - uses: toolmantim/release-drafter@v5.2.0
+   
+   # TO (working):
+   - uses: release-drafter/release-drafter@v6
+   ```
+
+2. **Add Missing Configuration Files** (delphix-remote and others):
+   ```yaml
+   # Create .github/release-drafter.yml in each repository
+   template: |
+     ## What's Changed
+     $CHANGES
+   ```
+
+3. **Add Required Permissions** (all repositories):
+   ```yaml
+   permissions:
+     contents: write
+     pull-requests: write
+   ```
+
+### Impact
+- **High**: Blocks automated draft release creation on every push to master
+- **Frequency**: Every merge triggers failed workflow run
+- **Visibility**: Creates noise in Actions tab, reduces confidence in CI/CD
+- **Downstream**: May impact release process automation
+
+### Next Actions Required
+1. **Immediate Fix**: Update workflow files in titan-server and s3-remote
+2. **Configuration**: Add release-drafter.yml configuration files where missing
+3. **Validation**: Test workflow with minor commit to verify fix
+4. **Rollout**: Apply fix pattern to any other repositories using old action
+5. **Monitoring**: Verify draft releases are created properly after fix
+
+### Timeline
+- **Discovery**: October 9, 2025
+- **Fix Required**: URGENT - next business day
+- **Testing**: Same day as fix implementation
+- **Rollout**: Complete within 48 hours
 
 ## Critical Issue - Pull Request Workflow Checks 🚨
 
@@ -232,7 +314,21 @@ Pull Request CI workflows are not triggering in **nop-remote-go** and **remote-s
    - **Priority**: High - affects build confidence and deployment validation
 
 ### Immediate (High Priority) - Gradle & Kotlin Upgrades ✅ IN PROGRESS
-1. **Apply Gradle/Kotlin Upgrade Process to Kotlin Repositories** - STARTED
+1. **Fix Draft Release Workflow Failures** - URGENT (NEW - October 9, 2025) 🚨
+   - **Issue**: `toolmantim/release-drafter@v5.2.0` repository no longer exists
+   - **Affected**: titan-server, s3-remote workflows failing on every push to master
+   - **Fix Required**:
+     ```yaml
+     # Update .github/workflows/draft-release.yml:
+     - uses: release-drafter/release-drafter@v6  # Fixed action
+     env:
+       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+     ```
+   - **Additional**: Add `.github/release-drafter.yml` configuration files where missing
+   - **Timeline**: Fix immediately - failing on every commit
+   - **Priority**: Critical - blocks release automation
+
+2. **Apply Gradle/Kotlin Upgrade Process to Kotlin Repositories** - STARTED
    - ✅ **plugin-launcher** - Completed upgrade and documented process
    - [ ] **s3-remote** - Kotlin project with build.gradle.kts (needs upgrade)
    - [ ] **ssh-remote** - Kotlin project with build.gradle.kts (needs upgrade)
