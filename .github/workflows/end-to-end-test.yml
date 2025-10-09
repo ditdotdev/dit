@@ -52,10 +52,37 @@ jobs:
           GONOPROXY: github.com/datadatdat/*
           GONOSUMDB: github.com/datadatdat/*
           GIT_TERMINAL_PROMPT: 0
+      - name: Install OpenZFS
+        run: |
+          echo "Installing ZFS for Ubuntu $(lsb_release -rs) kernel $(uname -r)..."
+          sudo apt-get update
+          
+          echo "Installing ZFS userspace tools and kernel modules..."
+          sudo apt-get install -y zfsutils-linux
+          
+          echo "Loading ZFS kernel modules..."
+          sudo modprobe zfs
+          
+          echo "Verifying ZFS installation..."
+          zfs version
+          zpool version
+          lsmod | grep zfs
+          
+          echo "Testing ZFS functionality..."
+          # Create a test file for ZFS pool
+          sudo dd if=/dev/zero of=/tmp/zfs-test-file bs=1M count=100
+          sudo zpool create testpool /tmp/zfs-test-file
+          sudo zfs create testpool/testfs
+          sudo zfs list
+          sudo zpool destroy testpool
+          sudo rm -f /tmp/zfs-test-file  # Use sudo for cleanup
+          echo "ZFS installation and test completed successfully!"
       - name: Setup Test Requirements
         run: |
-          ssh-keygen -b 2048 -t rsa -f ./sshKey -q -N ""
-      - name: Run Test Suit
+          # Generate SSH keys using the project's generateKey.sh script
+          cd tests/endtoend/remotes/ssh
+          ./generateKey.sh ubuntu-22.04
+      - name: Run Test Suite
         run: |
           export PATH=$GITHUB_WORKSPACE/build:$PATH
           make e2e
