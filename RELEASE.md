@@ -2,6 +2,23 @@
 
 This document outlines the comprehensive release process for the Titan data management platform. The ecosystem consists of multiple interdependent components that must be released in a specific order to maintain compatibility.
 
+## 🚨 CRITICAL RELEASE CHECKLIST
+
+**Before starting any release, review this checklist:**
+
+- [ ] **Phase 1.1**: Release `remote-sdk-go` with new version (e.g., v0.2.8)
+- [ ] **Phase 1.2**: ⚠️ **CRITICAL** - Update ALL 4 Go remote providers to use the SAME `remote-sdk-go` version
+- [ ] **Phase 1.2**: Release NEW versions of all 4 remote providers
+- [ ] **Phase 2**: Release Kotlin remote providers (if needed)
+- [ ] **Phase 3**: Release `titan-client-go` (if needed)
+- [ ] **Phase 4**: Update titan CLI dependencies to use NEW remote provider versions
+- [ ] **Phase 4**: Verify dependency alignment: `go mod graph | grep datadatdat | grep remote-sdk-go`
+- [ ] **Phase 4**: Release titan CLI with aligned dependencies
+- [ ] **Phase 5**: Release titan-server (if needed)
+- [ ] **Post-Release**: Validate entire ecosystem has consistent dependency versions
+
+**⚠️ Phase 1.2 was previously missed and caused critical version conflicts requiring emergency patch releases!**
+
 ## Release Dependencies and Order
 
 ### Component Dependency Graph
@@ -86,7 +103,7 @@ cd /c/dev/remote-sdk-go
 go test -v ./...
 
 # Update version and create tag
-export NEW_SDK_VERSION="v0.2.6"  # Increment appropriately
+export NEW_SDK_VERSION="v0.2.8"  # Increment appropriately - THIS VERSION WILL BE USED BY ALL PROVIDERS
 git tag $NEW_SDK_VERSION
 git push origin $NEW_SDK_VERSION
 
@@ -94,7 +111,11 @@ git push origin $NEW_SDK_VERSION
 # Manually publish the draft release with release notes
 ```
 
-##### 1.2 Update and Release Remote Providers (Go) - Parallel Process
+**⚠️ IMPORTANT:** Note the `$NEW_SDK_VERSION` - this SAME version will be used by ALL remote providers in Step 1.2!
+
+##### 1.2 Update and Release Remote Providers (Go) - CRITICAL STEP - DO NOT SKIP
+**⚠️ WARNING: This step is MANDATORY and was previously missed, causing version conflicts**
+
 For each provider (s3-remote-go, ssh-remote-go, s3web-remote-go, nop-remote-go):
 
 ```bash
@@ -117,6 +138,19 @@ git push origin $NEW_PROVIDER_VERSION
 
 # GitHub Action automatically creates draft release
 # Manually publish the draft release
+```
+
+**✅ VALIDATION: After completing all providers, verify version alignment:**
+```bash
+# Check that all providers are released and use the same remote-sdk-go version
+cd /c/dev/titan
+go get github.com/datadatdat/s3-remote-go@$NEW_PROVIDER_VERSION
+go get github.com/datadatdat/ssh-remote-go@$NEW_PROVIDER_VERSION  
+go get github.com/datadatdat/s3web-remote-go@$NEW_PROVIDER_VERSION
+go get github.com/datadatdat/nop-remote-go@$NEW_PROVIDER_VERSION
+go mod tidy
+go mod graph | grep datadatdat | grep remote-sdk-go
+# ALL providers should show the SAME remote-sdk-go version
 ```
 
 #### Phase 2: Kotlin Remote Providers (Maven JARs) - Parallel Process
@@ -207,9 +241,35 @@ git tag $VERSION
 git push origin master
 git push origin $VERSION
 
-# MANUAL STEP: Create GitHub release and upload artifacts
-# Go to https://github.com/datadatdat/titan/releases
-# Create release from tag, upload all files from release/ directory
+# Use GitHub CLI to create release and upload artifacts
+gh release create $VERSION \
+  --title "$VERSION - [Release Title]" \
+  --notes "## Release Notes
+
+### 🔧 Dependency Updates
+- List any updated components and versions
+
+### 🎯 What's New/Fixed  
+- Describe changes and fixes
+
+### 📦 Artifacts
+All cross-platform binaries included." \
+  release/darwin-amd64/titan-cli-$VERSION-darwin_amd64.zip \
+  release/darwin-arm64/titan-cli-$VERSION-darwin_arm64.zip \
+  release/linux-amd64/titan-cli-$VERSION-linux_amd64.tar \
+  release/linux-arm64/titan-cli-$VERSION-linux_arm64.tar \
+  release/windows/titan-cli-$VERSION-windows_amd64.zip
+
+# Verify release was created successfully
+gh release view $VERSION
+```
+
+**⚠️ CRITICAL POST-RELEASE VALIDATION:**
+```bash
+# After releasing CLI, verify ENTIRE ecosystem has aligned dependencies
+go mod graph | grep datadatdat | grep remote-sdk-go
+# Should show ALL components using the SAME remote-sdk-go version
+# If you see version conflicts, you MUST create a patch release to fix alignment
 ```
 
 #### Phase 5: Docker Container Release
@@ -259,6 +319,51 @@ go list -m all | grep datadatdat  # Verify versions
 go mod graph | grep datadatdat | grep remote-sdk-go
 # All remote providers should use the same remote-sdk-go version
 # If mismatches exist, update providers first before releasing CLI
+```
+
+## 🚨 CRITICAL: Dependency Conflict Resolution
+
+**If you discover version conflicts after a release (like we did with v0.5.2), follow this emergency fix process:**
+
+### Problem: Version Misalignment Detected
+```bash
+# Example of problematic output from: go mod graph | grep datadatdat | grep remote-sdk-go
+# titan github.com/datadatdat/remote-sdk-go@v0.2.8
+# github.com/datadatdat/nop-remote-go@v0.2.4 github.com/datadatdat/remote-sdk-go@v0.2.6  # ❌ WRONG!
+# github.com/datadatdat/s3-remote-go@v0.2.4 github.com/datadatdat/remote-sdk-go@v0.2.6   # ❌ WRONG!
+```
+
+### Emergency Fix Procedure
+```bash
+# 1. Update ALL remote providers to use the correct remote-sdk-go version
+cd /c/dev/s3-remote-go && go get github.com/datadatdat/remote-sdk-go@v0.2.8 && go mod tidy
+cd /c/dev/ssh-remote-go && go get github.com/datadatdat/remote-sdk-go@v0.2.8 && go mod tidy  
+cd /c/dev/s3web-remote-go && go get github.com/datadatdat/remote-sdk-go@v0.2.8 && go mod tidy
+cd /c/dev/nop-remote-go && go get github.com/datadatdat/remote-sdk-go@v0.2.8 && go mod tidy
+
+# 2. Commit and release NEW versions of all providers
+cd /c/dev/s3-remote-go && git add . && git commit -m "Update remote-sdk-go to v0.2.8" && git push
+cd /c/dev/s3-remote-go && git tag v0.X.Y && git push origin v0.X.Y  # Increment patch version
+
+# Repeat for all providers...
+
+# 3. Update titan CLI to use the NEW provider versions
+cd /c/dev/titan
+go get github.com/datadatdat/s3-remote-go@v0.X.Y
+go get github.com/datadatdat/ssh-remote-go@v0.X.Y
+# ... update all providers
+go mod tidy
+
+# 4. Rebuild and release NEW titan CLI patch version
+export VERSION="v0.5.3"  # Increment patch version
+make clean && make release
+git add . && git commit -m "Fix dependency alignment" && git push
+git tag $VERSION && git push origin $VERSION
+gh release create $VERSION --title "$VERSION - Dependency Alignment Release" --notes "Critical patch to fix version conflicts" [artifacts...]
+
+# 5. VERIFY the fix worked
+go mod graph | grep datadatdat | grep remote-sdk-go
+# Should now show ALL providers using the SAME remote-sdk-go version ✅
 ```
 
 ### 2. End-to-End Testing
