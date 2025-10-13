@@ -11,7 +11,7 @@ tests:
         CONTEXT       REPOSITORY            STATUS
         docker        hello-world           running
   - "wait for hello-world container to be ready":
-      command: [sleep, "120"]
+      command: [sleep, "30"]
   - "can get contents of hello-world/postgres":
       command: [docker, exec, hello-world, psql, postgres://postgres:postgres@localhost/postgres, -t, -c, SELECT * FROM messages;]
       stdout: Hello, World!
