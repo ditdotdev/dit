@@ -6,11 +6,11 @@ require (
 	github.com/antihax/optional v1.0.0
 	github.com/briandowns/spinner v1.23.2
 	github.com/buger/jsonparser v1.1.1
-	github.com/datadatdat/nop-remote-go v0.2.4
+	github.com/datadatdat/nop-remote-go v0.2.5
 	github.com/datadatdat/remote-sdk-go v0.2.8
-	github.com/datadatdat/s3-remote-go v0.2.4
-	github.com/datadatdat/s3web-remote-go v0.2.3
-	github.com/datadatdat/ssh-remote-go v0.2.3
+	github.com/datadatdat/s3-remote-go v0.2.5
+	github.com/datadatdat/s3web-remote-go v0.2.4
+	github.com/datadatdat/ssh-remote-go v0.2.4
 	github.com/datadatdat/titan-client-go v0.1.3
 	github.com/google/uuid v1.6.0
 	github.com/spf13/cobra v1.10.1
