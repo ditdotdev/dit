@@ -9,8 +9,6 @@
 target
 bin
 coverage
-/d3
-/d3.exe
 /datadatdat*.zip
 release
 build
