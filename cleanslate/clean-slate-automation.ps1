@@ -9,8 +9,8 @@ param(
 
 $ErrorActionPreference = "Continue"  # Don't stop on expected errors like missing ZFS pools
 
-# Define path to Titan executable
-$TitanExe = "..\titan.exe"
+# Define path to Datadatdat executable
+$DatadatdatExe = "..\datadatdat.exe"
 
 function Write-Step {
     param($Message, $Status = "INFO")
@@ -26,17 +26,17 @@ function Write-Step {
 }
 
 Write-Host "=================================" -ForegroundColor Green
-Write-Host "Titan Clean Slate Testing Script" -ForegroundColor Green
+Write-Host "Datadatdat Clean Slate Testing Script" -ForegroundColor Green
 Write-Host "=================================" -ForegroundColor Green
 Write-Host ""
 
 # Step 1: Teardown existing environment
 Write-Step "STEP 1: Complete Environment Teardown" "STEP"
 
-# Remove Titan repositories and uninstall
-Write-Step "Checking for existing Titan repositories..."
+# Remove Datadatdat repositories and uninstall
+Write-Step "Checking for existing Datadatdat repositories..."
 try {
-    $repos = & "..\titan.exe" ls 2>$null
+    $repos = & "..\datadatdat.exe" ls 2>$null
     if ($repos -and $repos.Count -gt 1) {
         Write-Step "Found existing repositories, cleaning up..."
         $repoLines = $repos | Select-Object -Skip 1
@@ -44,8 +44,8 @@ try {
             if ($line -match "^\w+\s+(\w+)\s+") {
                 $repoName = $matches[1]
                 Write-Step "Removing repository: $repoName"
-                & "..\titan.exe" stop $repoName 2>$null
-                & "..\titan.exe" rm $repoName 2>$null
+                & "..\datadatdat.exe" stop $repoName 2>$null
+                & "..\datadatdat.exe" rm $repoName 2>$null
             }
         }
     }
@@ -53,16 +53,16 @@ try {
     Write-Step "Repository cleanup skipped (expected on fresh install)" "WARN"
 }
 
-Write-Step "Uninstalling Titan..."
+Write-Step "Uninstalling Datadatdat..."
 try {
-    $uninstallResult = & $TitanExe uninstall -f 2>&1
+    $uninstallResult = & $DatadatdatExe uninstall -f 2>&1
     if ($LASTEXITCODE -eq 0) {
-        Write-Step "Titan uninstalled successfully" "OK"
+        Write-Step "Datadatdat uninstalled successfully" "OK"
     } else {
-        Write-Step "Titan uninstall had issues (may not be installed): $uninstallResult" "WARN"
+        Write-Step "Datadatdat uninstall had issues (may not be installed): $uninstallResult" "WARN"
     }
 } catch {
-    Write-Step "Titan uninstall skipped (not installed): $($_.Exception.Message)" "WARN"
+    Write-Step "Datadatdat uninstall skipped (not installed): $($_.Exception.Message)" "WARN"
 }
 
 # Complete Docker cleanup
@@ -83,9 +83,9 @@ Write-Step "Ensuring ZFS pools are stable and ready..."
 Start-Sleep 5
 for ($i = 1; $i -le 3; $i++) {
     $poolStatus = wsl zpool list 2>$null
-    $poolHealth = wsl zpool status titan-docker 2>$null
+    $poolHealth = wsl zpool status datadatdat-docker 2>$null
     
-    if ($poolStatus -match "titan-docker.*ONLINE" -and $poolHealth -match "state: ONLINE") {
+    if ($poolStatus -match "datadatdat-docker.*ONLINE" -and $poolHealth -match "state: ONLINE") {
         Write-Step "ZFS pools verified stable on check $i" "OK"
         break
     } else {
@@ -106,8 +106,8 @@ if (-not $SkipBuild) {
     
     Write-Step "Removing outdated containers from Docker Hub..."
     # Only remove docker hub versions, not our local ones
-    docker rmi datadatdat/titan:latest 2>$null | Out-Null
-    # Don't remove titan:latest or datadatdat/zfs-builder:latest as they might be our fixed versions
+    docker rmi datadatdat/datadatdat:latest 2>$null | Out-Null
+    # Don't remove datadatdat:latest or datadatdat/zfs-builder:latest as they might be our fixed versions
     
     Write-Step "Building updated ZFS builder container from local repo..."
     Push-Location ..\..\zfs-builder
@@ -132,36 +132,36 @@ if (-not $SkipBuild) {
     }
     Pop-Location
     
-    Write-Step "Building updated Titan container from local repo..."
+    Write-Step "Building updated Datadatdat container from local repo..."
     Push-Location ..
     if (-not (Test-Path "Dockerfile")) {
-        Write-Step "Titan Dockerfile not found!" "ERROR"
+        Write-Step "Datadatdat Dockerfile not found!" "ERROR"
         Pop-Location
         exit 1
     }
     
-    # Check if we need to pull base titan image for multi-stage build
-    $titanExists = docker images titan:latest --format "{{.Repository}}" 2>$null
-    if (-not $titanExists) {
-        Write-Step "Pulling base titan image for multi-stage build..."
-        docker pull datadatdat/titan:latest
-        docker tag datadatdat/titan:latest titan:latest
+    # Check if we need to pull base datadatdat image for multi-stage build
+    $datadatdatExists = docker images datadatdat:latest --format "{{.Repository}}" 2>$null
+    if (-not $datadatdatExists) {
+        Write-Step "Pulling base datadatdat image for multi-stage build..."
+        docker pull datadatdat/datadatdat:latest
+        docker tag datadatdat/datadatdat:latest datadatdat:latest
     } else {
-        Write-Step "Using existing titan:latest image for multi-stage build..."
+        Write-Step "Using existing datadatdat:latest image for multi-stage build..."
     }
     
-    # Always build the custom titan container to ensure we have our ZFS fixes
-    Write-Step "Building custom Titan container..."
-    docker build -t titan:latest . --no-cache
+    # Always build the custom datadatdat container to ensure we have our ZFS fixes
+    Write-Step "Building custom Datadatdat container..."
+    docker build -t datadatdat:latest . --no-cache
     if ($LASTEXITCODE -ne 0) {
-        Write-Step "Titan container build failed!" "ERROR"
+        Write-Step "Datadatdat container build failed!" "ERROR"
         Pop-Location
         exit 1
     }
-    Write-Step "Custom Titan container built successfully" "OK"
+    Write-Step "Custom Datadatdat container built successfully" "OK"
     
-    # Also tag as datadatdat/titan to override Docker Hub version
-    docker tag titan:latest datadatdat/titan:latest
+    # Also tag as datadatdat/datadatdat to override Docker Hub version
+    docker tag datadatdat:latest datadatdat/datadatdat:latest
     Pop-Location
     
     Write-Step "Container rebuilding completed successfully" "OK"
@@ -171,19 +171,19 @@ if (-not $SkipBuild) {
     Write-Step "WARNING: May be using outdated Docker Hub containers" "WARN"
 }
 
-# Step 4: Titan Installation with Retry Logic
-Write-Step "STEP 4: Titan Installation with Retry Logic" "STEP"
+# Step 4: Datadatdat Installation with Retry Logic
+Write-Step "STEP 4: Datadatdat Installation with Retry Logic" "STEP"
 
 # Ensure ZFS pools are completely ready before installation
 Write-Step "Verifying ZFS pools are stable..."
 Start-Sleep 5
 $poolCheck = wsl zpool list
-if (-not ($poolCheck -match "titan-docker.*ONLINE" -and $poolCheck -match "titan.*ONLINE")) {
+if (-not ($poolCheck -match "datadatdat-docker.*ONLINE" -and $poolCheck -match "datadatdat.*ONLINE")) {
     Write-Step "ZFS pools not ready, waiting longer..." "WARN"
     Start-Sleep 10
 }
 
-Write-Step "Installing Titan with retry logic (using local registry)..."
+Write-Step "Installing Datadatdat with retry logic (using local registry)..."
 $maxRetries = 3
 $retryCount = 0
 $installSuccess = $false
@@ -194,28 +194,28 @@ while ($retryCount -lt $maxRetries -and -not $installSuccess) {
     
     if ($retryCount -gt 1) {
         Write-Step "Cleaning up failed installation attempt..."
-        & $TitanExe uninstall -f 2>$null
+        & $DatadatdatExe uninstall -f 2>$null
         docker system prune -f 2>$null
         Start-Sleep 5
     }
     
-    $installOutput = & $TitanExe install --registry=local 2>&1
+    $installOutput = & $DatadatdatExe install --registry=local 2>&1
     
     # Wait for containers to stabilize
-    Write-Step "Waiting for Titan containers to stabilize..."
+    Write-Step "Waiting for Datadatdat containers to stabilize..."
     Start-Sleep 15
     
     # Check if installation was successful
-    $titanContainers = docker ps --filter "name=titan" --format "{{.Names}} {{.Status}}"
-    if ($titanContainers -match "Up") {
-        Write-Step "Titan installation successful on attempt $retryCount" "OK"
+    $datadatdatContainers = docker ps --filter "name=datadatdat" --format "{{.Names}} {{.Status}}"
+    if ($datadatdatContainers -match "Up") {
+        Write-Step "Datadatdat installation successful on attempt $retryCount" "OK"
         $installSuccess = $true
         break
     } else {
         Write-Step "Installation attempt $retryCount failed, checking logs..." "WARN"
-        $launchLogs = docker logs titan-docker-launch --tail 5 2>$null
-        if ($launchLogs -match "TITAN ERROR") {
-            Write-Step "Found Titan startup error: $($launchLogs | Select-String 'TITAN ERROR')" "WARN"
+        $launchLogs = docker logs datadatdat-docker-launch --tail 5 2>$null
+        if ($launchLogs -match "DATADATDAT ERROR") {
+            Write-Step "Found Datadatdat startup error: $($launchLogs | Select-String 'DATADATDAT ERROR')" "WARN"
         }
         
         if ($retryCount -lt $maxRetries) {
@@ -226,30 +226,30 @@ while ($retryCount -lt $maxRetries -and -not $installSuccess) {
 }
 
 if (-not $installSuccess) {
-    Write-Step "Titan installation failed after $maxRetries attempts" "ERROR"
+    Write-Step "Datadatdat installation failed after $maxRetries attempts" "ERROR"
     Write-Step "Running Docker troubleshooting..." "STEP"
     & ".\troubleshoot-docker.ps1" -Verbose
     exit 1
 }
 
 # Verify containers are running
-$titanContainers = docker ps --filter "name=titan" --format "{{.Names}} {{.Status}}"
-if ($titanContainers -match "Up") {
-    Write-Step "Titan containers are running" "OK"
+$datadatdatContainers = docker ps --filter "name=datadatdat" --format "{{.Names}} {{.Status}}"
+if ($datadatdatContainers -match "Up") {
+    Write-Step "Datadatdat containers are running" "OK"
     if ($Verbose) {
-        docker ps --filter "name=titan"
+        docker ps --filter "name=datadatdat"
     }
 } else {
-    Write-Step "Titan containers not running properly - checking status..." "WARN"
-    $allTitanContainers = docker ps -a --filter "name=titan" --format "{{.Names}} {{.Status}}"
-    Write-Step "Container status: $allTitanContainers" "WARN"
+    Write-Step "Datadatdat containers not running properly - checking status..." "WARN"
+    $allDatadatdatContainers = docker ps -a --filter "name=datadatdat" --format "{{.Names}} {{.Status}}"
+    Write-Step "Container status: $allDatadatdatContainers" "WARN"
     
     # If containers are restarting, wait a bit more and try once more
-    if ($allTitanContainers -match "Restarting") {
+    if ($allDatadatdatContainers -match "Restarting") {
         Write-Step "Containers are restarting, waiting for stabilization..." "WARN"
         Start-Sleep 30
-        $titanContainers = docker ps --filter "name=titan" --format "{{.Names}} {{.Status}}"
-        if ($titanContainers -match "Up") {
+        $datadatdatContainers = docker ps --filter "name=datadatdat" --format "{{.Names}} {{.Status}}"
+        if ($datadatdatContainers -match "Up") {
             Write-Step "Containers stabilized after extended wait" "OK"
         } else {
             Write-Step "Containers failed to stabilize - running troubleshooting" "ERROR"
@@ -276,7 +276,7 @@ for ($attempt = 1; $attempt -le $maxRepoRetries; $attempt++) {
     
     try {
         # Use a simple, reliable container for testing
-        $result = & $TitanExe run --name cleanslatetest postgres:alpine 2>&1
+        $result = & $DatadatdatExe run --name cleanslatetest postgres:alpine 2>&1
         
         if ($LASTEXITCODE -eq 0) {
             Write-Step "Repository creation successful on attempt $attempt" "OK"
@@ -286,9 +286,9 @@ for ($attempt = 1; $attempt -le $maxRepoRetries; $attempt++) {
             Write-Step "Repository creation failed with exit code $LASTEXITCODE" "WARN"
             Write-Step "Output: $result" "WARN"
             
-            # Check if repo was created anyway - sometimes Titan creates repo despite container issues
+            # Check if repo was created anyway - sometimes Datadatdat creates repo despite container issues
             Start-Sleep 3
-            $repos = & $TitanExe ls 2>$null
+            $repos = & $DatadatdatExe ls 2>$null
             if ($repos -match "cleanslatetest") {
                 Write-Step "Repository was created despite container error (known Docker execution issue)" "WARN"
                 $repoCreateSuccess = $true
@@ -296,7 +296,7 @@ for ($attempt = 1; $attempt -le $maxRepoRetries; $attempt++) {
             } else {
                 if ($attempt -lt $maxRepoRetries) {
                     Write-Step "Cleaning up and retrying..." "WARN"
-                    & $TitanExe rm cleanslatetest -f 2>$null
+                    & $DatadatdatExe rm cleanslatetest -f 2>$null
                     Start-Sleep 5
                 }
             }
@@ -313,7 +313,7 @@ if (-not $repoCreateSuccess) {
     Write-Step "Repository creation failed after $maxRepoRetries attempts" "ERROR"
     Write-Step "Attempting with minimal Alpine container as fallback..." "WARN"
     try {
-        $fallbackResult = & $TitanExe run --name cleanslatetest alpine:latest 2>&1
+        $fallbackResult = & $DatadatdatExe run --name cleanslatetest alpine:latest 2>&1
         if ($fallbackResult -match "Creating repository") {
             Write-Step "Fallback container test showed progress - proceeding with commit test" "WARN"
             $repoCreateSuccess = $true
@@ -328,7 +328,7 @@ Write-Step "Testing commit functionality..."
 $commitSuccess = $false
 if ($repoCreateSuccess) {
     try {
-        $commitResult = & $TitanExe commit -m "Clean slate test commit" cleanslatetest 2>&1
+        $commitResult = & $DatadatdatExe commit -m "Clean slate test commit" cleanslatetest 2>&1
         if ($commitResult -match "^Commit [a-f0-9]{32}$") {
             Write-Step "Commit successful - ID: $commitResult" "OK"
             $commitSuccess = $true
@@ -348,7 +348,7 @@ if ($repoCreateSuccess) {
 if ($commitSuccess) {
     Write-Step "Testing log functionality..."
     try {
-        $logResult = & $TitanExe log cleanslatetest
+        $logResult = & $DatadatdatExe log cleanslatetest
         if ($logResult -match "Clean slate test commit") {
             Write-Step "[OK] Log functionality working" "OK"
         } else {
@@ -369,27 +369,27 @@ Write-Host "========================================" -ForegroundColor Green
 
 # Check final status
 $finalZfsStatus = wsl zpool list 2>$null
-$finalTitanContainers = docker ps --filter "name=titan" --format "{{.Names}}" 2>$null
+$finalDatadatdatContainers = docker ps --filter "name=datadatdat" --format "{{.Names}}" 2>$null
 try {
-    $finalRepos = & $TitanExe ls
+    $finalRepos = & $DatadatdatExe ls
 } catch {
     $finalRepos = $null
 }
 
 Write-Host "ZFS Pools Status:" -ForegroundColor Yellow
-if ($finalZfsStatus -match "titan") {
+if ($finalZfsStatus -match "datadatdat") {
     Write-Host "[OK] ZFS pools operational" -ForegroundColor Green
     if ($Verbose) { wsl zpool list }
 } else {
     Write-Host "[ERROR] ZFS pools not available" -ForegroundColor Red
 }
 
-Write-Host "`nTitan Infrastructure:" -ForegroundColor Yellow
-if ($finalTitanContainers -match "titan-docker") {
-    Write-Host "[OK] Titan containers running" -ForegroundColor Green
-    if ($Verbose) { docker ps --filter "name=titan" }
+Write-Host "`nDatadatdat Infrastructure:" -ForegroundColor Yellow
+if ($finalDatadatdatContainers -match "datadatdat-docker") {
+    Write-Host "[OK] Datadatdat containers running" -ForegroundColor Green
+    if ($Verbose) { docker ps --filter "name=datadatdat" }
 } else {
-    Write-Host "[ERROR] Titan containers not running" -ForegroundColor Red
+    Write-Host "[ERROR] Datadatdat containers not running" -ForegroundColor Red
 }
 
 Write-Host "`nData Versioning:" -ForegroundColor Yellow
@@ -407,9 +407,9 @@ if ($finalRepos -match "cleanslatetest") {
 }
 
 Write-Host ""
-if ($commitSuccess -and ($finalZfsStatus -match "titan") -and ($finalTitanContainers -match "titan-docker")) {
+if ($commitSuccess -and ($finalZfsStatus -match "datadatdat") -and ($finalDatadatdatContainers -match "datadatdat-docker")) {
     Write-Host "CLEAN SLATE TESTING: SUCCESS" -ForegroundColor Green
-    Write-Host "Environment is ready for Titan development and testing" -ForegroundColor Green
+    Write-Host "Environment is ready for Datadatdat development and testing" -ForegroundColor Green
 } else {
     Write-Host "CLEAN SLATE TESTING: PARTIAL SUCCESS" -ForegroundColor Yellow
     Write-Host "Core functionality working but some issues detected" -ForegroundColor Yellow
@@ -418,6 +418,6 @@ if ($commitSuccess -and ($finalZfsStatus -match "titan") -and ($finalTitanContai
 
 Write-Host ""
 Write-Host "Next Steps:" -ForegroundColor Cyan
-Write-Host "- Use ..\titan.exe ls to see repositories" -ForegroundColor White
+Write-Host "- Use ..\datadatdat.exe ls to see repositories" -ForegroundColor White
 Write-Host "- Use .\troubleshoot-docker.ps1 for any issues" -ForegroundColor White
 Write-Host "- Use .\setup-zfs-pools.ps1 -Clean for full reset" -ForegroundColor White

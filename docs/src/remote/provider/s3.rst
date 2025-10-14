@@ -11,7 +11,7 @@ metadata. The URI format is::
 
 Commits will be created at ``<key>/<commitid>/<archive>.tar.gz``. The commit
 metadata will be stored at the ``<commitid>`` level. In addition, the commits
-are stored in file named ``titan`` at the root of the repository. This makes it
+are stored in file named ``d3`` at the root of the repository. This makes it
 more efficient to list commits, and allows the :ref:`remote_provider_s3web` to
 pull data.
 

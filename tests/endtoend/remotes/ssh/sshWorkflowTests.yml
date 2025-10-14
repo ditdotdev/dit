@@ -2,7 +2,7 @@ tests:
   - "get ssh test server":
       command: docker pull datadatdat/ssh-test-server:latest
   - "start ssh server":
-      command: docker run -v $PWD:/workdir --workdir /workdir --network titan-docker -d --name sshHost datadatdat/ssh-test-server:latest
+      command: docker run -v $PWD:/workdir --workdir /workdir --network datadatdat-docker -d --name sshHost datadatdat/ssh-test-server:latest
       env:
         get:
           - PWD
@@ -15,12 +15,12 @@ tests:
       env:
         set: SSH_HOST
   - "run empty mongo db":
-      command:  titan run -n sshTest mongo
+      command:  d3 run -n sshTest mongo
       wait: 10
       stdout:
         contains: Running controlled container sshTest
   - "create new commit":
-      command: [titan, commit, -m, sshTest Commit, sshTest]
+      command: [d3, commit, -m, sshTest Commit, sshTest]
       stdout:
         contains: Commit
       env:
@@ -30,25 +30,25 @@ tests:
                 delimiter: " "
                 position: 1
   - "add ssh remote with password succeeds":
-      command: titan remote add ssh://root:root@$SSH_HOST/test sshTest
+      command: d3 remote add ssh://root:root@$SSH_HOST/test sshTest
       env:
         get:
           - SSH_HOST
   - "repo has ssh remote with password":
-      command: titan remote ls sshTest
+      command: d3 remote ls sshTest
       stdout:
         contains: ssh://root:*****@$SSH_HOST/test
       env:
         get:
           - SSH_HOST
   - "list remote with password commits returns empty list":
-      command: titan remote log sshTest
+      command: d3 remote log sshTest
   - "get non-existent remote commit with password fails":
-      command: titan pull sshTest
+      command: d3 pull sshTest
       exitValue: 1
       sdout: no commits found in remote, unable to pull latest
   - "push commit with password succeeds":
-      command: titan push sshTest
+      command: d3 push sshTest
       stdout:
         contains:
           - Pushing $COMMIT_GUID to 'origin'
@@ -57,7 +57,7 @@ tests:
         get:
           - COMMIT_GUID
   - "list remote commits with password returns pushed commit":
-      command: titan remote log sshTest
+      command: d3 remote log sshTest
       stdout:
         contains:
           - Commit $COMMIT_GUID
@@ -66,22 +66,22 @@ tests:
         get:
           - COMMIT_GUID
   - "push of same commit with password fails":
-      command: titan push sshTest
+      command: d3 push sshTest
       exitValue: 1
       stdout: commit $COMMIT_GUID exists in remote 'origin'
       env:
         get:
           - COMMIT_GUID
   - "delete local commit succeeds":
-      command: titan delete -c $COMMIT_GUID sshTest
+      command: d3 delete -c $COMMIT_GUID sshTest
       stdout: $COMMIT_GUID deleted
       env:
         get:
           - COMMIT_GUID
   - "list local commits is empty":
-      command: titan log sshTest
+      command: d3 log sshTest
   - "pull original commit with password succeeds":
-      command: titan pull sshTest
+      command: d3 pull sshTest
       stdout:
         contains:
           - Pulling $COMMIT_GUID from 'origin'
@@ -90,7 +90,7 @@ tests:
         get:
           - COMMIT_GUID
   - "checkout commit succeeds":
-      command: titan checkout -c $COMMIT_GUID sshTest
+      command: d3 checkout -c $COMMIT_GUID sshTest
       stdout: |-
         Stopping container sshTest
         Checkout $COMMIT_GUID
@@ -100,10 +100,10 @@ tests:
         get:
           - COMMIT_GUID
   - "remove remote with password succeeds":
-      command: titan remote rm sshTest origin
+      command: d3 remote rm sshTest origin
       stdout: Removed origin from sshTest
   - "create new sshkey commit":
-      command: [titan, commit, -m, sshTest key Commit, sshTest]
+      command: [d3, commit, -m, sshTest key Commit, sshTest]
       stdout:
         contains: Commit
       env:
@@ -117,26 +117,26 @@ tests:
   - "add private ssh key to ssh server":
       command: [docker, exec, sshHost, sh, -c, "cat /workdir/tests/endtoend/remotes/ssh/sshKey.pub > /root/.ssh/authorized_keys"]
   - "add remote with ssh key succeeds":
-      command: [titan, remote, add, -p, keyFile=$PWD/tests/endtoend/remotes/ssh/sshKey, ssh://root@$SSH_HOST/sshtest, sshTest]
+      command: [d3, remote, add, -p, keyFile=$PWD/tests/endtoend/remotes/ssh/sshKey, ssh://root@$SSH_HOST/sshtest, sshTest]
       env:
         get:
           - PWD
           - SSH_HOST
   - "repo has ssh remote with ssh key":
-      command: titan remote ls sshTest
+      command: d3 remote ls sshTest
       stdout:
         contains: ssh://root@$SSH_HOST/sshtest
       env:
         get:
           - SSH_HOST
   - "list remote with ssh key commits returns empty list":
-      command: titan remote log sshTest
+      command: d3 remote log sshTest
   - "get non-existent remote commit with ssh key fails":
-      command: titan pull sshTest
+      command: d3 pull sshTest
       exitValue: 1
       sdout: no commits found in remote, unable to pull latest
   - "push commit with ssh key succeeds":
-      command: titan push sshTest
+      command: d3 push sshTest
       stdout:
         contains:
           - Pushing $KEY_COMMIT_GUID to 'origin'
@@ -145,7 +145,7 @@ tests:
         get:
           - KEY_COMMIT_GUID
   - "list remote commits with ssh key returns pushed commit":
-      command: titan remote log sshTest
+      command: d3 remote log sshTest
       stdout:
         contains:
           - Commit $KEY_COMMIT_GUID
@@ -154,22 +154,22 @@ tests:
         get:
           - KEY_COMMIT_GUID
   - "push of same commit with ssh key fails":
-      command: titan push sshTest
+      command: d3 push sshTest
       exitValue: 1
       stdout: commit $KEY_COMMIT_GUID exists in remote 'origin'
       env:
         get:
           - KEY_COMMIT_GUID
   - "delete local commit succeeds":
-      command: titan delete -c $KEY_COMMIT_GUID sshTest
+      command: d3 delete -c $KEY_COMMIT_GUID sshTest
       stdout: $KEY_COMMIT_GUID deleted
       env:
         get:
           - KEY_COMMIT_GUID
   - "list local commits is empty":
-      command: titan log sshTest
+      command: d3 log sshTest
   - "pull original commit with ssh key succeeds":
-      command: titan pull sshTest
+      command: d3 pull sshTest
       stdout:
         contains:
           - Pulling $KEY_COMMIT_GUID from 'origin'
@@ -178,7 +178,7 @@ tests:
         get:
           - KEY_COMMIT_GUID
   - "checkout commit succeeds":
-      command: titan checkout -c $KEY_COMMIT_GUID sshTest
+      command: d3 checkout -c $KEY_COMMIT_GUID sshTest
       stdout: |-
         Stopping container sshTest
         Checkout $KEY_COMMIT_GUID
@@ -188,10 +188,10 @@ tests:
         get:
           - KEY_COMMIT_GUID
   - "remove remote with ssh key succeeds":
-      command: titan remote rm sshTest origin
+      command: d3 remote rm sshTest origin
       stdout: Removed origin from sshTest
   - "remove sshTest succeeds":
-      command: titan rm -f sshTest
+      command: d3 rm -f sshTest
   - "stop ssh server":
       command: docker rm -f sshHost
       stdout: sshHost

@@ -1,4 +1,4 @@
-# Titan Docker Troubleshooting Script
+# Datadatdat Docker Troubleshooting Script
 # Diagnoses and fixes common Docker container execution issues
 
 param(
@@ -6,7 +6,7 @@ param(
     [switch]$Verbose = $false
 )
 
-Write-Host "Titan Docker Troubleshooting Script" -ForegroundColor Green
+Write-Host "Datadatdat Docker Troubleshooting Script" -ForegroundColor Green
 Write-Host "=====================================" -ForegroundColor Green
 
 # Function to write status messages
@@ -56,14 +56,14 @@ try {
     exit 1
 }
 
-# Check existing Titan containers
-Write-Status "Checking Titan container status..."
-$titanContainers = docker ps -a --filter "name=titan" --format "{{.Names}} {{.Status}}"
-if ($titanContainers) {
-    Write-Status "Found Titan containers:" "OK"
-    $titanContainers | ForEach-Object { Write-Status "  $_" }
+# Check existing Datadatdat containers
+Write-Status "Checking Datadatdat container status..."
+$datadatdatContainers = docker ps -a --filter "name=datadatdat" --format "{{.Names}} {{.Status}}"
+if ($datadatdatContainers) {
+    Write-Status "Found Datadatdat containers:" "OK"
+    $datadatdatContainers | ForEach-Object { Write-Status "  $_" }
 } else {
-    Write-Status "No Titan containers found" "WARN"
+    Write-Status "No Datadatdat containers found" "WARN"
 }
 
 # Check for container name conflicts
@@ -91,7 +91,7 @@ if ($conflicts.Count -gt 0 -and $Fix) {
 Write-Status "Checking ZFS pool status..."
 try {
     $zfsStatus = wsl zpool list 2>$null
-    if ($zfsStatus -match "titan") {
+    if ($zfsStatus -match "datadatdat") {
         Write-Status "ZFS pools are available" "OK"
         if ($Verbose) {
             wsl zpool list
@@ -109,26 +109,26 @@ try {
 
 # Check Docker volumes
 Write-Status "Checking Docker volumes..."
-$volumes = docker volume ls --filter "name=titan" --format "{{.Name}}"
+$volumes = docker volume ls --filter "name=datadatdat" --format "{{.Name}}"
 if ($volumes) {
-    Write-Status "Found Titan volumes:" "OK"
+    Write-Status "Found Datadatdat volumes:" "OK"
     $volumes | ForEach-Object { Write-Status "  $_" }
 } else {
-    Write-Status "No Titan volumes found" "WARN"
+    Write-Status "No Datadatdat volumes found" "WARN"
 }
 
-# Test Docker socket from Titan container
-if ($titanContainers -match "titan-docker-launch.*Up") {
-    Write-Status "Testing Docker socket access from Titan container..."
+# Test Docker socket from Datadatdat container
+if ($datadatdatContainers -match "datadatdat-docker-launch.*Up") {
+    Write-Status "Testing Docker socket access from Datadatdat container..."
     try {
-        $testResult = docker exec titan-docker-launch docker run --rm hello-world 2>$null
+        $testResult = docker exec datadatdat-docker-launch docker run --rm hello-world 2>$null
         if ($testResult -match "Hello from Docker") {
-            Write-Status "Docker socket is accessible from Titan container" "OK"
+            Write-Status "Docker socket is accessible from Datadatdat container" "OK"
         } else {
             Write-Status "Docker socket test failed" "ERROR"
         }
     } catch {
-        Write-Status "Cannot test Docker socket - Titan container not accessible" "ERROR"
+        Write-Status "Cannot test Docker socket - Datadatdat container not accessible" "ERROR"
     }
 }
 
@@ -164,9 +164,9 @@ if ($conflicts.Count -gt 0) {
     Write-Status "Recommendation: Run script with -Fix flag to resolve" "WARN"
 }
 
-if (-not ($titanContainers -match "titan-docker-launch.*Up")) {
-    Write-Status "Titan infrastructure not running" "WARN"
-    Write-Status "Recommendation: Run '.\titan.exe install' to start infrastructure" "WARN"
+if (-not ($datadatdatContainers -match "datadatdat-docker-launch.*Up")) {
+    Write-Status "Datadatdat infrastructure not running" "WARN"
+    Write-Status "Recommendation: Run '.\datadatdat.exe install' to start infrastructure" "WARN"
 }
 
 Write-Status "Troubleshooting complete!" "OK"

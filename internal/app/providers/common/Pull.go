@@ -4,10 +4,10 @@ import (
 	"fmt"
 	"github.com/antihax/optional"
 	rm "github.com/datadatdat/remote-sdk-go/remote"
-	titanclient "github.com/datadatdat/titan-client-go"
+	datadatdatclient "github.com/datadatdat/datadatdat-client-go"
 	"os"
 	"strconv"
-	util "titan/internal/app/utils"
+	util "datadatdat/internal/app/utils"
 )
 
 const (
@@ -29,12 +29,12 @@ func Pull(repoName string, guid string, remoteName string, tags []string, metada
 		os.Exit(1)
 	}
 	remote, _, _ := remotesApi.GetRemote(ctx, repoName, name)
-	commit := titanclient.Commit{
+	commit := datadatdatclient.Commit{
 		Id:         "id",
 		Properties: make(map[string]interface{}),
 	}
 	p, _ := rm.Get(remote.Provider).GetParameters(remote.Properties)
-	params := titanclient.RemoteParameters{
+	params := datadatdatclient.RemoteParameters{
 		Provider:   remote.Provider,
 		Properties: p,
 	}
@@ -46,7 +46,7 @@ func Pull(repoName string, guid string, remoteName string, tags []string, metada
 		commit, _, _ = remotesApi.GetRemoteCommit(ctx, repoName, remote.Name, guid, params)
 	} else {
 		o := optional.NewInterface(tags)
-		opts := titanclient.ListRemoteCommitsOpts{Tag: o}
+		opts := datadatdatclient.ListRemoteCommitsOpts{Tag: o}
 		remoteCommits, _, _ := remotesApi.ListRemoteCommits(ctx, repoName, remote.Name, params, &opts)
 		if len(remoteCommits) == 0 {
 			fmt.Println("no matching commits found in remote, unable to pull latest")
@@ -58,7 +58,7 @@ func Pull(repoName string, guid string, remoteName string, tags []string, metada
 		fmt.Println("remote commit not found")
 		os.Exit(1)
 	}
-	pullOpts := &titanclient.PullOpts{
+	pullOpts := &datadatdatclient.PullOpts{
 		MetadataOnly: optional.NewBool(metadataOnly),
 	}
 	op, _, _ := operationsApi.Pull(ctx, repoName, remote.Name, commit.Id, params, pullOpts)

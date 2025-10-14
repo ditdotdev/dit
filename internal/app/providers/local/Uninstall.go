@@ -4,14 +4,14 @@ import (
 	"fmt"
 	"os"
 	"strconv"
-	"titan/internal/app/clients"
+	"datadatdat/internal/app/clients"
 )
 
 func Uninstall(version string, force bool, removeImages bool, port int, context string) {
 	cfg.BasePath = "http://localhost:" + strconv.Itoa(port)
 	docker := clients.Docker(context, port)
 
-	serverAvailable, _ := docker.TitanServerIsAvailable()
+	serverAvailable, _ := docker.DatadatdatServerIsAvailable()
 	if serverAvailable {
 		var repos, _, _ = repositoriesApi.ListRepositories(ctx)
 		for _, repo := range repos {
@@ -23,36 +23,36 @@ func Uninstall(version string, force bool, removeImages bool, port int, context 
 		}
 	}
 	if serverAvailable {
-		s, err := docker.RemoveTitanServer()
+		s, err := docker.RemoveDatadatdatServer()
 		if err != nil {
 			fmt.Println(s)
 			panic(err)
 		}
 	}
-	launchAvailable, _ := docker.TitanLaunchIsAvailable()
+	launchAvailable, _ := docker.DatadatdatLaunchIsAvailable()
 	if launchAvailable {
-		s, err := docker.RemoveTitanLaunch()
+		s, err := docker.RemoveDatadatdatLaunch()
 		if err != nil {
 			fmt.Println(s)
 			panic(err)
 		}
 	}
 
-	fmt.Println("Tearing down Titan servers")
-	if _, err := docker.TeardownTitanServers(); err != nil { //TODO track this
-		fmt.Printf("Warning: Failed to teardown titan servers: %v\n", err)
+	fmt.Println("Tearing down Datadatdat servers")
+	if _, err := docker.TeardownDatadatdatServers(); err != nil { //TODO track this
+		fmt.Printf("Warning: Failed to teardown datadatdat servers: %v\n", err)
 	}
 
-	fmt.Println("Removing titan-data Docker volume")
-	if _, err := docker.RemoveTitanVolume(); err != nil { //TODO track this
-		fmt.Printf("Warning: Failed to remove titan volume: %v\n", err)
+	fmt.Println("Removing datadatdat-data Docker volume")
+	if _, err := docker.RemoveDatadatdatVolume(); err != nil { //TODO track this
+		fmt.Printf("Warning: Failed to remove datadatdat volume: %v\n", err)
 	}
 
 	if removeImages {
-		fmt.Println("Removing Titan Docker image")
-		if _, err := docker.RemoveTitanImages(version); err != nil { //TODO track this
-			fmt.Printf("Warning: Failed to remove titan images: %v\n", err)
+		fmt.Println("Removing Datadatdat Docker image")
+		if _, err := docker.RemoveDatadatdatImages(version); err != nil { //TODO track this
+			fmt.Printf("Warning: Failed to remove datadatdat images: %v\n", err)
 		}
 	}
-	fmt.Println("Uninstalled titan infrastructure")
+	fmt.Println("Uninstalled datadatdat infrastructure")
 }

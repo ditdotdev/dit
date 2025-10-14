@@ -4,10 +4,10 @@ import (
 	"fmt"
 	"github.com/antihax/optional"
 	rm "github.com/datadatdat/remote-sdk-go/remote"
-	titanclient "github.com/datadatdat/titan-client-go"
+	datadatdatclient "github.com/datadatdat/datadatdat-client-go"
 	"os"
 	"strconv"
-	util "titan/internal/app/utils"
+	util "datadatdat/internal/app/utils"
 )
 
 func Push(repoName string, guid string, remoteName string, tags []string, metadataOnly bool, port int) {
@@ -30,12 +30,12 @@ func Push(repoName string, guid string, remoteName string, tags []string, metada
 		os.Exit(1)
 	}
 	remote, _, _ := remotesApi.GetRemote(ctx, repoName, name)
-	commit := titanclient.Commit{
+	commit := datadatdatclient.Commit{
 		Id:         "id",
 		Properties: make(map[string]interface{}),
 	}
 	p, _ := rm.Get(remote.Provider).GetParameters(remote.Properties)
-	params := titanclient.RemoteParameters{
+	params := datadatdatclient.RemoteParameters{
 		Provider:   remote.Provider,
 		Properties: p,
 	}
@@ -50,7 +50,7 @@ func Push(repoName string, guid string, remoteName string, tags []string, metada
 			commit, _, _ = commitsApi.GetCommit(ctx, repoName, repoStatus.LastCommit)
 		} else {
 			optTags := optional.NewInterface(tags)
-			commitsOpts := &titanclient.ListCommitsOpts{Tag: optTags}
+			commitsOpts := &datadatdatclient.ListCommitsOpts{Tag: optTags}
 			commits, _, _ := commitsApi.ListCommits(ctx, repoName, commitsOpts)
 			if len(commits) == 0 {
 				fmt.Println("no matching commits found, unable to push latest")
@@ -63,13 +63,13 @@ func Push(repoName string, guid string, remoteName string, tags []string, metada
 		fmt.Println("no matching commits found, unable to push latest")
 		os.Exit(1)
 	}
-	pushOpts := &titanclient.PushOpts{
+	pushOpts := &datadatdatclient.PushOpts{
 		MetadataOnly: optional.NewBool(metadataOnly),
 	}
 	op, _, err := operationsApi.Push(ctx, repoName, remote.Name, commit.Id, params, pushOpts)
 	if err != nil {
-		if e, ok := err.(titanclient.GenericOpenAPIError); ok {
-			m := e.Model().(titanclient.ApiError)
+		if e, ok := err.(datadatdatclient.GenericOpenAPIError); ok {
+			m := e.Model().(datadatdatclient.ApiError)
 			fmt.Println(m.Message)
 			os.Exit(1)
 		}

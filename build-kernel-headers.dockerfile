@@ -15,7 +15,7 @@ echo 'echo "ZFS kernel modules installed successfully"' >> /install-zfs.sh && \
 echo 'echo "Note: This is a compatibility shim for Docker Desktop 2.1.0.5"' >> /install-zfs.sh && \
 echo 'echo "Actual ZFS functionality may be limited"' >> /install-zfs.sh && \
 echo '' >> /install-zfs.sh && \
-echo '# Always exit successfully to allow Titan to continue' >> /install-zfs.sh && \
+echo '# Always exit successfully to allow Datadatdat to continue' >> /install-zfs.sh && \
 echo 'exit 0' >> /install-zfs.sh && \
 chmod +x /install-zfs.sh
 

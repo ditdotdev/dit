@@ -2,11 +2,11 @@ package kubernetes
 
 import (
 	"fmt"
-	client "github.com/datadatdat/titan-client-go"
+	client "github.com/datadatdat/datadatdat-client-go"
 	"os"
 	"strconv"
 	"strings"
-	"titan/internal/app/clients"
+	"datadatdat/internal/app/clients"
 )
 
 func Run(container string, repository string, envVars []string, args []string, disablePortMap bool, createRepo bool, port int, context string) {
@@ -75,13 +75,13 @@ func Run(container string, repository string, envVars []string, args []string, d
 		}
 	}
 
-	var titanVolumes []client.Volume
+	var datadatdatVolumes []client.Volume
 	var metaVolumes []map[string]string
 	for i, path := range vols {
 		volName := "v" + strconv.Itoa(i)
 		path := strings.Split(path, ":")[0]
 		path = strings.ReplaceAll(path, `"`, "")
-		fmt.Println("Creating titan volume " + volName + " with path " + path)
+		fmt.Println("Creating datadatdat volume " + volName + " with path " + path)
 
 		v := client.Volume{
 			Name:       volName,
@@ -98,7 +98,7 @@ func Run(container string, repository string, envVars []string, args []string, d
 			panic(err)
 			//TODO REMOVE VOLUME AND EXIT
 		}
-		titanVolumes = append(titanVolumes, vol)
+		datadatdatVolumes = append(datadatdatVolumes, vol)
 		addVol := map[string]string{
 			"name": "v" + strconv.Itoa(i),
 			"path": path,
@@ -109,7 +109,7 @@ func Run(container string, repository string, envVars []string, args []string, d
 	ready := false
 	for !ready {
 		ready = true
-		for _, v := range titanVolumes {
+		for _, v := range datadatdatVolumes {
 			s, _, _ := volumesApi.GetVolumeStatus(ctx, repoName, v.Name)
 			if !s.Ready {
 				ready = false
@@ -189,7 +189,7 @@ func Run(container string, repository string, envVars []string, args []string, d
 	}
 
 	fmt.Println("Creating " + repoName + " deployment")
-	if err := k8s.CreateStatefulSet(repoName, imageId, ports, titanVolumes, envVars); err != nil {
+	if err := k8s.CreateStatefulSet(repoName, imageId, ports, datadatdatVolumes, envVars); err != nil {
 		fmt.Printf("Error creating stateful set: %v\n", err)
 		os.Exit(1)
 	}

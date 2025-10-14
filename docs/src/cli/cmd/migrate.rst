@@ -1,9 +1,9 @@
 .. _cli_cmd_migrate:
 
-titan migrate
+d3 migrate
 =============
 
-Migrate data from a running container into new Titan repository. Given a
+Migrate data from a running container into new Datadatdat repository. Given a
 stopped container with volumes mounted from the host system, this command
 will create a new container with an identical configuration, and then
 copy over the data into the new repository. For more information, see the
@@ -20,7 +20,7 @@ Syntax
 
 ::
 
-    titan migrate <-s source> <repository>
+    d3 migrate <-s source> <repository>
 
 Arguments
 ---------
@@ -38,7 +38,7 @@ Example
 
 ::
 
-    $ titan migrate -s postgres_source hello-world
+    $ d3 migrate -s postgres_source hello-world
     Creating repository hello-world
     Creating docker volume hello-world/v0 with path /var/lib/postgresql/data
     Copying data to hello-world/v0

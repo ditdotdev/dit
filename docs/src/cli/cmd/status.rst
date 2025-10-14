@@ -1,6 +1,6 @@
 .. _cli_cmd_status:
 
-titan status
+d3 status
 ============
 
 Display the current status for a repository.
@@ -27,7 +27,7 @@ Syntax
 
 ::
 
-    titan status <repository>
+    d3 status <repository>
 
 Arguments
 ---------
@@ -41,7 +41,7 @@ Example
 
 ::
 
-    $ titan status hello-world
+    $ d3 status hello-world
                 Status:  running
      Uncompressed Size:  526.5 KiB
        Compressed Size:  254 KiB

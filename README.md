@@ -1,10 +1,10 @@
-# Titan
+# Datadatdat
 ## Your Code. Your Environment. Your Data. 
 
-![](https://github.com/titan-data/titan/workflows/Publish/badge.svg)
-![](https://github.com/titan-data/titan/workflows/End%20to%20End%20Test/badge.svg)
-![GitHub release (latest by date)](https://img.shields.io/github/v/release/titan-data/titan)
-![GitHub All Releases](https://img.shields.io/github/downloads/titan-data/titan/total)
+![](https://github.com/datadatdat/datadatdat/workflows/Publish/badge.svg)
+![](https://github.com/datadatdat/datadatdat/workflows/End%20to%20End%20Test/badge.svg)
+![GitHub release (latest by date)](https://img.shields.io/github/v/release/datadatdat/datadatdat)
+![GitHub All Releases](https://img.shields.io/github/downloads/datadatdat/datadatdat/total)
 
 ## CI/CD Pipeline
 
@@ -17,22 +17,22 @@ This repository includes a comprehensive Pull Request 2 workflow with:
 ## <a id="getting-started"></a> Getting Started
 
 ### <a id="requirements"></a> Requirements
-Before downloading Titan, be sure that you have the appropriate Docker Desktop Client installed and running for your operating system.
+Before downloading Datadatdat, be sure that you have the appropriate Docker Desktop Client installed and running for your operating system.
 *   [Docker Desktop Client](https://www.docker.com/products/docker-desktop)
 
 ### <a id="installation"></a> Installation
-The available downloads are listed on the [releases](https://github.com/titan-data/titan/releases) tab. Please download the proper package for your operating system and architecture. 
+The available downloads are listed on the [releases](https://github.com/datadatdat/datadatdat/releases) tab. Please download the proper package for your operating system and architecture. 
 
-Titan is distributed as a binary with accompanying docker image. Install Titan by unzipping the downloaded release and moving the binary to a directory included in your system's PATH and running the following command from your CLI:
+Datadatdat is distributed as a binary with accompanying docker image. Install Datadatdat by unzipping the downloaded release and moving the binary to a directory included in your system's PATH and running the following command from your CLI:
 ```bash
-titan install
+datadatdat install
 ```
 
 ## <a id="development"></a> Development and Testing
 
 ### Clean Slate Testing
 
-For comprehensive testing of the Titan system, including automated environment setup and troubleshooting tools, see the [`cleanslate`](cleanslate/) folder which contains:
+For comprehensive testing of the Datadatdat system, including automated environment setup and troubleshooting tools, see the [`cleanslate`](cleanslate/) folder which contains:
 
 - Complete automation scripts for clean slate testing
 - Docker troubleshooting and diagnostic tools  
@@ -47,13 +47,13 @@ cd cleanslate
 
 ## <a id="contribute"></a>Contributing
 
-This project follows the Titan community best practices:
+This project follows the Datadatdat community best practices:
 
-  * [Contributing](https://github.com/titan-data/.github/blob/master/CONTRIBUTING.md)
-  * [Code of Conduct](https://github.com/titan-data/.github/blob/master/CODE_OF_CONDUCT.md)
-  * [Community Support](https://github.com/titan-data/.github/blob/master/SUPPORT.md)
+  * [Contributing](https://github.com/datadatdat/.github/blob/master/CONTRIBUTING.md)
+  * [Code of Conduct](https://github.com/datadatdat/.github/blob/master/CODE_OF_CONDUCT.md)
+  * [Community Support](https://github.com/datadatdat/.github/blob/master/SUPPORT.md)
 
-It is maintained by the [Titan community maintainers](https://github.com/titan-data/.github/blob/master/MAINTAINERS.md)
+It is maintained by the [Datadatdat community maintainers](https://github.com/datadatdat/.github/blob/master/MAINTAINERS.md)
 
 For more information on how it works, and how to build and release new versions,
 see the [Development Guidelines](DEVELOPING.md).

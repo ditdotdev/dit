@@ -1,6 +1,6 @@
 .. _cli_cmd_remote_ls:
 
-titan remote ls
+d3 remote ls
 ===============
 
 List remotes for the given repository. For more information on managing remotes,
@@ -11,7 +11,7 @@ Syntax
 
 ::
 
-    titan remote ls <repository>
+    d3 remote ls <repository>
 
 Arguments
 ---------
@@ -24,6 +24,6 @@ Example
 
 ::
 
-    $ titan remote ls hello-world
+    $ d3 remote ls hello-world
     REMOTE                PROVIDER
     origin                s3

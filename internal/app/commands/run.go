@@ -1,5 +1,5 @@
 /*
-Copyright © 2019 The Titan Project Contributors
+Copyright Datadatdat.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -17,7 +17,7 @@ package commands
 
 import (
 	"github.com/spf13/cobra"
-	"titan/internal/app/providers"
+	"datadatdat/internal/app/providers"
 )
 
 // runCmd represents the run command
@@ -28,7 +28,7 @@ var runCmd = &cobra.Command{
 Containers associated with a repository can be launched using context specific
 run arguments and passed verbatim using '--' as the flag.
 
-Docker example: 'titan run --disable-port-mapping postgres -- -p 2345:5432'`,
+Docker example: 'd3 run --disable-port-mapping postgres -- -p 2345:5432'`,
 	Args: cobra.MinimumNArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
 		image := args[0]

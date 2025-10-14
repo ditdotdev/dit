@@ -4,16 +4,16 @@ import (
 	"fmt"
 	"os"
 	"strings"
-	cmn "titan/internal/app/providers/common"
-	k8s "titan/internal/app/providers/kubernetes"
+	cmn "datadatdat/internal/app/providers/common"
+	k8s "datadatdat/internal/app/providers/kubernetes"
 )
 
 type kubernetes struct {
-	contextName        string
-	host               string
-	portNum            int
-	titanServerVersion string
-	dockerRegistryUrl  string
+	contextName           string
+	host                  string
+	portNum               int
+	datadatdatServerVersion string
+	dockerRegistryUrl     string
 }
 
 func (k kubernetes) GetType() string {
@@ -62,7 +62,7 @@ func (k kubernetes) Delete(repo string, commit string, tags []string) {
 }
 
 func (k kubernetes) Install(properties []string, verbose bool) {
-	k8s.Install(k.titanServerVersion, k.dockerRegistryUrl, verbose, k.portNum, k.contextName)
+	k8s.Install(k.datadatdatServerVersion, k.dockerRegistryUrl, verbose, k.portNum, k.contextName)
 }
 
 func (k kubernetes) List(context string) {
@@ -139,7 +139,7 @@ func Kubernetes(contextName string, host string, port int) Provider {
 		contextName:        contextName,
 		host:               host,
 		portNum:            port,
-		titanServerVersion: "0.8.1",
+		datadatdatServerVersion: "0.8.1",
 		dockerRegistryUrl:  "datadatdat",
 	}
 }

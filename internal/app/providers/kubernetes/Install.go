@@ -7,8 +7,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
-	"titan/internal/app"
-	"titan/internal/app/clients"
+	"datadatdat/internal/app"
+	"datadatdat/internal/app/clients"
 )
 
 func Install(latest string, registry string, verbose bool, port int, context string) {
@@ -18,64 +18,64 @@ func Install(latest string, registry string, verbose bool, port int, context str
 	s := spinner.New(spinner.CharSets[9], 100*time.Millisecond)
 	s.HideCursor = true
 
-	fmt.Println("Initializing titan infrastructure")
+	fmt.Println("Initializing datadatdat infrastructure")
 	fmt.Println("Checking docker installation")
 
 	if _, err := docker.Version(); err != nil {
 		fmt.Printf("Error checking docker version: %v\n", err)
 		os.Exit(1)
 	}
-	if !docker.TitanLatestIsDownloaded(registry, app.Version{}.FromString(latest)) {
-		s.Prefix = "Pulling titan docker image (may take a while) "
+	if !docker.DatadatdatLatestIsDownloaded(registry, app.Version{}.FromString(latest)) {
+		s.Prefix = "Pulling datadatdat docker image (may take a while) "
 		s.FinalMSG = "Latest docker image downloaded"
 		s.Start()
-		pullImage := registry + "/titan:" + latest
+		pullImage := registry + "/datadatdat:" + latest
 		fmt.Printf("DEBUG: Pulling image: %s\n", pullImage)
 		if _, err := docker.Pull(pullImage); err != nil {
 			fmt.Printf("Error pulling image %s: %v\n", pullImage, err)
 			os.Exit(1)
 		}
-		tagLatest := "titan:" + latest
+		tagLatest := "datadatdat:" + latest
 		fmt.Printf("DEBUG: Tagging %s as %s\n", pullImage, tagLatest)
 		if _, err := docker.Tag(pullImage, tagLatest); err != nil {
 			fmt.Printf("Error tagging image: %v\n", err)
 		}
-		fmt.Printf("DEBUG: Tagging %s as titan\n", pullImage)
-		if _, err := docker.Tag(pullImage, "titan"); err != nil {
-			fmt.Printf("Error tagging image as titan: %v\n", err)
+		fmt.Printf("DEBUG: Tagging %s as datadatdat\n", pullImage)
+		if _, err := docker.Tag(pullImage, "datadatdat"); err != nil {
+			fmt.Printf("Error tagging image as datadatdat: %v\n", err)
 		}
 		s.Stop()
 		fmt.Println()
 	}
 
-	serverAvailable, _ := docker.TitanServerIsAvailable()
+	serverAvailable, _ := docker.DatadatdatServerIsAvailable()
 	if serverAvailable {
-		s.Prefix = "Removing titan server "
-		s.FinalMSG = "Old titan server removed"
+		s.Prefix = "Removing datadatdat server "
+		s.FinalMSG = "Old datadatdat server removed"
 		s.Start()
-		if _, err := docker.Remove("titan-kubernetes-server", true); err != nil {
-			fmt.Printf("Warning: Failed to remove old titan server: %v\n", err)
+		if _, err := docker.Remove("datadatdat-kubernetes-server", true); err != nil {
+			fmt.Printf("Warning: Failed to remove old datadatdat server: %v\n", err)
 		}
 		s.Stop()
 	}
 
-	launchAvailable, _ := docker.TitanLaunchIsAvailable()
+	launchAvailable, _ := docker.DatadatdatLaunchIsAvailable()
 	if launchAvailable {
-		s.Prefix = "Removing stale titan-launch container "
-		s.FinalMSG = "Stale titan-launch container removed"
+		s.Prefix = "Removing stale datadatdat-launch container "
+		s.FinalMSG = "Stale datadatdat-launch container removed"
 		s.Start()
-		if _, err := docker.Remove("titan-kubernetes-launch", true); err != nil {
-			fmt.Printf("Warning: Failed to remove titan-launch container: %v\n", err)
+		if _, err := docker.Remove("datadatdat-kubernetes-launch", true); err != nil {
+			fmt.Printf("Warning: Failed to remove datadatdat-launch container: %v\n", err)
 		}
 		s.Stop()
 	}
 
 	//TODO messages don't persist once spinner is closed
 
-	s.Prefix = "Starting titan server docker containers "
-	s.FinalMSG = "Titan CLI successfully installed, happy data versioning :)"
+	s.Prefix = "Starting datadatdat server docker containers "
+	s.FinalMSG = "Datadatdat CLI successfully installed, happy data versioning :)"
 	s.Start()
-	out, err := docker.LaunchTitanKubernetesServers()
+	out, err := docker.LaunchDatadatdatKubernetesServers()
 	if err != nil {
 		panic(out)
 	}
@@ -84,17 +84,17 @@ func Install(latest string, registry string, verbose bool, port int, context str
 	output := false
 	logs := docker.FetchLaunchLogs()
 	for _, line := range logs {
-		if verbose && output && !strings.Contains(line, "TITAN") {
+		if verbose && output && !strings.Contains(line, "DATADATDAT") {
 			fmt.Println(line)
 		}
-		if strings.Contains(line, "TITAN START") {
-			fmt.Println(strings.Replace(line, "TITAN START", "", 1)[21:])
+		if strings.Contains(line, "DATADATDAT START") {
+			fmt.Println(strings.Replace(line, "DATADATDAT START", "", 1)[21:])
 			output = true
 		}
-		if strings.Contains(line, "TITAN END") {
+		if strings.Contains(line, "DATADATDAT END") {
 			output = false
 		}
-		if strings.Contains(line, "TITAN FINISHED") {
+		if strings.Contains(line, "DATADATDAT FINISHED") {
 			break
 		}
 		newLogs := docker.FetchLaunchLogs()

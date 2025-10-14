@@ -1,6 +1,6 @@
-# Clean Slate Testing for Titan
+# Clean Slate Testing for Datadatdat
 
-> **Note**: All clean slate testing scripts are located in this `cleanslate` folder. Run scripts from within this directory or use the relative path `.\cleanslate\script-name.ps1` from the main Titan directory.
+> **Note**: All clean slate testing scripts are located in this `cleanslate` folder. Run scripts from within this directory or use the relative path `.\cleanslate\script-name.ps1` from the main Datadatdat directory.
 
 ## Quick Start
 
@@ -49,7 +49,7 @@ Before running these scripts, ensure you have:
 - PowerShell 5.1 or higher
 - Administrative privileges for ZFS operations
 - Custom ZFS-enabled WSL2 kernel
-- Git repositories: `titan` and `zfs-builder`
+- Git repositories: `datadatdat` and `zfs-builder`
 
 > **Note**: The scripts now automatically detect and start Docker Desktop if it's not running, so you don't need to manually start Docker before running the clean slate tests.
 
@@ -65,11 +65,11 @@ Before running these scripts, ensure you have:
 ## Overview
 
 A clean slate test involves:
-1. Complete removal of existing Titan infrastructure
+1. Complete removal of existing Datadatdat infrastructure
 2. Docker environment cleanup
 3. ZFS pool preparation
 4. Custom container building
-5. Fresh Titan installation
+5. Fresh Datadatdat installation
 6. Database repository creation and testing
 7. Data versioning and rollback verification
 
@@ -77,10 +77,10 @@ A clean slate test involves:
 
 ### 1. Environment Preparation
 
-#### Uninstall Existing Titan
+#### Uninstall Existing Datadatdat
 ```powershell
-cd c:\dev\titan
-.\titan.exe uninstall -f
+cd c:\dev\datadatdat
+.\d3.exe uninstall -f
 ```
 
 #### Clean Docker Environment
@@ -129,17 +129,17 @@ For clean slate setup (includes cleanup):
 #### Manual Setup (Alternative)
 ```powershell
 # Create pool storage directory
-wsl sudo mkdir -p /titan-pools
+wsl sudo mkdir -p /datadatdat-pools
 
-# Create titan-docker pool (required by Titan)
-wsl sudo dd if=/dev/zero of=/titan-pools/titan-docker.img bs=1M count=1024
-wsl sudo losetup -f /titan-pools/titan-docker.img
-wsl sudo zpool create titan-docker /dev/loop3  # adjust loop device as needed
+# Create datadatdat-docker pool (required by Datadatdat)
+wsl sudo dd if=/dev/zero of=/datadatdat-pools/datadatdat-docker.img bs=1M count=1024
+wsl sudo losetup -f /datadatdat-pools/datadatdat-docker.img
+wsl sudo zpool create datadatdat-docker /dev/loop3  # adjust loop device as needed
 
-# Create main titan pool (optional but recommended)
-wsl sudo dd if=/dev/zero of=/titan-pools/titan.img bs=1M count=1024
-wsl sudo losetup -f /titan-pools/titan.img
-wsl sudo zpool create titan /dev/loop2  # adjust loop device as needed
+# Create main datadatdat pool (optional but recommended)
+wsl sudo dd if=/dev/zero of=/datadatdat-pools/datadatdat.img bs=1M count=1024
+wsl sudo losetup -f /datadatdat-pools/datadatdat.img
+wsl sudo zpool create datadatdat /dev/loop2  # adjust loop device as needed
 
 # Verify pools
 wsl zpool list
@@ -149,60 +149,60 @@ wsl zpool status
 **Expected Output:**
 ```
 NAME           SIZE  ALLOC   FREE  CKPOINT  EXPANDSZ   FRAG    CAP  DEDUP    HEALTH  ALTROOT
-titan          960M  53.0M   907M        -         -     0%     5%  1.00x    ONLINE  -
-titan-docker   960M   104K   960M        -         -     0%     0%  1.00x    ONLINE  -
+datadatdat          960M  53.0M   907M        -         -     0%     5%  1.00x    ONLINE  -
+datadatdat-docker   960M   104K   960M        -         -     0%     0%  1.00x    ONLINE  -
 ```
 
 ### 3. Container Building
 
-Build the custom Titan container with ZFS support:
+Build the custom Datadatdat container with ZFS support:
 
 ```powershell
-cd c:\dev\titan
-docker build -t titan:latest -f Dockerfile . --no-cache
+cd c:\dev\datadatdat
+docker build -t datadatdat:latest -f Dockerfile . --no-cache
 ```
 
-### 4. Titan Installation
+### 4. Datadatdat Installation
 
-Install Titan using the custom container:
+Install Datadatdat using the custom container:
 
 ```powershell
-.\titan.exe install
+.\d3.exe install
 ```
 
 ### 5. Database Testing
 
 #### Create PostgreSQL Repository
 ```powershell
-.\titan.exe run --name pgtest -e POSTGRES_PASSWORD=password postgres
+.\d3.exe run --name pgtest -e POSTGRES_PASSWORD=password postgres
 ```
 
 #### Verify Database Connectivity
 ```powershell
 # Check container is running
-docker exec titan-docker-launch docker ps
+docker exec datadatdat-docker-launch docker ps
 
 # Test database connection
-docker exec titan-docker-launch docker exec pgtest psql -U postgres -c "SELECT version();"
+docker exec datadatdat-docker-launch docker exec pgtest psql -U postgres -c "SELECT version();"
 ```
 
 #### Test Data Versioning
 ```powershell
 # Create some test data
-docker exec titan-docker-launch docker exec pgtest psql -U postgres -c "CREATE TABLE test (id SERIAL PRIMARY KEY, name VARCHAR(100));"
-docker exec titan-docker-launch docker exec pgtest psql -U postgres -c "INSERT INTO test (name) VALUES ('Test Entry 1'), ('Test Entry 2');"
+docker exec datadatdat-docker-launch docker exec pgtest psql -U postgres -c "CREATE TABLE test (id SERIAL PRIMARY KEY, name VARCHAR(100));"
+docker exec datadatdat-docker-launch docker exec pgtest psql -U postgres -c "INSERT INTO test (name) VALUES ('Test Entry 1'), ('Test Entry 2');"
 
 # Commit the changes
-.\titan.exe commit -m "Initial test data" pgtest
+.\d3.exe commit -m "Initial test data" pgtest
 
 # Add more data
-docker exec titan-docker-launch docker exec pgtest psql -U postgres -c "INSERT INTO test (name) VALUES ('Test Entry 3'), ('Test Entry 4');"
+docker exec datadatdat-docker-launch docker exec pgtest psql -U postgres -c "INSERT INTO test (name) VALUES ('Test Entry 3'), ('Test Entry 4');"
 
 # Create another commit
-.\titan.exe commit -m "Additional test data" pgtest
+.\d3.exe commit -m "Additional test data" pgtest
 
 # Verify commits
-.\titan.exe log pgtest
+.\d3.exe log pgtest
 ```
 
 ## Troubleshooting
@@ -236,22 +236,22 @@ docker info
 wsl zpool list
 wsl zpool status
 
-# Check Titan status
-.\titan.exe status
+# Check Datadatdat status
+.\d3.exe status
 
 # Check running containers
 docker ps -a
 
-# Check Titan logs
-docker logs titan-docker-server
+# Check Datadatdat logs
+docker logs datadatdat-docker-server
 ```
 
 ## Running from Root Directory
 
-If you want to run these scripts from the main Titan directory, use:
+If you want to run these scripts from the main Datadatdat directory, use:
 
 ```powershell
-# From c:\dev\titan\
+# From c:\dev\datadatdat\
 .\cleanslate\clean-slate-automation.ps1 -Verbose
 .\cleanslate\setup-zfs-pools.ps1 -Clean -VerifyDocker
 .\cleanslate\troubleshoot-docker.ps1 -Verbose -Fix
@@ -262,7 +262,7 @@ If you want to run these scripts from the main Titan directory, use:
 ✅ **ZFS Integration**: Custom kernel with built-in ZFS support  
 ✅ **Container Building**: Docker builds complete successfully with all dependencies  
 ✅ **Pool Management**: Automated ZFS pool creation and management  
-✅ **Titan Installation**: Clean installation process works reliably  
+✅ **Datadatdat Installation**: Clean installation process works reliably  
 ✅ **PostgreSQL Support**: Database containers start and run correctly  
 ✅ **Data Versioning**: Commit and rollback operations function properly  
 ✅ **Volume Driver**: Fixed socat dependency for proper container plugin functionality  

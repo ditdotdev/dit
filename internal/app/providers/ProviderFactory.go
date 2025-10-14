@@ -14,8 +14,8 @@ const (
 
 /**
  * The provider factory is responsible for managing multiple providers (contexts to the user). We keep track of
- * providers in the ~/.titan/config file, which is a YAML file that contains a list of contexts and their
- * configuration. Each provider corresponds to an instance of 'titan-server' running somewhere (currently only
+ * providers in the ~/.datadatdat/config file, which is a YAML file that contains a list of contexts and their
+ * configuration. Each provider corresponds to an instance of 'datadatdat-server' running somewhere (currently only
  * the user's laptop). The config file keeps track of:
  *
  *      - The context name
@@ -25,7 +25,7 @@ const (
  *      - Default indicator
  *
  * Additional configuration, such as the provider type and provider-specific configuration, is stored within
- * the titan-server instance and accessible through the getContext() client method. When a context is created, it
+ * the datadatdat-server instance and accessible through the getContext() client method. When a context is created, it
  * can be given a type ("docker" or "kubernetes") as well as context-specific configuration.
  *
  * Each repository is associated with a particular context, and can be referred to as "context/repo", or just
@@ -64,12 +64,12 @@ func init() {
 	home, _ := os.UserHomeDir()
 	viper.SetConfigName("config")
 	viper.SetConfigType("yaml")
-	viper.AddConfigPath(home + "/.titan")
+	viper.AddConfigPath(home + "/.datadatdat")
 	err := viper.ReadInConfig()
 	if err != nil {
 		// Likely config file does not exists, create one.
-		_ = os.Mkdir(home+"/.titan", 0750)
-		configPath := home + "/.titan/config"
+		_ = os.Mkdir(home+"/.datadatdat", 0750)
+		configPath := home + "/.datadatdat/config"
 		//nolint:gosec // G304: Creating config file in user's home directory, path is controlled
 		if _, err := os.Create(configPath); err != nil {
 			panic("failed to create config file: " + err.Error())
@@ -194,7 +194,7 @@ func SetDefault(n string) {
 func DefaultName() string {
 	contexts := viper.GetStringMap("contexts")
 	if len(contexts) == 0 {
-		panic("No context is configured, run 'titan install' or 'titan context install' to configure titan")
+		panic("No context is configured, run 'd3 install' or 'd3 context install' to configure datadatdat")
 	}
 	var name string
 	if len(contexts) == 1 {

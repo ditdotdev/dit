@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"github.com/antihax/optional"
 	"github.com/datadatdat/remote-sdk-go/remote"
-	client "github.com/datadatdat/titan-client-go"
+	client "github.com/datadatdat/datadatdat-client-go"
 	"os"
 	"strconv"
 )

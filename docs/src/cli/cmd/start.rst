@@ -1,6 +1,6 @@
 .. _cli_cmd_start:
 
-titan start
+d3 start
 ===========
 
 Starts the container associated with the repository. Equivalent to
@@ -11,7 +11,7 @@ Syntax
 
 ::
 
-    titan start <repository>
+    d3 start <repository>
 
 Arguments
 ---------
@@ -24,5 +24,5 @@ Example
 
 ::
 
-    $ titan start hello-world
+    $ d3 start hello-world
     hello-world started

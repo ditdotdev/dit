@@ -1,10 +1,10 @@
 .. _cli_cmd_context_ls:
 
-titan context ls
+d3 context ls
 ================
 
-Lists configured Titan contexts. This configuration is read from the
-``~/.titan/config`` file. For more information on managing Titan
+Lists configured Datadatdat contexts. This configuration is read from the
+``~/.d3`` file. For more information on managing Datadatdat
 contexts, see the :ref:`lifecycle_context` section.
 
 For each context, the command will display:
@@ -18,14 +18,14 @@ Syntax
 
 ::
 
-    titan context ls
+    d3 context ls
 
 Example
 -------
 
 ::
 
-    $ titan context ls
+    $ d3 context ls
     NAME                  TYPE
     kubernetes (*)        kubernetes
     docker                docker

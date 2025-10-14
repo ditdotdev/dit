@@ -2,7 +2,7 @@ package common
 
 import (
 	"fmt"
-	titanclient "github.com/datadatdat/titan-client-go"
+	datadatdatclient "github.com/datadatdat/datadatdat-client-go"
 	"strconv"
 	"strings"
 )
@@ -26,7 +26,7 @@ func TagCommit(repo string, guid string, tags []string, port int) {
 	}
 	m := commit.Properties
 	m["tags"] = commitTags
-	c := titanclient.Commit{
+	c := datadatdatclient.Commit{
 		Id:         commit.Id,
 		Properties: m,
 	}

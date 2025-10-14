@@ -1,6 +1,6 @@
 .. _cli_cmd_rm:
 
-titan rm
+d3 rm
 ========
 
 Removes a repository. This will stop the container and destroy any local data.
@@ -11,7 +11,7 @@ Syntax
 
 ::
 
-    titan rm [-f] <repository>
+    d3 rm [-f] <repository>
 
 Arguments
 ---------
@@ -24,7 +24,7 @@ Example
 
 ::
 
-    $ titan rm -f hello-world
+    $ d3 rm -f hello-world
     Removing container hello-world
     Deleting volume hello-world/v0
     hello-world removed

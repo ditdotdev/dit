@@ -1,6 +1,6 @@
 .. _cli_cmd_abort:
 
-titan abort
+d3 abort
 ===========
 
 Aborts any in-progress push or pull operation for a repository. Most push and
@@ -13,7 +13,7 @@ Syntax
 
 ::
 
-    titan abort <repository>
+    d3 abort <repository>
 
 Arguments
 ---------
@@ -26,5 +26,5 @@ Example
 
 ::
 
-    $ titan abort hello-world
+    $ d3 abort hello-world
     aborting operation 13ac9b7a-15f2-41ea-9b61-bc271234d123

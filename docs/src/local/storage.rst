@@ -3,28 +3,28 @@
 Managing Local Storage
 ======================
 
-All of the local titan storage, including the data stored on repositories,
-is kept in a single docker volume ``titan-data``. This volume will persist
-even across restarts of the titan infrastructure, upgrades of docker, and
+All of the local d3 storage, including the data stored on repositories,
+is kept in a single docker volume ``d3``. This volume will persist
+even across restarts of the d3 infrastructure, upgrades of docker, and
 other changes on the host.
 
-By default, the ``titan-data`` volume is created as a vanilla docker volume,
+By default, the ``d3`` volume is created as a vanilla docker volume,
 which uses storage locally on the host system. If you want to use different
-storage for your titan work, you can manually create the ``titan-data``
+storage for your d3 work, you can manually create the ``d3``
 volume yourself prior to running :ref:`cli_cmd_install`.
 
 .. warning::
 
-   Do not manually change the contents of the ``titan-data`` volume, and do
-   not change the volume on a running system; use ``titan uninstall`` first.
+   Do not manually change the contents of the ``d3`` volume, and do
+   not change the volume on a running system; use ``d3 uninstall`` first.
    Changing the contents of this volume can have unpredictable effects on
-   Titan.
+   Datadatdat.
 
 .. warning::
 
-   If you do create your own ``titan-data`` volume, be aware that it will
-   automatically destroyed when ``titan uninstall`` is run. There is not
-   currently a way to uninstall titan while preserving the underlying
+   If you do create your own ``d3`` volume, be aware that it will
+   automatically destroyed when ``d3 uninstall`` is run. There is not
+   currently a way to uninstall d3 while preserving the underlying
    volume.
 
 Managing Storage Usage
@@ -32,7 +32,7 @@ Managing Storage Usage
 To view the amount of space consumed by a repository, run the
 :ref:`cli_cmd_status` command. This will display output similar to::
 
-    $ titan status hello-world
+    $ d3 status hello-world
                 Status:  running
      Uncompressed Size:  526.5 KiB
        Compressed Size:  254 KiB

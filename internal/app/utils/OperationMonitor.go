@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/antihax/optional"
-	titanclient "github.com/datadatdat/titan-client-go"
+	datadatdatclient "github.com/datadatdat/datadatdat-client-go"
 	"strconv"
 	"time"
 )
@@ -15,17 +15,17 @@ const (
 	OperationStateAbort    = "ABORT"
 )
 
-var cfg = titanclient.NewConfiguration()
-var apiClient = titanclient.NewAPIClient(cfg)
+var cfg = datadatdatclient.NewConfiguration()
+var apiClient = datadatdatclient.NewAPIClient(cfg)
 var operationsApi = apiClient.OperationsApi
 var ctx = context.Background()
 
 type operationMonitor struct {
 	repo      string
-	operation titanclient.Operation
+	operation datadatdatclient.Operation
 }
 
-func OperationMonitor(r string, o titanclient.Operation) operationMonitor {
+func OperationMonitor(r string, o datadatdatclient.Operation) operationMonitor {
 	return operationMonitor{
 		repo:      r,
 		operation: o,
@@ -46,7 +46,7 @@ func (om operationMonitor) Monitor(port int) bool {
 	var lastId int32 = 0
 
 	for !om.IsTerminal(state) {
-		p := &titanclient.GetOperationProgressOpts{LastId: optional.NewInt32(lastId)}
+		p := &datadatdatclient.GetOperationProgressOpts{LastId: optional.NewInt32(lastId)}
 		entries, _, err := operationsApi.GetOperationProgress(ctx, om.operation.Id, p)
 		if err == nil {
 			if len(entries) > 0 {

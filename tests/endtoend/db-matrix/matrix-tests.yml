@@ -1,6 +1,6 @@
 tests:
   - "$DB > $VERSION > run":
-      command: titan run -n $DB-test $DB:$VERSION
+      command: d3 run -n $DB-test $DB:$VERSION
       stdout:
         contains:
           - Creating repository $DB-test
@@ -10,7 +10,7 @@ tests:
           - DB
           - VERSION
   - "$DB > $VERSION > commit":
-      command: [titan, commit, -m, Test Commit, $DB-test]
+      command: [d3, commit, -m, Test Commit, $DB-test]
       stdout:
         contains: Commit
       env:
@@ -23,7 +23,7 @@ tests:
                 delimiter: " "
                 position: 1
   - "$DB > $VERSION > checkout":
-      command: [titan, checkout, --commit, $COMMIT_GUID, $DB-test]
+      command: [d3, checkout, --commit, $COMMIT_GUID, $DB-test]
       wait: 5
       stdout: |-
         Stopping container $DB-test
@@ -36,14 +36,14 @@ tests:
           - DB
           - VERSION
   - "$DB > $VERSION > remote > add > s3":
-      command: titan remote add -r s3 $URI $DB-test
+      command: d3 remote add -r s3 $URI $DB-test
       env:
         get:
           - DB
           - VERSION
           - URI
   - "$DB > $VERSION > remote > ls":
-      command: titan remote ls $DB-test
+      command: d3 remote ls $DB-test
       stdout:
         contains: $URI
       env:
@@ -52,7 +52,7 @@ tests:
           - VERSION
           - URI
   - "$DB > $VERSION > remote > log > missing commit":
-      command: titan remote log $DB-test
+      command: d3 remote log $DB-test
       stdout:
         excludes: Commit $COMMIT_GUID
       env:
@@ -61,7 +61,7 @@ tests:
           - VERSION
           - COMMIT_GUID
   - "$DB > $VERSION > push":
-      command: [titan, push, -r, s3, -c, $COMMIT_GUID, $DB-test]
+      command: [d3, push, -r, s3, -c, $COMMIT_GUID, $DB-test]
       stdout:
         contains:
           - Pushing $COMMIT_GUID to 's3'
@@ -72,7 +72,7 @@ tests:
           - VERSION
           - COMMIT_GUID
   - "$DB > $VERSION > remote > log > has commit":
-      command: titan remote log $DB-test
+      command: d3 remote log $DB-test
       stdout:
         contains: Commit $COMMIT_GUID
       env:
@@ -81,7 +81,7 @@ tests:
           - VERSION
           - COMMIT_GUID
   - "$DB > $VERSION > delete > commit":
-      command: titan delete -c $COMMIT_GUID $DB-test
+      command: d3 delete -c $COMMIT_GUID $DB-test
       stdout: $COMMIT_GUID deleted
       env:
         get:
@@ -89,7 +89,7 @@ tests:
           - VERSION
           - COMMIT_GUID
   - "$DB > $VERSION > log > missing commit":
-      command: titan log $DB-test
+      command: d3 log $DB-test
       stdout:
         excludes:
           - $COMMIT_GUID
@@ -99,7 +99,7 @@ tests:
           - VERSION
           - COMMIT_GUID
   - "$DB > $VERSION > pull":
-      command: [titan, pull, -c, $COMMIT_GUID, -r, s3, $DB-test]
+      command: [d3, pull, -c, $COMMIT_GUID, -r, s3, $DB-test]
       stdout:
         contains:
           - Pulling $COMMIT_GUID from 's3'
@@ -110,7 +110,7 @@ tests:
           - VERSION
           - COMMIT_GUID
   - "$DB > $VERSION > log > has commit":
-      command: titan log $DB-test
+      command: d3 log $DB-test
       stdout:
         contains: commit $COMMIT_GUID
       env:
@@ -119,7 +119,7 @@ tests:
           - VERSION
           - COMMIT_GUID
   - "$DB > $VERSION > rm":
-      command: titan rm -f $DB-test
+      command: d3 rm -f $DB-test
       wait: 5
       stdout:
         contains:
@@ -130,7 +130,7 @@ tests:
           - DB
           - VERSION
   - "$DB > $VERSION > clone":
-      command: titan clone -n $DB-test $URI
+      command: d3 clone -n $DB-test $URI
       wait: 5
       stdout:
         contains:
@@ -144,7 +144,7 @@ tests:
           - VERSION
           - URI
   - "$DB > $VERSION > duplicate clone fails":
-      command: titan clone -n $DB-test2 $URI
+      command: d3 clone -n $DB-test2 $URI
       exitValue: 1
       stdout:
         contains:
@@ -165,7 +165,7 @@ tests:
           - VERSION
           - URI
   - "$DB > $VERSION > log > has commit":
-      command: titan log $DB-test
+      command: d3 log $DB-test
       stdout:
         contains: commit $COMMIT_GUID
       env:
@@ -181,7 +181,7 @@ tests:
           - VERSION
           - URI
   - "$DB > $VERSION > rm":
-      command: titan rm -f $DB-test
+      command: d3 rm -f $DB-test
       wait: 5
       stdout:
         contains:

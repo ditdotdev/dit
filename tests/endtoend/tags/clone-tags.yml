@@ -1,8 +1,8 @@
 tests:
   - "can launch postgres":
-      command: titan run postgres
+      command: d3 run postgres
   - "can create commit with tag=one":
-      command: titan commit -t tag=one postgres
+      command: d3 commit -t tag=one postgres
       stdout:
         contains: Commit
       env:
@@ -12,7 +12,7 @@ tests:
                 delimiter: " "
                 position: 1
   - "can create commit with tag=two":
-      command: titan commit -t tag=two postgres
+      command: d3 commit -t tag=two postgres
       stdout:
         contains: Commit
       env:
@@ -22,11 +22,11 @@ tests:
                 delimiter: " "
                 position: 1
   - "can add s3 remote":
-      command: titan remote add s3://datadatdat-testdata/e2etest postgres
+      command: d3 remote add s3://datadatdat-testdata/e2etest postgres
   - "can push tag=two":
-      command: titan push -t tag=two postgres
+      command: d3 push -t tag=two postgres
   - "commit two exists in remote":
-      command: titan remote log postgres
+      command: d3 remote log postgres
       stdout:
         contains: $COMMIT_TWO
         excludes: $COMMIT_ONE
@@ -35,29 +35,29 @@ tests:
           - COMMIT_ONE
           - COMMIT_TWO
   - "can push tag=one":
-      command: titan push -t tag=one postgres
+      command: d3 push -t tag=one postgres
   - "commit one exists in remote":
-      command: titan remote log postgres
+      command: d3 remote log postgres
       stdout:
         contains: $COMMIT_ONE
       env:
         get:
           - COMMIT_ONE
   - "can remove postgres":
-      command: titan rm -f postgres
+      command: d3 rm -f postgres
   - "can clone tag=one":
-      command: titan clone -n postgres s3://datadatdat-testdata/e2etest?tag=tag=one
+      command: d3 clone -n postgres s3://datadatdat-testdata/e2etest?tag=tag=one
   - "commit one exists locally":
-      command: titan log postgres
+      command: d3 log postgres
       stdout:
         contains: $COMMIT_ONE
       env:
         get:
           - COMMIT_ONE
   - "can remove cloned postgres":
-      command: titan rm -f postgres
+      command: d3 rm -f postgres
   - "clone of non-existent tag fails":
-      command: titan clone -n postgres2 s3://datadatdat-testdata/e2etest?tag=tag=three
+      command: d3 clone -n postgres2 s3://datadatdat-testdata/e2etest?tag=tag=three
       exitValue: 1
   - "can cleanup S3 assets":
       command: aws s3 rm s3://datadatdat-testdata/e2etest --recursive

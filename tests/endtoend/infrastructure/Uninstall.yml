@@ -1,27 +1,27 @@
 tests:
-  - "can uninstall titan":
-      command: titan uninstall
+  - "can uninstall datadatdat":
+      command: d3 uninstall
       stdout:
-        contains: Uninstalled titan infrastructure
-  - "titan server is not running":
-      command: docker inspect --type container --format='{{.State.Status}}' titan-docker-server
+        contains: Uninstalled d3 infrastructure
+  - "d3 server is not running":
+      command: docker inspect --type container --format='{{.State.Status}}' datadatdat-docker-server
       exitValue: 1
-      stderr: "Error response from daemon: No such container: titan-docker-server"
-  - "titan launch is not running":
-      command: docker inspect --type container --format='{{.State.Status}}' titan-docker-launch
+      stderr: "Error response from daemon: No such container: datadatdat-docker-server"
+  - "d3 launch is not running":
+      command: docker inspect --type container --format='{{.State.Status}}' datadatdat-docker-launch
       exitValue: 1
-      stderr: "Error response from daemon: No such container: titan-docker-launch"
-  - "titan docker images not removed":
-      command: docker inspect --type image --format='{{.RepoTags}}' titan:latest
+      stderr: "Error response from daemon: No such container: datadatdat-docker-launch"
+  - "d3 docker images not removed":
+      command: docker inspect --type image --format='{{.RepoTags}}' datadatdat:latest
       stdout:
-        contains: titan:latest
-  - "re-install titan":
-      command: titan install
-  - "can uninstall titan and remove docker images":
-      command: titan uninstall --remove-images
+        contains: datadatdat:latest
+  - "re-install datadatdat":
+      command: d3 install
+  - "can uninstall d3 and remove docker images":
+      command: d3 uninstall --remove-images
       stdout:
-        contains: Removing Titan Docker image
-#  - "titan docker images removed":
-#      command: docker inspect --type image --format='{{.RepoTags}}' titan:latest
+        contains: Removing Datadatdat Docker image
+#  - "d3 docker images removed":
+#      command: docker inspect --type image --format='{{.RepoTags}}' datadatdat:latest
 #      exitValue: 1
-#      stderr: "Error: No such image: titan:latest"
+#      stderr: "Error: No such image: datadatdat:latest"

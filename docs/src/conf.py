@@ -1,12 +1,12 @@
 #
-# Sphinx Configuration for Titan documentation
+# Sphinx Configuration for Datadatdat documentation
 #
 
 # -- Project information -----------------------------------------------------
 
-project = u'titan'
-copyright = u'2021, Titan Project Contributors'
-author = u'Titan Project Contributors'
+project = u'datadatdat'
+copyright = u'2025, Datadatdat'
+author = u'Datadatdat'
 
 # -- Project configuration ---------------------------------------------------
 
@@ -28,6 +28,6 @@ language = 'en'
 # -- Options for HTML output -------------------------------------------------
 
 html_theme = 'sphinx_rtd_theme'
-html_style = 'css/titan.css'
+html_style = 'css/datadatdat.css'
 html_static_path = ['_static']
 html_show_sourcelink = False

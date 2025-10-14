@@ -3,7 +3,7 @@ package common
 import (
 	"fmt"
 	"strconv"
-	"titan/internal/app/clients"
+	"datadatdat/internal/app/clients"
 )
 
 // TODO pass this from provider as param

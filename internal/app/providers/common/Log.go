@@ -3,7 +3,7 @@ package common
 import (
 	"fmt"
 	"github.com/antihax/optional"
-	client "github.com/datadatdat/titan-client-go"
+	client "github.com/datadatdat/datadatdat-client-go"
 	"strconv"
 )
 

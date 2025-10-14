@@ -1,24 +1,24 @@
 tests:
   - "can run nginx-test":
-      command: titan run nginx-test
+      command: d3 run nginx-test
   - "can remove nginx-test":
-      command: titan rm -f nginx-test
+      command: d3 rm -f nginx-test
   - "can run nginx-test with env":
-      command: titan run nginx-test -e TEST=true
+      command: d3 run nginx-test -e TEST=true
       wait: 5
   - "verify env value in nginx-test":
       command: curl -L http://localhost
       stdout:
         contains: TEST=true
   - "can remove nginx-test with env":
-      command: titan rm -f nginx-test
+      command: d3 rm -f nginx-test
   - "can run nginx-test without port mapping":
-      command: titan run nginx-test -P
+      command: d3 run nginx-test -P
   # Note: We don't test network connectivity here because curl behavior is inconsistent
   # across different environments (Windows/WSL2, Docker networking states, etc.).
   # The important thing is that the container starts successfully with -P flag.
   # Network isolation is inherently tested by the successful execution above.
   - "can remove nginx-test without port mapping":
-      command: titan rm -f nginx-test
+      command: d3 rm -f nginx-test
 after:
   clearVars: true

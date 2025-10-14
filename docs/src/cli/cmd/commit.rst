@@ -1,9 +1,9 @@
 .. _cli_cmd_commit:
 
-titan commit
+d3 commit
 ============
 
-Commits the current data state of the container. When creating commits, titan
+Commits the current data state of the container. When creating commits, datadatdat
 will use your git configuration to determine the name and email address to use
 by running ``git config user.name`` and ``git config user.email``. If
 you have not configured git before, you can run
@@ -12,26 +12,26 @@ you have not configured git before, you can run
 
 .. note::
 
-   If you are not a git user and don't want to have to install it to use Titan,
-   join the `Community <https://titan-data.io/community>`_ to help
+   If you are not a git user and don't want to have to install it to use Datadatdat,
+   join the `Community <https://datadatdat.com/community>`_ to help
    design and implement an alternative.
 
 .. warning::
 
-   Titan assumes that it is safe to snapshot the current state of the data
+   Datadatdat assumes that it is safe to snapshot the current state of the data
    while the container is running, and that starting the container with
    data in such a state will automatically recover. This would necessarily be
    true for any data store that can survive an unexpected outage. If you
    are working with a container that first must be manually quiesced, you
-   should `titan stop` the container prior to committing state, and
-   `titan start` it afterwards.
+   should `d3 stop` the container prior to committing state, and
+   `d3 start` it afterwards.
 
 Syntax
 ------
 
 ::
 
-    titan commit [-m message] [-t key[=value] ...] <repository>
+    d3 commit [-m message] [-t key[=value] ...] <repository>
 
 Arguments
 ---------
@@ -44,7 +44,7 @@ Options
 
 -m, --message message  Specify a human-readable message associated with the
                        commit. This message, along with author information,
-                       will be visible in ``titan log`` output and propagate
+                       will be visible in ``d3 log`` output and propagate
                        with the commit when pushed to, or pulled from, remote
                        repositories. If not provided, then an empty string is
                        used.
@@ -59,5 +59,5 @@ Example
 
 ::
 
-    $ titan commit -m "my first commit" -t nightly -t source=qa myrepo
+    $ d3 commit -m "my first commit" -t nightly -t source=qa myrepo
     Commit 470ceb06-ebd3-486a-a4de-7f755df84309

@@ -1,13 +1,13 @@
 tests:
   - "$REMOTE > remote > add":
-      command: titan remote add -r $REMOTE $URI $REPO
+      command: d3 remote add -r $REMOTE $URI $REPO
       env:
         get:
           - URI
           - REPO
           - REMOTE
   - "$REMOTE > remote > ls > has $REMOTE":
-      command: titan remote ls $REPO
+      command: d3 remote ls $REPO
       stdout:
         contains: $URI
       env:
@@ -16,7 +16,7 @@ tests:
           - REPO
           - REMOTE
   - "$REMOTE > commit":
-      command: [titan, commit, -m, Test $REMOTE Commit, $REPO]
+      command: [d3, commit, -m, Test $REMOTE Commit, $REPO]
       stdout:
         contains: Commit
       env:
@@ -29,7 +29,7 @@ tests:
                 delimiter: " "
                 position: 1
   - "$REMOTE > remote > log > missing commit":
-      command: titan remote log $REPO
+      command: d3 remote log $REPO
       stdout:
         excludes: Commit $COMMIT_GUID
       env:
@@ -38,7 +38,7 @@ tests:
           - REPO
           - REMOTE
   - "$REMOTE > push":
-      command: [titan, push, -r, $REMOTE, -c, $COMMIT_GUID, $REPO]
+      command: [d3, push, -r, $REMOTE, -c, $COMMIT_GUID, $REPO]
       stdout:
         contains:
           - Pushing $COMMIT_GUID to '$REMOTE'
@@ -49,7 +49,7 @@ tests:
           - REPO
           - REMOTE
   - "$REMOTE > remote > log > has commit":
-      command: titan remote log $REPO
+      command: d3 remote log $REPO
       stdout:
         contains: Commit $COMMIT_GUID
       env:

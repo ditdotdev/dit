@@ -1,5 +1,5 @@
 /*
-Copyright © 2019 The Titan Project Contributors
+Copyright Datadatdat.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -17,13 +17,13 @@ package commands
 
 import (
 	"github.com/spf13/cobra"
-	"titan/internal/app/providers"
+	"datadatdat/internal/app/providers"
 )
 
 // uninstallCmd represents the uninstall command
 var uninstallCmd = &cobra.Command{
 	Use:   "uninstall",
-	Short: "Uninstall titan infrastructure",
+	Short: "Uninstall datadatdat infrastructure",
 
 	Run: func(cmd *cobra.Command, args []string) {
 		provider.Uninstall(force, removeImages)
@@ -34,5 +34,5 @@ var uninstallCmd = &cobra.Command{
 func init() {
 	rootCmd.AddCommand(uninstallCmd)
 	uninstallCmd.Flags().BoolVarP(&force, "force", "f", false, "destroy all repositories")
-	uninstallCmd.Flags().BoolVar(&removeImages, "remove-images", false, "remove titan docker images")
+	uninstallCmd.Flags().BoolVar(&removeImages, "remove-images", false, "remove datadatdat docker images")
 }

@@ -1,5 +1,5 @@
 /*
-Copyright © 2019 The Titan Project Contributors
+Copyright Datadatdat.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -19,7 +19,7 @@ import (
 	"fmt"
 	"github.com/spf13/cobra"
 	"os"
-	"titan/internal/app/providers"
+	"datadatdat/internal/app/providers"
 )
 
 var contextType string
@@ -28,7 +28,7 @@ var contextName string
 // contextCmd represents the context command
 var contextCmd = &cobra.Command{
 	Use:   "context",
-	Short: "Manage titan contexts",
+	Short: "Manage datadatdat contexts",
 }
 
 // contextInstallCmd represents the contextInstall command

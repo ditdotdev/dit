@@ -1,5 +1,5 @@
 /*
-Copyright © 2019 The Titan Project Contributors
+Copyright Datadatdat.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -22,7 +22,7 @@ import (
 // tagCmd represents the tag command
 var tagCmd = &cobra.Command{
 	Use:   "tag [REPOSITORY]",
-	Short: "Tag objects in titan",
+	Short: "Tag objects in datadatdat",
 	Args:  cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
 		repo := args[0]

@@ -1,9 +1,9 @@
 .. _cli_cmd_context_default:
 
-titan context default
+d3 context default
 =====================
 
-Get or set the default Titan context. For more information on managing contexts,
+Get or set the default Datadatdat context. For more information on managing contexts,
 see the :ref:`lifecycle_context` section,
 
 Syntax
@@ -11,7 +11,7 @@ Syntax
 
 ::
 
-    titan context default [context]
+    d3 context default [context]
 
 Arguments
 ---------
@@ -25,8 +25,8 @@ Example
 
 ::
 
-    $ titan context default
+    $ d3 context default
     kubernetes
-    $ titan context default mycontext
-    $ titan context default
+    $ d3 context default mycontext
+    $ d3 context default
     mycontext

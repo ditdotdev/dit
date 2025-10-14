@@ -1,6 +1,6 @@
 .. _cli_cmd_push:
 
-titan push
+d3 push
 ==========
 
 Push a commit to a remote repository. For more information on pushing
@@ -11,7 +11,7 @@ Syntax
 
 ::
 
-    titan push [-c commit] [-r remote] [-t key[=value] ...] <repository>
+    d3 push [-c commit] [-r remote] [-t key[=value] ...] <repository>
 
 Arguments
 ---------
@@ -41,7 +41,7 @@ Example
 
 ::
 
-    $ titan push hello-world
+    $ d3 push hello-world
     PUSH 0f53a6a4-90ff-4f8c-843a-a6cce36f4f4f to ssh RUNNING
     Pushing 0f53a6a4-90ff-4f8c-843a-a6cce36f4f4f to 'origin'
     Syncing /var/lib/postgresql/data

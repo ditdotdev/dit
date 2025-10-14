@@ -1,10 +1,10 @@
 .. _cli_cmd_checkout:
 
-titan checkout
+d3 checkout
 ==============
 
 Checks out a previous commit into the current container. The commit must be
-present in `titan log`. For more general information on managing local
+present in `d3 log`. For more general information on managing local
 commits, see the :ref:`local_commit` section. For more information on how to
 pull commits from remote repositories, see the :ref:`remote` section.
 
@@ -19,7 +19,7 @@ Syntax
 
 ::
 
-    titan checkout [-c id] [-t key[=value] ...] <repository>
+    d3 checkout [-c id] [-t key[=value] ...] <repository>
 
 Arguments
 ---------
@@ -31,7 +31,7 @@ Options
 -------
 
 -c, --commit id         Specify the commit ID to checkout. Must be a
-                        known commit in `titan log` for the given repository.
+                        known commit in `d3 log` for the given repository.
                         If this is not specified, then the source commit
                         is used, unless tags are specified in which case the
                         latest matching commit is used instead. See the
@@ -51,7 +51,7 @@ Example
 
 ::
 
-    $ titan checkout -c 7715327e-9535-4263-870f-f5c92c18cb23 myrepo
+    $ d3 checkout -c 7715327e-9535-4263-870f-f5c92c18cb23 myrepo
     Stopping container myrepo
     Checkout 7715327e-9535-4263-870f-f5c92c18cb23
     Starting container myrepo

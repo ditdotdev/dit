@@ -2,11 +2,11 @@ package local
 
 import (
 	"fmt"
-	client "github.com/datadatdat/titan-client-go"
+	client "github.com/datadatdat/datadatdat-client-go"
 	"os"
 	"strconv"
 	"strings"
-	"titan/internal/app/clients"
+	"datadatdat/internal/app/clients"
 )
 
 func Run(container string, repository string, envVars []string, args []string, disablePortMap bool, createRepo bool, port int, context string) (string, error) {
@@ -82,7 +82,7 @@ func Run(container string, repository string, envVars []string, args []string, d
 		}
 	}
 
-	argList := []string{"-d", "--label", "io.titandata.titan"}
+	argList := []string{"-d", "--label", "com.datadatdat.datadatdat"}
 	var metaVols []map[string]string
 	for i, path := range vols {
 		volumeName := "v" + strconv.Itoa(i)

@@ -1,12 +1,12 @@
 .. _cli_cmd_cp:
 
-titan cp
+d3 cp
 ========
 
-Copies data from an existing directory on the host into a titan repository.
+Copies data from an existing directory on the host into a d3 repository.
 Each container has data at a known place, such as ``/var/lib/data/postgresql``
 for PostgreSQL. This command allows users to copy data created by another
-instance of the database into the titan repository.
+instance of the database into the d3 repository.
 
 If there is only one volume then the destination is not required. If there
 is more than one volume, then you must specify the destination within the
@@ -19,7 +19,7 @@ Syntax
 
 ::
 
-    titan cp <-s source> [-d destination] <repository>
+    d3 cp <-s source> [-d destination] <repository>
 
 Arguments
 ---------
@@ -44,7 +44,7 @@ Example
 
 ::
 
-    $ titan cp -s /var/postgres-data/ hello-world
+    $ d3 cp -s /var/postgres-data/ hello-world
     hello-world stopped
     Copying data to hello-world/v0
     hello-world started

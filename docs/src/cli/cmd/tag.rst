@@ -1,6 +1,6 @@
 .. _cli_cmd_tag:
 
-titan tag
+d3 tag
 =========
 
 Add or modify tags for a local commit. While tags can be specified when a
@@ -12,7 +12,7 @@ Syntax
 
 ::
 
-    titan tag -c <id> [-t key[=value] ...] <repository>
+    d3 tag -c <id> [-t key[=value] ...] <repository>
 
 Arguments
 ---------
@@ -24,7 +24,7 @@ Options
 -------
 
 -c, --commit id         *Required*. Specify the commit ID to update. Must be a
-                        known commit in `titan log` for the given repository.
+                        known commit in `d3 log` for the given repository.
 
 -t, --tag tag           Specify the tag(s) to be added or modified. More than
                         one of this option can be specified. If present, then
@@ -37,5 +37,5 @@ Example
 
 ::
 
-    $ titan tag -c 7715327e95354263870ff5c92c18cb23 -t foo -t bar=baz myrepo
+    $ d3 tag -c 7715327e95354263870ff5c92c18cb23 -t foo -t bar=baz myrepo
     7715327e95354263870ff5c92c18cb23 deleted
