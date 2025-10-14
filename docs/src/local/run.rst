@@ -3,15 +3,15 @@
 Creating a new Repository
 =========================
 
-A titan repository combines a docker container and its configuration with data
+A d3 repository combines a docker container and its configuration with data
 that backs the volumes within that container. So every repository should
 have a running docker container associated with it. For more information on
 how the docker configuration is used, see the :ref:`local_docker` section.
 
 To run a repository, you simply take the arguments you'd normally supply to
-``docker run`` and pass that to ``titan run`` instead::
+``docker run`` and pass that to ``d3 run`` instead::
 
-    $ titan run mongo
+    $ d3 run mongo
     Creating repository mongo
     Creating docker volume mongo/v0 with path /data/configdb
     Creating docker volume mongo/v1 with path /data/db
@@ -26,10 +26,10 @@ To run a repository, you simply take the arguments you'd normally supply to
 
 There are a couple things to note here:
 
-* Titan will use any docker image published to a register. In this case,
+* Datadatdat will use any docker image published to a register. In this case,
   we pull down and run ``mongo:latest``. The only requirement is that the
   containers must have one or more ``VOLUME`` declarations that indicate
   where persistent data is stored.
-* In this example, titan mapped the default exposed port from the docker
+* In this example, d3 mapped the default exposed port from the docker
   image to localhost. This is the same thing as manually adding ``-p 27017:27017``
   to map the mongo port to the expected port on your laptop.

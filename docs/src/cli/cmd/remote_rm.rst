@@ -1,6 +1,6 @@
 .. _cli_cmd_remote_rm:
 
-titan remote rm
+d3 remote rm
 ===============
 
 Remove a remote from a repository. For more information on managing remotes,
@@ -11,7 +11,7 @@ Syntax
 
 ::
 
-    titan remote rm <repository> <remote>
+    d3 remote rm <repository> <remote>
 
 Arguments
 ---------
@@ -27,5 +27,5 @@ Example
 
 ::
 
-    $ titan remote rm hello-world origin
+    $ d3 remote rm hello-world origin
     Removed origin from hello-world

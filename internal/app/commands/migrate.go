@@ -1,5 +1,5 @@
 /*
-Copyright © 2019 The Titan Project Contributors
+Copyright Datadatdat.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -22,11 +22,11 @@ import (
 // migrateCmd represents the migrate command
 var migrateCmd = &cobra.Command{
 	Use:   "migrate [REPOSITORY]",
-	Short: "Migrate an existing docker database container to titan repository",
-	Long: `Migrate an existing docker database container to titan repository. 
+	Short: "Migrate an existing docker database container to datadatdat repository",
+	Long: `Migrate an existing docker database container to datadatdat repository. 
 Container becomes the new name of the docker container.
 
-Example: 'titan migrate -s oldPostgres titanPostgres'`,
+Example: 'd3 migrate -s oldPostgres datadatdatPostgres'`,
 	Args: cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
 		repo := args[0]

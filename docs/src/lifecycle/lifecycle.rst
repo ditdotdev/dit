@@ -7,7 +7,7 @@ Coming Soon!
 
 .. toctree::
    :maxdepth: 1
-   :caption: Managing Titan Software
+   :caption: Managing Datadatdat Software
 
    install
    config

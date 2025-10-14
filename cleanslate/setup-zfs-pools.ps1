@@ -1,5 +1,5 @@
-﻿# ZFS Pool Setup Script for Titan Clean Slate Testing
-# Run this script before installing Titan to ensure ZFS pools are ready
+﻿# ZFS Pool Setup Script for Datadatdat Clean Slate Testing
+# Run this script before installing Datadatdat to ensure ZFS pools are ready
 # Use -Clean parameter to destroy existing pools first for true clean slate
 
 param(
@@ -74,7 +74,7 @@ function Ensure-DockerRunning {
     return $false
 }
 
-Write-Host "Setting up ZFS pools for Titan..." -ForegroundColor Green
+Write-Host "Setting up ZFS pools for Datadatdat..." -ForegroundColor Green
 
 # Always ensure Docker is running
 if (-not (Ensure-DockerRunning)) {
@@ -105,12 +105,12 @@ if ($Clean) {
     
     # Remove existing pools (ignore errors if pools don't exist)
     Write-Host "Destroying existing ZFS pools..."
-    wsl sudo zpool destroy titan-docker 2>$null
-    wsl sudo zpool destroy titan 2>$null
+    wsl sudo zpool destroy datadatdat-docker 2>$null
+    wsl sudo zpool destroy datadatdat 2>$null
     
     # Remove pool image files
     Write-Host "Removing pool image files..."
-    wsl sudo rm -rf /titan-pools
+    wsl sudo rm -rf /datadatdat-pools
     
     # Remove loop devices
     Write-Host "Removing loop devices..."
@@ -154,69 +154,69 @@ if ($existingPools) {
     
     # Handle hostid mismatches
     Write-Host "Fixing any hostid mismatches..."
-    wsl sudo zpool export titan 2>$null
-    wsl sudo zpool export titan-docker 2>$null
+    wsl sudo zpool export datadatdat 2>$null
+    wsl sudo zpool export datadatdat-docker 2>$null
     Start-Sleep 2
-    wsl sudo zpool import titan 2>$null
-    wsl sudo zpool import titan-docker 2>$null
+    wsl sudo zpool import datadatdat 2>$null
+    wsl sudo zpool import datadatdat-docker 2>$null
 }
 
 # Create pool storage directory
 Write-Host "Creating pool storage directory..."
-wsl sudo mkdir -p /titan-pools
+wsl sudo mkdir -p /datadatdat-pools
 
-# Create titan-docker pool if it does not exist
-Write-Host "Checking for titan-docker pool..."
-$titanDockerExists = wsl zpool list titan-docker 2>$null
-if (-not $titanDockerExists) {
-    Write-Host "Creating titan-docker pool..." -ForegroundColor Yellow
+# Create datadatdat-docker pool if it does not exist
+Write-Host "Checking for datadatdat-docker pool..."
+$datadatdatDockerExists = wsl zpool list datadatdat-docker 2>$null
+if (-not $datadatdatDockerExists) {
+    Write-Host "Creating datadatdat-docker pool..." -ForegroundColor Yellow
     
     # Create image file
-    wsl sudo dd if=/dev/zero of=/titan-pools/titan-docker.img bs=1M count=1024 2>$null
+    wsl sudo dd if=/dev/zero of=/datadatdat-pools/datadatdat-docker.img bs=1M count=1024 2>$null
     
     # Create loop device
-    wsl sudo losetup -f /titan-pools/titan-docker.img
+    wsl sudo losetup -f /datadatdat-pools/datadatdat-docker.img
     
     # Find the loop device
     $loopDeviceOutput = wsl losetup -a
-    $loopDevice = ($loopDeviceOutput | Select-String "titan-docker.img" | ForEach-Object { $_.Line.Split(":")[0] })
+    $loopDevice = ($loopDeviceOutput | Select-String "datadatdat-docker.img" | ForEach-Object { $_.Line.Split(":")[0] })
     if ($loopDevice) {
         # Create the pool
-        wsl sudo zpool create titan-docker $loopDevice
-        Write-Host "OK titan-docker pool created successfully" -ForegroundColor Green
+        wsl sudo zpool create datadatdat-docker $loopDevice
+        Write-Host "OK datadatdat-docker pool created successfully" -ForegroundColor Green
     } else {
-        Write-Error "X Failed to create loop device for titan-docker"
+        Write-Error "X Failed to create loop device for datadatdat-docker"
         exit 1
     }
 } else {
-    Write-Host "OK titan-docker pool already exists" -ForegroundColor Green
+    Write-Host "OK datadatdat-docker pool already exists" -ForegroundColor Green
 }
 
-# Create main titan pool if it does not exist
-Write-Host "Checking for titan pool..."
-$titanExists = wsl zpool list titan 2>$null
-if (-not $titanExists) {
-    Write-Host "Creating titan pool..." -ForegroundColor Yellow
+# Create main datadatdat pool if it does not exist
+Write-Host "Checking for datadatdat pool..."
+$datadatdatExists = wsl zpool list datadatdat 2>$null
+if (-not $datadatdatExists) {
+    Write-Host "Creating datadatdat pool..." -ForegroundColor Yellow
     
     # Create image file
-    wsl sudo dd if=/dev/zero of=/titan-pools/titan.img bs=1M count=1024 2>$null
+    wsl sudo dd if=/dev/zero of=/datadatdat-pools/datadatdat.img bs=1M count=1024 2>$null
     
     # Create loop device
-    wsl sudo losetup -f /titan-pools/titan.img
+    wsl sudo losetup -f /datadatdat-pools/datadatdat.img
     
     # Find the loop device
     $loopDeviceOutput = wsl losetup -a
-    $loopDevice = ($loopDeviceOutput | Select-String "titan.img" | ForEach-Object { $_.Line.Split(":")[0] })
+    $loopDevice = ($loopDeviceOutput | Select-String "datadatdat.img" | ForEach-Object { $_.Line.Split(":")[0] })
     if ($loopDevice) {
         # Create the pool
-        wsl sudo zpool create titan $loopDevice
-        Write-Host "OK titan pool created successfully" -ForegroundColor Green
+        wsl sudo zpool create datadatdat $loopDevice
+        Write-Host "OK datadatdat pool created successfully" -ForegroundColor Green
     } else {
-        Write-Error "X Failed to create loop device for titan"
+        Write-Error "X Failed to create loop device for datadatdat"
         exit 1
     }
 } else {
-    Write-Host "OK titan pool already exists" -ForegroundColor Green
+    Write-Host "OK datadatdat pool already exists" -ForegroundColor Green
 }
 
 # Final verification
@@ -229,8 +229,8 @@ Write-Host "Pool health check:" -ForegroundColor Green
 wsl zpool status
 
 Write-Host ""
-Write-Host "✓ ZFS pools are ready for Titan!" -ForegroundColor Green
-Write-Host "You can now run: .\titan.exe install" -ForegroundColor Cyan
+Write-Host "✓ ZFS pools are ready for Datadatdat!" -ForegroundColor Green
+Write-Host "You can now run: .\datadatdat.exe install" -ForegroundColor Cyan
 
 Write-Host ""
 Write-Host "Troubleshooting Tips:" -ForegroundColor Yellow

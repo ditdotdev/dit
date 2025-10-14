@@ -1,14 +1,14 @@
 .. _cli_cmd_install:
 
-titan install
+d3 install
 =============
 
-Installs the default Titan context if not currently configured,
-equivalent to ``titan context install -t docker``. Must be run prior to any
-other titan commands. For more information on how to install titan and what's
+Installs the default Datadatdat context if not currently configured,
+equivalent to ``d3 context install -t docker``. Must be run prior to any
+other d3 commands. For more information on how to install d3 and what's
 required, see the :ref:`lifecycle_install` section. For more information on
 managing contexts, see the :ref:`lifecycle_context` section. If you want to
-install Titan for kubernetes, see the :ref:`lifecycle_kubernetes` section.
+install Datadatdat for kubernetes, see the :ref:`lifecycle_kubernetes` section.
 Running this command will do nothing if the "docker" context already exists.
 
 Syntax
@@ -16,13 +16,13 @@ Syntax
 
 ::
 
-    titan install
+    d3 install
 
 Options
 -------
 
 -r, --registry  registry    Docker Registry URL for private repositories.
-                            Defaults to ``titandata`` from docker hub.
+                            Defaults to ``d3`` from docker hub.
 -V, --verbose               Optionally output install details.
 
 Example
@@ -30,4 +30,4 @@ Example
 
 ::
 
-    $ titan install -V -r your.registry.address:port
+    $ d3 install -V -r your.registry.address:port

@@ -1,6 +1,6 @@
 .. _cli_cmd_log:
 
-titan log
+d3 log
 =========
 
 Display the history of commits for a repository. For each commit, the following
@@ -20,7 +20,7 @@ Syntax
 
 ::
 
-    titan log [-t key[=value] ...] <repository>
+    d3 log [-t key[=value] ...] <repository>
 
 Arguments
 ---------
@@ -43,7 +43,7 @@ Example
 
 ::
 
-    $ titan log myrepo
+    $ d3 log myrepo
     commit 470ceb06-ebd3-486a-a4de-7f755df84309
     User: Eric Schrock
     Email: Eric.Schrock@delphix.com

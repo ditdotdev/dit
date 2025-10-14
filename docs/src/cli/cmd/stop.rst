@@ -1,6 +1,6 @@
 .. _cli_cmd_stop:
 
-titan stop
+d3 stop
 ==========
 
 Stops the container associated with the repository. Equivalent to
@@ -11,7 +11,7 @@ Syntax
 
 ::
 
-    titan stop <repository>
+    d3 stop <repository>
 
 Arguments
 ---------
@@ -24,5 +24,5 @@ Example
 
 ::
 
-    $ titan stop hello-world
+    $ d3 stop hello-world
     hello-world stopped

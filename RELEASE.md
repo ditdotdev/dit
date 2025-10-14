@@ -1,6 +1,6 @@
-# Titan Ecosystem Release Process
+# Datadatdat Ecosystem Release Process
 
-This document outlines the comprehensive release process for the Titan data management platform. The ecosystem consists of multiple interdependent components that must be released in a specific order to maintain compatibility.
+This document outlines the comprehensive release process for the Datadatdat data management platform. The ecosystem consists of multiple interdependent components that must be released in a specific order to maintain compatibility.
 
 ## 🚨 CRITICAL RELEASE CHECKLIST
 
@@ -10,11 +10,11 @@ This document outlines the comprehensive release process for the Titan data mana
 - [ ] **Phase 1.2**: ⚠️ **CRITICAL** - Update ALL 4 Go remote providers to use the SAME `remote-sdk-go` version
 - [ ] **Phase 1.2**: Release NEW versions of all 4 remote providers
 - [ ] **Phase 2**: Release Kotlin remote providers (if needed)
-- [ ] **Phase 3**: Release `titan-client-go` (if needed)
-- [ ] **Phase 4**: Update titan CLI dependencies to use NEW remote provider versions
+- [ ] **Phase 3**: Release `datadatdat-client-go` (if needed)
+- [ ] **Phase 4**: Update datadatdat CLI dependencies to use NEW remote provider versions
 - [ ] **Phase 4**: Verify dependency alignment: `go mod graph | grep datadatdat | grep remote-sdk-go`
-- [ ] **Phase 4**: Release titan CLI with aligned dependencies
-- [ ] **Phase 5**: Release titan-server (if needed)
+- [ ] **Phase 4**: Release datadatdat CLI with aligned dependencies
+- [ ] **Phase 5**: Release datadatdat-server (if needed)
 - [ ] **Post-Release**: Validate entire ecosystem has consistent dependency versions
 
 **⚠️ Phase 1.2 was previously missed and caused critical version conflicts requiring emergency patch releases!**
@@ -27,11 +27,11 @@ remote-sdk-go (foundation)
     ↓
 [s3-remote-go, ssh-remote-go, s3web-remote-go, nop-remote-go] (remote providers)
     ↓
-titan-client-go (auto-generated from titan-server OpenAPI spec)
+datadatdat-client-go (auto-generated from datadatdat-server OpenAPI spec)
     ↓
-titan (CLI - depends on all remote providers and client)
+datadatdat (CLI - depends on all remote providers and client)
     ↓
-titan-server (Docker container with ZFS + PostgreSQL)
+datadatdat-server (Docker container with ZFS + PostgreSQL)
 ```
 
 ### Release Order (Critical)
@@ -41,9 +41,9 @@ titan-server (Docker container with ZFS + PostgreSQL)
    - ssh-remote-go  
    - s3web-remote-go
    - nop-remote-go
-3. **titan-client-go** - Auto-generated Go client
-4. **titan** - Main CLI (depends on all above)
-5. **titan-server** - Docker container (publishes to DockerHub)
+3. **datadatdat-client-go** - Auto-generated Go client
+4. **datadatdat** - Main CLI (depends on all above)
+5. **datadatdat-server** - Docker container (publishes to DockerHub)
 
 ### Supporting Components (Independent)
 - **plugin-launcher** - Can be released independently
@@ -53,20 +53,47 @@ titan-server (Docker container with ZFS + PostgreSQL)
 
 ## Version Strategy
 
-### Current Versioning Scheme
-- **titan**: v0.5.x (main CLI)
-- **titan-server**: v0.8.x (Docker container)
-- **titan-client-go**: v0.1.x (auto-generated client)
+### Target Version for v1.0.0 Release
+**ALL components will be standardized to v1.0.0 for this major release:**
+- **datadatdat**: v1.0.0 (main CLI)
+- **datadatdat-server**: v1.0.0 (Docker container `datadatdat/datadatdat:1.0.0`)
+- **datadatdat-client-go**: v1.0.0 (auto-generated client)
+- **remote-sdk-go**: v1.0.0 (foundation SDK)
+- **All Go remote providers**: v1.0.0 (aligned with SDK)
+- **All Kotlin components**: 1.0.0 (Maven artifacts - NO 'v' prefix)
+
+### CRITICAL: Maven Versioning Requirements
+⚠️ **Kotlin/Maven repositories MUST use semantic versioning WITHOUT the 'v' prefix:**
+- ✅ **CORRECT**: `1.0.0` for Maven artifacts
+- ❌ **WRONG**: `v1.0.0` (causes S3 Maven publishing failures)
+
+**Affected repositories:**
+- remote-sdk, command-executor, plugin-launcher
+- s3-remote, ssh-remote, s3web-remote, nop-remote, delphix-remote
+
+**Publishing pattern:**
+```bash
+# For Kotlin/Maven repos - NO 'v' prefix
+./gradlew publish -Pversion=1.0.0
+
+# For Go repos - WITH 'v' prefix for Git tags
+git tag v1.0.0
+```
+
+### Previous Versioning Scheme (Reference)
+- **datadatdat**: v0.5.x (main CLI)
+- **datadatdat-server**: v0.8.x (Docker container)
+- **datadatdat-client-go**: v0.1.x (auto-generated client)
 - **remote-sdk-go**: v0.2.x (foundation SDK)
 - **Remote providers**: v0.2.x (aligned with SDK)
 
 ### Versioning Rules
 1. **Semantic Versioning**: All components use semver (vMAJOR.MINOR.PATCH)
 2. **Dependency Alignment**: Remote providers should align with remote-sdk-go versions
-3. **CLI Independence**: Titan CLI version advances independently but must reference compatible dependency versions
-4. **Server Alignment**: titan-server version should generally align with titan CLI for major releases
+3. **CLI Independence**: Datadatdat CLI version advances independently but must reference compatible dependency versions
+4. **Server Alignment**: datadatdat-server version should generally align with datadatdat CLI for major releases
 
-## Complete Titan Release Process - Step by Step
+## Complete Datadatdat Release Process - Step by Step
 
 ### Pre-Release Phase (1-2 days before)
 
@@ -79,16 +106,16 @@ titan-server (Docker container with ZFS + PostgreSQL)
 
 #### 2. Documentation Review
 ```bash
-cd /c/dev/titan-data.github.io
+cd /c/dev/datadatdat-data.github.io
 # Review and update documentation for new features
 # Prepare release notes and changelog entries
 ```
 
 #### 3. OpenAPI Specification Sync
 ```bash
-cd /c/dev/titan-server
-# Ensure OpenAPI spec (openapi/titan.yml) reflects all server changes
-# This will trigger titan-client-go regeneration in next phase
+cd /c/dev/datadatdat-server
+# Ensure OpenAPI spec (openapi/datadatdat.yml) reflects all server changes
+# This will trigger datadatdat-client-go regeneration in next phase
 ```
 
 ### Release Phase Day
@@ -143,7 +170,7 @@ git push origin $NEW_PROVIDER_VERSION
 **✅ VALIDATION: After completing all providers, verify version alignment:**
 ```bash
 # Check that all providers are released and use the same remote-sdk-go version
-cd /c/dev/titan
+cd /c/dev/datadatdat
 go get github.com/datadatdat/s3-remote-go@$NEW_PROVIDER_VERSION
 go get github.com/datadatdat/ssh-remote-go@$NEW_PROVIDER_VERSION  
 go get github.com/datadatdat/s3web-remote-go@$NEW_PROVIDER_VERSION
@@ -179,9 +206,9 @@ git push origin $NEW_VERSION
 
 #### Phase 3: Auto-Generated Client
 
-##### 3.1 Regenerate titan-client-go
+##### 3.1 Regenerate datadatdat-client-go
 ```bash
-cd /c/dev/titan-client-go
+cd /c/dev/datadatdat-client-go
 
 # If OpenAPI spec changed, regenerate client
 # (This may be automated or require manual trigger)
@@ -196,9 +223,9 @@ git push origin $NEW_CLIENT_VERSION
 
 #### Phase 4: Main CLI Release
 
-##### 4.1 Update titan CLI Dependencies
+##### 4.1 Update d3 CLI Dependencies
 ```bash
-cd /c/dev/titan
+cd /c/dev/datadatdat
 
 # Update all dependencies to latest released versions
 go get github.com/datadatdat/nop-remote-go@$NEW_PROVIDER_VERSION
@@ -206,7 +233,7 @@ go get github.com/datadatdat/remote-sdk-go@$NEW_SDK_VERSION
 go get github.com/datadatdat/s3-remote-go@$NEW_PROVIDER_VERSION
 go get github.com/datadatdat/s3web-remote-go@$NEW_PROVIDER_VERSION
 go get github.com/datadatdat/ssh-remote-go@$NEW_PROVIDER_VERSION
-go get github.com/datadatdat/titan-client-go@$NEW_CLIENT_VERSION
+go get github.com/datadatdat/datadatdat-client-go@$NEW_CLIENT_VERSION
 go mod tidy
 
 # Verify no version conflicts
@@ -218,18 +245,18 @@ go mod graph | grep datadatdat | grep remote-sdk-go
 ```bash
 # Run full test suite
 make e2e
-# If tests fail: ./titan.exe uninstall -f && make e2e
+# If tests fail: ./d3.exe uninstall -f && make e2e
 
 # Build cross-platform releases  
 export VERSION="v0.5.2"  # Increment appropriately
 make release
 
 # Creates artifacts in release/ directory:
-# - titan-cli-$VERSION-windows_amd64.zip
-# - titan-cli-$VERSION-darwin_amd64.zip  
-# - titan-cli-$VERSION-darwin_arm64.zip
-# - titan-cli-$VERSION-linux_amd64.tar
-# - titan-cli-$VERSION-linux_arm64.tar
+# - datadatdat-cli-$VERSION-windows_amd64.zip
+# - datadatdat-cli-$VERSION-darwin_amd64.zip  
+# - datadatdat-cli-$VERSION-darwin_arm64.zip
+# - datadatdat-cli-$VERSION-linux_amd64.tar
+# - datadatdat-cli-$VERSION-linux_arm64.tar
 ```
 
 ##### 4.3 Release CLI
@@ -254,11 +281,11 @@ gh release create $VERSION \
 
 ### 📦 Artifacts
 All cross-platform binaries included." \
-  release/darwin-amd64/titan-cli-$VERSION-darwin_amd64.zip \
-  release/darwin-arm64/titan-cli-$VERSION-darwin_arm64.zip \
-  release/linux-amd64/titan-cli-$VERSION-linux_amd64.tar \
-  release/linux-arm64/titan-cli-$VERSION-linux_arm64.tar \
-  release/windows/titan-cli-$VERSION-windows_amd64.zip
+  release/darwin-amd64/datadatdat-cli-$VERSION-darwin_amd64.zip \
+  release/darwin-arm64/datadatdat-cli-$VERSION-darwin_arm64.zip \
+  release/linux-amd64/datadatdat-cli-$VERSION-linux_amd64.tar \
+  release/linux-arm64/datadatdat-cli-$VERSION-linux_arm64.tar \
+  release/windows/datadatdat-cli-$VERSION-windows_amd64.zip
 
 # Verify release was created successfully
 gh release view $VERSION
@@ -274,11 +301,11 @@ go mod graph | grep datadatdat | grep remote-sdk-go
 
 #### Phase 5: Docker Container Release
 
-##### 5.1 Release titan-server
+##### 5.1 Release datadatdat-server
 ```bash
-cd /c/dev/titan-server
+cd /c/dev/datadatdat-server
 
-# Ensure compatibility with new titan CLI version
+# Ensure compatibility with new d3 CLI version
 # Update any version references if needed
 
 # Create tag - this triggers automated publishing
@@ -289,8 +316,8 @@ git push origin $NEW_SERVER_VERSION
 # GitHub Action automatically:
 # - Runs full test suite including E2E tests
 # - Builds multi-arch Docker image (linux/amd64, linux/arm64)  
-# - Publishes to DockerHub as datadatdat/titan:$NEW_SERVER_VERSION
-# - Tags and publishes datadatdat/titan:latest
+# - Publishes to DockerHub as datadatdat/datadatdat:$NEW_SERVER_VERSION
+# - Tags and publishes datadatdat/datadatdat:latest
 # - Creates GitHub draft release
 ```
 
@@ -299,10 +326,10 @@ git push origin $NEW_SERVER_VERSION
 ##### 6.1 Release Documentation
 ```bash
 # Documentation is automatically published when CLI is tagged
-# The .github/workflows/docs-release.yml triggers on titan CLI tags
+# The .github/workflows/docs-release.yml triggers on d3 CLI tags
 
 # Manual verification:
-# Check https://titan-data.io for updated docs
+# Check https://datadatdat.com for updated docs
 # Verify version-specific docs are published
 ```
 
@@ -311,7 +338,7 @@ git push origin $NEW_SERVER_VERSION
 ### 1. Dependency Verification
 After updating dependencies, verify compatibility:
 ```bash
-cd /c/dev/titan
+cd /c/dev/datadatdat
 go mod graph | grep datadatdat  # Check all internal dependencies
 go list -m all | grep datadatdat  # Verify versions
 
@@ -328,7 +355,7 @@ go mod graph | grep datadatdat | grep remote-sdk-go
 ### Problem: Version Misalignment Detected
 ```bash
 # Example of problematic output from: go mod graph | grep datadatdat | grep remote-sdk-go
-# titan github.com/datadatdat/remote-sdk-go@v0.2.8
+# d3 github.com/datadatdat/remote-sdk-go@v0.2.8
 # github.com/datadatdat/nop-remote-go@v0.2.4 github.com/datadatdat/remote-sdk-go@v0.2.6  # ❌ WRONG!
 # github.com/datadatdat/s3-remote-go@v0.2.4 github.com/datadatdat/remote-sdk-go@v0.2.6   # ❌ WRONG!
 ```
@@ -347,14 +374,14 @@ cd /c/dev/s3-remote-go && git tag v0.X.Y && git push origin v0.X.Y  # Increment 
 
 # Repeat for all providers...
 
-# 3. Update titan CLI to use the NEW provider versions
-cd /c/dev/titan
+# 3. Update d3 CLI to use the NEW provider versions
+cd /c/dev/datadatdat
 go get github.com/datadatdat/s3-remote-go@v0.X.Y
 go get github.com/datadatdat/ssh-remote-go@v0.X.Y
 # ... update all providers
 go mod tidy
 
-# 4. Rebuild and release NEW titan CLI patch version
+# 4. Rebuild and release NEW d3 CLI patch version
 export VERSION="v0.5.3"  # Increment patch version
 make clean && make release
 git add . && git commit -m "Fix dependency alignment" && git push
@@ -372,33 +399,33 @@ go mod graph | grep datadatdat | grep remote-sdk-go
 make e2e
 
 # If tests fail due to corrupted state:
-./titan.exe uninstall -f
+./d3.exe uninstall -f
 make e2e
 ```
 
 ### 3. Docker Image Verification
 ```bash
-# Verify new titan-server image is published
-docker pull datadatdat/titan:latest
-docker inspect datadatdat/titan:latest
+# Verify new datadatdat-server image is published
+docker pull datadatdat/datadatdat:latest
+docker inspect datadatdat/datadatdat:latest
 
 # Test with new CLI
-./titan.exe install
-./titan.exe status
+./d3.exe install
+./d3.exe status
 ```
 
 ## Automation Opportunities
 
 ### Current Automation Status
-- ✅ **titan-server**: Fully automated via GitHub Actions on tag push
+- ✅ **datadatdat-server**: Fully automated via GitHub Actions on tag push
 - ✅ **Remote providers (Go)**: Automated workflows exist, just need tag push + manual release
-- ❌ **titan CLI**: No automated workflow - manual build and release upload required
+- ❌ **d3 CLI**: No automated workflow - manual build and release upload required
 - ❌ **Cross-component coordination**: No automation for dependency updates
 
 ### Proposed Automation Improvements
 
-#### 1. Titan CLI Release Workflow
-Create `.github/workflows/release.yml` in titan repo:
+#### 1. Datadatdat CLI Release Workflow
+Create `.github/workflows/release.yml` in d3 repo:
 ```yaml
 name: Release
 on:
@@ -435,12 +462,12 @@ Create a master script that:
 ### Issue: Failed e2e tests after dependency updates
 **Solution**:
 ```bash
-./titan.exe uninstall -f  # Critical cleanup step
+./d3.exe uninstall -f  # Critical cleanup step
 make e2e  # Retry tests
 ```
 
 ### Issue: Version conflicts in go.mod  
-**Example**: titan depends on remote-sdk-go v0.2.5 but providers still use v0.2.4
+**Example**: d3 depends on remote-sdk-go v0.2.5 but providers still use v0.2.4
 **Solution**:
 ```bash
 # Check for version mismatches
@@ -457,7 +484,7 @@ go mod tidy
 go clean -modcache  # If persistent issues
 ```
 
-### Issue: Docker container won't start after titan-server release
+### Issue: Docker container won't start after datadatdat-server release
 **Solution**:
 ```bash
 # Check ZFS pools are properly set up
@@ -465,8 +492,8 @@ cd cleanslate
 .\setup-zfs-pools.ps1 -Clean -VerifyDocker
 
 # Restart Docker and retry
-./titan.exe uninstall -f
-./titan.exe install
+./d3.exe uninstall -f
+./d3.exe install
 ```
 
 ### Issue: Missing VERSION variable in make release
@@ -501,8 +528,8 @@ make release
 - [ ] Verify all providers reference same remote-sdk-go version
 
 ### Client and CLI Release (Day 1 - Afternoon)
-- [ ] Release titan-client-go (regenerate from OpenAPI if needed)
-- [ ] Update titan CLI dependencies to latest versions
+- [ ] Release datadatdat-client-go (regenerate from OpenAPI if needed)
+- [ ] Update d3 CLI dependencies to latest versions
 - [ ] Verify dependency compatibility with `go mod graph`
 - [ ] Run full end-to-end test suite
 - [ ] Build cross-platform CLI releases
@@ -510,9 +537,9 @@ make release
 - [ ] Upload CLI artifacts to GitHub release
 
 ### Container and Documentation (Day 1 - Evening)
-- [ ] Release titan-server (triggers Docker publishing automatically)
+- [ ] Release datadatdat-server (triggers Docker publishing automatically)
 - [ ] Verify Docker images published to DockerHub
-- [ ] Verify documentation published to titan-data.io
+- [ ] Verify documentation published to datadatdat.com
 - [ ] Test complete installation flow with new versions
 
 ### Post-Release Validation (Day 2)
@@ -532,24 +559,24 @@ make release
 #### 1. Integration Testing
 ```bash
 # Test the complete release pipeline
-cd /c/dev/titan
+cd /c/dev/datadatdat
 
 # Download and test new CLI
 # wget/curl the new release from GitHub releases
-# Test with fresh titan-server container
+# Test with fresh datadatdat-server container
 
-./titan.exe install
-./titan.exe run --name test-release -e POSTGRES_PASSWORD=password postgres
-./titan.exe commit -m "Release validation test" test-release
-./titan.exe log test-release
-./titan.exe stop test-release
-./titan.exe rm test-release
+./d3.exe install
+./d3.exe run --name test-release -e POSTGRES_PASSWORD=password postgres
+./d3.exe commit -m "Release validation test" test-release
+./d3.exe log test-release
+./d3.exe stop test-release
+./d3.exe rm test-release
 ```
 
 #### 2. Documentation Verification
 ```bash
 # Verify documentation is live
-curl -I https://titan-data.io/  # Should return 200
+curl -I https://datadatdat.com/  # Should return 200
 # Check version-specific documentation exists
 # Test getting started guide with new release
 ```
@@ -588,7 +615,7 @@ git push origin --delete v0.5.2
 # Communicate the issue to users immediately
 
 # Emergency rollback for users:
-docker pull datadatdat/titan:v0.8.19  # Previous working version
+docker pull datadatdat/datadatdat:v0.8.19  # Previous working version
 # Update documentation with temporary workaround
 ```
 
@@ -602,14 +629,14 @@ docker pull datadatdat/titan:v0.8.19  # Previous working version
 ### Automation Gaps to Address
 
 #### Critical Missing Automation
-1. **titan CLI release workflow** - No GitHub Action exists
+1. **d3 CLI release workflow** - No GitHub Action exists
 2. **Cross-component dependency updates** - Manual coordination required
 3. **Release validation testing** - No automated post-release verification
 4. **Rollback automation** - No automated rollback procedures
 
 #### Proposed GitHub Actions Improvements
 ```yaml
-# .github/workflows/release.yml for titan CLI
+# .github/workflows/release.yml for d3 CLI
 name: Release
 on:
   create:
@@ -628,3 +655,195 @@ jobs:
           draft: true
           files: release/*
 ```
+## Docker Container Analysis (Post-Rename Verification)
+
+### Container Build Status Across Repositories
+
+#### Automated Docker Publishing (GitHub Actions)
+- ✅ **datadatdat-server**: Fully automated via GitHub Actions `.github/workflows/release.yml`
+  - Uses Gradle build system with `docker.gradle.kts`
+  - Dockerfile: `./server/docker/server.Dockerfile`
+  - Publishes to DockerHub: `datadatdat/datadatdat:version` and `datadatdat/datadatdat:latest`
+  - Multi-arch builds: `linux/amd64,linux/arm64`
+  - Triggered by git tag push
+
+- ✅ **localstack**: Has GitHub Actions (`.github/workflows/draft-release.yml`)
+  - Manual Docker build process
+
+#### Manual Docker Builds (No Automation)
+- ��� **zfs-builder**: Has Dockerfile, no GitHub Actions
+- ��� **zfs-linuxkit**: Has Dockerfile, no GitHub Actions  
+- ��� **ssh-test-server**: Has Dockerfile, no GitHub Actions
+- ��� **dynamodb-local**: Has Dockerfile, no GitHub Actions
+- ��� **datadatdat** (CLI): Has Dockerfile for docs, uses GitHub Actions for docs only
+
+#### No Docker Components
+- ❌ **datadatdat-docker-proxy**: Name suggests Docker but no Dockerfile found
+- ❌ **zfs-releases**: Has Dockerfile but unclear automation status
+
+### Docker Build System Details
+
+#### datadatdat-server (Primary Container)
+**Build Method**: Gradle-based Docker builds
+```bash
+# Local build
+./gradlew buildDockerServer
+
+# Multi-arch publish (used by GitHub Actions)
+./gradlew publishDockerServer -PserverImageName=datadatdat/datadatdat -PdatadatdatVersion=v0.8.20
+```
+
+**GitHub Actions Workflow**:
+1. Tag creation triggers `.github/workflows/release.yml`
+2. Runs full test suite including E2E Docker tests
+3. Builds multi-architecture Docker image
+4. Publishes to DockerHub with version and latest tags
+5. Creates GitHub draft release
+
+**Docker Registry**: DockerHub `datadatdat/datadatdat`
+
+### Automation Gaps Identified
+1. **Infrastructure containers** (zfs-builder, ssh-test-server, etc.) lack automated publishing
+2. **datadatdat-docker-proxy** misleading name - no Docker functionality found
+3. **Local development containers** require manual build and management
+
+### Recommendations
+1. **High Priority**: Verify datadatdat-server automation works post-rename
+2. **Medium Priority**: Add automation for infrastructure containers if they're actively used
+3. **Low Priority**: Consider renaming datadatdat-docker-proxy to clarify its purpose
+
+
+
+## v1.0.0 Release Script
+
+### Automated Release Execution
+
+The complete v1.0.0 release process is automated via the **`release.sh`** script in the root of the datadatdat repository.
+
+#### Usage
+```bash
+# Execute complete release process (recommended)
+./release.sh
+
+# Or run individual phases
+./release.sh verify         # Check current version status
+./release.sh foundation     # Release foundation components
+./release.sh providers      # Release remote providers  
+./release.sh infrastructure # Release plugin infrastructure
+./release.sh core           # Release client and CLI
+./release.sh docker         # Release server and Docker components
+```
+
+#### Script Features
+- ✅ **Dependency-ordered execution** following proper release sequence
+- ✅ **Version format validation** (Maven: `1.0.0`, Git tags: `v1.0.0`)
+- ✅ **Color-coded output** with timestamps and status indicators
+- ✅ **Error handling** with immediate exit on failures
+- ✅ **Comprehensive verification** of post-release status
+- ✅ **Modular execution** for partial releases or troubleshooting
+
+#### Critical Version Requirements
+The script automatically handles the critical version formatting differences:
+
+- **Kotlin/Maven repositories**: Use `1.0.0` format (NO 'v' prefix)
+  - `./gradlew publish -Pversion=1.0.0`
+  - Affected: remote-sdk, command-executor, plugin-launcher, all Kotlin remotes
+
+- **Git tags (all repositories)**: Use `v1.0.0` format (WITH 'v' prefix)
+  - `git tag v1.0.0`
+  - Applied to all 17+ repositories
+
+- **Docker container**: Automatically publishes `datadatdat/datadatdat:1.0.0`
+  - Triggered by datadatdat-server Git tag via GitHub Actions
+
+#### Execution Order
+1. **Foundation**: command-executor → remote-sdk → remote-sdk-go
+2. **Providers**: Kotlin remotes (parallel) → Go remotes (parallel)
+3. **Infrastructure**: plugin-launcher
+4. **Core**: datadatdat-client-go → datadatdat CLI
+5. **Docker**: datadatdat-docker-proxy → datadatdat-server
+
+#### Pre-Release Checklist
+```bash
+# Verify all dependencies are at v1.0.0/1.0.0
+./release.sh verify
+
+# Check for uncommitted changes
+git status
+
+# Ensure you have push permissions to all repositories
+```
+
+#### Post-Release Verification
+The script automatically verifies:
+- ✅ All Git tags created successfully
+- ✅ Docker image published to DockerHub
+- ✅ CLI version commands functional
+- ✅ Release process completion status
+
+#### Emergency Procedures
+If the release process fails at any stage:
+1. **Check the error output** - script provides detailed logging
+2. **Resume from specific phase** using individual commands
+3. **Verify GitHub Actions** for datadatdat-server Docker publishing
+4. **Manual verification** using the verification commands in the script
+
+
+## Version System Fix (v1.0.0 Release)
+
+### Issue Resolved: Hardcoded CLI Version ✅
+
+**Previous Problem**: CLI version was hardcoded to "0.7.1" in `internal/app/commands/root.go`
+- `d3 --version` always showed "d3 version 0.7.1" regardless of release tag
+- VERSION environment variable was ignored during builds
+
+**Solution Implemented**:
+
+#### 1. Dynamic Version Variable
+```go
+// internal/app/commands/root.go
+var Version = "dev"  // Default for development
+
+func init() {
+    rootCmd.Version = Version  // Use dynamic version
+}
+```
+
+#### 2. Build-Time Version Injection
+```makefile
+# Makefile
+VERSION ?= dev
+LDFLAGS := -ldflags "-X datadatdat/internal/app/commands.Version=$(VERSION)"
+
+build:
+    go build $(LDFLAGS) -o $(TARGET) $(SOURCE)
+```
+
+#### 3. Release Process Integration
+The `release.sh` script now:
+- Sets `VERSION=1.0.0` environment variable
+- Uses `make release` with proper version injection
+- Generates correctly versioned release artifacts
+- Ensures CLI reports correct version: `d3 version 1.0.0`
+
+#### 4. Usage Examples
+```bash
+# Development build (shows "dev")
+make build
+
+# Versioned build
+export VERSION="1.0.0"
+make build
+./build/d3 --version  # Shows "d3 version 1.0.0"
+
+# Release build (automated by release.sh)
+./release.sh  # Builds with v1.0.0 across all platforms
+```
+
+### Impact
+- ✅ CLI version now matches release tags
+- ✅ VERSION environment variable respected
+- ✅ Release artifacts correctly named with version
+- ✅ User support improved with accurate version reporting
+- ✅ Automated via release script
+

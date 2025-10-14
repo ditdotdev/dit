@@ -3,10 +3,10 @@ package local
 import (
 	"fmt"
 	"github.com/antihax/optional"
-	titanclient "github.com/datadatdat/titan-client-go"
+	datadatdatclient "github.com/datadatdat/datadatdat-client-go"
 	"os"
 	"strconv"
-	"titan/internal/app/clients"
+	"datadatdat/internal/app/clients"
 )
 
 func Checkout(repo string, guid string, tags []string, port int, context string) {
@@ -17,7 +17,7 @@ func Checkout(repo string, guid string, tags []string, port int, context string)
 	if guid == "" {
 		if len(tags) > 0 {
 			o := optional.NewInterface(tags)
-			opts := titanclient.ListCommitsOpts{Tag: o}
+			opts := datadatdatclient.ListCommitsOpts{Tag: o}
 			commits, _, _ := commitsApi.ListCommits(ctx, repo, &opts)
 			if len(commits) == 0 {
 				fmt.Println("no matching commits found")
@@ -27,7 +27,7 @@ func Checkout(repo string, guid string, tags []string, port int, context string)
 		} else {
 			status, _, _ := repositoriesApi.GetRepositoryStatus(ctx, repo)
 			if status.SourceCommit == "" {
-				fmt.Println("no commits present, run 'titan commit' first")
+				fmt.Println("no commits present, run 'd3 commit' first")
 				os.Exit(1)
 			}
 			sourceCommit = status.SourceCommit

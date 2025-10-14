@@ -3,9 +3,9 @@
 Copying Existing Data
 =====================
 
-Titan provides lots of freedom for how you might populate data into a new
+Datadatdat provides lots of freedom for how you might populate data into a new
 repository. You might run some scripts to generate data, load data from
-a database dump, or replicate data into the container. Titan does not try to
+a database dump, or replicate data into the container. Datadatdat does not try to
 encode these database-specific mechanisms into the tool, but does provide some
 platform-agnostic capabilities for loading data. In this section, we show
 how you can copy data files from an existing database installation, either from
@@ -13,7 +13,7 @@ a server or on your laptop.
 
 Determining Database Files
 --------------------------
-Every database has some type of persistent data beneath it. For Titan, we
+Every database has some type of persistent data beneath it. For Datadatdat, we
 rely on the docker image to tell us what data needs to be persisted. You can
 find out exactly what an image expects by running ``docker inspect <image>``
 and look for the ``Volumes`` section. For example,
@@ -39,9 +39,9 @@ Copying Data Into a Repository
 
 The :ref:`cli_cmd_cp` command is designed to copy this data into a running
 repository. To do this, first start a container running. Then, use the
-the ``titan cp`` command::
+the ``d3 cp`` command::
 
-    titan cp -s /path/to/postgres/data mypostgres
+    d3 cp -s /path/to/postgres/data mypostgres
 
 This will take data located on your latop and copy into that repository.
 
@@ -61,5 +61,5 @@ This will take data located on your latop and copy into that repository.
 
    If your repository has multiple persistent volumes, you will need to use
    the ``-d`` destination parameter to specify where the data should go,
-   such as ``titan cp -s /path/to/mongo/db -d /data/db mymongo``. You may
+   such as ``d3 cp -s /path/to/mongo/db -d /data/db mymongo``. You may
    need to run multiple such commands if you need to migrate

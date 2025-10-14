@@ -2,13 +2,13 @@ package kubernetes
 
 import (
 	"context"
-	client "github.com/datadatdat/titan-client-go"
+	client "github.com/datadatdat/datadatdat-client-go"
 	"os"
-	"titan/internal/app/clients"
+	"datadatdat/internal/app/clients"
 )
 
 func init() {
-	_, d := os.LookupEnv("TITAN_DEBUG")
+	_, d := os.LookupEnv("DATADATDAT_DEBUG")
 	cfg.Debug = d
 }
 

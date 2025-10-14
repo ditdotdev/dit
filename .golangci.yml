@@ -1,4 +1,4 @@
-# golangci-lint configuration for titan
+# golangci-lint configuration for datadatdat
 # Configuration compatible with golangci-lint v7
 version: "2"
 

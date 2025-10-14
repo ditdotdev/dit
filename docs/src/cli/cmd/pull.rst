@@ -1,6 +1,6 @@
 .. _cli_cmd_pull:
 
-titan pull
+d3 pull
 ==========
 
 Pull a commit from a remote repository. For more information on pushing
@@ -11,7 +11,7 @@ Syntax
 
 ::
 
-    titan pull [-c commit] [-r remote] [-t key[=value] ...] <repository>
+    d3 pull [-c commit] [-r remote] [-t key[=value] ...] <repository>
 
 Arguments
 ---------
@@ -41,7 +41,7 @@ Example
 
 ::
 
-    $ titan pull hello-world
+    $ d3 pull hello-world
     PULL 0f53a6a4-90ff-4f8c-843a-a6cce36f4f4f from origin RUNNING
     Pulling 0f53a6a4-90ff-4f8c-843a-a6cce36f4f4f from 'origin'
     PULL 0f53a6a4-90ff-4f8c-843a-a6cce36f4f4f from origin COMPLETE

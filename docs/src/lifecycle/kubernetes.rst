@@ -1,13 +1,13 @@
 .. _lifecycle_kubernetes:
 
-Titan with Kubernetes
+Datadatdat with Kubernetes
 =====================
 
-Titan provides a way to run repositories in different container environments,
+Datadatdat provides a way to run repositories in different container environments,
 known as "contexts" (see :ref:`lifecycle_context` for more information). A
 Kubernetes context represents a set of repositories running in a cluster,
 accessed via the Kubernetes API. This cluster could be local to the machine,
-hosted centrally, or delivered as a cloud service. Through Titan, not only can
+hosted centrally, or delivered as a cloud service. Through Datadatdat, not only can
 these repositories be run in a simple fashion with powerful data controls, data
 can be shared between them (such as pushing a dataset from a CI/CD Kubernetes
 cluster and later cloning for local debugging).
@@ -15,11 +15,11 @@ cluster and later cloning for local debugging).
 Kubernetes Requirements
 -----------------------
 
-Titan requires a Kubernetes cluster with the following configuration options:
+Datadatdat requires a Kubernetes cluster with the following configuration options:
 
 * The there must be a CSI (Container Storage Interface) driver installed that
   supports the `alpha snapshot <https://kubernetes-csi.github.io/docs/snapshot-restore-feature.html>`
-  capabilities. Titan does not yet work with the
+  capabilities. Datadatdat does not yet work with the
   `beta snapshots apis <https://kubernetes.io/blog/2019/12/09/kubernetes-1-17-feature-cis-volume-snapshot-beta/>`.
 * The `VolumeSnapshotDataSource <https://v1-13.docs.kubernetes.io/docs/reference/command-line-tools-reference/feature-gates/>`
   feature gate must be enabled.
@@ -28,19 +28,19 @@ Titan requires a Kubernetes cluster with the following configuration options:
 * The default storage class and snapshot class must use a CSI driver with
   snapshot capabilities.
 
-Titan currently uses the default Kubernetes config file, cluster and namespace
+Datadatdat currently uses the default Kubernetes config file, cluster and namespace
 as defined the `.kube/config` file in your home directory. Future versions will make these
 configurable.
 
-The titan server still runs as a container on the local workstation. A local
+The d3 server still runs as a container on the local workstation. A local
 Docker installation is required, though no special privileges or operating
 system support is necessary. This also means that all the metadata is local to the
-user, so two users cannot share titan repositories in a shared Kubernetes
+user, so two users cannot share d3 repositories in a shared Kubernetes
 cluster. The pods themselves will be accessible to any kubernetes user, but
-there is no way to manage them as Titan repositories on a different system.
+there is no way to manage them as Datadatdat repositories on a different system.
 
 Each push or pull operation is run as a separate Job, requiring that the
-`titandata/titan` image be avaialble to the cluster.
+`datadatdat/datadatdat` image be avaialble to the cluster.
 
 Kubernetes Architecture
 -----------------------
@@ -59,7 +59,7 @@ A Kubernetes repository consists of:
 
 Each commit corresponds to a VolumeSnapshot.
 
-By default, Titan will make all ports available on the local system. This
+By default, Datadatdat will make all ports available on the local system. This
 is accomplished by running `kubectl port-forward` for each known port. This
 is a fairly fragile process, since that process can die or the system
 restarted at any time. This will be replaced with a more reliable mechanism
@@ -80,16 +80,16 @@ specific known limitations with beta:
 * There is no method to specify volume sizes. While the amount of data pushed
   and pulled will remain the logical size of the dataset, volumes must be
   statically sized in Kubernetes. Currently, these are always 1GiB.
-* Titan currently always uses the default ~/.kube configuration, and there isn't
+* Datadatdat currently always uses the default ~/.kube configuration, and there isn't
   a way to control the namespace and cluster used. If the default configuration
   is changed after the context is installed, it can result in inconsistent
   state.
-* Titan will always use the default storage class and snapshot class. These
+* Datadatdat will always use the default storage class and snapshot class. These
   are not currently configurable.
 * There are various failure modes, such as failing to pull an image, that
-  aren't handled well by Titan. These can result in hangs or hard to diagnose
+  aren't handled well by Datadatdat. These can result in hangs or hard to diagnose
   errors.
-* Port forwarding is very simplistic. Titan simply spawns `kubectl port-forward`
+* Port forwarding is very simplistic. Datadatdat simply spawns `kubectl port-forward`
   in the background, and tries to kill it when stopping port forwarding. If
   the system is restarted, or that process dies, it will need to be manually
   restarted, either by running the `kubectl` directly, or stopping and

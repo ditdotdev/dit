@@ -2,7 +2,7 @@ package common
 
 import (
 	"fmt"
-	client "github.com/datadatdat/titan-client-go"
+	client "github.com/datadatdat/datadatdat-client-go"
 	"strconv"
 	"strings"
 )

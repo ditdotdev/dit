@@ -1,4 +1,4 @@
-# Used to create titan:latest. Until we update Docker Hub, use this locally to build titan:latest container.
+# Used to create datadatdat:latest. Until we update Docker Hub, use this locally to build datadatdat:latest container.
 
 FROM ubuntu:22.04
 
@@ -12,17 +12,17 @@ RUN apt-get update && \
         socat sshpass openssh-client rsync && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/* && \
-    # Create symlink for PostgreSQL compatibility (Titan expects v12, Ubuntu 22.04 has v14)
+    # Create symlink for PostgreSQL compatibility (Datadatdat expects v12, Ubuntu 22.04 has v14)
     ln -sf /usr/lib/postgresql/14 /usr/lib/postgresql/12
 
-# Copy titan binaries and scripts from the original image
-COPY --from=datadatdat/titan:latest /titan /titan
+# Copy datadatdat binaries and scripts from the original image
+COPY --from=datadatdat/datadatdat:latest /datadatdat /datadatdat
 
 # Remove the old zfs.sh file to ensure clean replacement
-RUN rm -f /titan/zfs.sh
+RUN rm -f /datadatdat/zfs.sh
 
 # Copy the canonical ZFS compatibility script from zfs-builder
-COPY --from=datadatdat/zfs-builder:latest /custom-zfs.sh /titan/zfs.sh
+COPY --from=datadatdat/zfs-builder:latest /custom-zfs.sh /datadatdat/zfs.sh
 
 # Make sure the script is executable
-RUN chmod +x /titan/zfs.sh
+RUN chmod +x /datadatdat/zfs.sh

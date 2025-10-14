@@ -18,14 +18,14 @@ that state::
     { "_id" : ObjectId("5d8d035b4958f33cf90b4d83"), "firstName" : "Katherine", "lastName" : "Goble" }
     { "_id" : ObjectId("5d8d036e4958f33cf90b4d84"), "firstName" : "Mary", "lastName" : "Jackson" }
     >
-    $ titan commit -m "hidden figures" mymongo
+    $ d3 commit -m "hidden figures" mymongo
     Commit 503d7863-14b7-4c39-b609-778fb976ba6a
 
 The ``commit`` command took a snapshot of the on-disk state for the mongodb
 container ``mymongo`` and stored that in the repository. It should now be
 visible in the log::
 
-    $ titan log mymongo
+    $ d3 log mymongo
     commit 503d7863-14b7-4c39-b609-778fb976ba6a
     User: Anne Smith
     Email: anne.smith@gmail.com
@@ -54,13 +54,13 @@ From here, we can add additional state and create a second commit::
     { "_id" : ObjectId("5d8d05a643a059308e3dfae7"), "firstName" : "Grace", "lastName" : "Hopper" }
     { "_id" : ObjectId("5d8d05a643a059308e3dfae8"), "firstName" : "Ada", "lastName" : "Lovelace" }
     >
-    $ titan commit -m "more great scientists" mymongo
+    $ d3 commit -m "more great scientists" mymongo
     Commit 15ce0a6e-f15e-47a4-a65a-305fcb9efa5c
 
 Once we have this committed state, we can easily go back to a previous state
-by running ``titan checkout``::
+by running ``d3 checkout``::
 
-    $ titan checkout -c 503d7863-14b7-4c39-b609-778fb976ba6a mymongo
+    $ d3 checkout -c 503d7863-14b7-4c39-b609-778fb976ba6a mymongo
     Stopping container mymongo
     Checkout 503d7863-14b7-4c39-b609-778fb976ba6a
     Starting container mymongo
@@ -77,7 +77,7 @@ started it again. And with that, we're back to the original commit we created.
 
 .. warning::
 
-   The titan infrastructure has not currently been built for scale, and while it
+   The d3 infrastructure has not currently been built for scale, and while it
    should work fine for dozens of commits, creating hundreds or thousands of
    commits or repositories may have adverse effects on the system. This will be
    addressed in a future release.

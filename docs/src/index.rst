@@ -1,9 +1,9 @@
-Titan Documentation
+Datadatdat Documentation
 ===================
 
-This documentation provides detailed reference information on using Titan for
+This documentation provides detailed reference information on using Datadatdat for
 managing data as code on your laptop. For a general introduction and overview
-of Titan, head over to `titan-data.io <https://titan-data.io>`_.
+of Datadatdat, head over to `datadatdat.com <https://datadatdat.com>`_.
 
 .. attention::
 
@@ -16,7 +16,7 @@ of Titan, head over to `titan-data.io <https://titan-data.io>`_.
   .. attention::
 
     This is pre-release documentation. This may or may not be reflective of
-    what's currently available in the published version of Titan.
+    what's currently available in the published version of Datadatdat.
 
 .. toctree::
    :maxdepth: 2

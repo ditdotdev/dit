@@ -4,13 +4,13 @@ import (
 	"fmt"
 	"github.com/antihax/optional"
 	"github.com/datadatdat/remote-sdk-go/remote"
-	client "github.com/datadatdat/titan-client-go"
+	client "github.com/datadatdat/datadatdat-client-go"
 	"net/url"
 	"os"
 	"strconv"
 	"strings"
-	"titan/internal/app/clients"
-	"titan/internal/app/providers/local"
+	"datadatdat/internal/app/clients"
+	"datadatdat/internal/app/providers/local"
 )
 
 func Clone(uri string, repo string, guid string, params []string, args []string, disablePortMap bool, tags []string, port int, context string) {

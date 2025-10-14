@@ -1,6 +1,6 @@
 .. _cli_cmd_run:
 
-titan run
+d3 run
 =========
 
 Runs a new repository. This command will process all arguments after ``--``` as
@@ -12,7 +12,7 @@ Syntax
 
 ::
 
-    titan run [OPTIONS] IMAGE -- [additional context specific arguments]...
+    d3 run [OPTIONS] IMAGE -- [additional context specific arguments]...
 
 Arguments
 ---------
@@ -39,7 +39,7 @@ Example
 
 ::
 
-    $ titan run -n newMongo mongo
+    $ d3 run -n newMongo mongo
     Creating repository newMongo
     Creating docker volume newMongo/v0 with path /data/configdb
     Creating docker volume newMongo/v1 with path /data/db

@@ -1,52 +1,56 @@
 VEXRUN_FILE := $(PWD)/utils/vexrun.jar
 VEXRUN := java -jar $(VEXRUN_FILE)
-TITAN_TARGET := $(PWD)/build/titan
-TITAN_BIN := /usr/local/bin/titan
+DATADATDAT_TARGET := $(PWD)/build/d3
+DATADATDAT_BIN := /usr/local/bin/d3
 RELEASE_DIR := $(PWD)/release
 OS := "macos-latest"
+
+# Version injection for build-time version setting
+VERSION ?= dev
+LDFLAGS := -ldflags "-X datadatdat/internal/app/commands.Version=$(VERSION)"
 
 .PHONY: build release darwin-amd64 darwin-arm64 linux-amd64 linux-arm64 windows clean
 
 clean:
 	rm -rf $(RELEASE_DIR)
 	rm -rf $(PWD)/build
-	rm -f $(PWD)/titan.exe
-	rm -f $(PWD)/titan
+	rm -f $(PWD)/d3.exe
+	rm -f $(PWD)/d3
 	go clean -cache -modcache -testcache
 	@echo "Cleaned all build artifacts and caches"
 
 windows:
-	GOOS=windows GOARCH=amd64 go build -o $(RELEASE_DIR)/windows/titan.exe $(PWD)/cmd/titan/titan.go
-	cd $(RELEASE_DIR)/windows && zip titan-cli-$(VERSION)-windows_amd64.zip titan.exe
+	GOOS=windows GOARCH=amd64 go build $(LDFLAGS) -o $(RELEASE_DIR)/windows/d3.exe $(PWD)/cmd/datadatdat/datadatdat.go
+	cd $(RELEASE_DIR)/windows && zip datadatdat-cli-$(VERSION)-windows_amd64.zip d3.exe
 
 linux-amd64:
-	GOOS=linux GOARCH=amd64 go build -o $(RELEASE_DIR)/linux-amd64/titan $(PWD)/cmd/titan/titan.go
-	cd $(RELEASE_DIR)/linux-amd64 && tar -cvf titan-cli-$(VERSION)-linux_amd64.tar titan
+	GOOS=linux GOARCH=amd64 go build $(LDFLAGS) -o $(RELEASE_DIR)/linux-amd64/d3 $(PWD)/cmd/datadatdat/datadatdat.go
+	cd $(RELEASE_DIR)/linux-amd64 && tar -cvf datadatdat-cli-$(VERSION)-linux_amd64.tar d3
 
 linux-arm64:
-	GOOS=linux GOARCH=arm64 go build -o $(RELEASE_DIR)/linux-arm64/titan $(PWD)/cmd/titan/titan.go
-	cd $(RELEASE_DIR)/linux-arm64 && tar -cvf titan-cli-$(VERSION)-linux_arm64.tar titan
+	GOOS=linux GOARCH=arm64 go build $(LDFLAGS) -o $(RELEASE_DIR)/linux-arm64/d3 $(PWD)/cmd/datadatdat/datadatdat.go
+	cd $(RELEASE_DIR)/linux-arm64 && tar -cvf datadatdat-cli-$(VERSION)-linux_arm64.tar d3
 
 darwin-amd64:
-	GOOS=darwin GOARCH=amd64 go build -o $(RELEASE_DIR)/darwin-amd64/titan $(PWD)/cmd/titan/titan.go
-	cd $(RELEASE_DIR)/darwin-amd64 && zip titan-cli-$(VERSION)-darwin_amd64.zip titan
+	GOOS=darwin GOARCH=amd64 go build $(LDFLAGS) -o $(RELEASE_DIR)/darwin-amd64/d3 $(PWD)/cmd/datadatdat/datadatdat.go
+	cd $(RELEASE_DIR)/darwin-amd64 && zip datadatdat-cli-$(VERSION)-darwin_amd64.zip d3
 
 darwin-arm64:
-	GOOS=darwin GOARCH=arm64 go build -o $(RELEASE_DIR)/darwin-arm64/titan $(PWD)/cmd/titan/titan.go
-	cd $(RELEASE_DIR)/darwin-arm64 && zip titan-cli-$(VERSION)-darwin_arm64.zip titan
+	GOOS=darwin GOARCH=arm64 go build $(LDFLAGS) -o $(RELEASE_DIR)/darwin-arm64/d3 $(PWD)/cmd/datadatdat/datadatdat.go
+	cd $(RELEASE_DIR)/darwin-arm64 && zip datadatdat-cli-$(VERSION)-darwin_arm64.zip d3
 
 release: darwin-amd64 darwin-arm64 linux-amd64 linux-arm64 windows
 
 build:
-	@echo "Building titan..."
-	go build -o $(TITAN_TARGET) $(PWD)/cmd/titan/titan.go
-	@echo "Build complete: $(TITAN_TARGET)"
+	@echo "Building datadatdat with version $(VERSION)..."
+	go build $(LDFLAGS) -o $(DATADATDAT_TARGET) $(PWD)/cmd/datadatdat/datadatdat.go
+	@echo "Build complete: $(DATADATDAT_TARGET)"
 
 link:
-	ln -s $(TITAN_TARGET) $(TITAN_BIN)
+	ln -s $(DATADATDAT_TARGET) $(DATADATDAT_BIN)
 
 unlink:
-	rm  $(TITAN_BIN)
+	rm  $(DATADATDAT_BIN)
 
 test-setup:
 	curl -Ls https://github.com/datadatdat/vexrun/releases/download/v0.0.5/vexrun-0.0.5.jar -z $(VEXRUN_FILE) -o $(VEXRUN_FILE)

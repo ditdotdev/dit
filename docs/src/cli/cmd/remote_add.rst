@@ -1,6 +1,6 @@
 .. _cli_cmd_remote_add:
 
-titan remote add
+d3 remote add
 ================
 
 Add a new remote. For more information on managing remotes, see
@@ -11,7 +11,7 @@ Syntax
 
 ::
 
-    titan remote add [-r remote] [-p key=value ...] <uri> <repository>
+    d3 remote add [-r remote] [-p key=value ...] <uri> <repository>
 
 Arguments
 ---------
@@ -36,6 +36,6 @@ Example
 
 ::
 
-    $ titan remote add -r upstream s3://titan-data-demo/hello-world/postgres hello-world
-    $ titan remote add -r ssh -p keyFle=id_rsa ssh://user@host/hello-world hello-world
+    $ d3 remote add -r upstream s3://datadatdat-demo/hello-world/postgres hello-world
+    $ d3 remote add -r ssh -p keyFle=id_rsa ssh://user@host/hello-world hello-world
 

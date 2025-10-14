@@ -3,14 +3,14 @@ package common
 import (
 	"context"
 	"fmt"
-	client "github.com/datadatdat/titan-client-go"
+	client "github.com/datadatdat/datadatdat-client-go"
 	"os"
 	"strings"
 	"unicode"
 )
 
 func init() {
-	_, d := os.LookupEnv("TITAN_DEBUG")
+	_, d := os.LookupEnv("DATADATDAT_DEBUG")
 	cfg.Debug = d
 }
 

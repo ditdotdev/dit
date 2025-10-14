@@ -1,9 +1,9 @@
 .. _cli_cmd_context_install:
 
-titan context install
+d3 context install
 =====================
 
-Install a new Titan context. For more information about contexts, see the
+Install a new Datadatdat context. For more information about contexts, see the
 :ref:`lifecycle_context` section.
 
 Syntax
@@ -11,7 +11,7 @@ Syntax
 
 ::
 
-    titan context install [-t type] [-n name] [-p parameter=value ...] [-v]
+    d3 context install [-t type] [-n name] [-p parameter=value ...] [-v]
 
 Options
 -------
@@ -34,8 +34,8 @@ Example
 
 ::
 
-    $ titan context install -t kubernetes -n newcontext
-    Initializing titan infrastructure ...
+    $ d3 context install -t kubernetes -n newcontext
+    Initializing d3 infrastructure ...
     Checking docker installation 100% │███████████████████████████████████│ 100/100 (0:00:00 / 0:00:00)
-    Starting titan server docker containers 100% │████████████████████████│ 100/100 (0:00:15 / 0:00:00)
-    Titan cli successfully installed, happy data versioning :)
+    Starting d3 server docker containers 100% │████████████████████████│ 100/100 (0:00:15 / 0:00:00)
+    Datadatdat cli successfully installed, happy data versioning :)

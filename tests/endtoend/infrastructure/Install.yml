@@ -1,14 +1,14 @@
 tests:
-  - "can install titan":
-      command: titan install
+  - "can install datadatdat":
+      command: d3 install
       wait: 20
 #      stdout:
-#        contains: Titan CLI successfully installed, happy data versioning :)
-  - "titan server is running":
-      command: docker inspect --type container --format='{{.State.Status}}' titan-docker-server
+#        contains: Datadatdat CLI successfully installed, happy data versioning :)
+  - "d3 server is running":
+      command: docker inspect --type container --format='{{.State.Status}}' datadatdat-docker-server
       stdout:
         contains: running
-  - "titan launch is running":
-      command: docker inspect --type container --format='{{.State.Status}}' titan-docker-launch
+  - "d3 launch is running":
+      command: docker inspect --type container --format='{{.State.Status}}' datadatdat-docker-launch
       stdout:
         contains: running

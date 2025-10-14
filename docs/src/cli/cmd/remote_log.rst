@@ -1,6 +1,6 @@
 .. _cli_cmd_remote_log:
 
-titan remote log
+d3 remote log
 ================
 
 List commits in a remote. For more information on managing remotes, see
@@ -11,7 +11,7 @@ Syntax
 
 ::
 
-    titan remote log [-r remote] [-t key[=value] ...] <repository>
+    d3 remote log [-r remote] [-t key[=value] ...] <repository>
 
 Arguments
 ---------
@@ -37,7 +37,7 @@ Example
 
 ::
 
-    $ titan remote log hello-world
+    $ d3 remote log hello-world
     Remote: origin
     Commit 0f53a6a4-90ff-4f8c-843a-a6cce36f4f4f
     User: Eric Schrock

@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"os"
 	"strings"
-	cmn "titan/internal/app/providers/common"
-	lcl "titan/internal/app/providers/local"
-	"titan/internal/app/utils"
+	cmn "datadatdat/internal/app/providers/common"
+	lcl "datadatdat/internal/app/providers/local"
+	"datadatdat/internal/app/utils"
 )
 
 var ce = utils.CommandExecutor(60, false)
@@ -15,11 +15,11 @@ var user, _ = ce.Exec("git", "config", "user.name")
 var email, _ = ce.Exec("git", "config", "user.email")
 
 type local struct {
-	contextName        string
-	host               string
-	portNum            int
-	titanServerVersion string
-	dockerRegistryUrl  string
+	contextName           string
+	host                  string
+	portNum               int
+	datadatdatServerVersion string
+	dockerRegistryUrl     string
 }
 
 func (l local) GetType() string {
@@ -75,7 +75,7 @@ func (l local) Install(properties []string, verbose bool) {
 			break
 		}
 	}
-	lcl.Install(l.titanServerVersion, registry, verbose, l.portNum, l.contextName)
+	lcl.Install(l.datadatdatServerVersion, registry, verbose, l.portNum, l.contextName)
 }
 
 func (l local) List(context string) {
@@ -143,7 +143,7 @@ func (l local) Tag(repo string, commit string, tags []string) {
 }
 
 func (l local) Uninstall(force bool, removeImage bool) {
-	lcl.Uninstall(l.titanServerVersion, force, removeImage, l.portNum, l.contextName)
+	lcl.Uninstall(l.datadatdatServerVersion, force, removeImage, l.portNum, l.contextName)
 }
 
 func (l local) Upgrade(force bool, version string, finalize bool, path string) {
@@ -155,7 +155,7 @@ func Local(contextName string, host string, port int) Provider {
 		contextName:        contextName,
 		host:               host,
 		portNum:            port,
-		titanServerVersion: "0.8.7",
+		datadatdatServerVersion: "0.8.7",
 		dockerRegistryUrl:  "datadatdat",
 	}
 }

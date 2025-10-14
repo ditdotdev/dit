@@ -4,7 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	titanclient "github.com/datadatdat/titan-client-go"
+	datadatdatclient "github.com/datadatdat/datadatdat-client-go"
 	v1Apps "k8s.io/api/apps/v1"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -49,12 +49,12 @@ func init() {
  * the ports in the container. We then create a single replica stateful set with the given volumes (each with
  * existing PVCs) mapped in.
  */
-func (k kubernetes) CreateStatefulSet(repoName string, imageId string, ports []int, volumes []titanclient.Volume, environment []string) error {
+func (k kubernetes) CreateStatefulSet(repoName string, imageId string, ports []int, volumes []datadatdatclient.Volume, environment []string) error {
 	var err error
 	objectMeta := metav1.ObjectMeta{
 		Name:      repoName,
 		Namespace: k.namespace,
-		Labels:    map[string]string{"titanRepository": repoName},
+		Labels:    map[string]string{"datadatdatRepository": repoName},
 	}
 	servicePorts := make([]v1.ServicePort, len(ports))
 	for _, port := range ports {
@@ -66,7 +66,7 @@ func (k kubernetes) CreateStatefulSet(repoName string, imageId string, ports []i
 	}
 	serviceSpec := v1.ServiceSpec{
 		Ports:     servicePorts,
-		Selector:  map[string]string{"titanRepository": repoName},
+		Selector:  map[string]string{"datadatdatRepository": repoName},
 		ClusterIP: "None",
 	}
 	service := v1.Service{
@@ -138,7 +138,7 @@ func (k kubernetes) CreateStatefulSet(repoName string, imageId string, ports []i
 	}
 	replica := int32(1)
 	selector := metav1.LabelSelector{
-		MatchLabels: map[string]string{"titanRepository": repoName},
+		MatchLabels: map[string]string{"datadatdatRepository": repoName},
 	}
 	statefulSpecs := v1Apps.StatefulSetSpec{
 		Replicas:    &replica,
@@ -258,7 +258,7 @@ func (k kubernetes) StopPortForwarding(repoName string) {
 /**
  * Update the volumes within a given StatefulSet.
  */
-func (k kubernetes) UpdateStatefulSetVolumes(repoName string, volumes []titanclient.Volume) {
+func (k kubernetes) UpdateStatefulSetVolumes(repoName string, volumes []datadatdatclient.Volume) {
 	set, _ := client.AppsV1().StatefulSets(k.namespace).Get(ctx, repoName, metav1.GetOptions{})
 	var p string
 	specVolumes := set.Spec.Template.Spec.Volumes

@@ -1,6 +1,6 @@
 .. _cli_cmd_clone:
 
-titan clone
+d3 clone
 ===========
 
 Clones a new repository based on a commit from a remote repository.
@@ -15,7 +15,7 @@ Syntax
 
 ::
 
-    titan clone [-c id] [-p key=value ...] [-t key=value ...] [-n repository] <uri> -- [additional context specific arguments]...
+    d3 clone [-c id] [-p key=value ...] [-t key=value ...] [-n repository] <uri> -- [additional context specific arguments]...
 
 Arguments
 ---------
@@ -54,7 +54,7 @@ Example
 
 ::
 
-    $ titan clone -n myrepo s3web://demo.titan-data.io/hello-world/postgres
+    $ d3 clone -n myrepo s3web://demo.datadatdat.com/hello-world/postgres
     Creating repository myrepo
     Creating docker volume myrepo/v0 with path /var/lib/postgresql/data
     Running controlled container myrepo

@@ -2,14 +2,14 @@ package local
 
 import (
 	"context"
-	client "github.com/datadatdat/titan-client-go"
+	client "github.com/datadatdat/datadatdat-client-go"
 	"os"
 )
 
 func init() {
-	_, d := os.LookupEnv("TITAN_DEBUG")
+	_, d := os.LookupEnv("DATADATDAT_DEBUG")
 	cfg.Debug = d
-	// Enable command executor debug mode if TITAN_DEBUG is set
+	// Enable command executor debug mode if DATADATDAT_DEBUG is set
 	if d {
 		ce.SetDebug(true)
 	}

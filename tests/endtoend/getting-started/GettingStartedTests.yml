@@ -1,12 +1,12 @@
 tests:
   - "can clone hello-world/postgres":
-      command: titan clone -n hello-world s3web://demo.titan-data.io/hello-world/postgres
+      command: d3 clone -n hello-world s3web://demo.datadatdat.com/hello-world/postgres
       stdout:
         contains:
           - Running controlled container hello-world
           - Starting container hello-world
   - "can list hello-world/postgres":
-      command: titan ls
+      command: d3 ls
       stdout: |-
         CONTEXT       REPOSITORY            STATUS
         docker        hello-world           running
@@ -16,13 +16,13 @@ tests:
       command: [docker, exec, hello-world, psql, postgres://postgres:postgres@localhost/postgres, -t, -c, SELECT * FROM messages;]
       stdout: Hello, World!
   - "can remove hello-world/postgres":
-      command: titan rm -f hello-world
+      command: d3 rm -f hello-world
       stdout: |-
         Removing repository hello-world
         Deleting volume v0
         hello-world removed
   - "can run mongo-test":
-      command: titan run -n mongo-test mongo:4
+      command: d3 run -n mongo-test mongo:4
       wait: 5
       stdout:
         contains:
@@ -36,7 +36,7 @@ tests:
         contains:
           - nInserted
   - "can commit mongo-test":
-      command: [titan, commit, -m, First Employee, mongo-test]
+      command: [d3, commit, -m, First Employee, mongo-test]
       stdout:
         contains: Commit
       env:
@@ -58,7 +58,7 @@ tests:
           - Ada
           - Grace
   - "can checkout commit mongo-test":
-      command: [titan, checkout, --commit, $COMMIT_GUID, mongo-test]
+      command: [d3, checkout, --commit, $COMMIT_GUID, mongo-test]
       wait: 10
       stdout: |-
         Stopping container mongo-test
@@ -74,7 +74,7 @@ tests:
         excludes:
           - Grace
   - "can remove mongo-test":
-      command: titan rm -f mongo-test
+      command: d3 rm -f mongo-test
       stdout:
         contains:
           - Removing repository mongo-test

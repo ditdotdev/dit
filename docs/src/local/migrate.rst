@@ -3,9 +3,9 @@
 Migrating Existing Containers
 =============================
 
-Titan provides lots of freedom for how you might populate data into a new
+Datadatdat provides lots of freedom for how you might populate data into a new
 repository. You might run some scripts to generate data, load data from
-a database dump, or replicate data into the container. Titan does not try to
+a database dump, or replicate data into the container. Datadatdat does not try to
 encode these database-specific mechanisms into the tool, but does provide some
 platform-agnostic capabilities for loading data. In this section, we show
 how you can migrate data from a container you already have running on your
@@ -33,7 +33,7 @@ Migrating a Container
 Assuming the container meets the above criteria, you can create a repository
 from it by running::
 
-    titan mgirate -s somecontainer myrepo
+    d3 mgirate -s somecontainer myrepo
 
 This will get the configuration of the container and use it verbatim for the
 new repository. It will determine where each volume resides on the host

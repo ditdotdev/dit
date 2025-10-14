@@ -25,18 +25,18 @@ jobs:
         run: |
           export PATH=/usr/local/bin:$PATH
           ./docs/build.sh -r development -v development
-      - name: Clone titan-data.github.io
+      - name: Clone datadatdat.github.io
         run: |
-          git clone git@github.com:titan-data/titan-data.github.io
-          cd ./titan-data.github.io && git log -1
+          git clone git@github.com:datadatdat/datadatdat.github.io
+          cd ./datadatdat.github.io && git log -1
       - name: Configure git user
         run: |
-          cd ./titan-data.github.io
-          git config user.name "titan-docs"
-          git config user.email "titan-docs@users.noreply.github.com"
+          cd ./datadatdat.github.io
+          git config user.name "datadatdat-docs"
+          git config user.email "datadatdat-docs@users.noreply.github.com"
       - name: Publish docs
-        run: ./docs/publish.sh -v development ./titan-data.github.io
+        run: ./docs/publish.sh -v development ./datadatdat.github.io
       - name: Push docs
         run: |
-          cd ./titan-data.github.io
+          cd ./datadatdat.github.io
           git push

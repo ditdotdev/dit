@@ -1,5 +1,5 @@
 /*
-Copyright © 2019 The Titan Project Contributors
+Copyright Datadatdat.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -20,7 +20,7 @@ import (
 	"github.com/spf13/cobra"
 	"os"
 	"os/user"
-	"titan/internal/app/providers"
+	"datadatdat/internal/app/providers"
 )
 
 var (
@@ -40,11 +40,14 @@ var (
 	removeImages bool
 )
 
+// Version will be set at build time via -ldflags
+var Version = "dev"
+
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
-	Use:   "titan",
-	Short: "Titan CLI",
-	Long:  `Titan CLI`,
+	Use:   "datadatdat",
+	Short: "DataDatDat CLI",
+	Long:  `DataDatDat CLI`,
 }
 
 // Execute adds all child commands to the root command and sets flags appropriately.
@@ -60,17 +63,17 @@ func init() {
 	cobra.OnInitialize(initConfig)
 
 	//Global params
-	rootCmd.PersistentFlags().StringVar(&context, "context", "", "Titan Provider Context")
-	rootCmd.Version = "0.7.1"
+	rootCmd.PersistentFlags().StringVar(&context, "context", "", "DataDatDat Provider Context")
+	rootCmd.Version = Version  // Use dynamic version set at build time
 }
 
 // initConfig reads in config file and ENV variables if set.
 func initConfig() {
 	u, _ := user.Current()
-	titanConfig := u.HomeDir + "/.titan/config"
-	if _, err := os.Stat(titanConfig); os.IsNotExist(err) {
+	datadatdatConfig := u.HomeDir + "/.datadatdat/config"
+	if _, err := os.Stat(datadatdatConfig); os.IsNotExist(err) {
 		//nolint:gosec // G304: Creating config file in user's home directory, path is controlled
-		if _, err := os.Create(titanConfig); err != nil {
+		if _, err := os.Create(datadatdatConfig); err != nil {
 			fmt.Printf("Error creating config file: %v\n", err)
 		}
 	}
@@ -82,8 +85,8 @@ func initConfig() {
 	}
 	if context != "" {
 		provider, name = providers.ByName(context)
-	} else if os.Getenv("TITAN_CONTEXT") != "" {
-		provider, name = providers.ByName(os.Getenv("TITAN_CONTEXT"))
+	} else if os.Getenv("DATADATDAT_CONTEXT") != "" {
+		provider, name = providers.ByName(os.Getenv("DATADATDAT_CONTEXT"))
 	} else if isInstall {
 		context = "docker" //TODO confirm valid
 	} else {

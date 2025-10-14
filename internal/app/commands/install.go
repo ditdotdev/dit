@@ -1,5 +1,5 @@
 /*
-Copyright © 2019 The Titan Project Contributors
+Copyright Datadatdat.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -17,13 +17,13 @@ package commands
 
 import (
 	"github.com/spf13/cobra"
-	"titan/internal/app/providers"
+	"datadatdat/internal/app/providers"
 )
 
 // installCmd represents the install command
 var installCmd = &cobra.Command{
 	Use:   "install",
-	Short: "Install titan infrastructure",
+	Short: "Install datadatdat infrastructure",
 
 	Run: func(cmd *cobra.Command, args []string) {
 		registry, _ := cmd.Flags().GetString("registry")
@@ -35,6 +35,6 @@ var installCmd = &cobra.Command{
 
 func init() {
 	rootCmd.AddCommand(installCmd)
-	installCmd.Flags().String("registry", "datadatdat", "Registry URL for titan docker image, defaults to datadatdat")
-	installCmd.Flags().BoolVarP(&verbose, "verbose", "v", false, "Verbose output of Titan Server installation steps.")
+	installCmd.Flags().String("registry", "datadatdat", "Registry URL for datadatdat docker image, defaults to datadatdat")
+	installCmd.Flags().BoolVarP(&verbose, "verbose", "v", false, "Verbose output of Datadatdat Server installation steps.")
 }

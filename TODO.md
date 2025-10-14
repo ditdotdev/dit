@@ -1,7 +1,7 @@
-# Titan Project TODO - Dependency Migration & Infrastructure Updates
+# Datadatdat Project TODO - Dependency Migration & Infrastructure Updates
 
 ## Project Overview
-We have successfully migrated the Titan infrastructure from the `titan-data` GitHub organization to `datadatdat` for both Docker images and Go module dependencies, and fixed ZFS kernel module loading issues in WSL2 environments.
+We have successfully migrated the Datadatdat infrastructure from the `t1t4n-data` GitHub organization to `datadatdat` for both Docker images and Go module dependencies, and fixed ZFS kernel module loading issues in WSL2 environments.
 
 ## Completed Work ✅
 
@@ -18,35 +18,35 @@ We have successfully migrated the Titan infrastructure from the `titan-data` Git
 - **Documentation**: Created upgrade process documentation for other repositories
 
 ### 2. Go Module Dependency Migration (September 17, 2025)
-- **Complete Migration**: Successfully migrated all 6 Go dependencies from `github.com/titan-data/*` to `github.com/datadatdat/*`
+- **Complete Migration**: Successfully migrated all 6 Go dependencies from `github.com/t1t4n-data/*` to `github.com/datadatdat/*`
 - **Repositories Updated**:
   - `remote-sdk-go` → v0.2.4 (corrected module paths and internal imports)
   - `s3-remote-go` → v0.2.2 (updated to use datadatdat/remote-sdk-go v0.2.4)  
   - `ssh-remote-go` → v0.2.1 (updated to use datadatdat/remote-sdk-go v0.2.4)
   - `nop-remote-go` → v0.2.2 (updated to use datadatdat/remote-sdk-go v0.2.4)
   - `s3web-remote-go` → v0.2.1 (updated to use datadatdat/remote-sdk-go v0.2.4)
-  - `titan-client-go` → v0.1.2 (module path updated to datadatdat)
-- **Titan CLI Updated**: All go.mod dependencies and Go source import statements migrated
+  - `datadatdat-client-go` → v0.1.2 (module path updated to datadatdat)
+- **Datadatdat CLI Updated**: All go.mod dependencies and Go source import statements migrated
 - **Protobuf Conflict Resolution**: Fixed namespace conflicts by migrating all dependencies simultaneously
-- **Windows Compatibility**: Added titan.exe for proper Windows executable recognition
+- **Windows Compatibility**: Added d3.exe for proper Windows executable recognition
 - **Verification**: All builds successful with `make build` and e2e tests passing with `make e2e`
-- **Version Control**: All changes committed and pushed to datadatdat/titan repository
+- **Version Control**: All changes committed and pushed to datadatdat/d3 repository
 
 ### 2. Docker Registry Migration
-- **titan CLI**: Updated `internal/app/clients/Docker.go` with registry-aware Docker client
+- **d3 CLI**: Updated `internal/app/clients/Docker.go` with registry-aware Docker client
   - Added `DockerWithRegistry()` constructor
   - Added `getImageName()` method for registry prefixing
-  - Updated `LaunchTitanServers()` and `TeardownTitanServers()` to use registry-prefixed images
-- **titan CLI**: Updated `internal/app/providers/local/Install.go` to use registry parameter
-- **titan CLI**: Reverted `internal/app/providers/Local.go` titanServerVersion from "latest" to "0.8.7"
+  - Updated `Launcht1t4nServers()` and `Teardownt1t4nServers()` to use registry-prefixed images
+- **d3 CLI**: Updated `internal/app/providers/local/Install.go` to use registry parameter
+- **d3 CLI**: Reverted `internal/app/providers/Local.go` t1t4nServerVersion from "latest" to "0.8.7"
 - **Docker Images**: Successfully tagged and pushed to `datadatdat` organization:
-  - `datadatdat/titan:0.8.7` and `datadatdat/titan:latest`
+  - `datadatdat/t1t4n:0.8.7` and `datadatdat/t1t4n:latest`
   - `datadatdat/zfs-builder:latest`
 - **Verification**: Confirmed images pull correctly from new registry via debug logging
 
 ### 3. ZFS WSL2 Kernel Compatibility
 - **Root Cause**: WSL2 has ZFS compiled into kernel (built-in) rather than as loadable module
-- **Fix Applied**: Enhanced `titan-server/src/scripts/zfs.sh` `load_zfs_module()` function:
+- **Fix Applied**: Enhanced `t1t4n-server/src/scripts/zfs.sh` `load_zfs_module()` function:
   ```bash
   # Check if ZFS is built into kernel before attempting modprobe
   if grep -q "^nodev.*zfs" /proc/filesystems 2>/dev/null; then
@@ -55,8 +55,8 @@ We have successfully migrated the Titan infrastructure from the `titan-data` Git
     return 0
   fi
   ```
-- **Test Updates**: Updated shell tests in `titan-server/src/scripts-test/test-zfs.sh` to mock grep calls
-- **Container Build**: Successfully built and pushed `datadatdat/titan:0.8.7` with ZFS fixes
+- **Test Updates**: Updated shell tests in `t1t4n-server/src/scripts-test/test-zfs.sh` to mock grep calls
+- **Container Build**: Successfully built and pushed `datadatdat/t1t4n:0.8.7` with ZFS fixes
 
 ## Current Status 🚧
 
@@ -67,7 +67,7 @@ We have successfully migrated the Titan infrastructure from the `titan-data` Git
 - ✅ Docker registry migration complete and functional
 - ✅ ZFS built-in kernel detection implemented 
 - ✅ Updated containers deployed to Docker Hub
-- ✅ Registry-aware titan CLI built and tested
+- ✅ Registry-aware d3 CLI built and tested
 - ✅ **Complete workspace validation** - All 29 repositories building and testing successfully
 - ✅ **Cross-platform compatibility** - Windows/Unix compatibility issues resolved
 
@@ -77,15 +77,60 @@ We have successfully migrated the Titan infrastructure from the `titan-data` Git
 - ✅ **Draft Release Workflow Failures** - RESOLVED (October 9, 2025) - All repositories now have successful workflows
 - ✅ **Pull Request CI Workflow Checks Not Triggering** - RESOLVED (October 9, 2025) - All core repositories now working
 - ✅ **Missing release-drafter.yml Configuration Files** - RESOLVED (October 9, 2025) - Added to ssh-remote-go and s3web-remote-go
-- ⚠️ Shell tests in titan-server failing (non-blocking - functional code works)
+- ⚠️ Shell tests in t1t4n-server failing (non-blocking - functional code works)
 - ⚠️ **plugin-launcher CI Environment Test Incompatibility** - INVESTIGATION NEEDED
 - ⚠️ **delphix-remote Pull Request Build Checks** - RESOLVED for main workflows, some Dependabot issues remain
 - 🔄 **Go Version Upgrade Investigation** - INVESTIGATE Go 1.25.1 compilation upgrade across all repositories (Added September 25, 2025)
 - ⚠️ **zfs-releases Kernel Compatibility** - Ongoing kernel testing issues (non-blocking)
+- 🔄 **URGENT: Regenerate datadatdat-client-go with OpenAPI Generator** (Added October 14, 2025)
+  - **Issue**: Manual titan→datadatdat rename applied to autogenerated client files
+  - **Action Required**: Run OpenAPI generator to properly regenerate all client files from updated openapi.yaml
+  - **Files to regenerate**: All .go files, docs/*.md files, model files, and API files
+  - **Dependencies**: datadatdat-server must have updated openapi/datadatdat.yml first
+   - **Priority**: HIGH - These files should not be manually edited as they are autogenerated
 
-## Critical Issue - Draft Release Workflow Failures ✅ **RESOLVED** (October 9, 2025)
+## Repository Consolidation Investigation 🔄 **NEW**
 
-### Problem Statement ✅ FIXED
+### Go vs Kotlin Repository Duplication Analysis
+- **Issue**: We maintain parallel implementations for remote providers in both Go and Kotlin
+- **Examples**: 
+  - `s3-remote-go` (Go implementation) vs `s3-remote` (Kotlin implementation)
+  - `ssh-remote-go` (Go implementation) vs `ssh-remote` (Kotlin implementation)
+  - `s3web-remote-go` (Go implementation) vs `s3web-remote` (Kotlin implementation)
+  - `nop-remote-go` (Go implementation) vs `nop-remote` (Kotlin implementation)
+  - `remote-sdk-go` (Go SDK) vs `remote-sdk` (Kotlin SDK)
+- **Investigation Needed**:
+  - **Historical Context**: Why were both Go and Kotlin versions created?
+  - **Feature Parity**: Do both versions implement the same functionality?
+  - **Usage Patterns**: Which versions are actively used by Datadatdat CLI vs server?
+  - **Performance Comparison**: Are there performance differences between Go and Kotlin implementations?
+  - **Maintenance Overhead**: Cost of maintaining duplicate codebases with similar functionality
+  - **Client vs Server**: Do Go versions serve CLI clients while Kotlin serves server-side operations?
+- **Consolidation Options**:
+  - **Option 1**: Standardize on Go - Better performance, single binary deployment, no JVM dependency
+  - **Option 2**: Standardize on Kotlin - Better JVM ecosystem integration, existing server infrastructure
+  - **Option 3**: Hybrid Approach - Use Go for CLI/client, Kotlin for server-side operations
+  - **Option 4**: Keep Both - If they serve different architectural purposes
+- **Benefits of Consolidation**:
+  - **Reduced Maintenance**: Single codebase per provider type
+  - **Consistent API**: Unified interface and behavior
+  - **Simplified Testing**: One set of tests per provider
+  - **Faster Development**: Features only need to be implemented once
+  - **Reduced Cognitive Load**: Developers only need to understand one implementation
+- **Risks of Consolidation**:
+  - **Performance Regression**: If wrong technology choice made
+  - **Integration Complexity**: If different parts of system depend on different versions
+  - **Migration Effort**: Significant work to migrate away from one implementation
+- **Action Items**:
+  - Analyze dependency graphs to understand which repositories depend on Go vs Kotlin versions
+  - Compare API compatibility between Go and Kotlin implementations
+  - Measure performance characteristics of both versions
+  - Document architectural reasons for maintaining both (if any exist)
+  - Create migration plan if consolidation is beneficial
+- **Priority**: Medium - Affects long-term maintainability and development velocity
+- **Timeline**: Investigate Q1 2026, implement consolidation plan Q2 2026 if beneficial
+
+## Critical Issue - Draft Release Workflow Failures ✅ **RESOLVED** (October 9, 2025)### Problem Statement ✅ FIXED
 Draft Release workflows were failing across multiple repositories due to deprecated GitHub Action reference.
 
 ### Root Cause Analysis ✅ IDENTIFIED & FIXED
@@ -98,7 +143,7 @@ ERROR: Unable to resolve action. Repository not found: toolmantim/release-drafte
 **All Draft Release workflow issues have been successfully resolved as of October 9, 2025:**
 
 #### Fixed Repositories ✅
-- **titan-server**: ✅ Fixed - Now using `release-drafter/release-drafter@v6` with successful runs
+- **t1t4n-server**: ✅ Fixed - Now using `release-drafter/release-drafter@v6` with successful runs
 - **s3-remote**: ✅ Fixed - Now using `release-drafter/release-drafter@v6` with successful runs  
 - **delphix-remote**: ✅ Fixed - Already had correct action, added missing configuration file
 - **ssh-remote-go**: ✅ Fixed - Added missing `.github/release-drafter.yml` configuration file
@@ -117,7 +162,7 @@ All repositories now show successful Draft Release workflow runs from October 9,
 
 ### Investigation Results (October 9, 2025)
 ```bash
-# titan-server - 5 recent failures, all with "Repository not found"
+# t1t4n-server - 5 recent failures, all with "Repository not found"
 gh run list --workflow="Draft Release" --limit=5
 # STATUS: X (failed) for all recent runs
 
@@ -131,7 +176,7 @@ gh run view 18383494270 --log-failed
 ```
 
 ### Solution Required
-1. **Update Draft Release Workflows** (titan-server, s3-remote):
+1. **Update Draft Release Workflows** (t1t4n-server, s3-remote):
    ```yaml
    # FROM (broken):
    - uses: toolmantim/release-drafter@v5.2.0
@@ -162,7 +207,7 @@ gh run view 18383494270 --log-failed
 - **Downstream**: May impact release process automation
 
 ### Next Actions Required
-1. **Immediate Fix**: Update workflow files in titan-server and s3-remote
+1. **Immediate Fix**: Update workflow files in t1t4n-server and s3-remote
 2. **Configuration**: Add release-drafter.yml configuration files where missing
 3. **Validation**: Test workflow with minor commit to verify fix
 4. **Rollout**: Apply fix pattern to any other repositories using old action
@@ -199,15 +244,15 @@ All core repositories now show successful Pull Request workflow execution:
 - Dependabot PRs receive proper CI checks before merging
 
 ### GitHub Release Mirroring Issue 🔄 **NEW**
-- **Issue**: datadatdat releases are not mirroring titan-data releases properly
+- **Issue**: datadatdat releases are not mirroring t1t4n-data releases properly
 - **Comparison**:
-  - **titan-data releases**: https://github.com/titan-data/remote-sdk/releases
+  - **t1t4n-data releases**: https://github.com/t1t4n-data/remote-sdk/releases
   - **datadatdat releases**: https://github.com/datadatdat/remote-sdk/releases
 - **Impact**: Release inconsistency between organizations, potential confusion for users and developers
 - **Root Cause**: Need to investigate automated release mirroring process or manual release creation workflow
 - **Priority**: Medium - affects release management and organization consistency
 - **Action Required**: 
-  - Compare release histories between titan-data and datadatdat organizations
+  - Compare release histories between t1t4n-data and datadatdat organizations
   - Determine if releases should be manually created or automatically mirrored
   - Document proper release process for datadatdat organization
   - Consider GitHub Actions workflow to auto-create releases from tags
@@ -217,7 +262,7 @@ All core repositories now show successful Pull Request workflow execution:
 - **remote-sdk-go**: ✅ RESOLVED - All Dependabot PRs now receive proper CI validation
 - **ssh-remote-go**: ✅ RESOLVED - CI workflows working, dependency updates validated properly
 - **delphix-remote**: ✅ RESOLVED - Main Pull Request workflows functioning properly
-- **titan-data.github.io**: ⚠️ Still missing CI workflows - needs GitHub Pages and content validation workflows (lower priority)
+- **t1t4n-data.github.io**: ⚠️ Still missing CI workflows - needs GitHub Pages and content validation workflows (lower priority)
 - **zfs-linuxkit**: ⚠️ Still missing CI workflows - needs build and test automation (lower priority)
 
 ### Investigation Summary ✅ RESOLVED
@@ -255,22 +300,22 @@ All core repositories now show successful Pull Request workflow execution:
    - **Issue**: Docker containers need to be rebuilt and released with updated Maven dependencies
    - **Action Required**: Build and push new Docker container versions after Maven releases
    - **Containers Needing Updates**:
-     - `datadatdat/titan-server` - Update with latest plugin-launcher and remote dependencies
-     - `datadatdat/titan` - Update CLI container with latest server version
+     - `datadatdat/t1t4n-server` - Update with latest plugin-launcher and remote dependencies
+     - `datadatdat/t1t4n` - Update CLI container with latest server version
      - Remote provider containers using updated Kotlin dependencies
    - **Priority**: High - Required for complete dependency update chain
 
 3. **Maven Repository URL Migration** ✅ COMPLETED (September 21, 2025)
-   - **Issue**: Multiple references to old `maven.titan-data.io` repository URL throughout codebase
-   - **Action Taken**: Updated all Maven repository URLs from `maven.titan-data.io` to direct S3 access `datadatdat-maven.s3.amazonaws.com`
+   - **Issue**: Multiple references to old `maven.datadatdat.com` repository URL throughout codebase
+   - **Action Taken**: Updated all Maven repository URLs from `maven.datadatdat.com` to direct S3 access `datadatdat-maven.s3.amazonaws.com`
    - **Files Updated**: 
      - All `build.gradle.kts` files in Kotlin repositories (s3-remote, ssh-remote, s3web-remote, nop-remote, delphix-remote, remote-sdk, plugin-launcher)
-   - **Pattern Changed**: `url = uri("https://maven.titan-data.io")` → `url = uri("https://datadatdat-maven.s3.amazonaws.com")`
+   - **Pattern Changed**: `url = uri("https://maven.datadatdat.com")` → `url = uri("https://datadatdat-maven.s3.amazonaws.com")`
    - **Status**: ✅ COMPLETED - All repositories now use direct S3 access
    - **Priority**: High - Required for proper dependency resolution after organization migration
 
 4. **Dependency Version Updates**
-   - **Action Required**: Update Maven and Docker references throughout titan repositories
+   - **Action Required**: Update Maven and Docker references throughout d3 repositories
    - **After**: Maven releases and Docker builds are complete
    - **Files to Update**: All pom.xml, build.gradle.kts, and Docker references to use new versions
    - **Priority**: Medium - Final step in dependency update process
@@ -280,7 +325,7 @@ All core repositories now show successful Pull Request workflow execution:
    - **Current State**: Mixed Go versions across repositories
      - **nop-remote-go**: Testing Go 1.21, 1.22, 1.23 in CI matrix
      - **Other Go repos**: Various version configurations
-     - **Titan CLI**: Using older Go versions in workflows
+     - **Datadatdat CLI**: Using older Go versions in workflows
    - **Target**: Upgrade to **Go 1.25.1** (latest stable as of September 2025)
    - **Benefits**:
      - **Performance**: Latest Go runtime optimizations embedded in binaries
@@ -289,14 +334,14 @@ All core repositories now show successful Pull Request workflow execution:
      - **Compatibility**: Future-proofing for Go ecosystem evolution
    - **Investigation Areas**:
      - **Binary Runtime Impact**: Since Go binaries embed the runtime, users get the Go 1.25.1 runtime automatically
-     - **Dependency Compatibility**: Verify all titan dependencies work with Go 1.25.1
+     - **Dependency Compatibility**: Verify all d3 dependencies work with Go 1.25.1
      - **CI/CD Workflows**: Update GitHub Actions matrix testing to include/focus on 1.25.1
      - **Build Performance**: Measure compilation speed improvements with latest Go version
      - **Breaking Changes**: Review Go 1.24 → 1.25 release notes for breaking changes
    - **Repositories to Evaluate**:
-     - `titan` (CLI) - Core binary compilation
-     - `titan-server` - Server binary compilation  
-     - `titan-client-go` - Client library compilation
+     - `t1t4n` (CLI) - Core binary compilation
+     - `t1t4n-server` - Server binary compilation  
+     - `datadatdat-client-go` - Client library compilation
      - `remote-sdk-go` - Remote SDK compilation
      - `s3-remote-go`, `ssh-remote-go`, `nop-remote-go`, `s3web-remote-go` - Remote provider binaries
    - **Risk Assessment**: Low-Medium (Go maintains excellent backward compatibility)
@@ -364,9 +409,9 @@ All core repositories now show successful Pull Request workflow execution:
 3. **Verify GO_MODULES_TOKEN Configuration** - ✅ COMPLETED
    - **Task**: Verify all Go repositories have GO_MODULES_TOKEN secret set to `***REMOVED***`
    - **Repositories Updated**:
-     - ✅ **titan** - Updated with new token
-     - ✅ **titan-server** - Added new token
-     - ✅ **titan-client-go** - Added new token
+     - ✅ **t1t4n** - Updated with new token
+     - ✅ **t1t4n-server** - Added new token
+     - ✅ **datadatdat-client-go** - Added new token
      - ✅ **s3-remote-go** - Updated with new token
      - ✅ **s3web-remote-go** - Updated with new token
      - ✅ **ssh-remote-go** - Updated with new token
@@ -420,7 +465,7 @@ dependencies {
 
 ### Immediate (High Priority) ✅ COMPLETED
 1. ✅ **Test Complete Installation Flow** - RESOLVED
-   - Titan CLI builds successfully with `make build`
+   - Datadatdat CLI builds successfully with `make build`
    - End-to-end tests pass with `make e2e`
    - All dependency conflicts resolved
 
@@ -433,17 +478,17 @@ dependencies {
 3. **Validate All Test Suites** - PARTIALLY COMPLETED
    ```bash
    # End-to-end tests ✅ PASSING
-   cd /c/dev/titan && make e2e
+   cd /c/dev/d3 && make e2e
    
    # Unit tests - ⚠️ NO UNIT TESTS FOUND
-   cd /c/dev/titan && go test ./...  # Returns "no test files"
+   cd /c/dev/d3 && go test ./...  # Returns "no test files"
    
    # Integration tests - TBD 
-   cd /c/dev/titan/tests/integration && make test
+   cd /c/dev/t1t4n/tests/integration && make test
    ```
 
-4. **Add Unit Test Coverage to Titan CLI** - NEW PRIORITY
-   - **Issue**: Titan CLI repository has no Go unit tests (*_test.go files)
+4. **Add Unit Test Coverage to Datadatdat CLI** - NEW PRIORITY
+   - **Issue**: Datadatdat CLI repository has no Go unit tests (*_test.go files)
    - **Current State**: Only end-to-end tests exist and are passing
    - **Need**: Add unit test coverage for core functionality:
      - `internal/app/clients/` - Docker client functionality
@@ -454,7 +499,7 @@ dependencies {
    - **Benefit**: Faster feedback than e2e tests, better code coverage
 
 5. **Fix Shell Tests** (Optional - functionality works)
-   - Debug remaining test failures in `titan-server/src/scripts-test/test-zfs.sh`
+   - Debug remaining test failures in `t1t4n-server/src/scripts-test/test-zfs.sh`
    - Ensure all ZFS compatibility version tests pass
    - May need to update test environment or mock functions
 
@@ -472,24 +517,24 @@ dependencies {
        - `maven.tf` - Maven repository setup
        - `plugin-launcher.tf` - Plugin launcher resources
        - `test.tf` - Testing infrastructure
-       - `titan-demo.tf` - Demo data hosting
-       - `titan-remotes.tf` - Remote provider infrastructure
-       - `titan-server.tf` - Server deployment resources
-       - `titan-test.tf` - Test environment setup
+       - `t1t4n-demo.tf` - Demo data hosting
+       - `t1t4n-remotes.tf` - Remote provider infrastructure
+       - `t1t4n-server.tf` - Server deployment resources
+       - `t1t4n-test.tf` - Test environment setup
        - `zfs-releases.tf` - ZFS build artifacts storage
    - **Critical**: CDN configuration in `download.tf` needs to point to `datadatdat` organization
-   - **Impact**: Core infrastructure supporting all Titan services
+   - **Impact**: Core infrastructure supporting all Datadatdat services
 
 6. **Repository Build/Test Validation** - ✅ COMPLETED
    - **Completed**: 29/29 repositories successfully validated ✅
-     - **Core Go**: titan, titan-server, titan-client-go, remote-sdk-go
+     - **Core Go**: t1t4n, t1t4n-server, datadatdat-client-go, remote-sdk-go
      - **Remote Go**: s3-remote-go, ssh-remote-go, nop-remote-go, s3web-remote-go  
-     - **Docker Infrastructure**: titan-docker-proxy (fixed volume naming), zfs-builder, zfs-linuxkit, zfs-releases
+     - **Docker Infrastructure**: t1t4n-docker-proxy (fixed volume naming), zfs-builder, zfs-linuxkit, zfs-releases
      - **Testing Infrastructure**: ssh-test-server, localstack, dynamodb-local
      - **Cloud Infrastructure**: community-aws
      - **Kotlin Repositories**: s3-remote, ssh-remote, s3web-remote, nop-remote, remote-sdk, command-executor, plugin-launcher, delphix-remote
      - **Maven Projects**: vexrun (3/3 tests passing)
-     - **Documentation**: titan-data.github.io, titan-demos, template, .github
+     - **Documentation**: t1t4n-data.github.io, t1t4n-demos, template, .github
    - **Cross-Platform Fixes Applied**:
      - Fixed POSIX file permissions issues on Windows (ssh-remote, remote-sdk)
      - Fixed path separator compatibility (Windows backslash vs Unix forward slash)
@@ -504,12 +549,12 @@ dependencies {
    - Update any hardcoded registry references in docs
 
 8. **Registry Cleanup** (Optional)
-   - Consider deprecating old `titandata` images
+   - Consider deprecating old `t1t4ndata` images
    - Update any remaining references in other repositories
 
 9. **CDN Infrastructure Recreation** (Long-term)
    - **Issue**: Currently using direct S3 access (`datadatdat-maven.s3.amazonaws.com`) instead of CDN
-   - **Goal**: Recreate CDN infrastructure to serve Maven repository via `maven.titan-data.io` 
+   - **Goal**: Recreate CDN infrastructure to serve Maven repository via `maven.datadatdat.com` 
    - **Requirements**:
      - Update Terraform configuration in `community-aws/community/maven.tf`
      - Point CloudFront distribution to `datadatdat-maven` S3 bucket (already configured)
@@ -542,17 +587,17 @@ dependencies {
 
 ### Key Files Modified
 - **Go Module Migration (NEW)**:
-  - `titan/go.mod` - Updated all 6 dependencies to datadatdat organization
-  - `titan/go.sum` - Updated checksums for new dependency versions
+  - `t1t4n/go.mod` - Updated all 6 dependencies to datadatdat organization
+  - `t1t4n/go.sum` - Updated checksums for new dependency versions
   - All Go source files (`internal/app/**/*.go`) - Updated import statements
-  - `titan.exe` - Added Windows executable for compatibility
+  - `d3.exe` - Added Windows executable for compatibility
 - **Docker Registry Migration**:
-  - `titan/internal/app/clients/Docker.go` - Registry-aware Docker client
-  - `titan/internal/app/providers/local/Install.go` - Registry parameter support
-  - `titan/internal/app/providers/Local.go` - Version management
-  - `titan/Dockerfile` - Updated to use `datadatdat` registry
+  - `t1t4n/internal/app/clients/Docker.go` - Registry-aware Docker client
+  - `t1t4n/internal/app/providers/local/Install.go` - Registry parameter support
+  - `t1t4n/internal/app/providers/Local.go` - Version management
+  - `t1t4n/Dockerfile` - Updated to use `datadatdat` registry
 - **ZFS WSL2 Compatibility**:
-  - `titan-server/src/scripts/zfs.sh` - ZFS built-in kernel detection
+  - `t1t4n-server/src/scripts/zfs.sh` - ZFS built-in kernel detection
 
 ### WSL2 ZFS Issue Details
 - **Problem**: `modprobe zfs` fails because ZFS is compiled into WSL2 kernel
@@ -561,8 +606,8 @@ dependencies {
 - **Verification**: ZFS commands work after device node creation
 
 ### Registry Migration Details
-- **Old**: `titandata/titan:0.8.7`, `titandata/zfs-builder:latest`
-- **New**: `datadatdat/titan:0.8.7`, `datadatdat/zfs-builder:latest`
+- **Old**: `t1t4ndata/t1t4n:0.8.7`, `t1t4ndata/zfs-builder:latest`
+- **New**: `datadatdat/t1t4n:0.8.7`, `datadatdat/zfs-builder:latest`
 - **CLI Support**: Registry parameter passed through Docker client chain
 - **Backward Compatibility**: Default registry can be overridden via CLI flag
 
@@ -570,12 +615,12 @@ dependencies {
 - [x] **Go module dependencies migrated to datadatdat organization** ✅ COMPLETED
 - [x] **All builds and e2e tests pass with new dependencies** ✅ COMPLETED  
 - [x] **Protobuf namespace conflicts resolved** ✅ COMPLETED
-- [x] **Titan CLI builds successfully** ✅ COMPLETED
+- [x] **Datadatdat CLI builds successfully** ✅ COMPLETED
 - [x] **End-to-end test suite passes** ✅ COMPLETED
 - [x] **Complete workspace validation** ✅ COMPLETED - All 29 repositories tested
 - [x] **Cross-platform compatibility** ✅ COMPLETED - Windows/Unix issues resolved
-- [ ] **Unit test coverage added to Titan CLI** - NEW REQUIREMENT
-- [ ] Complete titan installation works in WSL2 without ZFS errors
+- [ ] **Unit test coverage added to Datadatdat CLI** - NEW REQUIREMENT
+- [ ] Complete d3 installation works in WSL2 without ZFS errors
 - [ ] All unit and integration tests pass
 - [ ] Docker images pull from `datadatdat` registry successfully
 - [ ] ZFS operations function correctly in WSL2 environment
@@ -583,9 +628,9 @@ dependencies {
 
 ## Emergency Rollback Plan 🚨
 If issues arise, revert to previous working state:
-1. Change `titanServerVersion` back to "latest" in `Local.go`
+1. Change `t1t4nServerVersion` back to "latest" in `Local.go`
 2. Revert Docker client changes to use hardcoded registry
-3. Use original `titandata` images until fixes are validated
+3. Use original `t1t4ndata` images until fixes are validated
 
 ---
 
@@ -595,16 +640,16 @@ If issues arise, revert to previous working state:
 - ✅ **Infrastructure Tests PASSED** - Registry migration and ZFS WSL2 fixes working perfectly
 - ✅ **Dependency Migration COMPLETED** - All Go modules successfully migrated to datadatdat
 - ✅ **Build System WORKING** - `make build` and `make e2e` both successful
-- ✅ `can install titan: PASSED`
-- ✅ `titan server is running: PASSED` 
-- ✅ `titan launch is running: PASSED`
+- ✅ `can install t1t4n: PASSED`
+- ✅ `d3 server is running: PASSED` 
+- ✅ `d3 launch is running: PASSED`
 
 ### Issues to Address
 
 #### 1. **PostgreSQL Demo Data Corruption** (High Priority)
-- **Problem**: `titan clone s3web://demo.titan-data.io/hello-world/postgres` fails with schema error
+- **Problem**: `d3 clone s3web://demo.datadatdat.com/hello-world/postgres` fails with schema error
 - **Error**: `ERROR: column "timestamp" is of type timestamp without time zone but expression is of type character varying`
-- **Root Cause**: Remote demo data at `s3web://demo.titan-data.io/hello-world/postgres` has corrupted/incompatible SQL
+- **Root Cause**: Remote demo data at `s3web://demo.datadatdat.com/hello-world/postgres` has corrupted/incompatible SQL
 - **Impact**: Breaks `can clone hello-world/postgres` and `can get contents of hello-world/postgres` tests
 - **Solution Needed**: 
   - Create new clean hello-world/postgres demo data
@@ -613,27 +658,27 @@ If issues arise, revert to previous working state:
 
 #### 2. **MongoDB Checkout Test Logic** (Medium Priority)  
 - **Problem**: `mongo-test checkout was successful` test fails
-- **Error**: After `titan checkout`, both Ada Lovelace and Grace Hopper records present, but test expects Grace to be missing
-- **Root Cause**: Either `titan checkout` not working properly, or test assertion logic incorrect
+- **Error**: After `d3 checkout`, both Ada Lovelace and Grace Hopper records present, but test expects Grace to be missing
+- **Root Cause**: Either `d3 checkout` not working properly, or test assertion logic incorrect
 - **Impact**: False negative test failure
 - **Investigation Needed**: Verify if checkout functionality or test expectations are wrong
 
 ### Next Steps 📋
 1. **Fix PostgreSQL Demo Data** - Create clean hello-world/postgres dataset
-2. **Debug MongoDB Checkout** - Verify titan checkout functionality  
+2. **Debug MongoDB Checkout** - Verify d3 checkout functionality  
 3. **Re-run Tests** - Validate all e2e tests pass after fixes
-4. **Update CDN Configuration** - Update `download.titan-data.io` CDN to point to `datadatdat` organization instead of `titan-data`
-   - Currently docker-volume-proxy downloads directly from S3: `https://datadatdat-maven.s3.amazonaws.com/titan-docker-proxy/docker-volume-proxy`
-   - Should be updated to use CDN: `https://download.titan-data.io/titan-docker-proxy/docker-volume-proxy`
-   - See `titan-server/server/docker/server.Dockerfile` for current S3 workaround
+4. **Update CDN Configuration** - Update `download.datadatdat.com` CDN to point to `datadatdat` organization instead of `t1t4n-data`
+   - Currently docker-volume-proxy downloads directly from S3: `https://datadatdat-maven.s3.amazonaws.com/t1t4n-docker-proxy/docker-volume-proxy`
+   - Should be updated to use CDN: `https://download.datadatdat.com/t1t4n-docker-proxy/docker-volume-proxy`
+   - See `t1t4n-server/server/docker/server.Dockerfile` for current S3 workaround
 
 ---
 **Last Updated**: October 9, 2025  
 **Status**: Infrastructure, dependency migration, complete workspace validation, and GitHub Actions workflows ✅ COMPLETED - All core CI/CD issues resolved
 - ��� **Hardcoded Version String** - NEEDS RESOLUTION
-  - **Issue**: Titan CLI version is hardcoded to "0.7.1" in `internal/app/commands/root.go`
+  - **Issue**: Datadatdat CLI version is hardcoded to "0.7.1" in `internal/app/commands/root.go`
   - **Impact**: Binary reports incorrect version regardless of release tag or build VERSION parameter
-  - **Current**: `titan --version` shows "titan version 0.7.1" even for v0.5.0 release
+  - **Current**: `d3 --version` shows "d3 version 0.7.1" even for v0.5.0 release
   - **Solution Needed**: Make version dynamic based on build-time parameter or git tag
   - **Location**: `internal/app/commands/root.go` line with `rootCmd.Version = "0.7.1"`
   - **Priority**: Medium - cosmetic issue but affects user experience and support

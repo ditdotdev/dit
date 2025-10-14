@@ -7,7 +7,7 @@ import (
 	_ "github.com/datadatdat/s3-remote-go/s3"
 	_ "github.com/datadatdat/s3web-remote-go/s3web"
 	_ "github.com/datadatdat/ssh-remote-go/ssh"
-	client "github.com/datadatdat/titan-client-go"
+	client "github.com/datadatdat/datadatdat-client-go"
 	"os"
 	"strconv"
 )

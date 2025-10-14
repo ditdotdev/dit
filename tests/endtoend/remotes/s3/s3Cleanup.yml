@@ -6,7 +6,7 @@ tests:
           - URI
           - REMOTE
   - "remove $REPO":
-      command: titan rm -f $REPO
+      command: d3 rm -f $REPO
       env:
         get:
           - REPO

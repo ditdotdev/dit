@@ -44,7 +44,7 @@ jobs:
         run: |
          docker pull busybox
          docker run busybox uname -a
-      - name: Build Titan
+      - name: Build Datadatdat
         run: make build
         shell: bash
         env:

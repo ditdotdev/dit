@@ -6,14 +6,14 @@ import (
 	"os"
 	"strconv"
 	"time"
-	"titan/internal/app/clients"
+	"datadatdat/internal/app/clients"
 )
 
 func Uninstall(force bool, removeImages bool, context string, port int) {
 	cfg.BasePath = "http://localhost:" + strconv.Itoa(port)
 	docker := clients.Docker(context, port)
 
-	available, _ := docker.TitanServerIsAvailable()
+	available, _ := docker.DatadatdatServerIsAvailable()
 	if available {
 		repos, _, _ := repositoriesApi.ListRepositories(ctx)
 		for _, repo := range repos {
@@ -22,32 +22,32 @@ func Uninstall(force bool, removeImages bool, context string, port int) {
 				os.Exit(1)
 			}
 		}
-		if _, err := docker.Remove("titan-"+context+"-server", true); err != nil {
-			fmt.Printf("Warning: Failed to remove titan server container: %v\n", err)
+		if _, err := docker.Remove("datadatdat-"+context+"-server", true); err != nil {
+			fmt.Printf("Warning: Failed to remove datadatdat server container: %v\n", err)
 		}
 	}
 
 	s := spinner.New(spinner.CharSets[9], 100*time.Millisecond)
 	s.HideCursor = true
 
-	s.Prefix = "Removing Titan Docker volume "
-	s.FinalMSG = "Titan Docker volume removed"
+	s.Prefix = "Removing Datadatdat Docker volume "
+	s.FinalMSG = "Datadatdat Docker volume removed"
 	s.Start()
-	if _, err := docker.RemoveVolume("titan-"+context+"-date", true); err != nil {
-		fmt.Printf("Warning: Failed to remove titan docker volume: %v\n", err)
+	if _, err := docker.RemoveVolume("datadatdat-"+context+"-date", true); err != nil {
+		fmt.Printf("Warning: Failed to remove datadatdat docker volume: %v\n", err)
 	}
 	s.Stop()
 	fmt.Println()
 
 	if removeImages {
-		s.Prefix = "Removing Titan Docker image "
-		s.FinalMSG = "Titan Docker image removed"
+		s.Prefix = "Removing Datadatdat Docker image "
+		s.FinalMSG = "Datadatdat Docker image removed"
 		s.Start()
-		if _, err := docker.RemoveTitanImages("latest"); err != nil {
-			fmt.Printf("Warning: Failed to remove titan docker images: %v\n", err)
+		if _, err := docker.RemoveDatadatdatImages("latest"); err != nil {
+			fmt.Printf("Warning: Failed to remove datadatdat docker images: %v\n", err)
 		}
 		s.Stop()
 		fmt.Println()
 	}
-	fmt.Println("Uninstalled titan infrastructure")
+	fmt.Println("Uninstalled datadatdat infrastructure")
 }

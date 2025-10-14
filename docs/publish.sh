@@ -2,7 +2,7 @@
 
 #
 # This script handles publishing the previously built docs into a clone of
-# the titan-data.github.io repository. It takes the following arguments:
+# the datadatdat.github.io repository. It takes the following arguments:
 #
 # ./publish.sh [-v version] [-f] [-d] [-l] <path>
 #
@@ -17,7 +17,7 @@
 #
 #     -l          Update latest version to point to current verison.
 #
-#     path        Path to the root of the titan-data.github.io repository.
+#     path        Path to the root of the datadatdat.github.io repository.
 #
 
 set -xe
