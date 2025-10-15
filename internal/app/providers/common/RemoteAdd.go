@@ -2,14 +2,15 @@ package common
 
 import (
 	"fmt"
+	"os"
+	"strconv"
+
+	client "github.com/datadatdat/datadatdat-client-go"
 	_ "github.com/datadatdat/nop-remote-go/nop"
 	"github.com/datadatdat/remote-sdk-go/remote"
 	_ "github.com/datadatdat/s3-remote-go/s3"
 	_ "github.com/datadatdat/s3web-remote-go/s3web"
 	_ "github.com/datadatdat/ssh-remote-go/ssh"
-	client "github.com/datadatdat/datadatdat-client-go"
-	"os"
-	"strconv"
 )
 
 func RemoteAdd(repo string, uri string, remoteName string, params map[string]string, port int) {
@@ -26,7 +27,11 @@ func RemoteAdd(repo string, uri string, remoteName string, params map[string]str
 		fmt.Println("remote " + name + " already exists for " + repo)
 		os.Exit(1)
 	}
-	provider, props, _, _, _ := remote.ParseURL(uri, params)
+	provider, props, _, _, err := remote.ParseURL(uri, params)
+	if err != nil {
+		fmt.Printf("Error parsing URI '%s': %v\n", uri, err)
+		os.Exit(1)
+	}
 	r := client.Remote{
 		Provider:   provider,
 		Name:       name,

@@ -2,7 +2,7 @@ tests:
   - "can uninstall datadatdat":
       command: d3 uninstall
       stdout:
-        contains: Uninstalled d3 infrastructure
+        contains: Uninstalled datadatdat infrastructure
   - "d3 server is not running":
       command: docker inspect --type container --format='{{.State.Status}}' datadatdat-docker-server
       exitValue: 1

@@ -39,10 +39,10 @@ tests:
   - "can uninstall context one":
       command: d3 context uninstall one
       stdout:
-        contains: Uninstalled d3 infrastructure
+        contains: Uninstalled datadatdat infrastructure
   - "can uninstall context two":
       command: d3 context uninstall two
       stdout:
-        contains: Uninstalled d3 infrastructure
+        contains: Uninstalled datadatdat infrastructure
 after:
   clearVars: true
