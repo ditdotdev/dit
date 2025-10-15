@@ -1,0 +1,39 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Debug d3 remote add",
+            "type": "go",
+            "request": "launch",
+            "program": "${workspaceFolder}/cmd/datadatdat",
+            "args": [
+                "remote", 
+                "add",
+                "-r",
+                "origin",
+                "s3web://demo-datadatdat/hello-world/postgres",
+                "test-s3web"
+            ],
+            "cwd": "${workspaceFolder}",
+            "console": "integratedTerminal",
+            "env": {},
+            "showLog": true
+        },
+        {
+            "name": "Debug d3 clone",
+            "type": "go",
+            "request": "launch",
+            "program": "${workspaceFolder}/cmd/datadatdat",
+            "args": [
+                "clone",
+                "-n", 
+                "hello-world",
+                "s3web://demo-datadatdat/hello-world/postgres"
+            ],
+            "cwd": "${workspaceFolder}",
+            "console": "integratedTerminal",
+            "env": {},
+            "showLog": true
+        }
+    ]
+}

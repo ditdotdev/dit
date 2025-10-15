@@ -1,6 +1,6 @@
 tests:
   - "can clone hello-world/postgres":
-      command: d3 clone -n hello-world s3web://demo.datadatdat.com/hello-world/postgres
+      command: d3 clone -n hello-world s3web://demo-datadatdat.s3-website-us-east-1.amazonaws.com/hello-world/postgres
       stdout:
         contains:
           - Running controlled container hello-world
@@ -9,12 +9,12 @@ files:
   - ../RemoteWorkflowTests.yml:
       parameters:
         REMOTE: s3
-        URI: s3://datadatdat-testdata/e2etest
+        URI: s3://demo-datadatdat/simple-test
         REPO: hello-world
   - s3Cleanup.yml:
       parameters:
         REMOTE: s3
-        URI: s3://datadatdat-testdata/e2etest
+        URI: s3://demo-datadatdat/simple-test
         REPO: hello-world
 after:
   clearVars: true

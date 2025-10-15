@@ -1,13 +1,14 @@
 package common
 
 import (
+	util "datadatdat/internal/app/utils"
 	"fmt"
-	"github.com/antihax/optional"
-	rm "github.com/datadatdat/remote-sdk-go/remote"
-	datadatdatclient "github.com/datadatdat/datadatdat-client-go"
 	"os"
 	"strconv"
-	util "datadatdat/internal/app/utils"
+
+	"github.com/antihax/optional"
+	datadatdatclient "github.com/datadatdat/datadatdat-client-go"
+	rm "github.com/datadatdat/remote-sdk-go/remote"
 )
 
 func Push(repoName string, guid string, remoteName string, tags []string, metadataOnly bool, port int) {
@@ -31,8 +32,7 @@ func Push(repoName string, guid string, remoteName string, tags []string, metada
 	}
 	remote, _, _ := remotesApi.GetRemote(ctx, repoName, name)
 	commit := datadatdatclient.Commit{
-		Id:         "id",
-		Properties: make(map[string]interface{}),
+		Id: "id",
 	}
 	p, _ := rm.Get(remote.Provider).GetParameters(remote.Properties)
 	params := datadatdatclient.RemoteParameters{

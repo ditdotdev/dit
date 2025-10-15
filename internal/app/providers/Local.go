@@ -151,11 +151,11 @@ func (l local) Upgrade(force bool, version string, finalize bool, path string) {
 }
 
 func Local(contextName string, host string, port int) Provider {
-	return local{
-		contextName:        contextName,
-		host:               host,
-		portNum:            port,
-		datadatdatServerVersion: "0.8.7",
-		dockerRegistryUrl:  "datadatdat",
-	}
+        return local{
+                contextName:        contextName,
+                host:               host,
+                portNum:            port,
+                datadatdatServerVersion: "v1.0.0",
+                dockerRegistryUrl:  "datadatdat",
+        }
 }

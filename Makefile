@@ -14,8 +14,6 @@ LDFLAGS := -ldflags "-X datadatdat/internal/app/commands.Version=$(VERSION)"
 clean:
 	rm -rf $(RELEASE_DIR)
 	rm -rf $(PWD)/build
-	rm -f $(PWD)/d3.exe
-	rm -f $(PWD)/d3
 	go clean -cache -modcache -testcache
 	@echo "Cleaned all build artifacts and caches"
 
