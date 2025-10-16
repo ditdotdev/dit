@@ -14,7 +14,7 @@ tests:
   #     command: [sleep, "30"]
   - "can get contents of hello-world/postgres":
       command: [docker, exec, hello-world, psql, postgres://postgres:postgres@localhost/postgres, -t, -c, SELECT * FROM messages;]
-      stdout: 1 | Hello, World\!
+      stdout: 1 | Hello, World!
   - "can remove hello-world/postgres":
       command: d3 rm -f hello-world
       stdout: |-
