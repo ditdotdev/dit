@@ -13,8 +13,14 @@ type Version struct {
 }
 
 func (Version) FromString(version string) Version {
-	v := strings.Split(version, ".")
-	fmt.Printf("DEBUG Version.FromString: version='%s', split result=%v, length=%d\n", version, v, len(v))
+	// Strip 'v' prefix if present
+	cleanVersion := version
+	if strings.HasPrefix(version, "v") {
+		cleanVersion = strings.TrimPrefix(version, "v")
+	}
+
+	v := strings.Split(cleanVersion, ".")
+	fmt.Printf("DEBUG Version.FromString: version='%s', cleaned='%s', split result=%v, length=%d\n", version, cleanVersion, v, len(v))
 	if len(v) < 3 {
 		// Handle malformed version strings gracefully
 		major, _ := strconv.Atoi(v[0])
