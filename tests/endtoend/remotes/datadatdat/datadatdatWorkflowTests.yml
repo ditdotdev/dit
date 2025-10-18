@@ -1,0 +1,141 @@
+tests:
+  - "verify datadatdat-remote-server is running":
+      command: curl -f http://localhost:8080/health
+      stdout:
+        contains: "ok"
+  - "create test organization in datadatdat-remote-server":
+      command: curl -X POST -f http://localhost:8080/api/v1/orgs -H "Content-Type: application/json" -d '{"name":"testorg"}'
+      stdout:
+        contains: "testorg"
+  - "create test repository in datadatdat-remote-server":
+      command: curl -X POST -f http://localhost:8080/api/v1/repos/testorg/datadatdat-test -H "Content-Type: application/json"
+      stdout:
+        contains: "datadatdat-test"
+  - "run empty mongo db":
+      command: d3 run -n datadatdatTest mongo
+      wait: 10
+      stdout:
+        contains: Running controlled container datadatdatTest
+  - "create new commit":
+      command: [d3, commit, -m, datadatdatTest Commit, datadatdatTest]
+      stdout:
+        contains: Commit
+      env:
+        set:
+          - COMMIT_GUID:
+              split:
+                delimiter: " "
+                position: 1
+  - "add datadatdat remote succeeds":
+      command: d3 remote add http://localhost:8080/testorg/datadatdat-test datadatdatTest
+      stdout:
+        contains: ""
+  - "repo has datadatdat remote":
+      command: d3 remote ls datadatdatTest
+      stdout:
+        contains: http://localhost:8080/testorg/datadatdat-test
+  - "list remote commits returns empty list":
+      command: d3 remote log datadatdatTest
+      stdout:
+        excludes: Commit
+  - "get non-existent remote commit fails":
+      command: d3 pull datadatdatTest
+      exitValue: 1
+      stdout: no commits found in remote, unable to pull latest
+  - "push commit succeeds":
+      command: d3 push datadatdatTest
+      stdout:
+        contains:
+          - Pushing $COMMIT_GUID to 'origin'
+          - Push completed successfully
+      env:
+        get:
+          - COMMIT_GUID
+  - "list remote commits returns pushed commit":
+      command: d3 remote log datadatdatTest
+      stdout:
+        contains:
+          - Commit $COMMIT_GUID
+          - datadatdatTest Commit
+      env:
+        get:
+          - COMMIT_GUID
+  - "push of same commit fails":
+      command: d3 push datadatdatTest
+      exitValue: 1
+      stdout: commit $COMMIT_GUID exists in remote 'origin'
+      env:
+        get:
+          - COMMIT_GUID
+  - "delete local commit succeeds":
+      command: d3 delete -c $COMMIT_GUID datadatdatTest
+      stdout: $COMMIT_GUID deleted
+      env:
+        get:
+          - COMMIT_GUID
+  - "list local commits is empty":
+      command: d3 log datadatdatTest
+      stdout:
+        excludes: Commit
+  - "pull original commit succeeds":
+      command: d3 pull datadatdatTest
+      stdout:
+        contains:
+          - Pulling $COMMIT_GUID from 'origin'
+          - Pull completed successfully
+      env:
+        get:
+          - COMMIT_GUID
+  - "checkout commit succeeds":
+      command: d3 checkout -c $COMMIT_GUID datadatdatTest
+      stdout: |-
+        Stopping container datadatdatTest
+        Checkout $COMMIT_GUID
+        Starting container datadatdatTest
+        $COMMIT_GUID checked out
+      env:
+        get:
+          - COMMIT_GUID
+  - "create second commit":
+      command: [d3, commit, -m, Second datadatdatTest Commit, datadatdatTest]
+      stdout:
+        contains: Commit
+      env:
+        set:
+          - COMMIT_GUID2:
+              split:
+                delimiter: " "
+                position: 1
+  - "push second commit succeeds":
+      command: d3 push datadatdatTest
+      stdout:
+        contains:
+          - Pushing $COMMIT_GUID2 to 'origin'
+          - Push completed successfully
+      env:
+        get:
+          - COMMIT_GUID2
+  - "list remote commits shows both commits":
+      command: d3 remote log datadatdatTest
+      stdout:
+        contains:
+          - Commit $COMMIT_GUID
+          - Commit $COMMIT_GUID2
+          - datadatdatTest Commit
+          - Second datadatdatTest Commit
+      env:
+        get:
+          - COMMIT_GUID
+          - COMMIT_GUID2
+  - "remove remote succeeds":
+      command: d3 remote rm datadatdatTest origin
+      stdout: Removed origin from datadatdatTest
+  - "remove datadatdatTest repository succeeds":
+      command: d3 rm -f datadatdatTest
+      stdout: ""
+  - "cleanup - delete test repository from datadatdat-remote-server":
+      command: curl -X DELETE -f http://localhost:8080/api/v1/repos/testorg/datadatdat-test
+  - "cleanup - delete test organization from datadatdat-remote-server":
+      command: curl -X DELETE -f http://localhost:8080/api/v1/orgs/testorg
+after:
+  clearVars: true
