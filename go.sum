@@ -50,6 +50,8 @@ github.com/cpuguy83/go-md2man/v2 v2.0.6/go.mod h1:oOW0eioCTA6cOiMLiUPZOpcVxMig6N
 github.com/creack/pty v1.1.9/go.mod h1:oKZEueFk5CKHvIhNR5MUki03XCEU+Q6VDXinZuGJ33E=
 github.com/datadatdat/datadatdat-client-go v1.0.0 h1:wrEgi8tQ5ZJkqtAI1ZEvzv654jmZ6Gj5706yf9u+ims=
 github.com/datadatdat/datadatdat-client-go v1.0.0/go.mod h1:wWLmKEF2EU9HpvQu8/wKpOMyNpeei/DkZgcoYbZWLUM=
+github.com/datadatdat/datadatdat-remote-go v1.0.0 h1:bVACipShejjVsr6cMWqT6e/2beGo5QgrIt/hpRCzdRE=
+github.com/datadatdat/datadatdat-remote-go v1.0.0/go.mod h1:sGi+FXnJI+GapOceS+q0CS0pLse7A0qHMOLoZwvcttQ=
 github.com/datadatdat/nop-remote-go v1.0.0 h1:MPr4yL4L0gKiLoXia31R4Qr5DeJeYfBFtkCBFvXi/qw=
 github.com/datadatdat/nop-remote-go v1.0.0/go.mod h1:Rw/m2Z4GIKYscoKePb4fqgxsNAbTLOqNOlOr0Qq/l10=
 github.com/datadatdat/remote-sdk-go v1.0.0 h1:PUOIZbbSDaP/ZWLG8qG2lnmxImj3Qzn/w8x0FN+q6ec=
