@@ -6,6 +6,7 @@ import (
 	"strconv"
 
 	client "github.com/datadatdat/datadatdat-client-go"
+	_ "github.com/datadatdat/datadatdat-remote-go/datadatdat"
 	_ "github.com/datadatdat/nop-remote-go/nop"
 	"github.com/datadatdat/remote-sdk-go/remote"
 	_ "github.com/datadatdat/s3-remote-go/s3"
