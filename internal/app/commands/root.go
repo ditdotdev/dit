@@ -1,11 +1,19 @@
 package commands
 
 import (
+	"datadatdat/internal/app/providers"
 	"fmt"
-	"github.com/spf13/cobra"
 	"os"
 	"os/user"
-	"datadatdat/internal/app/providers"
+
+	"github.com/spf13/cobra"
+
+	// Import remote providers to register them
+	_ "github.com/datadatdat/datadatdat-remote-go/datadatdat"
+	_ "github.com/datadatdat/nop-remote-go/nop"
+	_ "github.com/datadatdat/s3-remote-go/s3"
+	_ "github.com/datadatdat/s3web-remote-go/s3web"
+	_ "github.com/datadatdat/ssh-remote-go/ssh"
 )
 
 var (
@@ -49,7 +57,7 @@ func init() {
 
 	//Global params
 	rootCmd.PersistentFlags().StringVar(&context, "context", "", "DataDatDat Provider Context")
-	rootCmd.Version = Version  // Use dynamic version set at build time
+	rootCmd.Version = Version // Use dynamic version set at build time
 }
 
 // initConfig reads in config file and ENV variables if set.

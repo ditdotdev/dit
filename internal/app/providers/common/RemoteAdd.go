@@ -38,7 +38,11 @@ func RemoteAdd(repo string, uri string, remoteName string, params map[string]str
 		Name:       name,
 		Properties: props,
 	}
-	_, _, _ = remotesApi.CreateRemote(ctx, repo, r)
+	_, _, err = remotesApi.CreateRemote(ctx, repo, r)
+	if err != nil {
+		fmt.Printf("Error creating remote: %v\n", err)
+		os.Exit(1)
+	}
 	m, _, _ := repositoriesApi.GetRepository(ctx, repo)
 	metadata := m.Properties
 	if metadata == nil {
