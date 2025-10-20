@@ -641,15 +641,19 @@ git push origin $VERSION
 **⚠️ DO NOT proceed to publishing until this step passes!**
 
 ```bash
-# Manually trigger the End-to-End Test workflow on the tag
-gh workflow run e2e.yml --ref $VERSION
+# Manually trigger the "End to End Test" workflow on the tag
+# Note: This workflow runs on workflow_dispatch (manual trigger) or nightly schedule
+gh workflow run end-to-end-test.yml --ref $VERSION
 
 # Wait a moment for workflow to start, then monitor it
 sleep 10
 gh run watch
 
 # Alternative: Check workflow status
-gh run list --workflow=e2e.yml --limit 5
+gh run list --workflow=end-to-end-test.yml --limit 5
+
+# Or view in browser
+gh workflow view end-to-end-test.yml --web
 
 # CRITICAL DECISION POINT:
 # ✅ If E2E workflow PASSES → Proceed to step 4.5 (Publish Release)
@@ -1605,7 +1609,7 @@ git tag $VERSION
 git push origin $VERSION
 
 # ⚠️ CRITICAL: Run E2E Test workflow on the tag BEFORE publishing
-gh workflow run e2e.yml --ref $VERSION
+gh workflow run end-to-end-test.yml --ref $VERSION
 sleep 10
 gh run watch  # Monitor until complete
 
