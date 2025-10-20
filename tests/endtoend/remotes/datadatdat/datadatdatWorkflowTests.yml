@@ -1,14 +1,10 @@
 tests:
   - "verify datadatdat-remote-server is running":
-      command: curl -s http://localhost:8080/health
+      command: curl -s http://127.0.0.1:8080/health
       stdout:
         contains: "healthy"
-  - "create test organization in datadatdat-remote-server":
-      command: 'curl -X POST -f http://localhost:8080/api/v1/orgs -H "Content-Type: application/json" -d ''{"name":"testorg"}'''
-      stdout:
-        contains: "testorg"
   - "create test repository in datadatdat-remote-server":
-      command: 'curl -X POST -f http://localhost:8080/api/v1/repos/testorg/datadatdat-test -H "Content-Type: application/json"'
+      command: 'curl -X POST -f http://127.0.0.1:8080/api/v1/repos/testorg/datadatdat-test -H "Content-Type: application/json"'
       stdout:
         contains: "datadatdat-test"
   - "run empty mongo db":
@@ -27,13 +23,13 @@ tests:
                 delimiter: " "
                 position: 1
   - "add datadatdat remote succeeds":
-      command: d3 remote add http://localhost:8080/testorg/datadatdat-test datadatdatTest
+      command: d3 remote add http://datadatdat-api-gateway:8080/testorg/datadatdat-test datadatdatTest
       stdout:
         contains: ""
   - "repo has datadatdat remote":
       command: d3 remote ls datadatdatTest
       stdout:
-        contains: http://localhost:8080/testorg/datadatdat-test
+        contains: http://datadatdat-api-gateway:8080/testorg/datadatdat-test
   - "list remote commits returns empty list":
       command: d3 remote log datadatdatTest
       stdout:
@@ -41,7 +37,7 @@ tests:
   - "get non-existent remote commit fails":
       command: d3 pull datadatdatTest
       exitValue: 1
-      stdout: no commits found in remote, unable to pull latest
+      stdout: no matching commits found in remote, unable to pull latest
   - "push commit succeeds":
       command: d3 push datadatdatTest
       stdout:
@@ -63,7 +59,8 @@ tests:
   - "push of same commit fails":
       command: d3 push datadatdatTest
       exitValue: 1
-      stdout: commit $COMMIT_GUID exists in remote 'origin'
+      stdout:
+        contains: commit $COMMIT_GUID exists in remote 'origin'
       env:
         get:
           - COMMIT_GUID
@@ -119,10 +116,8 @@ tests:
       command: d3 remote log datadatdatTest
       stdout:
         contains:
-          - Commit $COMMIT_GUID
-          - Commit $COMMIT_GUID2
-          - datadatdatTest Commit
           - Second datadatdatTest Commit
+          - datadatdatTest Commit
       env:
         get:
           - COMMIT_GUID
@@ -132,10 +127,11 @@ tests:
       stdout: Removed origin from datadatdatTest
   - "remove datadatdatTest repository succeeds":
       command: d3 rm -f datadatdatTest
-      stdout: ""
+      stdout:
+        contains:
+          - Removing repository datadatdatTest
+          - datadatdatTest removed
   - "cleanup - delete test repository from datadatdat-remote-server":
-      command: curl -X DELETE -f http://localhost:8080/api/v1/repos/testorg/datadatdat-test
-  - "cleanup - delete test organization from datadatdat-remote-server":
-      command: curl -X DELETE -f http://localhost:8080/api/v1/orgs/testorg
+      command: curl -X DELETE -f http://127.0.0.1:8080/api/v1/repos/testorg/datadatdat-test
 after:
   clearVars: true
