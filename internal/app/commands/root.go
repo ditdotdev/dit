@@ -10,11 +10,10 @@ import (
 
 	// Import remote providers to register them
 	_ "github.com/datadatdat/datadatdat-remote-go/datadatdat"
-	// TODO: Uncomment when these providers have their Go packages implemented
-	// _ "github.com/datadatdat/nop-remote-go/nop"
-	// _ "github.com/datadatdat/s3-remote-go/s3"
-	// _ "github.com/datadatdat/s3web-remote-go/s3web"
-	// _ "github.com/datadatdat/ssh-remote-go/ssh"
+	_ "github.com/datadatdat/nop-remote-go/nop"
+	_ "github.com/datadatdat/s3-remote-go/s3"
+	_ "github.com/datadatdat/s3web-remote-go/s3web"
+	_ "github.com/datadatdat/ssh-remote-go/ssh"
 )
 
 var (
