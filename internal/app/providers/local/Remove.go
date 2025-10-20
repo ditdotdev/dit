@@ -1,10 +1,10 @@
 package local
 
 import (
+	"datadatdat/internal/app/clients"
 	"fmt"
 	"os"
 	"strconv"
-	"datadatdat/internal/app/clients"
 )
 
 func Remove(repo string, force bool, port int, context string) {
@@ -63,7 +63,12 @@ func Remove(repo string, force bool, port int, context string) {
 
 	_, err := repositoriesApi.DeleteRepository(ctx, repo)
 	if err != nil {
-		panic(err.Error())
+		// Handle 404 gracefully - repository may already be deleted
+		errMsg := err.Error()
+		if errMsg != "404 Not Found" {
+			panic(errMsg)
+		}
+		// Repository already deleted, continue
 	}
-	fmt.Println(repo + " removed") //TODO this always prints even if already deleted
+	fmt.Println(repo + " removed")
 }

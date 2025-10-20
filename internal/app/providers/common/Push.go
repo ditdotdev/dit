@@ -36,7 +36,6 @@ func Push(repoName string, guid string, remoteName string, tags []string, metada
 	}
 	provider := rm.Get(remote.Provider)
 	p, _ := provider.GetParameters(remote.Properties)
-	fmt.Printf("DEBUG: GetParameters returned: %v\n", p)
 	params := datadatdatclient.RemoteParameters{
 		Provider:   remote.Provider,
 		Properties: p,

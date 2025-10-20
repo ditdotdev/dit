@@ -2,40 +2,186 @@
 
 This document outlines the comprehensive release process for the Datadatdat data management platform. The ecosystem consists of multiple interdependent components that must be released in a specific order to maintain compatibility.
 
+## 🎉 What's New in v1.1.0
+
+### Major Addition: datadatdat-remote-server Platform
+
+**datadatdat-remote-server** is a new microservices platform that provides centralized, cloud-hosted storage for Datadatdat commits - similar to how GitHub hosts Git repositories.
+
+**Key Features:**
+- 🏗️ **6 microservices**: API Gateway, Repository Management, Ingest, Download, Worker, Provider HTTP
+- 📦 **S3-compatible storage**: Uses MinIO for object storage
+- 🔄 **Journal-based indexing**: Eventual consistency for high-throughput writes
+- 🧪 **Comprehensive testing**: 20 E2E tests covering full workflow
+- 🐳 **Docker deployment**: Full stack deployment via Docker Compose
+- 🔌 **Provider integration**: Works seamlessly with d3 CLI
+
+**New Components in v1.1.0:**
+1. **datadatdat-remote-go v1.1.0**: Go plugin for d3 CLI
+2. **datadatdat-remote 1.1.0**: Kotlin client/server providers for datadatdat-server
+3. **datadatdat-remote-server v1.1.0**: 6 Docker images for the microservices platform
+
+### Critical Changes for v1.1.0 Release
+
+**⚠️ New Release Requirements:**
+- **Clean up local development state**: Remove ALL `replace` directives from go.mod files before release
+- **E2E testing requirement**: `make test-datadatdat-workflow` must pass (20/20 tests)
+- **5 remote providers**: Updated count (was 4, now 5 with datadatdat-remote-go)
+- **6 new Docker images**: Published to DockerHub as datadatdat/[service]:v1.1.0
+
+**Testing Strategy:**
+- E2E tests for datadatdat-remote-server are stored in `datadatdat/tests/endtoend/remotes/datadatdat/`
+- Tests validate the complete integration: d3 CLI → datadatdat-server → datadatdat-remote-server
+- All tests must pass both BEFORE and AFTER publishing Docker images
+
+This document outlines the comprehensive release process for the Datadatdat data management platform. The ecosystem consists of multiple interdependent components that must be released in a specific order to maintain compatibility.
+
 ## 🚨 CRITICAL RELEASE CHECKLIST
 
 **Before starting any release, review this checklist:**
 
-- [ ] **Phase 1.1**: Release `remote-sdk-go` with new version (e.g., v0.2.8)
-- [ ] **Phase 1.2**: ⚠️ **CRITICAL** - Update ALL 4 Go remote providers to use the SAME `remote-sdk-go` version
-- [ ] **Phase 1.2**: Release NEW versions of all 4 remote providers
-- [ ] **Phase 2**: Release Kotlin remote providers (if needed)
-- [ ] **Phase 3**: Release `datadatdat-client-go` (if needed)
+### Pre-Release: Clean Up Local Development State
+- [ ] **CRITICAL**: Remove ALL `replace` directives from go.mod files in:
+  - [ ] datadatdat/go.mod
+  - [ ] datadatdat-remote-go/go.mod  
+  - [ ] datadatdat-remote-server/go.mod
+  - [ ] nop-remote-go/go.mod
+  - [ ] s3-remote-go/go.mod
+  - [ ] s3web-remote-go/go.mod
+  - [ ] ssh-remote-go/go.mod
+- [ ] Verify all go.mod files reference published GitHub releases, not local directories
+
+### Phase 1: Foundation
+- [ ] **Phase 1.1**: Release `remote-sdk-go` with new version (v1.1.0)
+- [ ] **Phase 1.2**: ⚠️ **CRITICAL** - Update ALL 6 Go remote providers to use the SAME `remote-sdk-go` version
+- [ ] **Phase 1.2**: Release NEW versions of all 6 remote providers (including datadatdat-remote-go)
+- [ ] **Phase 1.3**: ⚠️ **REQUIRED** - Release `remote-sdk` (Kotlin/Maven) version 1.1.0 BEFORE Phase 2
+
+### Phase 2: Kotlin Providers  
+- [ ] **Phase 2**: Release 6 Kotlin remote providers with version 1.1.0 (NO 'v' prefix)
+- [ ] **Phase 2**: Verify datadatdat-remote publishes BOTH client and server artifacts to Maven
+
+### Phase 3-5: Core Components
+- [ ] **Phase 3**: Release `datadatdat-client-go` v1.1.0 (if needed)
+- [ ] **Phase 4**: Remove replace directives from datadatdat/go.mod
 - [ ] **Phase 4**: Update datadatdat CLI dependencies to use NEW remote provider versions
 - [ ] **Phase 4**: Verify dependency alignment: `go mod graph | grep datadatdat | grep remote-sdk-go`
+- [ ] **Phase 4**: Run `make test-datadatdat-workflow` - ALL tests must pass
 - [ ] **Phase 4**: Release datadatdat CLI with aligned dependencies
-- [ ] **Phase 5**: Release datadatdat-server (if needed)
+- [ ] **Phase 5**: Release datadatdat-server v1.1.0
+
+### Phase 6: Remote Server Platform
+- [ ] **Phase 6.1**: Remove replace directives from datadatdat-remote-server/go.mod
+- [ ] **Phase 6.2**: Run local E2E tests - `make test-datadatdat-workflow` must pass
+- [ ] **Phase 6.3**: Release datadatdat-remote-server v1.1.0 (6 Docker images)
+- [ ] **Phase 6.4**: Verify all 6 Docker images published to DockerHub
+- [ ] **Phase 6.5**: Run E2E tests against released images
+
+### Post-Release: Validation
 - [ ] **Post-Release**: Validate entire ecosystem has consistent dependency versions
+- [ ] **Post-Release**: Full E2E test suite passes: `make e2e`
+- [ ] **Post-Release**: datadatdat remote workflow tests pass: `make test-datadatdat-workflow`
 
-**⚠️ Phase 1.2 was previously missed and caused critical version conflicts requiring emergency patch releases!**
+**⚠️ Phase 1.2 and replace directive cleanup are CRITICAL - missing these causes version conflicts!**
 
-## 🎯 Current v1.0.0 Release Progress
+## �️ New Architecture: datadatdat-remote-server ("GitHub for Data")
 
-### Foundation Components (Phase 1)
-- [x] **remote-sdk-go v1.0.0** - ✅ COMPLETED
-  - Tag created and pushed: `v1.0.0`
-  - GitHub Actions: ✅ Build successful, draft release created
-  - Release published: ✅ Published and marked as latest
-  - Status: Ready for dependent components
+### What is datadatdat-remote-server?
 
-### Next Steps
-- [ ] **Phase 1.2**: Update Go remote providers to use remote-sdk-go v1.0.0
-- [ ] **Phase 1.2**: Fix `go.mod` dependencies and run `go mod tidy`
-- [ ] **Phase 1.2**: Release all 4 Go remote providers (s3, ssh, s3web, nop)
-- [ ] **Phase 2**: Release Kotlin remote providers
-- [ ] **Phase 3**: Release remaining infrastructure and core components
+**datadatdat-remote-server** is to Datadatdat (d3) what **GitHub is to Git**:
+- Just as you can use git with any SSH server (basic) OR use GitHub (web UI, orgs, PRs, collaboration)
+- Users can use d3 with S3/SSH directly (basic) OR use datadatdat-remote-server (web UI, orgs, auth, APIs)
 
-**Last Updated**: October 14, 2025 - remote-sdk-go v1.0.0 published successfully
+### Architecture Overview
+
+**Microservices Platform (6 Docker Images):**
+1. **api-gateway**: Envoy-based API gateway (routing, auth, rate limiting)
+2. **api-repo-manifest**: Repository and manifest management
+3. **api-ingest**: Upload/commit ingestion with multipart support
+4. **api-download**: Download and streaming of commit archives
+5. **worker**: Background processing (index refresh, cleanup, metrics)
+6. **datadatdat-provider-http**: gRPC provider plugin for d3 CLI integration
+
+**Supporting Services:**
+- MinIO (S3-compatible object storage)
+- PostgreSQL (metadata and user management)
+- Grafana + Prometheus (monitoring)
+- OpenTelemetry Collector (distributed tracing)
+
+### End-to-End Testing Strategy
+
+**Critical for Release: E2E Tests in datadatdat Repository**
+
+The E2E tests for datadatdat-remote-server are stored in the **datadatdat** repository (NOT in datadatdat-remote-server):
+- Location: `datadatdat/tests/endtoend/remotes/datadatdat/datadatdatWorkflowTests.yml`
+- Run via: `make test-datadatdat-workflow` (from datadatdat directory)
+- Tests: 20 comprehensive workflow tests covering push/pull/checkout/delete operations
+
+**Why tests are in datadatdat repo:**
+- Tests the full integration: d3 CLI → datadatdat-server → datadatdat-remote-server
+- Validates the complete user workflow from CLI perspective
+- Ensures compatibility between all components
+- Follows the pattern of other remote tests (s3, ssh, s3web)
+
+**Release Requirement:**
+- ALL 20 tests MUST pass before releasing datadatdat-remote-server
+- Tests must pass BOTH before and after publishing Docker images
+- Validates that released images work correctly in real-world scenarios
+
+### Provider Architecture
+
+**Three-Layer Provider System:**
+
+1. **datadatdat-remote-go** (Go plugin for d3 CLI)
+   - Provides URL parsing: `http://localhost:8080/org/repo`
+   - gRPC plugin protocol for d3 CLI integration
+   - Implements remote-sdk-go interface
+   - Published as GitHub release with Go binary
+
+2. **datadatdat-remote** (Kotlin Maven artifacts)
+   - **client artifact**: `datadatdat-remote-client:1.1.0` (URL parsing, validation)
+   - **server artifact**: `datadatdat-remote-server:1.1.0` (HTTP operations, push/pull logic)
+   - Both registered via ServiceLoader in datadatdat-server
+   - Published to S3 Maven repository
+
+3. **datadatdat-provider-http** (Go gRPC service)
+   - Runs as Docker container in datadatdat-remote-server stack
+   - Bridges d3 CLI gRPC calls to HTTP REST APIs
+   - Handles authentication and request routing
+
+**Critical Integration Points:**
+- d3 CLI loads datadatdat-remote-go via go-plugin
+- datadatdat-server loads datadatdat-remote Kotlin providers via ServiceLoader
+- All components must be at compatible versions for E2E tests to pass
+
+## 🎯 Current v1.1.0 Release Progress
+
+### Completed Work (October 2025)
+- [x] **datadatdat-remote-server** - Fully implemented and tested
+  - All 6 microservices operational
+  - E2E tests: 20/20 passing (100%)
+  - Docker Compose deployment working
+  - GitHub Actions CI/CD configured
+  
+- [x] **datadatdat-remote-go v1.0.0** - Published
+  - Full HTTP client implementation
+  - 61 tests, 96% coverage
+  - Integrated with d3 CLI
+  
+- [x] **datadatdat-remote v1.0.0** - Published to Maven
+  - Client and server artifacts published
+  - ServiceLoader registration working
+  - Integrated with datadatdat-server
+
+### Ready for v1.1.0 Release
+- [ ] **Phase 1**: Update and release remote-sdk-go v1.1.0
+- [ ] **Phase 2**: Update and release all Go remote providers v1.1.0
+- [ ] **Phase 3**: Update and release all Kotlin remote providers 1.1.0
+- [ ] **Phase 4**: Release datadatdat CLI v1.1.0
+- [ ] **Phase 5**: Release datadatdat-server v1.1.0
+- [ ] **Phase 6**: Release datadatdat-remote-server v1.1.0 (6 Docker images)
+
+**Last Updated**: October 20, 2025 - Ready for v1.1.0 release
 
 ## Release Dependencies and Order
 
@@ -43,13 +189,15 @@ This document outlines the comprehensive release process for the Datadatdat data
 ```
 remote-sdk-go (foundation)
     ↓
-[s3-remote-go, ssh-remote-go, s3web-remote-go, nop-remote-go] (remote providers)
+[s3-remote-go, ssh-remote-go, s3web-remote-go, nop-remote-go, datadatdat-remote-go] (remote providers)
     ↓
 datadatdat-client-go (auto-generated from datadatdat-server OpenAPI spec)
     ↓
 datadatdat (CLI - depends on all remote providers and client)
     ↓
 datadatdat-server (Docker container with ZFS + PostgreSQL)
+    ↓
+datadatdat-remote-server (Microservices platform - "GitHub for Data")
 ```
 
 ### Release Order (Critical)
@@ -59,26 +207,34 @@ datadatdat-server (Docker container with ZFS + PostgreSQL)
    - ssh-remote-go  
    - s3web-remote-go
    - nop-remote-go
-3. **datadatdat-client-go** - Auto-generated Go client
-4. **datadatdat** - Main CLI (depends on all above)
-5. **datadatdat-server** - Docker container (publishes to DockerHub)
+   - **datadatdat-remote-go** - NEW: Provider for datadatdat-remote-server
+3. **Kotlin remote providers** (can be done in parallel):
+   - s3-remote
+   - ssh-remote
+   - s3web-remote
+   - nop-remote
+   - **datadatdat-remote** - NEW: Server-side provider for datadatdat-remote-server
+4. **datadatdat-client-go** - Auto-generated Go client
+5. **datadatdat** - Main CLI (depends on all above)
+6. **datadatdat-server** - Docker container (publishes to DockerHub)
+7. **datadatdat-remote-server** - NEW: Microservices platform (publishes 6 Docker images)
 
 ### Supporting Components (Independent)
 - **plugin-launcher** - Can be released independently
 - **vexrun** - Testing framework, independent releases
 - **zfs-builder**, **zfs-releases** - ZFS infrastructure, independent
-- **Kotlin remotes** (s3-remote, ssh-remote, etc.) - JVM implementations, independent
 
 ## Version Strategy
 
-### Target Version for v1.0.0 Release
-**ALL components will be standardized to v1.0.0 for this major release:**
-- **datadatdat**: v1.0.0 (main CLI)
-- **datadatdat-server**: v1.0.0 (Docker container `datadatdat/datadatdat:1.0.0`)
-- **datadatdat-client-go**: v1.0.0 (auto-generated client)
-- **remote-sdk-go**: v1.0.0 (foundation SDK)
-- **All Go remote providers**: v1.0.0 (aligned with SDK)
-- **All Kotlin components**: 1.0.0 (Maven artifacts - NO 'v' prefix)
+### Target Version for v1.1.0 Release
+**ALL components will be updated to v1.1.0 for this major release:**
+- **datadatdat**: v1.1.0 (main CLI)
+- **datadatdat-server**: v1.1.0 (Docker container `datadatdat/datadatdat:1.1.0`)
+- **datadatdat-remote-server**: v1.1.0 (6 Docker images: api-gateway, api-repo-manifest, api-ingest, api-download, worker, datadatdat-provider-http)
+- **datadatdat-client-go**: v1.1.0 (auto-generated client)
+- **remote-sdk-go**: v1.1.0 (foundation SDK)
+- **All Go remote providers**: v1.1.0 (including new datadatdat-remote-go)
+- **All Kotlin components**: 1.1.0 (Maven artifacts - NO 'v' prefix, including new datadatdat-remote)
 
 ### CRITICAL: Maven Versioning Requirements
 ⚠️ **Kotlin/Maven repositories MUST use semantic versioning WITHOUT the 'v' prefix:**
@@ -115,9 +271,54 @@ git tag v1.0.0
 
 ### Pre-Release Phase (1-2 days before)
 
+#### 0. Critical: Clean Up Local Development Dependencies
+```bash
+# ⚠️ MUST BE DONE FIRST - Remove all local replace directives
+# During development, we use local replace directives for fast iteration
+# For release, ALL dependencies must reference published GitHub versions
+
+# List of repositories with go.mod files that may have replace directives:
+REPOS=(
+  "datadatdat"
+  "datadatdat-remote-go"
+  "datadatdat-remote-server"
+  "nop-remote-go"
+  "s3-remote-go"
+  "s3web-remote-go"
+  "ssh-remote-go"
+)
+
+# For each repo, check for replace directives
+for repo in "${REPOS[@]}"; do
+  echo "Checking /c/dev/$repo/go.mod"
+  cd /c/dev/$repo
+  
+  # Show any replace directives
+  grep "replace" go.mod || echo "✅ No replace directives found"
+  
+  # If replace directives exist, remove them manually
+  # Then run: go mod tidy
+done
+
+# Example of what to remove from go.mod:
+# replace github.com/datadatdat/datadatdat-remote-go => ../datadatdat-remote-go
+# replace github.com/datadatdat/remote-sdk-go => ../remote-sdk-go
+
+# After removing, ensure dependencies reference published versions:
+# require github.com/datadatdat/remote-sdk-go v1.1.0
+# require github.com/datadatdat/datadatdat-remote-go v1.1.0
+```
+
+**⚠️ Why This Is Critical:**
+- Local replace directives work only on your machine
+- Published releases must use public GitHub versions
+- Users installing d3 CLI can't access your local directories
+- Build failures occur if replace directives reference non-existent paths
+
 #### 1. Pre-Release Planning
 ```bash
 # Determine version increments for all components
+# For this release: v1.1.0 (Go) and 1.1.0 (Kotlin/Maven)
 # Check for breaking changes that require major version bumps
 # Coordinate with team on release timing
 ```
@@ -144,24 +345,51 @@ cd /c/dev/datadatdat-server
 ```bash
 cd /c/dev/remote-sdk-go
 
+# Build the binary (needed for tests on Windows)
+go build -o build/echo.exe ./cmd/echo  # Windows
+go build -o build/echo ./cmd/echo      # Linux/Mac
+
 # Ensure all tests pass
-go test -v ./...
+go test ./...
 
 # Update version and create tag
-export NEW_SDK_VERSION="v0.2.8"  # Increment appropriately - THIS VERSION WILL BE USED BY ALL PROVIDERS
+export NEW_SDK_VERSION="v1.1.0"  # Increment appropriately - THIS VERSION WILL BE USED BY ALL PROVIDERS
 git tag $NEW_SDK_VERSION
 git push origin $NEW_SDK_VERSION
 
-# GitHub Action automatically creates draft release
-# Manually publish the draft release with release notes
+# Wait for GitHub Action to complete successfully
+gh run list --workflow=release.yml --limit 5
+# Look for ✓ status on the v1.1.0 tag
+
+# Verify draft release was created with binary attached
+gh release list --limit 5
+# Should show "v1.1.0  Draft"
+
+gh release view $NEW_SDK_VERSION
+# Verify the echo-linux binary is attached
+
+# Publish the draft release (CRITICAL STEP!)
+gh release edit $NEW_SDK_VERSION --draft=false --latest
+
+# Verify it's published
+gh release list --limit 5
+# Should now show "v1.1.0  Latest"
 ```
+
+**⚠️ CRITICAL STEPS:**
+1. **Build & Test**: All tests must pass before tagging
+2. **Tag & Push**: Creates the tag and triggers GitHub Actions
+3. **Verify Workflow**: Wait for GitHub Actions to complete (✓ status)
+4. **Verify Draft**: Check that draft release exists with binary
+5. **Publish Release**: Use `gh release edit` to publish the draft
+6. **Confirm**: Verify it shows as "Latest" not "Draft"
 
 **⚠️ IMPORTANT:** Note the `$NEW_SDK_VERSION` - this SAME version will be used by ALL remote providers in Step 1.2!
 
 ##### 1.2 Update and Release Remote Providers (Go) - CRITICAL STEP - DO NOT SKIP
 **⚠️ WARNING: This step is MANDATORY and was previously missed, causing version conflicts**
 
-For each provider (s3-remote-go, ssh-remote-go, s3web-remote-go, nop-remote-go):
+For each provider (s3-remote-go, ssh-remote-go, s3web-remote-go, nop-remote-go, datadatdat-remote-go):
 
 ```bash
 cd /c/dev/s3-remote-go  # Repeat for each provider
@@ -171,18 +399,30 @@ go get github.com/datadatdat/remote-sdk-go@$NEW_SDK_VERSION
 go mod tidy
 
 # Run tests to ensure compatibility
-go test -v ./...
+go test ./...
 
-# Create release
-export NEW_PROVIDER_VERSION="v0.2.4"  # Increment appropriately
+# Commit and create release
+export NEW_PROVIDER_VERSION="v1.1.0"  # Use v1.1.0 for this release
 git add go.mod go.sum
 git commit -m "Update remote-sdk-go to $NEW_SDK_VERSION"
-git tag $NEW_PROVIDER_VERSION
 git push origin master
+git tag $NEW_PROVIDER_VERSION
 git push origin $NEW_PROVIDER_VERSION
 
-# GitHub Action automatically creates draft release
-# Manually publish the draft release
+# Wait for GitHub Action to complete
+gh run list --workflow=release.yml --limit 3
+# Look for ✓ status
+
+# Verify and publish draft release
+gh release list --limit 3
+gh release view $NEW_PROVIDER_VERSION
+# Verify binary is attached
+
+# Publish the draft release (CRITICAL!)
+gh release edit $NEW_PROVIDER_VERSION --draft=false --latest
+
+# Verify published
+gh release list --limit 3
 ```
 
 **✅ VALIDATION: After completing all providers, verify version alignment:**
@@ -193,51 +433,122 @@ go get github.com/datadatdat/s3-remote-go@$NEW_PROVIDER_VERSION
 go get github.com/datadatdat/ssh-remote-go@$NEW_PROVIDER_VERSION  
 go get github.com/datadatdat/s3web-remote-go@$NEW_PROVIDER_VERSION
 go get github.com/datadatdat/nop-remote-go@$NEW_PROVIDER_VERSION
+go get github.com/datadatdat/datadatdat-remote-go@$NEW_PROVIDER_VERSION
 go mod tidy
 go mod graph | grep datadatdat | grep remote-sdk-go
 # ALL providers should show the SAME remote-sdk-go version
 ```
 
-#### Phase 2: Kotlin Remote Providers (Maven JARs) - Parallel Process
-
-For each Kotlin remote (s3-remote, ssh-remote, s3web-remote, nop-remote):
+##### 1.3 Release remote-sdk (Kotlin/Maven) - REQUIRED BEFORE KOTLIN PROVIDERS
+**⚠️ WARNING: Kotlin providers depend on this - must be released BEFORE Phase 2!**
 
 ```bash
-cd /c/dev/s3-remote  # Repeat for each Kotlin remote
-
-# Update remote-sdk dependency if needed
-# Edit build.gradle.kts to update version
+cd /c/dev/remote-sdk
 
 # Test build locally
 ./gradlew build test
 
-# Create git tag (triggers automated Maven publishing)
-export NEW_VERSION="v0.2.3"  # Increment appropriately  
-git tag $NEW_VERSION
-git push origin $NEW_VERSION
+# Tag and push (triggers automated Maven publishing)
+export NEW_SDK_VERSION="1.1.0"  # Use 1.1.0 for this release (NO 'v' prefix for Kotlin/Maven!)
+git tag $NEW_SDK_VERSION
+git push origin $NEW_SDK_VERSION
 
 # GitHub Action automatically:
 # - Builds and tests the JAR
 # - Publishes to S3 Maven bucket (datadatdat-maven)
 # - Creates GitHub draft release
+
+# Wait for GitHub Action to complete
+gh run list --workflow=release.yml --limit 3
+# Look for ✓ status
+
+# CRITICAL: Verify artifact was published to S3 Maven bucket
+aws s3 ls s3://datadatdat-maven/com/datadatdat/remote-sdk/1.1.0/
+# Should show files like:
+#   remote-sdk-1.1.0.jar
+#   remote-sdk-1.1.0.pom
+#   remote-sdk-1.1.0-sources.jar
+#   remote-sdk-1.1.0-javadoc.jar
+
+# If artifact is missing, Kotlin providers will fail to build with 403 Forbidden error
 ```
+
+**✅ VALIDATION: Verify remote-sdk 1.1.0 is published to Maven before continuing to Phase 2**
+
+#### Phase 2: Kotlin Remote Providers (Maven JARs) - Parallel Process
+
+For each Kotlin remote (s3-remote, ssh-remote, s3web-remote, nop-remote, delphix-remote, datadatdat-remote):
+
+```bash
+cd /c/dev/s3-remote  # Repeat for each Kotlin remote
+
+# Update remote-sdk dependency if needed
+# (sed command or manual edit of server/build.gradle.kts)
+
+# Test build locally
+./gradlew build test
+
+# Commit changes if needed
+git add server/build.gradle.kts
+git commit -m "Update remote-sdk to 1.1.0"
+git push origin master
+
+# Create git tag (triggers automated Maven publishing)
+git tag 1.1.0
+git push origin 1.1.0
+
+# Wait for GitHub Action to complete
+gh run list --workflow=release.yml --limit 3
+# Look for ✓ status
+
+# CRITICAL: Verify artifact was published to S3 Maven bucket
+aws s3 ls s3://datadatdat-maven/com/datadatdat/s3-remote-server/1.1.0/
+# Should show files like:
+#   s3-remote-server-1.1.0.jar
+#   s3-remote-server-1.1.0.pom
+#   s3-remote-server-1.1.0-sources.jar
+
+# If artifact is missing, DO NOT continue - debug the GitHub Actions workflow
+```
+
+**⚠️ IMPORTANT for datadatdat-remote:**
+The datadatdat-remote repository has TWO Maven artifacts:
+- `datadatdat-remote-client:1.1.0` - Client-side provider for d3 CLI
+- `datadatdat-remote-server:1.1.0` - Server-side provider for datadatdat-server
+
+Both artifacts are published automatically when the tag is pushed.
 
 #### Phase 3: Auto-Generated Client
 
-##### 3.1 Regenerate datadatdat-client-go
+##### 3.1 Release datadatdat-client-go
 ```bash
 cd /c/dev/datadatdat-client-go
 
-# If OpenAPI spec changed, regenerate client
+# If OpenAPI spec changed, regenerate client first
 # (This may be automated or require manual trigger)
 
-# Create release
-export NEW_CLIENT_VERSION="v0.1.4"  # Increment appropriately
-git tag $NEW_CLIENT_VERSION
-git push origin $NEW_CLIENT_VERSION
+# Tag and push release
+git tag v1.1.0
+git push origin v1.1.0
 
-# Simple tag-based release (no artifacts to build)
+# Wait for GitHub Action to complete
+gh run list --workflow=release.yml --limit 3
+# Look for ✓ status
+
+# Verify draft release created
+gh release list --limit 3
+gh release view v1.1.0
+
+# If draft, publish the release
+gh release edit v1.1.0 --draft=false --latest
+
+# Verify published
+gh release list --limit 3
+# Should show "v1.1.0  Latest"
 ```
+
+**Note:** datadatdat-client-go releases are automatically published (not draft) because it's a Go library with no binaries to verify. The workflow creates a draft, runs tests, then immediately publishes. Other Go repos (remote-sdk-go, providers) stay in draft until manually published because they build binaries that should be verified first.
+
 
 #### Phase 4: Main CLI Release
 
@@ -245,28 +556,49 @@ git push origin $NEW_CLIENT_VERSION
 ```bash
 cd /c/dev/datadatdat
 
+# CRITICAL: Remove ALL local replace directives from go.mod before release
+# Check for replace directives
+grep "replace" go.mod
+
+# Remove all replace directives and update to released versions
+# Edit go.mod to remove lines like:
+# replace github.com/datadatdat/datadatdat-remote-go => ../datadatdat-remote-go
+# replace github.com/datadatdat/remote-sdk-go => ../remote-sdk-go
+# etc.
+
 # Update all dependencies to latest released versions
 go get github.com/datadatdat/nop-remote-go@$NEW_PROVIDER_VERSION
 go get github.com/datadatdat/remote-sdk-go@$NEW_SDK_VERSION
 go get github.com/datadatdat/s3-remote-go@$NEW_PROVIDER_VERSION
 go get github.com/datadatdat/s3web-remote-go@$NEW_PROVIDER_VERSION
 go get github.com/datadatdat/ssh-remote-go@$NEW_PROVIDER_VERSION
+go get github.com/datadatdat/datadatdat-remote-go@$NEW_PROVIDER_VERSION
 go get github.com/datadatdat/datadatdat-client-go@$NEW_CLIENT_VERSION
 go mod tidy
 
 # Verify no version conflicts
 go mod graph | grep datadatdat | grep remote-sdk-go
 # All providers should use same remote-sdk-go version
+
+# Commit the dependency updates
+git add go.mod go.sum
+git commit -m "Update dependencies for release $VERSION"
+git push origin master
 ```
 
 ##### 4.2 Test and Build CLI
 ```bash
-# Run full test suite
+# Run full test suite including datadatdat-remote-server E2E tests
 make e2e
 # If tests fail: ./d3.exe uninstall -f && make e2e
 
+# CRITICAL: Test datadatdat remote workflow specifically
+make test-datadatdat-workflow
+# This runs the E2E tests for datadatdat-remote-server integration
+# All 20 tests must pass before proceeding with release
+
 # Build cross-platform releases  
-export VERSION="v0.5.2"  # Increment appropriately
+export VERSION="v1.1.0"  # Use v1.1.0 for this release
 make release
 
 # Creates artifacts in release/ directory:
@@ -327,7 +659,7 @@ cd /c/dev/datadatdat-server
 # Update any version references if needed
 
 # Create tag - this triggers automated publishing
-export NEW_SERVER_VERSION="v0.8.20"  # Increment appropriately
+export NEW_SERVER_VERSION="v1.1.0"  # Use v1.1.0 for this release
 git tag $NEW_SERVER_VERSION
 git push origin $NEW_SERVER_VERSION
 
@@ -339,9 +671,131 @@ git push origin $NEW_SERVER_VERSION
 # - Creates GitHub draft release
 ```
 
-#### Phase 6: Documentation Publication
+#### Phase 6: Datadatdat Remote Server Release ("GitHub for Data" Platform)
 
-##### 6.1 Release Documentation
+##### 6.1 Prepare for Release
+```bash
+cd /c/dev/datadatdat-remote-server
+
+# CRITICAL: Remove local replace directives from go.mod
+# The go.mod file should NOT have any local replace directives for release
+# All dependencies must point to published GitHub releases
+
+# Check current go.mod for replace directives
+grep "replace" go.mod
+
+# If any local replaces exist, remove them and update to use published versions
+# Example: Should have github.com/datadatdat/remote-sdk-go v1.1.0
+# NOT: replace github.com/datadatdat/remote-sdk-go => ../remote-sdk-go
+
+# Update dependencies to released versions
+go get github.com/datadatdat/remote-sdk-go@v1.1.0
+go mod tidy
+
+# Commit the updated go.mod
+git add go.mod go.sum
+git commit -m "Update dependencies for v1.1.0 release"
+git push origin master
+```
+
+##### 6.2 Run Local End-to-End Tests
+```bash
+cd /c/dev/datadatdat-remote-server
+
+# Start the full stack locally
+docker-compose -f deploy/compose/docker-compose.yml up -d
+
+# Wait for all services to be healthy
+sleep 30
+
+# Run integration tests
+make test
+
+# CRITICAL: Run E2E tests from datadatdat CLI
+# These tests are stored in the datadatdat repository
+cd /c/dev/datadatdat
+make test-datadatdat-workflow
+
+# Expected output: All tests should pass (20/20)
+# If tests fail, DO NOT proceed with release until issues are resolved
+
+# Cleanup
+cd /c/dev/datadatdat-remote-server
+docker-compose -f deploy/compose/docker-compose.yml down
+```
+
+##### 6.3 Release datadatdat-remote-server
+```bash
+cd /c/dev/datadatdat-remote-server
+
+# Create tag - this triggers automated publishing
+export NEW_VERSION="v1.1.0"  # Use v1.1.0 for this release
+git tag $NEW_VERSION
+git push origin $NEW_VERSION
+
+# GitHub Action automatically:
+# - Runs linting and unit tests
+# - Builds 6 Docker images in parallel (multi-arch: linux/amd64, linux/arm64):
+#   * datadatdat/api-gateway:v1.1.0 and :latest
+#   * datadatdat/api-repo-manifest:v1.1.0 and :latest
+#   * datadatdat/api-ingest:v1.1.0 and :latest
+#   * datadatdat/api-download:v1.1.0 and :latest
+#   * datadatdat/worker:v1.1.0 and :latest
+#   * datadatdat/datadatdat-provider-http:v1.1.0 and :latest
+# - Publishes all images to DockerHub
+# - Creates GitHub draft release
+```
+
+##### 6.4 Verify Remote Server Release
+```bash
+# Check that all Docker images are published
+docker pull datadatdat/api-gateway:v1.1.0
+docker pull datadatdat/api-repo-manifest:v1.1.0
+docker pull datadatdat/api-ingest:v1.1.0
+docker pull datadatdat/api-download:v1.1.0
+docker pull datadatdat/worker:v1.1.0
+docker pull datadatdat/datadatdat-provider-http:v1.1.0
+
+# Verify tags include both version and latest
+docker pull datadatdat/api-gateway:latest
+
+# Check GitHub release
+gh release view v1.1.0 --repo datadatdat/datadatdat-remote-server
+```
+
+##### 6.5 Post-Release E2E Validation
+```bash
+# CRITICAL: After releasing datadatdat-remote-server, verify E2E tests still pass
+# This ensures the released Docker images work correctly
+
+cd /c/dev/datadatdat
+
+# Update docker-compose to use released images (if needed)
+# In datadatdat-remote-server/deploy/compose/docker-compose.yml
+# Images should reference: datadatdat/api-gateway:v1.1.0 (not :latest during validation)
+
+cd /c/dev/datadatdat-remote-server
+docker-compose -f deploy/compose/docker-compose.yml pull
+docker-compose -f deploy/compose/docker-compose.yml up -d
+
+# Wait for services to be healthy
+sleep 30
+
+# Run E2E tests from datadatdat CLI against released images
+cd /c/dev/datadatdat
+make test-datadatdat-workflow
+
+# Expected: All tests pass (20/20)
+# If tests fail with released images, investigate immediately
+
+# Cleanup
+cd /c/dev/datadatdat-remote-server
+docker-compose -f deploy/compose/docker-compose.yml down
+```
+
+#### Phase 7: Documentation Publication
+
+##### 7.1 Release Documentation
 ```bash
 # Documentation is automatically published when CLI is tagged
 # The .github/workflows/docs-release.yml triggers on d3 CLI tags
@@ -360,10 +814,35 @@ cd /c/dev/datadatdat
 go mod graph | grep datadatdat  # Check all internal dependencies
 go list -m all | grep datadatdat  # Verify versions
 
-# Check for version mismatches in remote-sdk-go
+# CRITICAL: Check for version mismatches in remote-sdk-go
 go mod graph | grep datadatdat | grep remote-sdk-go
-# All remote providers should use the same remote-sdk-go version
-# If mismatches exist, update providers first before releasing CLI
+# Expected output: ALL 5 remote providers should use the SAME remote-sdk-go version
+# Example of CORRECT output:
+#   github.com/datadatdat/s3-remote-go@v1.1.0 github.com/datadatdat/remote-sdk-go@v1.1.0
+#   github.com/datadatdat/ssh-remote-go@v1.1.0 github.com/datadatdat/remote-sdk-go@v1.1.0
+#   github.com/datadatdat/s3web-remote-go@v1.1.0 github.com/datadatdat/remote-sdk-go@v1.1.0
+#   github.com/datadatdat/nop-remote-go@v1.1.0 github.com/datadatdat/remote-sdk-go@v1.1.0
+#   github.com/datadatdat/datadatdat-remote-go@v1.1.0 github.com/datadatdat/remote-sdk-go@v1.1.0
+
+# If mismatches exist, STOP and update providers first before releasing CLI
+
+# Verify no replace directives exist
+grep "replace" go.mod && echo "❌ ERROR: Replace directives found!" || echo "✅ No replace directives"
+```
+
+### 1b. datadatdat-remote-server Dependency Verification
+```bash
+cd /c/dev/datadatdat-remote-server
+
+# Verify no replace directives exist
+grep "replace" go.mod && echo "❌ ERROR: Replace directives found!" || echo "✅ No replace directives"
+
+# Check Go version compatibility
+go version  # Should be Go 1.24+
+
+# Verify dependencies are from GitHub (not local)
+go list -m all | grep datadatdat
+# Should show versions like v1.1.0, NOT local paths
 ```
 
 ## 🚨 CRITICAL: Dependency Conflict Resolution
@@ -413,13 +892,38 @@ go mod graph | grep datadatdat | grep remote-sdk-go
 
 ### 2. End-to-End Testing
 ```bash
+cd /c/dev/datadatdat
+
 # Critical: Run full e2e test suite
 make e2e
 
 # If tests fail due to corrupted state:
 ./d3.exe uninstall -f
 make e2e
+
+# CRITICAL FOR v1.1.0: Test datadatdat-remote-server integration
+# This ensures the new remote server platform works correctly
+make test-datadatdat-workflow
+
+# Expected output: 
+# ✅ All 20 tests passing (100%)
+# Tests cover: health check, repo creation, commit, remote add, push, pull, checkout, cleanup
+
+# If any test fails, DO NOT proceed with release
+# Debug the issue and fix before continuing
 ```
+
+**Test Breakdown:**
+- Health check (1 test)
+- Repository management (1 test)  
+- Local operations (2 tests)
+- Remote configuration (2 tests)
+- Push operations (2 tests)
+- Pull operations (2 tests)
+- Checkout operations (1 test)
+- Multi-commit workflow (3 tests)
+- Cleanup operations (2 tests)
+- Error handling (4 tests)
 
 ### 3. Docker Image Verification
 ```bash
@@ -477,6 +981,53 @@ Create a master script that:
 
 ## Troubleshooting Common Issues
 
+### Issue: Replace directives still present after cleanup
+**Symptom**: Build fails with "module declares its path as ... but was required as ..."
+**Solution**:
+```bash
+# Find all go.mod files with replace directives
+cd /c/dev
+find . -name "go.mod" -exec grep -l "replace" {} \;
+
+# For each file found, manually remove replace directives
+# Then run: go mod tidy
+```
+
+### Issue: datadatdat-remote-server E2E tests failing
+**Symptom**: `make test-datadatdat-workflow` shows failures
+**Common Causes:**
+1. **datadatdat-remote-server not running**
+   ```bash
+   cd /c/dev/datadatdat-remote-server
+   docker-compose -f deploy/compose/docker-compose.yml ps
+   # All services should show "healthy" status
+   ```
+
+2. **Version mismatch between components**
+   ```bash
+   # Check d3 CLI is using correct provider versions
+   cd /c/dev/datadatdat
+   go list -m github.com/datadatdat/datadatdat-remote-go
+   # Should show v1.1.0, not v1.0.0 or local path
+   ```
+
+3. **Port conflicts**
+   ```bash
+   # Check if ports 8080, 9000, 5432 are available
+   netstat -an | grep :8080
+   netstat -an | grep :9000
+   netstat -an | grep :5432
+   ```
+
+4. **Old Docker images cached**
+   ```bash
+   # Clear old images and restart
+   cd /c/dev/datadatdat-remote-server
+   docker-compose -f deploy/compose/docker-compose.yml down -v
+   docker-compose -f deploy/compose/docker-compose.yml pull
+   docker-compose -f deploy/compose/docker-compose.yml up -d
+   ```
+
 ### Issue: Failed e2e tests after dependency updates
 **Solution**:
 ```bash
@@ -485,7 +1036,7 @@ make e2e  # Retry tests
 ```
 
 ### Issue: Version conflicts in go.mod  
-**Example**: d3 depends on remote-sdk-go v0.2.5 but providers still use v0.2.4
+**Example**: d3 depends on remote-sdk-go v1.1.0 but providers still use v1.0.0
 **Solution**:
 ```bash
 # Check for version mismatches
@@ -493,10 +1044,24 @@ go mod graph | grep datadatdat | grep remote-sdk-go
 
 # If mismatches found, update providers first before releasing CLI
 cd /c/dev/s3-remote-go
-go get github.com/datadatdat/remote-sdk-go@v0.2.5
+go get github.com/datadatdat/remote-sdk-go@v1.1.0
 go mod tidy
-# Repeat for all providers, then release them before CLI
+git add go.mod go.sum
+git commit -m "Update remote-sdk-go to v1.1.0"
+git push
 
+# Repeat for ALL 5 providers:
+# - s3-remote-go
+# - ssh-remote-go  
+# - s3web-remote-go
+# - nop-remote-go
+# - datadatdat-remote-go
+
+# Then release ALL providers before CLI
+# Finally update CLI dependencies
+cd /c/dev/datadatdat
+go get github.com/datadatdat/s3-remote-go@v1.1.0
+# ... (repeat for all providers)
 go mod download
 go mod tidy
 go clean -modcache  # If persistent issues
@@ -839,10 +1404,10 @@ build:
 
 #### 3. Release Process Integration
 The `release.sh` script now:
-- Sets `VERSION=1.0.0` environment variable
+- Sets `VERSION=1.1.0` environment variable
 - Uses `make release` with proper version injection
 - Generates correctly versioned release artifacts
-- Ensures CLI reports correct version: `d3 version 1.0.0`
+- Ensures CLI reports correct version: `d3 version 1.1.0`
 
 #### 4. Usage Examples
 ```bash
@@ -850,12 +1415,12 @@ The `release.sh` script now:
 make build
 
 # Versioned build
-export VERSION="1.0.0"
+export VERSION="1.1.0"
 make build
-./build/d3 --version  # Shows "d3 version 1.0.0"
+./build/d3 --version  # Shows "d3 version 1.1.0"
 
 # Release build (automated by release.sh)
-./release.sh  # Builds with v1.0.0 across all platforms
+./release.sh  # Builds with v1.1.0 across all platforms
 ```
 
 ### Impact
@@ -864,4 +1429,204 @@ make build
 - ✅ Release artifacts correctly named with version
 - ✅ User support improved with accurate version reporting
 - ✅ Automated via release script
+
+---
+
+## 🚀 Quick Reference: v1.1.0 Release Commands
+
+### Complete Release Script (Copy-Paste Ready)
+
+```bash
+# Set version variables
+export NEW_SDK_VERSION="v1.1.0"
+export NEW_PROVIDER_VERSION="v1.1.0"
+export NEW_CLIENT_VERSION="v1.1.0"
+export VERSION="v1.1.0"
+export KOTLIN_VERSION="1.1.0"  # No 'v' prefix for Maven
+
+# ========================================
+# PHASE 0: Clean Up Local Development State
+# ========================================
+
+# Remove replace directives from all go.mod files
+cd /c/dev/datadatdat && sed -i '/^replace/d' go.mod && go mod tidy
+cd /c/dev/datadatdat-remote-go && sed -i '/^replace/d' go.mod && go mod tidy
+cd /c/dev/datadatdat-remote-server && sed -i '/^replace/d' go.mod && go mod tidy
+cd /c/dev/nop-remote-go && sed -i '/^replace/d' go.mod && go mod tidy
+cd /c/dev/s3-remote-go && sed -i '/^replace/d' go.mod && go mod tidy
+cd /c/dev/s3web-remote-go && sed -i '/^replace/d' go.mod && go mod tidy
+cd /c/dev/ssh-remote-go && sed -i '/^replace/d' go.mod && go mod tidy
+
+# ========================================
+# PHASE 1: Foundation - remote-sdk-go
+# ========================================
+
+cd /c/dev/remote-sdk-go
+go test -v ./...
+git tag $NEW_SDK_VERSION
+git push origin $NEW_SDK_VERSION
+# Wait for GitHub Action, then publish draft release
+
+# ========================================
+# PHASE 2: Go Remote Providers (All 5)
+# ========================================
+
+for provider in s3-remote-go ssh-remote-go s3web-remote-go nop-remote-go datadatdat-remote-go; do
+  cd /c/dev/$provider
+  go get github.com/datadatdat/remote-sdk-go@$NEW_SDK_VERSION
+  go mod tidy
+  go test -v ./...
+  git add go.mod go.sum
+  git commit -m "Update remote-sdk-go to $NEW_SDK_VERSION"
+  git push origin master
+  git tag $NEW_PROVIDER_VERSION
+  git push origin $NEW_PROVIDER_VERSION
+  # Wait for GitHub Action, then publish draft release
+done
+
+# ========================================
+# PHASE 3: Kotlin Remote Providers (All 5)
+# ========================================
+
+for provider in s3-remote ssh-remote s3web-remote nop-remote datadatdat-remote; do
+  cd /c/dev/$provider
+  ./gradlew build test
+  git tag $KOTLIN_VERSION
+  git push origin $KOTLIN_VERSION
+  # GitHub Action automatically publishes to Maven
+done
+
+# ========================================
+# PHASE 4: datadatdat-client-go (if needed)
+# ========================================
+
+cd /c/dev/datadatdat-client-go
+git tag $NEW_CLIENT_VERSION
+git push origin $NEW_CLIENT_VERSION
+
+# ========================================
+# PHASE 5: datadatdat CLI
+# ========================================
+
+cd /c/dev/datadatdat
+
+# Update all dependencies
+go get github.com/datadatdat/remote-sdk-go@$NEW_SDK_VERSION
+go get github.com/datadatdat/s3-remote-go@$NEW_PROVIDER_VERSION
+go get github.com/datadatdat/ssh-remote-go@$NEW_PROVIDER_VERSION
+go get github.com/datadatdat/s3web-remote-go@$NEW_PROVIDER_VERSION
+go get github.com/datadatdat/nop-remote-go@$NEW_PROVIDER_VERSION
+go get github.com/datadatdat/datadatdat-remote-go@$NEW_PROVIDER_VERSION
+go get github.com/datadatdat/datadatdat-client-go@$NEW_CLIENT_VERSION
+go mod tidy
+
+# Verify no conflicts
+go mod graph | grep datadatdat | grep remote-sdk-go
+
+# Test
+make e2e
+make test-datadatdat-workflow  # ALL 20 tests must pass
+
+# Build and release
+make release
+git add go.mod go.sum
+git commit -m "Update dependencies for release $VERSION"
+git push origin master
+git tag $VERSION
+git push origin $VERSION
+
+# Create GitHub release (use gh CLI or web UI)
+
+# ========================================
+# PHASE 6: datadatdat-server
+# ========================================
+
+cd /c/dev/datadatdat-server
+git tag $VERSION
+git push origin $VERSION
+# GitHub Action automatically publishes Docker image
+
+# ========================================
+# PHASE 7: datadatdat-remote-server
+# ========================================
+
+cd /c/dev/datadatdat-remote-server
+
+# Update dependencies
+go get github.com/datadatdat/remote-sdk-go@$NEW_SDK_VERSION
+go mod tidy
+
+# Test locally
+docker-compose -f deploy/compose/docker-compose.yml up -d
+sleep 30
+make test
+cd /c/dev/datadatdat && make test-datadatdat-workflow
+cd /c/dev/datadatdat-remote-server
+docker-compose -f deploy/compose/docker-compose.yml down
+
+# Release
+git add go.mod go.sum
+git commit -m "Update dependencies for v1.1.0 release"
+git push origin master
+git tag $VERSION
+git push origin $VERSION
+# GitHub Action automatically publishes 6 Docker images
+
+# ========================================
+# PHASE 8: Post-Release Validation
+# ========================================
+
+# Verify Docker images
+docker pull datadatdat/datadatdat:v1.1.0
+docker pull datadatdat/api-gateway:v1.1.0
+docker pull datadatdat/api-repo-manifest:v1.1.0
+docker pull datadatdat/api-ingest:v1.1.0
+docker pull datadatdat/api-download:v1.1.0
+docker pull datadatdat/worker:v1.1.0
+docker pull datadatdat/datadatdat-provider-http:v1.1.0
+
+# Test with released images
+cd /c/dev/datadatdat-remote-server
+docker-compose -f deploy/compose/docker-compose.yml pull
+docker-compose -f deploy/compose/docker-compose.yml up -d
+sleep 30
+cd /c/dev/datadatdat && make test-datadatdat-workflow
+cd /c/dev/datadatdat-remote-server
+docker-compose -f deploy/compose/docker-compose.yml down
+
+echo "✅ v1.1.0 Release Complete!"
+```
+
+### Key Validation Commands
+
+```bash
+# Check for replace directives (should be empty)
+grep -r "^replace" /c/dev/*/go.mod
+
+# Verify dependency alignment
+cd /c/dev/datadatdat
+go mod graph | grep datadatdat | grep remote-sdk-go
+
+# Run E2E tests
+cd /c/dev/datadatdat
+make test-datadatdat-workflow
+
+# Check CLI version
+./d3 --version  # Should show: d3 version 1.1.0
+```
+
+### Rollback Procedure
+
+If issues are discovered after release:
+
+```bash
+# Delete problematic tags
+git tag -d v1.1.0
+git push origin --delete v1.1.0
+
+# Delete GitHub releases (via web UI or gh CLI)
+gh release delete v1.1.0 --yes
+
+# Fix issues, then re-release with patch version v1.1.1
+```
 
