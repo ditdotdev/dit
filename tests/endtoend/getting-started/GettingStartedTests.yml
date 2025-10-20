@@ -10,8 +10,8 @@ tests:
       stdout: |-
         CONTEXT       REPOSITORY            STATUS
         docker        hello-world           running
-  # - "wait for hello-world container to be ready":
-  #     command: [sleep, "30"]
+  - "wait for hello-world container to be ready":
+      command: [sleep, "30"]
   - "can get contents of hello-world/postgres":
       command: [docker, exec, hello-world, psql, postgres://postgres:postgres@localhost/postgres, -t, -c, SELECT * FROM messages;]
       stdout: 1 | Hello, World!
