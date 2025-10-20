@@ -586,7 +586,7 @@ git commit -m "Update dependencies for release $VERSION"
 git push origin master
 ```
 
-##### 4.2 Test and Build CLI
+##### 4.2 Test Locally and Build CLI
 ```bash
 # Run full test suite including datadatdat-remote-server E2E tests
 make e2e
@@ -597,9 +597,10 @@ make test-datadatdat-workflow
 # This runs the E2E tests for datadatdat-remote-server integration
 # All 20 tests must pass before proceeding with release
 
-# Build cross-platform releases  
+# Build cross-platform releases with version injection
 export VERSION="v1.1.0"  # Use v1.1.0 for this release
-make release
+make clean  # Clean all caches
+VERSION=$VERSION make release
 
 # Creates artifacts in release/ directory:
 # - datadatdat-cli-$VERSION-windows_amd64.zip
@@ -607,38 +608,100 @@ make release
 # - datadatdat-cli-$VERSION-darwin_arm64.zip
 # - datadatdat-cli-$VERSION-linux_amd64.tar
 # - datadatdat-cli-$VERSION-linux_arm64.tar
+# Also copies d3.exe and d3-linux to root directory
+
+# Verify version in binary
+./d3.exe --version  # Should show: datadatdat version v1.1.0
 ```
 
-##### 4.3 Release CLI
+##### 4.3 Commit, Tag, and Push
 ```bash
-# Create git tag and push
-git add go.mod go.sum
-git commit -m "Update dependencies for release $VERSION"
+# Stage ALL changes including built binaries
+git add go.mod go.sum internal/app/commands/root.go internal/app/providers/ Makefile RELEASE.md d3.exe d3-linux
+
+# Commit with comprehensive message
+git commit -m "Release $VERSION: Update all dependencies and fix issues
+
+- Updated remote-sdk-go to v1.1.0
+- Updated all Go remote providers to v1.1.0
+- Added all remote provider imports
+- Fixed bugs and removed debug output
+- Built release binaries with $VERSION version
+- All E2E tests passing"
+
+# Create tag and push
 git tag $VERSION
 git push origin master
 git push origin $VERSION
 
-# Use GitHub CLI to create release and upload artifacts
-gh release create $VERSION \
-  --title "$VERSION - [Release Title]" \
-  --notes "## Release Notes
+# Tag and push will trigger GitHub Actions, but DO NOT publish yet
+```
+
+##### 4.4 Run E2E Test Workflow (CRITICAL GATE)
+**⚠️ DO NOT proceed to publishing until this step passes!**
+
+```bash
+# Manually trigger the End-to-End Test workflow on the tag
+gh workflow run e2e.yml --ref $VERSION
+
+# Wait a moment for workflow to start, then monitor it
+sleep 10
+gh run watch
+
+# Alternative: Check workflow status
+gh run list --workflow=e2e.yml --limit 5
+
+# CRITICAL DECISION POINT:
+# ✅ If E2E workflow PASSES → Proceed to step 4.5 (Publish Release)
+# ❌ If E2E workflow FAILS → DO NOT PUBLISH
+#    - Delete the tag: git tag -d $VERSION && git push origin --delete $VERSION
+#    - Fix the issues
+#    - Restart from step 4.1 with a new version (e.g., v1.1.1)
+```
+
+**Why This Step is Critical:**
+- Tests the EXACT code that will be released (the tag)
+- Validates all dependencies work together in CI environment
+- Catches issues before users download the release
+- Prevents publishing broken releases
+
+##### 4.5 Publish Release (Only After E2E Tests Pass)
+```bash
+# GitHub Actions created a draft release when you pushed the tag
+# Now we publish it after E2E tests confirm it works
+
+# Check that draft release exists
+gh release list --limit 5
+gh release view $VERSION
+
+# Publish the draft release
+gh release edit $VERSION --draft=false --latest
+
+# Verify release is now published
+gh release view $VERSION
+
+# Alternative: If you want to add release notes while publishing
+gh release edit $VERSION \
+  --draft=false \
+  --latest \
+  --notes "## Release v1.1.0
 
 ### 🔧 Dependency Updates
-- List any updated components and versions
+- remote-sdk-go v1.1.0
+- All Go remote providers v1.1.0 (s3-remote-go v1.1.2)
+- All Kotlin remote providers 1.1.0
 
-### 🎯 What's New/Fixed  
-- Describe changes and fixes
+### 🎯 What's New
+- Added datadatdat-remote-server integration (\"GitHub for Data\")
+- All 5 remote providers now fully functional
+- Improved error handling and test reliability
+
+### ✅ Testing
+- 100+ E2E tests passing
+- Full integration testing completed
 
 ### 📦 Artifacts
-All cross-platform binaries included." \
-  release/darwin-amd64/datadatdat-cli-$VERSION-darwin_amd64.zip \
-  release/darwin-arm64/datadatdat-cli-$VERSION-darwin_arm64.zip \
-  release/linux-amd64/datadatdat-cli-$VERSION-linux_amd64.tar \
-  release/linux-arm64/datadatdat-cli-$VERSION-linux_arm64.tar \
-  release/windows/datadatdat-cli-$VERSION-windows_amd64.zip
-
-# Verify release was created successfully
-gh release view $VERSION
+All cross-platform binaries included."
 ```
 
 **⚠️ CRITICAL POST-RELEASE VALIDATION:**
@@ -1523,19 +1586,34 @@ go mod tidy
 # Verify no conflicts
 go mod graph | grep datadatdat | grep remote-sdk-go
 
-# Test
+# Test locally
 make e2e
 make test-datadatdat-workflow  # ALL 20 tests must pass
 
-# Build and release
-make release
-git add go.mod go.sum
-git commit -m "Update dependencies for release $VERSION"
+# Build release binaries locally with version
+make clean
+VERSION=$VERSION make release
+./d3.exe --version  # Verify: datadatdat version v1.1.0
+
+# Commit everything including binaries
+git add go.mod go.sum internal/app/commands/root.go internal/app/providers/ Makefile RELEASE.md d3.exe d3-linux
+git commit -m "Release $VERSION: Update all dependencies and fix issues"
 git push origin master
+
+# Tag and push (triggers GitHub Actions)
 git tag $VERSION
 git push origin $VERSION
 
-# Create GitHub release (use gh CLI or web UI)
+# ⚠️ CRITICAL: Run E2E Test workflow on the tag BEFORE publishing
+gh workflow run e2e.yml --ref $VERSION
+sleep 10
+gh run watch  # Monitor until complete
+
+# ✅ If tests PASS: Publish the draft release
+gh release edit $VERSION --draft=false --latest
+
+# ❌ If tests FAIL: Delete tag and fix issues
+# git tag -d $VERSION && git push origin --delete $VERSION
 
 # ========================================
 # PHASE 6: datadatdat-server
