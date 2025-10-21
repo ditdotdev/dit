@@ -1,19 +1,20 @@
 package providers
 
 import (
+	"datadatdat/internal/app"
+	cmn "datadatdat/internal/app/providers/common"
+	k8s "datadatdat/internal/app/providers/kubernetes"
 	"fmt"
 	"os"
 	"strings"
-	cmn "datadatdat/internal/app/providers/common"
-	k8s "datadatdat/internal/app/providers/kubernetes"
 )
 
 type kubernetes struct {
-	contextName           string
-	host                  string
-	portNum               int
+	contextName             string
+	host                    string
+	portNum                 int
 	datadatdatServerVersion string
-	dockerRegistryUrl     string
+	dockerRegistryUrl       string
 }
 
 func (k kubernetes) GetType() string {
@@ -136,10 +137,10 @@ func (k kubernetes) Upgrade(force bool, version string, finalize bool, path stri
 
 func Kubernetes(contextName string, host string, port int) Provider {
 	return kubernetes{
-		contextName:        contextName,
-		host:               host,
-		portNum:            port,
-		datadatdatServerVersion: "0.8.1",
-		dockerRegistryUrl:  "datadatdat",
+		contextName:             contextName,
+		host:                    host,
+		portNum:                 port,
+		datadatdatServerVersion: app.DatadatdatVersion,
+		dockerRegistryUrl:       "datadatdat",
 	}
 }

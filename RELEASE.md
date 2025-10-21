@@ -580,14 +580,9 @@ go mod tidy
 # Verify no version conflicts
 go mod graph | grep datadatdat | grep remote-sdk-go
 # All providers should use same remote-sdk-go version
-
-# Commit the dependency updates
-git add go.mod go.sum
-git commit -m "Update dependencies for release $VERSION"
-git push origin master
 ```
 
-##### 4.2 Test Locally and Build CLI
+##### 4.2 Test Locally
 ```bash
 # Run full test suite including datadatdat-remote-server E2E tests
 make e2e
@@ -597,8 +592,11 @@ make e2e
 make test-datadatdat-workflow
 # This runs the E2E tests for datadatdat-remote-server integration
 # All 20 tests must pass before proceeding with release
+```
 
-# Build cross-platform releases with version injection
+##### 4.3 Build Release Artifacts
+```bash
+# CRITICAL: Build BEFORE committing - this updates d3.exe and d3-linux in root
 export VERSION="v1.1.0"  # Use v1.1.0 for this release
 make clean  # Clean all caches
 VERSION=$VERSION make release
@@ -609,15 +607,22 @@ VERSION=$VERSION make release
 # - datadatdat-cli-$VERSION-darwin_arm64.zip
 # - datadatdat-cli-$VERSION-linux_amd64.tar
 # - datadatdat-cli-$VERSION-linux_arm64.tar
-# Also copies d3.exe and d3-linux to root directory
+
+# IMPORTANT: Also copies d3.exe and d3-linux to ROOT directory
+# These root binaries should be committed as part of the release
 
 # Verify version in binary
 ./d3.exe --version  # Should show: datadatdat version v1.1.0
 ```
 
-##### 4.3 Commit, Tag, and Push
+##### 4.4 Commit, Tag, and Push
 ```bash
-# Stage ALL changes including built binaries
+# Stage ALL changes including:
+# - Dependency updates (go.mod, go.sum)
+# - Code changes (if any)
+# - Built binaries in ROOT (d3.exe, d3-linux) - CRITICAL!
+# - Release artifacts stay in release/ directory (not committed)
+
 git add go.mod go.sum internal/app/commands/root.go internal/app/providers/ Makefile RELEASE.md d3.exe d3-linux
 
 # Commit with comprehensive message
@@ -630,12 +635,15 @@ git commit -m "Release $VERSION: Update all dependencies and fix issues
 - Built release binaries with $VERSION version
 - All E2E tests passing"
 
-# Create tag and push
-git tag $VERSION
+# Push commits first
 git push origin master
+
+# Create tag and push (triggers GitHub Actions to create draft release)
+git tag $VERSION
 git push origin $VERSION
 
-# Tag and push will trigger GitHub Actions, but DO NOT publish yet
+# GitHub Actions will create a DRAFT release automatically
+# DO NOT publish yet - we need to run E2E tests first
 ```
 
 ##### 4.4 Run E2E Test Workflow (CRITICAL GATE)
@@ -1677,17 +1685,20 @@ go mod graph | grep datadatdat | grep remote-sdk-go
 make e2e
 make test-datadatdat-workflow  # ALL 20 tests must pass
 
-# Build release binaries locally with version
+# CRITICAL: Build release binaries BEFORE committing
+# This updates d3.exe and d3-linux in the root directory
 make clean
 VERSION=$VERSION make release
 ./d3.exe --version  # Verify: datadatdat version v1.1.0
 
-# Commit everything including binaries
+# Commit everything INCLUDING the built binaries in root
 git add go.mod go.sum internal/app/commands/root.go internal/app/providers/ Makefile RELEASE.md d3.exe d3-linux
 git commit -m "Release $VERSION: Update all dependencies and fix issues"
+
+# Push commits FIRST
 git push origin master
 
-# Tag and push (triggers GitHub Actions)
+# Then create and push tag (triggers GitHub Actions to create DRAFT release)
 git tag $VERSION
 git push origin $VERSION
 
