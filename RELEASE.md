@@ -9,25 +9,25 @@ This document outlines the comprehensive release process for the Datadatdat data
 **datadatdat-remote-server** is a new microservices platform that provides centralized, cloud-hosted storage for Datadatdat commits - similar to how GitHub hosts Git repositories.
 
 **Key Features:**
-- 🏗️ **6 microservices**: API Gateway, Repository Management, Ingest, Download, Worker, Provider HTTP
+- 🏗️ **5 microservices**: API Gateway, Repository Management, Ingest, Download, Worker
 - 📦 **S3-compatible storage**: Uses MinIO for object storage
 - 🔄 **Journal-based indexing**: Eventual consistency for high-throughput writes
 - 🧪 **Comprehensive testing**: 20 E2E tests covering full workflow
 - 🐳 **Docker deployment**: Full stack deployment via Docker Compose
-- 🔌 **Provider integration**: Works seamlessly with d3 CLI
+- 🔌 **Provider integration**: Works seamlessly with d3 CLI via datadatdat-remote-go
 
 **New Components in v1.1.0:**
-1. **datadatdat-remote-go v1.1.0**: Go plugin for d3 CLI
+1. **datadatdat-remote-go v1.1.0**: Go plugin for d3 CLI to communicate with datadatdat-remote-server
 2. **datadatdat-remote 1.1.0**: Kotlin client/server providers for datadatdat-server
-3. **datadatdat-remote-server v1.1.0**: 6 Docker images for the microservices platform
+3. **datadatdat-remote-server v1.1.0**: 5 Docker images for the microservices platform
 
 ### Critical Changes for v1.1.0 Release
 
 **⚠️ New Release Requirements:**
 - **Clean up local development state**: Remove ALL `replace` directives from go.mod files before release
 - **E2E testing requirement**: `make test-datadatdat-workflow` must pass (20/20 tests)
-- **5 remote providers**: Updated count (was 4, now 5 with datadatdat-remote-go)
-- **6 new Docker images**: Published to DockerHub as datadatdat/[service]:v1.1.0
+- **6 remote providers**: Updated count (was 5, now 6 with datadatdat-remote-go)
+- **5 new Docker images**: Published to GHCR as ghcr.io/datadatdat/[service]:v1.1.0
 
 **Testing Strategy:**
 - E2E tests for datadatdat-remote-server are stored in `datadatdat/tests/endtoend/remotes/datadatdat/`
@@ -94,11 +94,12 @@ This document outlines the comprehensive release process for the Datadatdat data
 
 ### Architecture Overview
 
-**Microservices Platform (6 Docker Images):**
+**Microservices Platform (5 Docker Images):**
 1. **api-gateway**: Envoy-based API gateway (routing, auth, rate limiting)
 2. **api-repo-manifest**: Repository and manifest management
 3. **api-ingest**: Upload/commit ingestion with multipart support
 4. **api-download**: Download and streaming of commit archives
+5. **worker**: Background processing for async tasks
 5. **worker**: Background processing (index refresh, cleanup, metrics)
 6. **datadatdat-provider-http**: gRPC provider plugin for d3 CLI integration
 
@@ -791,62 +792,96 @@ cd /c/dev/datadatdat-remote-server
 docker-compose -f deploy/compose/docker-compose.yml down
 ```
 
-##### 6.3 Release datadatdat-remote-server
+##### 6.3 Release datadatdat-remote-server to GHCR
 ```bash
 cd /c/dev/datadatdat-remote-server
 
-# Create tag - this triggers automated publishing
+# IMPORTANT: Ensure datadatdat v1.1.0 is already released (Phase 4)
+# The workflow checks out both repos at matching version for E2E testing
+
+# Create tag - this triggers automated build, test, and publish
 export NEW_VERSION="v1.1.0"  # Use v1.1.0 for this release
 git tag $NEW_VERSION
 git push origin $NEW_VERSION
 
 # GitHub Action automatically:
-# - Runs linting and unit tests
-# - Builds 6 Docker images in parallel (multi-arch: linux/amd64, linux/arm64):
-#   * datadatdat/api-gateway:v1.1.0 and :latest
-#   * datadatdat/api-repo-manifest:v1.1.0 and :latest
-#   * datadatdat/api-ingest:v1.1.0 and :latest
-#   * datadatdat/api-download:v1.1.0 and :latest
-#   * datadatdat/worker:v1.1.0 and :latest
-#   * datadatdat/datadatdat-provider-http:v1.1.0 and :latest
-# - Publishes all images to DockerHub
-# - Creates GitHub draft release
+# Job 1: Build
+#   - Builds 5 Docker images (linux/amd64):
+#     * ghcr.io/datadatdat/api-gateway:v1.1.0 and :latest
+#     * ghcr.io/datadatdat/api-repo-manifest:v1.1.0 and :latest
+#     * ghcr.io/datadatdat/api-ingest:v1.1.0 and :latest
+#     * ghcr.io/datadatdat/api-download:v1.1.0 and :latest
+#     * ghcr.io/datadatdat/worker:v1.1.0 and :latest
+#   - Saves images as artifacts
+#
+# Job 2: E2E Testing (CRITICAL - tests before publish!)
+#   - Checks out datadatdat-remote-server at v1.1.0
+#   - Checks out datadatdat at v1.1.0 (requires GO_MODULES_TOKEN secret)
+#   - Loads built Docker images
+#   - Builds datadatdat CLI
+#   - Installs OpenZFS
+#   - Starts datadatdat-remote-server stack with built images
+#   - Runs make test-datadatdat-workflow (20 E2E tests)
+#   - Tests must pass 100% before proceeding
+#
+# Job 3: Publish to GHCR (only if tests pass)
+#   - Authenticates to ghcr.io using GITHUB_TOKEN
+#   - Pushes all version tags (v1.1.0)
+#   - Pushes all latest tags
+#   - Creates GitHub draft release with deployment instructions
 ```
 
-##### 6.4 Verify Remote Server Release
+##### 6.4 Authenticate to GHCR and Verify Release
 ```bash
-# Check that all Docker images are published
-docker pull datadatdat/api-gateway:v1.1.0
-docker pull datadatdat/api-repo-manifest:v1.1.0
-docker pull datadatdat/api-ingest:v1.1.0
-docker pull datadatdat/api-download:v1.1.0
-docker pull datadatdat/worker:v1.1.0
-docker pull datadatdat/datadatdat-provider-http:v1.1.0
+# Authenticate to GitHub Container Registry
+# You need a GitHub Personal Access Token with read:packages scope
+echo $GITHUB_TOKEN | docker login ghcr.io -u YOUR_GITHUB_USERNAME --password-stdin
 
-# Verify tags include both version and latest
-docker pull datadatdat/api-gateway:latest
+# OR: Use gh CLI to automatically authenticate
+gh auth token | docker login ghcr.io -u $(gh api user -q .login) --password-stdin
+
+# Pull all published images from GHCR (private registry)
+docker pull ghcr.io/datadatdat/api-gateway:v1.1.0
+docker pull ghcr.io/datadatdat/api-repo-manifest:v1.1.0
+docker pull ghcr.io/datadatdat/api-ingest:v1.1.0
+docker pull ghcr.io/datadatdat/api-download:v1.1.0
+docker pull ghcr.io/datadatdat/worker:v1.1.0
+
+# Verify latest tags are also available
+docker pull ghcr.io/datadatdat/api-gateway:latest
 
 # Check GitHub release
 gh release view v1.1.0 --repo datadatdat/datadatdat-remote-server
+
+# Verify all 5 images are listed in the release notes
 ```
 
-##### 6.5 Post-Release E2E Validation
+##### 6.5 Deploy and Test with GHCR Images
 ```bash
-# CRITICAL: After releasing datadatdat-remote-server, verify E2E tests still pass
-# This ensures the released Docker images work correctly
+# CRITICAL: Verify the released images work correctly
 
-cd /c/dev/datadatdat
+cd /c/dev/datadatdat-remote-server/deploy/compose
 
-# Update docker-compose to use released images (if needed)
-# In datadatdat-remote-server/deploy/compose/docker-compose.yml
-# Images should reference: datadatdat/api-gateway:v1.1.0 (not :latest during validation)
+# Authenticate to GHCR (if not already done)
+gh auth token | docker login ghcr.io -u $(gh api user -q .login) --password-stdin
 
-cd /c/dev/datadatdat-remote-server
-docker-compose -f deploy/compose/docker-compose.yml pull
-docker-compose -f deploy/compose/docker-compose.yml up -d
+# Create .env file to use GHCR and specific version
+cat > .env << 'EOF'
+REGISTRY=ghcr.io/
+VERSION=v1.1.0
+EOF
+
+# Pull the released images
+docker-compose pull
+
+# Start the stack
+docker-compose up -d
 
 # Wait for services to be healthy
 sleep 30
+
+# Check service status
+docker-compose ps
 
 # Run E2E tests from datadatdat CLI against released images
 cd /c/dev/datadatdat
@@ -856,8 +891,56 @@ make test-datadatdat-workflow
 # If tests fail with released images, investigate immediately
 
 # Cleanup
-cd /c/dev/datadatdat-remote-server
-docker-compose -f deploy/compose/docker-compose.yml down
+cd /c/dev/datadatdat-remote-server/deploy/compose
+docker-compose down -v
+
+# Remove .env file to go back to local development mode
+rm .env
+```
+
+##### 6.6 Deployment Options Reference
+
+**Option 1: Build from Source (Development)**
+```bash
+cd /c/dev/datadatdat-remote-server/deploy/compose
+
+# No .env file needed - uses build contexts by default
+docker-compose build
+docker-compose up -d
+```
+
+**Option 2: Pull from GHCR - Specific Version (Production)**
+```bash
+cd /c/dev/datadatdat-remote-server/deploy/compose
+
+# Create .env file
+cat > .env << 'EOF'
+REGISTRY=ghcr.io/
+VERSION=v1.1.0
+EOF
+
+# Authenticate to GHCR
+gh auth token | docker login ghcr.io -u $(gh api user -q .login) --password-stdin
+
+# Pull and start
+docker-compose pull
+docker-compose up -d
+```
+
+**Option 3: Pull from GHCR - Latest (Testing)**
+```bash
+cd /c/dev/datadatdat-remote-server/deploy/compose
+
+# Create .env file
+cat > .env << 'EOF'
+REGISTRY=ghcr.io/
+VERSION=latest
+EOF
+
+# Authenticate and pull
+gh auth token | docker login ghcr.io -u $(gh api user -q .login) --password-stdin
+docker-compose pull
+docker-compose up -d
 ```
 
 #### Phase 7: Documentation Publication
