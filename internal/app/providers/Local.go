@@ -1,12 +1,13 @@
 package providers
 
 import (
-	"fmt"
-	"os"
-	"strings"
+	"datadatdat/internal/app"
 	cmn "datadatdat/internal/app/providers/common"
 	lcl "datadatdat/internal/app/providers/local"
 	"datadatdat/internal/app/utils"
+	"fmt"
+	"os"
+	"strings"
 )
 
 var ce = utils.CommandExecutor(60, false)
@@ -15,11 +16,11 @@ var user, _ = ce.Exec("git", "config", "user.name")
 var email, _ = ce.Exec("git", "config", "user.email")
 
 type local struct {
-	contextName           string
-	host                  string
-	portNum               int
+	contextName             string
+	host                    string
+	portNum                 int
 	datadatdatServerVersion string
-	dockerRegistryUrl     string
+	dockerRegistryUrl       string
 }
 
 func (l local) GetType() string {
@@ -151,11 +152,11 @@ func (l local) Upgrade(force bool, version string, finalize bool, path string) {
 }
 
 func Local(contextName string, host string, port int) Provider {
-        return local{
-                contextName:        contextName,
-                host:               host,
-                portNum:            port,
-                datadatdatServerVersion: "v1.0.0",
-                dockerRegistryUrl:  "datadatdat",
-        }
+	return local{
+		contextName:             contextName,
+		host:                    host,
+		portNum:                 port,
+		datadatdatServerVersion: app.DatadatdatVersion,
+		dockerRegistryUrl:       "datadatdat",
+	}
 }

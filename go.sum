@@ -48,8 +48,8 @@ github.com/census-instrumentation/opencensus-proto v0.2.1/go.mod h1:f6KPmirojxKA
 github.com/client9/misspell v0.3.4/go.mod h1:qj6jICC3Q7zFZvVWo7KLAzC3yx5G7kyvSDkc90ppPyw=
 github.com/cpuguy83/go-md2man/v2 v2.0.6/go.mod h1:oOW0eioCTA6cOiMLiUPZOpcVxMig6NIQQ7OS05n1F4g=
 github.com/creack/pty v1.1.9/go.mod h1:oKZEueFk5CKHvIhNR5MUki03XCEU+Q6VDXinZuGJ33E=
-github.com/datadatdat/datadatdat-client-go v1.0.0 h1:wrEgi8tQ5ZJkqtAI1ZEvzv654jmZ6Gj5706yf9u+ims=
-github.com/datadatdat/datadatdat-client-go v1.0.0/go.mod h1:wWLmKEF2EU9HpvQu8/wKpOMyNpeei/DkZgcoYbZWLUM=
+github.com/datadatdat/datadatdat-client-go v1.1.0 h1:CROHQsGJX/EUQYuLtCkVRo6+RZpuA8FuxOugND1pSUY=
+github.com/datadatdat/datadatdat-client-go v1.1.0/go.mod h1:wWLmKEF2EU9HpvQu8/wKpOMyNpeei/DkZgcoYbZWLUM=
 github.com/datadatdat/datadatdat-remote-go v1.1.0 h1:VuepwUQ/H1p4YkKJHCamicT22jIgmbl8f8lCkmcdCzQ=
 github.com/datadatdat/datadatdat-remote-go v1.1.0/go.mod h1:shOzMaEJBlSQ41q2xaEW6n26vzfbyUgKHM7jcHszi1k=
 github.com/datadatdat/nop-remote-go v1.1.0 h1:RHBrtfsMaVgqb3kTPNovkT4UXl6jw2Ii/oe3zB3bikY=

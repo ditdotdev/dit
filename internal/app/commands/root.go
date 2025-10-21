@@ -1,6 +1,7 @@
 package commands
 
 import (
+	"datadatdat/internal/app"
 	"datadatdat/internal/app/providers"
 	"fmt"
 	"os"
@@ -34,7 +35,8 @@ var (
 )
 
 // Version will be set at build time via -ldflags
-var Version = "dev"
+// This is an alias to app.DatadatdatVersion for backwards compatibility
+var Version = app.DatadatdatVersion
 
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{

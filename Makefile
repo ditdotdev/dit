@@ -7,7 +7,7 @@ OS := "macos-latest"
 
 # Version injection for build-time version setting
 VERSION ?= dev
-LDFLAGS := -ldflags "-X datadatdat/internal/app/commands.Version=$(VERSION)"
+LDFLAGS := -ldflags "-X datadatdat/internal/app.DatadatdatVersion=$(VERSION)"
 
 .PHONY: build release darwin-amd64 darwin-arm64 linux-amd64 linux-arm64 windows clean
 
