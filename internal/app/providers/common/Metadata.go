@@ -195,7 +195,32 @@ func (m Metadata) MapV1(metaMap map[string]interface{}) Metadata {
 	var tags map[string]string
 	v, ok := metaMap["tags"]
 	if ok {
-		tags = v.(map[string]string)
+		// Tags can be either []interface{} (from JSON array) or map[string]string
+		switch t := v.(type) {
+		case map[string]interface{}:
+			// Convert map[string]interface{} to map[string]string
+			tags = make(map[string]string)
+			for k, v := range t {
+				if str, ok := v.(string); ok {
+					tags[k] = str
+				}
+			}
+		case []interface{}:
+			// Convert array format ["key:value", "key2"] to map
+			tags = make(map[string]string)
+			for _, item := range t {
+				if tagStr, ok := item.(string); ok {
+					parts := strings.SplitN(tagStr, ":", 2)
+					if len(parts) == 2 {
+						tags[parts[0]] = parts[1]
+					} else {
+						tags[tagStr] = ""
+					}
+				}
+			}
+		default:
+			tags = nil
+		}
 	} else {
 		tags = nil
 	}
