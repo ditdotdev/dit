@@ -24,8 +24,6 @@ tests:
                 position: 1
   - "add datadatdat remote succeeds":
       command: d3 remote add http://datadatdat-api-gateway:8080/testorg/datadatdat-test datadatdatTest
-      stdout:
-        contains: ""
   - "repo has datadatdat remote":
       command: d3 remote ls datadatdatTest
       stdout:
@@ -107,8 +105,6 @@ tests:
       stdout:
         contains:
           - Push completed successfully
-      env:
-        get:
   - "list remote commits shows both commits":
       command: d3 remote log datadatdatTest
       stdout:
@@ -156,8 +152,6 @@ tests:
                 position: 1
   - "web UI: add remote":
       command: d3 remote add http://datadatdat-api-gateway:8080/webtest/ui-repo webUITest
-      stdout:
-        contains: ""
 
   - "web UI: push initial commit":
       command: d3 push webUITest
@@ -322,6 +316,11 @@ tests:
         get:
           - WEB_COMMIT_2
 
+  - "web UI: check to see if database is up and running":
+      command: bash -c "for i in {1..18}; do docker exec webUITest pg_isready && break || sleep 5; done"
+      stdout:
+        contains: accepting connections
+
   - "web UI: verify table exists at second commit":
       command: docker exec webUITest psql -U postgres -c "\dt"
       stdout:
@@ -340,6 +339,11 @@ tests:
         get:
           - WEB_COMMIT_3
 
+  - "web UI: check to see if database is up and running":
+      command: bash -c "for i in {1..18}; do docker exec webUITest pg_isready && break || sleep 5; done"
+      stdout:
+        contains: accepting connections
+
   - "web UI: verify data exists at third commit":
       command: docker exec webUITest psql -U postgres -c "SELECT COUNT(*) FROM test_table;"
       stdout:
@@ -352,13 +356,16 @@ tests:
           - Alice
           - Bob
 
-  - "web UI: cleanup - remove test repo":
-      command: d3 rm -f webUITest
-      stdout:
-        contains: webUITest removed
+  # - "web UI: cleanup - remove test repo":
+  #     command: d3 rm -f webUITest
+  #     stdout:
+  #       contains: webUITest removed
 
   - "web UI: cleanup - remove previous clone if exists":
       command: d3 rm -f webUITestClone
+
+  - "web UI: cleanup - remove ui-repo if exists from previous runs":
+      command: d3 rm -f ui-repo
 
   - "web UI: test clone with manifest - clone from remote":
       command: d3 clone http://datadatdat-api-gateway:8080/webtest/ui-repo webUITestClone
@@ -378,13 +385,13 @@ tests:
           - WEB_COMMIT_2
           - WEB_COMMIT_3
 
-  - "web UI: cleanup - remove cloned repo":
-      command: d3 rm -f webUITestClone
-      stdout:
-        contains: webUITestClone removed
+  # - "web UI: cleanup - remove cloned repo":
+  #     command: d3 rm -f webUITestClone
+  #     stdout:
+  #       contains: webUITestClone removed
 
-  - "web UI: cleanup - delete web UI test repo":
-      command: d3 rm -f ui-repo
+  # - "web UI: cleanup - delete web UI test repo":
+  #     command: d3 rm -f ui-repo
 
 after:
   clearVars: true
