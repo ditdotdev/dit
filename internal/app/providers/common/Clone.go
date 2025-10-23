@@ -1,16 +1,17 @@
 package common
 
 import (
+	"datadatdat/internal/app/clients"
+	"datadatdat/internal/app/providers/local"
 	"fmt"
-	"github.com/antihax/optional"
-	"github.com/datadatdat/remote-sdk-go/remote"
-	client "github.com/datadatdat/datadatdat-client-go"
 	"net/url"
 	"os"
 	"strconv"
 	"strings"
-	"datadatdat/internal/app/clients"
-	"datadatdat/internal/app/providers/local"
+
+	"github.com/antihax/optional"
+	client "github.com/datadatdat/datadatdat-client-go"
+	"github.com/datadatdat/remote-sdk-go/remote"
 )
 
 func Clone(uri string, repo string, guid string, params []string, args []string, disablePortMap bool, tags []string, port int, context string) {
@@ -81,24 +82,26 @@ func Clone(uri string, repo string, guid string, params []string, args []string,
 			}
 		}
 		metadata := Metadata{}.Load(commit.Properties)
-		_, err = docker.InspectImage(metadata.image.Digest)
+		// Construct image reference from image name and tag
+		imageRef := metadata.image.Image + ":" + metadata.image.Tag
+		_, err = docker.InspectImage(imageRef)
 		if err != nil {
-			_, err = docker.Pull(metadata.image.Digest)
+			_, err = docker.Pull(imageRef)
 			if err != nil {
-				fmt.Println("Unable to find image " + metadata.image.Digest + " for " + metadata.image.Image)
+				fmt.Println("Unable to find image " + imageRef + " for " + metadata.image.Image)
 				os.Exit(1)
 			}
 		}
-		_, err = docker.Pull(metadata.image.Digest)
+		_, err = docker.Pull(imageRef)
 		if err != nil {
-			fmt.Printf("Failed to pull image %s: %v\n", metadata.image.Digest, err)
+			fmt.Printf("Failed to pull image %s: %v\n", imageRef, err)
 			os.Exit(1)
 		}
 		var envs []string
 		for _, v := range metadata.environment {
 			envs = append(envs, fmt.Sprintf("%v", v))
 		}
-		m, err := local.Run(metadata.image.Digest, repoName, envs, args, disablePortMap, false, port, context)
+		m, err := local.Run(imageRef, repoName, envs, args, disablePortMap, false, port, context)
 		if err == nil {
 			fmt.Println(m)
 			Pull(repoName, commit.Id, "", make([]string, 0), false, port)

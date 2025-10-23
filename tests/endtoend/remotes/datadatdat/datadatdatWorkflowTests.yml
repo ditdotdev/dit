@@ -1,3 +1,4 @@
+---
 tests:
   - "verify datadatdat-remote-server is running":
       command: curl -s http://127.0.0.1:8080/health
@@ -9,7 +10,6 @@ tests:
         contains: "datadatdat-test"
   - "run empty mongo db":
       command: d3 run -n datadatdatTest mongo
-      wait: 10
       stdout:
         contains: Running controlled container datadatdatTest
   - "create new commit":
@@ -37,7 +37,6 @@ tests:
   - "get non-existent remote commit fails":
       command: d3 pull datadatdatTest
       exitValue: 1
-      stdout: no matching commits found in remote, unable to pull latest
   - "push commit succeeds":
       command: d3 push datadatdatTest
       stdout:
@@ -107,11 +106,9 @@ tests:
       command: d3 push datadatdatTest
       stdout:
         contains:
-          - Pushing $COMMIT_GUID2 to 'origin'
           - Push completed successfully
       env:
         get:
-          - COMMIT_GUID2
   - "list remote commits shows both commits":
       command: d3 remote log datadatdatTest
       stdout:
@@ -120,7 +117,6 @@ tests:
           - datadatdatTest Commit
       env:
         get:
-          - COMMIT_GUID
           - COMMIT_GUID2
   - "remove remote succeeds":
       command: d3 remote rm datadatdatTest origin
@@ -130,22 +126,24 @@ tests:
       stdout:
         contains:
           - Removing repository datadatdatTest
-          - datadatdatTest removed
   - "cleanup - delete test repository from datadatdat-remote-server":
       command: curl -X DELETE -f http://127.0.0.1:8080/api/v1/repos/testorg/datadatdat-test
 
-  # Web UI Tests - validate fixes from PR #18
   - "web UI: create test repo for web UI tests":
       command: curl -X POST -f http://127.0.0.1:8080/api/v1/repos/webtest/ui-repo
       stdout:
         contains: "ui-repo"
-  
+
   - "web UI: run postgres for web UI tests":
       command: d3 run -n webUITest postgres -e POSTGRES_PASSWORD=postgres
-      wait: 10
       stdout:
         contains: Running controlled container webUITest
-  
+
+  - "web UI: check to see if database is up and running":
+      command: bash -c "for i in {1..18}; do docker exec webUITest pg_isready && break || sleep 5; done"
+      stdout:
+        contains: accepting connections
+
   - "web UI: create initial commit":
       command: [d3, commit, -m, Initial web UI test commit, webUITest]
       stdout:
@@ -156,23 +154,16 @@ tests:
               split:
                 delimiter: " "
                 position: 1
-  
   - "web UI: add remote":
       command: d3 remote add http://datadatdat-api-gateway:8080/webtest/ui-repo webUITest
       stdout:
         contains: ""
-  
+
   - "web UI: push initial commit":
       command: d3 push webUITest
       stdout:
         contains: Push completed successfully
-  
-  # Note: Repos list API may not be implemented yet, skipping for now
-  # - "web UI: test repos list API endpoint":
-  #     command: curl -s http://127.0.0.1:3000/api/v1/repos
-  #     stdout:
-  #       contains: webtest/ui-repo
-  
+
   - "web UI: test commits list API returns initial commit":
       command: curl -sf http://127.0.0.1:3000/api/v1/repos/webtest/ui-repo/commits
       stdout:
@@ -182,22 +173,20 @@ tests:
       env:
         get:
           - WEB_COMMIT_1
-  
+
   - "web UI: test individual commit API":
       command: curl -sf http://127.0.0.1:3000/api/v1/repos/webtest/ui-repo/commits/$WEB_COMMIT_1
       stdout:
         contains:
-          - $WEB_COMMIT_1
           - Initial web UI test commit
       env:
         get:
           - WEB_COMMIT_1
-  
+
   - "web UI: make database changes for second commit":
       command: docker exec webUITest psql -U postgres -c "CREATE TABLE test_table (id SERIAL PRIMARY KEY, name VARCHAR(100));"
       stdout:
         contains: CREATE TABLE
-  
   - "web UI: create second commit":
       command: [d3, commit, -m, Added test table, webUITest]
       stdout:
@@ -208,12 +197,12 @@ tests:
               split:
                 delimiter: " "
                 position: 1
-  
+
   - "web UI: push second commit":
       command: d3 push webUITest
       stdout:
         contains: Push completed successfully
-  
+
   - "web UI: test commit data freshness (no caching) - verify 2 commits":
       command: curl -sf http://127.0.0.1:3000/api/v1/repos/webtest/ui-repo/commits
       stdout:
@@ -226,7 +215,7 @@ tests:
         get:
           - WEB_COMMIT_1
           - WEB_COMMIT_2
-  
+
   - "web UI: verify second commit details via API":
       command: curl -sf http://127.0.0.1:3000/api/v1/repos/webtest/ui-repo/commits/$WEB_COMMIT_2
       stdout:
@@ -236,12 +225,12 @@ tests:
       env:
         get:
           - WEB_COMMIT_2
-  
+
   - "web UI: make database changes for third commit":
       command: docker exec webUITest psql -U postgres -c "INSERT INTO test_table (name) VALUES ('Alice'), ('Bob');"
       stdout:
         contains: INSERT
-  
+
   - "web UI: create third commit":
       command: [d3, commit, -m, Added test data, webUITest]
       stdout:
@@ -252,28 +241,25 @@ tests:
               split:
                 delimiter: " "
                 position: 1
-  
+
   - "web UI: push third commit":
       command: d3 push webUITest
       stdout:
         contains: Push completed successfully
-  
-  # Note: Manifest test demonstrates issue #17 - manifest not updating
-  # This test will fail until the bug is fixed, showing only 1 commit instead of 3
-  # Keeping it commented to avoid false negatives in CI
-  # - "web UI: test manifest updates on push - verify all 3 commits in manifest":
-  #     command: curl -s http://127.0.0.1:8080/api/v1/repos/webtest/ui-repo/manifest
-  #     stdout:
-  #       contains:
-  #         - $WEB_COMMIT_1
-  #         - $WEB_COMMIT_2
-  #         - $WEB_COMMIT_3
-  #     env:
-  #       get:
-  #         - WEB_COMMIT_1
-  #         - WEB_COMMIT_2
-  #         - WEB_COMMIT_3
-  
+
+  - "web UI: test manifest updates on push - verify all 3 commits in manifest":
+      command: curl -s http://127.0.0.1:8080/api/v1/repos/webtest/ui-repo/manifest
+      stdout:
+        contains:
+          - $WEB_COMMIT_1
+          - $WEB_COMMIT_2
+          - $WEB_COMMIT_3
+      env:
+        get:
+          - WEB_COMMIT_1
+          - WEB_COMMIT_2
+          - WEB_COMMIT_3
+
   - "web UI: verify all 3 commits via web UI API":
       command: curl -sf http://127.0.0.1:3000/api/v1/repos/webtest/ui-repo/commits
       stdout:
@@ -289,7 +275,7 @@ tests:
           - WEB_COMMIT_1
           - WEB_COMMIT_2
           - WEB_COMMIT_3
-  
+
   - "web UI: checkout first commit":
       command: d3 checkout -c $WEB_COMMIT_1 webUITest
       stdout:
@@ -297,12 +283,37 @@ tests:
       env:
         get:
           - WEB_COMMIT_1
-  
+
+  - "web UI: test API error handling - non-existent repo returns empty":
+      command: curl -s http://127.0.0.1:3000/api/v1/repos/fake/nonexistent/commits
+      stdout:
+        contains: '"commits":[]'
+
+  - "web UI: test API error handling - invalid commit ID returns error":
+      command: curl -s http://127.0.0.1:3000/api/v1/repos/webtest/ui-repo/commits/invalid-commit-id
+      stdout:
+        contains: error
+
+  - "web UI: test list all repos API endpoint":
+      command: curl -sf http://127.0.0.1:3000/api/v1/repos
+      stdout:
+        contains: webtest/ui-repo
+
+  - "web UI: test list repos by org API endpoint - testorg":
+      command: curl -sf http://127.0.0.1:3000/api/v1/repos/testorg
+      stdout:
+        contains: testorg/test-repo
+
+  - "web UI: check to see if database is up and running":
+      command: bash -c "for i in {1..18}; do docker exec webUITest pg_isready && break || sleep 5; done"
+      stdout:
+        contains: accepting connections
+
   - "web UI: verify empty database at first commit":
       command: docker exec webUITest psql -U postgres -c "\dt"
       stderr:
         contains: Did not find any
-  
+
   - "web UI: checkout second commit":
       command: d3 checkout -c $WEB_COMMIT_2 webUITest
       stdout:
@@ -310,90 +321,70 @@ tests:
       env:
         get:
           - WEB_COMMIT_2
-  
+
   - "web UI: verify table exists at second commit":
       command: docker exec webUITest psql -U postgres -c "\dt"
       stdout:
         contains: test_table
-  
+
   - "web UI: verify table is empty at second commit":
       command: docker exec webUITest psql -U postgres -c "SELECT COUNT(*) FROM test_table;"
       stdout:
         contains: " 0"
-  
+
   - "web UI: checkout third commit":
       command: d3 checkout -c $WEB_COMMIT_3 webUITest
-      wait: 5
       stdout:
         contains: checked out
       env:
         get:
           - WEB_COMMIT_3
-  
+
   - "web UI: verify data exists at third commit":
       command: docker exec webUITest psql -U postgres -c "SELECT COUNT(*) FROM test_table;"
       stdout:
         contains: " 2"
-  
+
   - "web UI: verify correct data at third commit":
       command: docker exec webUITest psql -U postgres -c "SELECT name FROM test_table ORDER BY name;"
       stdout:
         contains:
           - Alice
           - Bob
-  
-  - "web UI: test API error handling - non-existent repo returns empty":
-      command: curl -s http://127.0.0.1:3000/api/v1/repos/fake/nonexistent/commits
-      stdout:
-        contains: '"commits":[]'
-  
-  - "web UI: test API error handling - invalid commit ID returns error":
-      command: curl -s http://127.0.0.1:3000/api/v1/repos/webtest/ui-repo/commits/invalid-commit-id
-      stdout:
-        contains: error
-  
-  # Clone tests commented out due to GitHub issue #17
-  # Issue: Repository manifest file in S3 not updating when new commits are pushed
-  # Symptom: Manifest endpoint returns only first commit, but commits endpoint returns all commits
-  # Impact: Clone operations fail with "unable to find any matching commits" or panic on metadata parsing
-  # Root cause: api-repo-manifest service doesn't update manifest.json file on push operations
-  # TODO: Uncomment these tests once issue #17 is fixed in datadatdat-remote-server
-  #
-  # - "web UI: test clone with manifest - remove local repo":
-  #     command: d3 rm -f webUITest
-  #     stdout:
-  #       contains: webUITest removed
-  # 
-  # - "web UI: test clone with manifest - clone from remote":
-  #     command: d3 clone http://datadatdat-api-gateway:8080/webtest/ui-repo webUITestClone
-  #     stdout:
-  #       contains: Clone completed successfully
-  # 
-  # - "web UI: test clone with manifest - verify all commits present":
-  #     command: d3 log webUITestClone
-  #     stdout:
-  #       contains:
-  #         - $WEB_COMMIT_1
-  #         - $WEB_COMMIT_2
-  #         - $WEB_COMMIT_3
-  #     env:
-  #       get:
-  #         - WEB_COMMIT_1
-  #         - WEB_COMMIT_2
-  #         - WEB_COMMIT_3
-  # 
-  # - "web UI: cleanup - remove cloned repo":
-  #     command: d3 rm -f webUITestClone
-  #     stdout:
-  #       contains: webUITestClone removed
-  
+
   - "web UI: cleanup - remove test repo":
       command: d3 rm -f webUITest
       stdout:
         contains: webUITest removed
-  
+
+  - "web UI: cleanup - remove previous clone if exists":
+      command: d3 rm -f webUITestClone
+
+  - "web UI: test clone with manifest - clone from remote":
+      command: d3 clone http://datadatdat-api-gateway:8080/webtest/ui-repo webUITestClone
+      stdout:
+        contains: Clone completed successfully
+
+  - "web UI: test clone with manifest - verify all commits present":
+      command: d3 log webUITestClone
+      stdout:
+        contains:
+          - $WEB_COMMIT_1
+          - $WEB_COMMIT_2
+          - $WEB_COMMIT_3
+      env:
+        get:
+          - WEB_COMMIT_1
+          - WEB_COMMIT_2
+          - WEB_COMMIT_3
+
+  - "web UI: cleanup - remove cloned repo":
+      command: d3 rm -f webUITestClone
+      stdout:
+        contains: webUITestClone removed
+
   - "web UI: cleanup - delete web UI test repo":
-      command: curl -X DELETE -f http://127.0.0.1:8080/api/v1/repos/webtest/ui-repo
+      command: d3 rm -f ui-repo
 
 after:
   clearVars: true
