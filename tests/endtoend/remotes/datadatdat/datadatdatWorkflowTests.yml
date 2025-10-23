@@ -320,7 +320,7 @@ tests:
       command: bash -c "for i in {1..18}; do docker exec webUITest pg_isready && break || sleep 5; done"
       stdout:
         contains: accepting connections
-
+        
   - "web UI: verify table exists at second commit":
       command: docker exec webUITest psql -U postgres -c "\dt"
       stdout:
@@ -361,11 +361,8 @@ tests:
   #     stdout:
   #       contains: webUITest removed
 
-  - "web UI: cleanup - remove previous clone if exists":
-      command: d3 rm -f webUITestClone
-
-  - "web UI: cleanup - remove ui-repo if exists from previous runs":
-      command: d3 rm -f ui-repo
+  # - "web UI: cleanup - remove previous clone if exists":
+  #     command: d3 rm -f webUITestClone
 
   - "web UI: test clone with manifest - clone from remote":
       command: d3 clone http://datadatdat-api-gateway:8080/webtest/ui-repo webUITestClone
