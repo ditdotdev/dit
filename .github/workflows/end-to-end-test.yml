@@ -45,7 +45,10 @@ jobs:
          docker pull busybox
          docker run busybox uname -a
       - name: Build Datadatdat
-        run: make build
+        run: |
+          VERSION=$(git describe --tags --abbrev=0 2>/dev/null || echo "v1.1.0")
+          echo "Building d3 CLI with version: $VERSION"
+          make build VERSION=$VERSION
         shell: bash
         env:
           GOPRIVATE: github.com/datadatdat/*
