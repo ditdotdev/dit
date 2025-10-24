@@ -356,21 +356,21 @@ tests:
           - Alice
           - Bob
 
-  # - "web UI: cleanup - remove test repo":
-  #     command: d3 rm -f webUITest
-  #     stdout:
-  #       contains: webUITest removed
+  - "web UI: cleanup - remove test repo":
+      command: d3 rm webUITest -f 
+      stdout:
+        contains: webUITest removed
 
-  # - "web UI: cleanup - remove previous clone if exists":
-  #     command: d3 rm -f webUITestClone
+  - "web UI: cleanup - remove previous clone if exists":
+      command: d3 rm webUITestClone -f 
 
   - "web UI: test clone with manifest - clone from remote":
-      command: d3 clone http://datadatdat-api-gateway:8080/webtest/ui-repo webUITestClone
+      command: d3 clone -n webUITestClone http://datadatdat-api-gateway:8080/webtest/ui-repo
       stdout:
-        contains: Clone completed successfully
+        contains: checked out
 
   - "web UI: test clone with manifest - verify all commits present":
-      command: d3 log webUITestClone
+      command: d3 remote log webUITestClone
       stdout:
         contains:
           - $WEB_COMMIT_1
@@ -382,13 +382,15 @@ tests:
           - WEB_COMMIT_2
           - WEB_COMMIT_3
 
-  # - "web UI: cleanup - remove cloned repo":
-  #     command: d3 rm -f webUITestClone
-  #     stdout:
-  #       contains: webUITestClone removed
+  - "web UI: cleanup - remove cloned repo":
+      command: d3 rm webUITestClone -f 
+      stdout:
+        contains: webUITestClone removed
 
-  # - "web UI: cleanup - delete web UI test repo":
-  #     command: d3 rm -f ui-repo
+  - "web UI: verify no repositories exist after cleanup":
+      command: d3 ls
+      stdout: |-
+        CONTEXT       REPOSITORY            STATUS
 
 after:
   clearVars: true
