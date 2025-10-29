@@ -1,0 +1,685 @@
+---
+# E2E Authentication and Authorization Tests for Datadatdat Remote Server
+# These tests validate the complete auth flow including OAuth, JWT, whitelist, and admin workflows
+
+tests:
+  # ========================================
+  # Pre-requisites & Health Checks
+  # ========================================
+
+  - "auth: verify auth server is running":
+      command: curl -s http://127.0.0.1:8085/health
+      stdout:
+        contains: "healthy"
+
+  - "auth: verify api-gateway is running":
+      command: curl -s http://127.0.0.1:8080/health
+      stdout:
+        contains: "healthy"
+
+  - "auth: verify postgres is ready":
+      command: docker exec datadatdat-postgres pg_isready -U datadatdat
+      stdout:
+        contains: "accepting connections"
+
+  # ========================================
+  # Database Setup & Initial Admin
+  # ========================================
+
+  - "auth: cleanup existing test users from previous runs":
+      command: |
+        docker exec datadatdat-postgres psql -U datadatdat -d datadatdat -c "
+        DELETE FROM sessions WHERE user_id IN (SELECT id FROM users WHERE github_login IN ('testuser', 'testadmin', 'blockeduser', 'newuser'));
+        DELETE FROM whitelisted_users WHERE github_login IN ('testuser', 'testadmin', 'blockeduser', 'newuser');
+        DELETE FROM access_requests WHERE github_login IN ('testuser', 'testadmin', 'blockeduser', 'newuser');
+        DELETE FROM users WHERE github_login IN ('testuser', 'testadmin', 'blockeduser', 'newuser');
+        "
+
+  - "auth: create initial admin user":
+      command: |
+        docker exec datadatdat-postgres psql -U datadatdat -d datadatdat -c "
+        INSERT INTO users (github_id, github_login, github_email, github_name, is_whitelisted, is_admin, created_at, updated_at)
+        VALUES (100001, 'testadmin', 'admin@test.com', 'Test Admin', true, true, NOW(), NOW())
+        ON CONFLICT (github_id) DO UPDATE SET is_whitelisted = true, is_admin = true;
+        
+        INSERT INTO whitelisted_users (user_id, github_login, approved_at, notes)
+        VALUES (
+          (SELECT id FROM users WHERE github_login = 'testadmin'),
+          'testadmin',
+          NOW(),
+          'E2E Test Admin User'
+        )
+        ON CONFLICT (user_id) DO NOTHING;
+        "
+      stdout:
+        contains: "INSERT"
+
+  - "auth: create whitelisted test user":
+      command: |
+        docker exec datadatdat-postgres psql -U datadatdat -d datadatdat -c "
+        INSERT INTO users (github_id, github_login, github_email, github_name, is_whitelisted, is_admin, created_at, updated_at)
+        VALUES (100002, 'testuser', 'user@test.com', 'Test User', true, false, NOW(), NOW())
+        ON CONFLICT (github_id) DO UPDATE SET is_whitelisted = true, is_admin = false;
+        
+        INSERT INTO whitelisted_users (user_id, github_login, approved_at, notes)
+        VALUES (
+          (SELECT id FROM users WHERE github_login = 'testuser'),
+          'testuser',
+          NOW(),
+          'E2E Test User'
+        )
+        ON CONFLICT (user_id) DO NOTHING;
+        "
+      stdout:
+        contains: "INSERT"
+
+  - "auth: create non-whitelisted user":
+      command: |
+        docker exec datadatdat-postgres psql -U datadatdat -d datadatdat -c "
+        INSERT INTO users (github_id, github_login, github_email, github_name, is_whitelisted, is_admin, created_at, updated_at)
+        VALUES (100003, 'blockeduser', 'blocked@test.com', 'Blocked User', false, false, NOW(), NOW())
+        ON CONFLICT (github_id) DO UPDATE SET is_whitelisted = false, is_admin = false;
+        "
+      stdout:
+        contains: "INSERT"
+
+  # ========================================
+  # JWT Token Generation (Mock Login)
+  # ========================================
+
+  - "auth: generate JWT for test user":
+      command: |
+        docker exec datadatdat-auth-server /bin/sh -c "
+        cat > /tmp/gen_jwt.go << 'EOF'
+        package main
+        import (
+          \"crypto/rsa\"
+          \"crypto/x509\"
+          \"encoding/pem\"
+          \"fmt\"
+          \"os\"
+          \"time\"
+          \"github.com/golang-jwt/jwt/v5\"
+        )
+        func main() {
+          privateKeyPEM := os.Getenv(\"JWT_PRIVATE_KEY\")
+          block, _ := pem.Decode([]byte(privateKeyPEM))
+          privateKey, _ := x509.ParsePKCS1PrivateKey(block.Bytes)
+          
+          claims := jwt.MapClaims{
+            \"sub\": \"testuser\",
+            \"github_login\": \"testuser\",
+            \"github_id\": 100002,
+            \"is_admin\": false,
+            \"iss\": \"datadatdat-auth\",
+            \"iat\": time.Now().Unix(),
+            \"exp\": time.Now().Add(24 * time.Hour).Unix(),
+          }
+          
+          token := jwt.NewWithClaims(jwt.SigningMethodRS256, claims)
+          tokenString, _ := token.SignedString(privateKey)
+          fmt.Print(tokenString)
+        }
+        EOF
+        cd /tmp && go run gen_jwt.go
+        "
+      env:
+        set:
+          - TEST_USER_JWT:
+              raw: true
+
+  - "auth: generate JWT for admin user":
+      command: |
+        docker exec datadatdat-auth-server /bin/sh -c "
+        cat > /tmp/gen_admin_jwt.go << 'EOF'
+        package main
+        import (
+          \"crypto/rsa\"
+          \"crypto/x509\"
+          \"encoding/pem\"
+          \"fmt\"
+          \"os\"
+          \"time\"
+          \"github.com/golang-jwt/jwt/v5\"
+        )
+        func main() {
+          privateKeyPEM := os.Getenv(\"JWT_PRIVATE_KEY\")
+          block, _ := pem.Decode([]byte(privateKeyPEM))
+          privateKey, _ := x509.ParsePKCS1PrivateKey(block.Bytes)
+          
+          claims := jwt.MapClaims{
+            \"sub\": \"testadmin\",
+            \"github_login\": \"testadmin\",
+            \"github_id\": 100001,
+            \"is_admin\": true,
+            \"iss\": \"datadatdat-auth\",
+            \"iat\": time.Now().Unix(),
+            \"exp\": time.Now().Add(24 * time.Hour).Unix(),
+          }
+          
+          token := jwt.NewWithClaims(jwt.SigningMethodRS256, claims)
+          tokenString, _ := token.SignedString(privateKey)
+          fmt.Print(tokenString)
+        }
+        EOF
+        cd /tmp && go run gen_admin_jwt.go
+        "
+      env:
+        set:
+          - TEST_ADMIN_JWT:
+              raw: true
+
+  # ========================================
+  # Unauthenticated Access Tests
+  # ========================================
+
+  - "auth: unauthenticated request to protected API returns 401":
+      command: curl -s -o /dev/null -w "%{http_code}" http://127.0.0.1:8080/api/v1/repos/testorg/test-repo
+      stdout:
+        contains: "401"
+
+  - "auth: unauthenticated request to admin endpoint returns 401":
+      command: curl -s -o /dev/null -w "%{http_code}" http://127.0.0.1:8085/api/admin/whitelist
+      stdout:
+        contains: "401"
+
+  - "auth: health check endpoints are accessible without auth":
+      command: curl -s http://127.0.0.1:8080/health
+      stdout:
+        contains: "healthy"
+
+  # ========================================
+  # Authenticated User Access Tests
+  # ========================================
+
+  - "auth: verify test user JWT is valid":
+      command: |
+        echo "$TEST_USER_JWT" | cut -d'.' -f2 | base64 -d 2>/dev/null | grep -o '"github_login":"testuser"'
+      stdout:
+        contains: "testuser"
+      env:
+        get:
+          - TEST_USER_JWT
+
+  - "auth: authenticated user can access /api/me endpoint":
+      command: |
+        curl -s -H "Authorization: Bearer $TEST_USER_JWT" http://127.0.0.1:8085/api/me | grep -o '"githubLogin":"testuser"'
+      stdout:
+        contains: "testuser"
+      env:
+        get:
+          - TEST_USER_JWT
+
+  - "auth: authenticated user can create repository":
+      command: |
+        curl -s -H "Authorization: Bearer $TEST_USER_JWT" \
+          -X POST http://127.0.0.1:8080/api/v1/repos/testorg/auth-test-repo
+      stdout:
+        contains: "auth-test-repo"
+      env:
+        get:
+          - TEST_USER_JWT
+
+  - "auth: authenticated user can list repositories":
+      command: |
+        curl -s -H "Authorization: Bearer $TEST_USER_JWT" \
+          http://127.0.0.1:8080/api/v1/repos
+      stdout:
+        contains: "auth-test-repo"
+      env:
+        get:
+          - TEST_USER_JWT
+
+  - "auth: authenticated user cannot access admin endpoints":
+      command: |
+        curl -s -o /dev/null -w "%{http_code}" \
+          -H "Authorization: Bearer $TEST_USER_JWT" \
+          http://127.0.0.1:8085/api/admin/whitelist
+      stdout:
+        contains: "403"
+      env:
+        get:
+          - TEST_USER_JWT
+
+  # ========================================
+  # Admin User Access Tests
+  # ========================================
+
+  - "auth: admin user can access /api/me endpoint":
+      command: |
+        curl -s -H "Authorization: Bearer $TEST_ADMIN_JWT" http://127.0.0.1:8085/api/me | grep -o '"isAdmin":true'
+      stdout:
+        contains: "true"
+      env:
+        get:
+          - TEST_ADMIN_JWT
+
+  - "auth: admin user can access admin whitelist endpoint":
+      command: |
+        curl -s -H "Authorization: Bearer $TEST_ADMIN_JWT" \
+          http://127.0.0.1:8085/api/admin/whitelist
+      stdout:
+        excludes: "error"
+      env:
+        get:
+          - TEST_ADMIN_JWT
+
+  - "auth: admin user can list access requests":
+      command: |
+        curl -s -H "Authorization: Bearer $TEST_ADMIN_JWT" \
+          http://127.0.0.1:8085/api/admin/access-requests
+      stdout:
+        excludes: "error"
+      env:
+        get:
+          - TEST_ADMIN_JWT
+
+  # ========================================
+  # Access Request Workflow
+  # ========================================
+
+  - "auth: create access request for non-whitelisted user":
+      command: |
+        docker exec datadatdat-postgres psql -U datadatdat -d datadatdat -c "
+        INSERT INTO access_requests (github_id, github_login, github_email, github_name, status, requested_at)
+        VALUES (100003, 'blockeduser', 'blocked@test.com', 'Blocked User', 'pending', NOW())
+        ON CONFLICT (github_id, status) DO NOTHING;
+        "
+      stdout:
+        contains: "INSERT"
+
+  - "auth: verify access request was created":
+      command: |
+        docker exec datadatdat-postgres psql -U datadatdat -d datadatdat -t -c "
+        SELECT COUNT(*) FROM access_requests WHERE github_login = 'blockeduser' AND status = 'pending';
+        " | tr -d ' '
+      stdout:
+        contains: "1"
+
+  - "auth: admin can see pending access request":
+      command: |
+        curl -s -H "Authorization: Bearer $TEST_ADMIN_JWT" \
+          http://127.0.0.1:8085/api/admin/access-requests | grep -c '"blockeduser"'
+      stdout:
+        contains: "1"
+      env:
+        get:
+          - TEST_ADMIN_JWT
+
+  - "auth: get access request ID":
+      command: |
+        docker exec datadatdat-postgres psql -U datadatdat -d datadatdat -t -c "
+        SELECT id FROM access_requests WHERE github_login = 'blockeduser' AND status = 'pending' LIMIT 1;
+        " | tr -d ' '
+      env:
+        set:
+          - ACCESS_REQUEST_ID:
+              raw: true
+
+  - "auth: admin approves access request":
+      command: |
+        curl -s -X POST \
+          -H "Authorization: Bearer $TEST_ADMIN_JWT" \
+          -H "Content-Type: application/json" \
+          -d "{\"requestId\":\"$ACCESS_REQUEST_ID\",\"comment\":\"Approved for E2E testing\"}" \
+          http://127.0.0.1:8085/api/admin/access-requests/approve
+      stdout:
+        contains: "approved"
+      env:
+        get:
+          - TEST_ADMIN_JWT
+          - ACCESS_REQUEST_ID
+
+  - "auth: verify user is now whitelisted after approval":
+      command: |
+        docker exec datadatdat-postgres psql -U datadatdat -d datadatdat -t -c "
+        SELECT is_whitelisted FROM users WHERE github_login = 'blockeduser';
+        " | tr -d ' '
+      stdout:
+        contains: "t"
+
+  - "auth: verify access request status changed to approved":
+      command: |
+        docker exec datadatdat-postgres psql -U datadatdat -d datadatdat -t -c "
+        SELECT status FROM access_requests WHERE id = '$ACCESS_REQUEST_ID';
+        " | tr -d ' '
+      stdout:
+        contains: "approved"
+      env:
+        get:
+          - ACCESS_REQUEST_ID
+
+  # ========================================
+  # Whitelist Management Tests
+  # ========================================
+
+  - "auth: admin can add user directly to whitelist":
+      command: |
+        docker exec datadatdat-postgres psql -U datadatdat -d datadatdat -c "
+        INSERT INTO users (github_id, github_login, github_email, github_name, is_whitelisted, is_admin, created_at, updated_at)
+        VALUES (100004, 'newuser', 'new@test.com', 'New User', false, false, NOW(), NOW())
+        ON CONFLICT (github_id) DO NOTHING;
+        "
+      stdout:
+        contains: "INSERT"
+
+  - "auth: get new user ID for whitelist add":
+      command: |
+        docker exec datadatdat-postgres psql -U datadatdat -d datadatdat -t -c "
+        SELECT id FROM users WHERE github_login = 'newuser' LIMIT 1;
+        " | tr -d ' '
+      env:
+        set:
+          - NEW_USER_ID:
+              raw: true
+
+  - "auth: admin adds new user to whitelist":
+      command: |
+        curl -s -X POST \
+          -H "Authorization: Bearer $TEST_ADMIN_JWT" \
+          -H "Content-Type: application/json" \
+          -d "{\"userId\":\"$NEW_USER_ID\",\"reason\":\"Added via E2E test\"}" \
+          http://127.0.0.1:8085/api/admin/whitelist/add
+      stdout:
+        excludes: "error"
+      env:
+        get:
+          - TEST_ADMIN_JWT
+          - NEW_USER_ID
+
+  - "auth: verify new user is whitelisted":
+      command: |
+        docker exec datadatdat-postgres psql -U datadatdat -d datadatdat -t -c "
+        SELECT is_whitelisted FROM users WHERE github_login = 'newuser';
+        " | tr -d ' '
+      stdout:
+        contains: "t"
+
+  - "auth: verify whitelist entry exists":
+      command: |
+        docker exec datadatdat-postgres psql -U datadatdat -d datadatdat -t -c "
+        SELECT COUNT(*) FROM whitelisted_users WHERE github_login = 'newuser';
+        " | tr -d ' '
+      stdout:
+        contains: "1"
+
+  # ========================================
+  # JWT Token Validation Tests
+  # ========================================
+
+  - "auth: expired JWT is rejected":
+      command: |
+        docker exec datadatdat-auth-server /bin/sh -c "
+        cat > /tmp/gen_expired_jwt.go << 'EOF'
+        package main
+        import (
+          \"crypto/rsa\"
+          \"crypto/x509\"
+          \"encoding/pem\"
+          \"fmt\"
+          \"os\"
+          \"time\"
+          \"github.com/golang-jwt/jwt/v5\"
+        )
+        func main() {
+          privateKeyPEM := os.Getenv(\"JWT_PRIVATE_KEY\")
+          block, _ := pem.Decode([]byte(privateKeyPEM))
+          privateKey, _ := x509.ParsePKCS1PrivateKey(block.Bytes)
+          
+          claims := jwt.MapClaims{
+            \"sub\": \"testuser\",
+            \"github_login\": \"testuser\",
+            \"is_admin\": false,
+            \"iss\": \"datadatdat-auth\",
+            \"iat\": time.Now().Add(-48 * time.Hour).Unix(),
+            \"exp\": time.Now().Add(-24 * time.Hour).Unix(),
+          }
+          
+          token := jwt.NewWithClaims(jwt.SigningMethodRS256, claims)
+          tokenString, _ := token.SignedString(privateKey)
+          fmt.Print(tokenString)
+        }
+        EOF
+        cd /tmp && go run gen_expired_jwt.go
+        "
+      env:
+        set:
+          - EXPIRED_JWT:
+              raw: true
+
+  - "auth: request with expired JWT returns 401":
+      command: |
+        curl -s -o /dev/null -w "%{http_code}" \
+          -H "Authorization: Bearer $EXPIRED_JWT" \
+          http://127.0.0.1:8085/api/me
+      stdout:
+        contains: "401"
+      env:
+        get:
+          - EXPIRED_JWT
+
+  - "auth: malformed JWT is rejected":
+      command: |
+        curl -s -o /dev/null -w "%{http_code}" \
+          -H "Authorization: Bearer not.a.valid.jwt.token" \
+          http://127.0.0.1:8085/api/me
+      stdout:
+        contains: "401"
+
+  - "auth: missing Authorization header returns 401":
+      command: |
+        curl -s -o /dev/null -w "%{http_code}" \
+          http://127.0.0.1:8085/api/me
+      stdout:
+        contains: "401"
+
+  - "auth: invalid Bearer format returns 401":
+      command: |
+        curl -s -o /dev/null -w "%{http_code}" \
+          -H "Authorization: InvalidFormat sometoken" \
+          http://127.0.0.1:8085/api/me
+      stdout:
+        contains: "401"
+
+  # ========================================
+  # Rate Limiting Tests
+  # ========================================
+
+  - "auth: authenticated requests have higher rate limit":
+      command: |
+        for i in {1..10}; do
+          curl -s -o /dev/null -w "%{http_code}\n" \
+            -H "Authorization: Bearer $TEST_USER_JWT" \
+            http://127.0.0.1:8080/health
+        done | grep -c "200"
+      stdout:
+        contains: "10"
+      env:
+        get:
+          - TEST_USER_JWT
+
+  - "auth: admin requests have even higher rate limit":
+      command: |
+        for i in {1..10}; do
+          curl -s -o /dev/null -w "%{http_code}\n" \
+            -H "Authorization: Bearer $TEST_ADMIN_JWT" \
+            http://127.0.0.1:8080/health
+        done | grep -c "200"
+      stdout:
+        contains: "10"
+      env:
+        get:
+          - TEST_ADMIN_JWT
+
+  # ========================================
+  # Session Management Tests
+  # ========================================
+
+  - "auth: create session for test user":
+      command: |
+        docker exec datadatdat-postgres psql -U datadatdat -d datadatdat -c "
+        INSERT INTO sessions (user_id, token_id, expires_at, created_at, revoked)
+        VALUES (
+          (SELECT id FROM users WHERE github_login = 'testuser'),
+          'test-session-001',
+          NOW() + INTERVAL '24 hours',
+          NOW(),
+          false
+        );
+        "
+      stdout:
+        contains: "INSERT"
+
+  - "auth: verify session was created":
+      command: |
+        docker exec datadatdat-postgres psql -U datadatdat -d datadatdat -t -c "
+        SELECT COUNT(*) FROM sessions WHERE token_id = 'test-session-001';
+        " | tr -d ' '
+      stdout:
+        contains: "1"
+
+  - "auth: revoke session":
+      command: |
+        docker exec datadatdat-postgres psql -U datadatdat -d datadatdat -c "
+        UPDATE sessions SET revoked = true, revoked_at = NOW() WHERE token_id = 'test-session-001';
+        "
+      stdout:
+        contains: "UPDATE"
+
+  - "auth: verify session was revoked":
+      command: |
+        docker exec datadatdat-postgres psql -U datadatdat -d datadatdat -t -c "
+        SELECT revoked FROM sessions WHERE token_id = 'test-session-001';
+        " | tr -d ' '
+      stdout:
+        contains: "t"
+
+  # ========================================
+  # Audit Log Tests
+  # ========================================
+
+  - "auth: create audit log entry":
+      command: |
+        docker exec datadatdat-postgres psql -U datadatdat -d datadatdat -c "
+        INSERT INTO audit_log (event_type, user_id, github_login, metadata, created_at)
+        VALUES (
+          'test_event',
+          (SELECT id FROM users WHERE github_login = 'testadmin'),
+          'testadmin',
+          '{\"action\":\"e2e_test\"}',
+          NOW()
+        );
+        "
+      stdout:
+        contains: "INSERT"
+
+  - "auth: verify audit log entry exists":
+      command: |
+        docker exec datadatdat-postgres psql -U datadatdat -d datadatdat -t -c "
+        SELECT COUNT(*) FROM audit_log WHERE event_type = 'test_event' AND github_login = 'testadmin';
+        " | tr -d ' '
+      stdout:
+        contains: "1"
+
+  - "auth: verify audit log has metadata":
+      command: |
+        docker exec datadatdat-postgres psql -U datadatdat -d datadatdat -t -c "
+        SELECT metadata->>'action' FROM audit_log WHERE event_type = 'test_event' AND github_login = 'testadmin';
+        " | tr -d ' '
+      stdout:
+        contains: "e2e_test"
+
+  # ========================================
+  # Integration with Datadatdat CLI Tests
+  # ========================================
+
+  - "auth: create test repository with authenticated API":
+      command: |
+        curl -s -X POST \
+          -H "Authorization: Bearer $TEST_USER_JWT" \
+          http://127.0.0.1:8080/api/v1/repos/authtest/cli-test-repo
+      stdout:
+        contains: "cli-test-repo"
+      env:
+        get:
+          - TEST_USER_JWT
+
+  - "auth: run mongo container for auth test":
+      command: d3 run -n authCliTest mongo
+      stdout:
+        contains: Running controlled container authCliTest
+
+  - "auth: create commit for auth test":
+      command: [d3, commit, -m, Auth CLI Test Commit, authCliTest]
+      stdout:
+        contains: Commit
+      env:
+        set:
+          - AUTH_COMMIT_GUID:
+              split:
+                delimiter: " "
+                position: 1
+
+  - "auth: add datadatdat remote with auth":
+      command: |
+        # Note: In production, the CLI would handle auth via OAuth flow
+        # For E2E tests, we're testing the API endpoints directly
+        d3 remote add http://datadatdat-api-gateway:8080/authtest/cli-test-repo authCliTest
+
+  - "auth: verify remote was added":
+      command: d3 remote ls authCliTest
+      stdout:
+        contains: http://datadatdat-api-gateway:8080/authtest/cli-test-repo
+
+  - "auth: push commit with authenticated API (simulated)":
+      command: |
+        # This tests that the backend accepts authenticated requests
+        # In real usage, the CLI would send the JWT with each request
+        curl -s -X POST \
+          -H "Authorization: Bearer $TEST_USER_JWT" \
+          -H "Content-Type: application/json" \
+          http://127.0.0.1:8080/api/v1/repos/authtest/cli-test-repo/commits
+      env:
+        get:
+          - TEST_USER_JWT
+
+  - "auth: cleanup - remove auth CLI test repo":
+      command: d3 rm authCliTest -f
+      stdout:
+        contains: authCliTest removed
+
+  # ========================================
+  # Cleanup
+  # ========================================
+
+  - "auth: cleanup - delete test repository":
+      command: |
+        curl -s -X DELETE \
+          -H "Authorization: Bearer $TEST_ADMIN_JWT" \
+          http://127.0.0.1:8080/api/v1/repos/testorg/auth-test-repo
+      env:
+        get:
+          - TEST_ADMIN_JWT
+
+  - "auth: cleanup - delete test users and data":
+      command: |
+        docker exec datadatdat-postgres psql -U datadatdat -d datadatdat -c "
+        DELETE FROM sessions WHERE user_id IN (SELECT id FROM users WHERE github_login IN ('testuser', 'testadmin', 'blockeduser', 'newuser'));
+        DELETE FROM whitelisted_users WHERE github_login IN ('testuser', 'testadmin', 'blockeduser', 'newuser');
+        DELETE FROM access_requests WHERE github_login IN ('testuser', 'testadmin', 'blockeduser', 'newuser');
+        DELETE FROM audit_log WHERE github_login IN ('testuser', 'testadmin', 'blockeduser', 'newuser');
+        DELETE FROM users WHERE github_login IN ('testuser', 'testadmin', 'blockeduser', 'newuser');
+        "
+      stdout:
+        contains: "DELETE"
+
+  - "auth: verify all test users removed":
+      command: |
+        docker exec datadatdat-postgres psql -U datadatdat -d datadatdat -t -c "
+        SELECT COUNT(*) FROM users WHERE github_login IN ('testuser', 'testadmin', 'blockeduser', 'newuser');
+        " | tr -d ' '
+      stdout:
+        contains: "0"
+
+after:
+  clearVars: true

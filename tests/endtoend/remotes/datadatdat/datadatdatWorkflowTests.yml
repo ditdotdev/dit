@@ -5,7 +5,9 @@ tests:
       stdout:
         contains: "healthy"
   - "create test repository in datadatdat-remote-server":
-      command: curl -X POST -f http://127.0.0.1:8080/api/v1/repos/testorg/datadatdat-test
+      command: >-
+        curl -X POST -f -H "Authorization: Bearer 80d141e9375c062be6c819e86f0e15e1c36bfcd5fd86286c30ad28b2e2ec8511"
+        http://127.0.0.1:8080/api/v1/repos/testorg/datadatdat-test
       stdout:
         contains: "datadatdat-test"
   - "run empty mongo db":
@@ -32,9 +34,15 @@ tests:
       command: d3 remote log datadatdatTest
       stdout:
         excludes: Commit
+      env:
+        get:
+          - DATADATDAT_API_KEY
   - "get non-existent remote commit fails":
       command: d3 pull datadatdatTest
       exitValue: 1
+      env:
+        get:
+          - DATADATDAT_API_KEY
   - "push commit succeeds":
       command: d3 push datadatdatTest
       stdout:
@@ -44,6 +52,7 @@ tests:
       env:
         get:
           - COMMIT_GUID
+          - DATADATDAT_API_KEY
   - "list remote commits returns pushed commit":
       command: d3 remote log datadatdatTest
       stdout:
@@ -53,6 +62,7 @@ tests:
       env:
         get:
           - COMMIT_GUID
+          - DATADATDAT_API_KEY
   - "push of same commit fails":
       command: d3 push datadatdatTest
       exitValue: 1
@@ -61,6 +71,7 @@ tests:
       env:
         get:
           - COMMIT_GUID
+          - DATADATDAT_API_KEY
   - "delete local commit succeeds":
       command: d3 delete -c $COMMIT_GUID datadatdatTest
       stdout: $COMMIT_GUID deleted
@@ -80,6 +91,7 @@ tests:
       env:
         get:
           - COMMIT_GUID
+          - DATADATDAT_API_KEY
   - "checkout commit succeeds":
       command: d3 checkout -c $COMMIT_GUID datadatdatTest
       stdout: |-
@@ -105,6 +117,9 @@ tests:
       stdout:
         contains:
           - Push completed successfully
+      env:
+        get:
+          - DATADATDAT_API_KEY
   - "list remote commits shows both commits":
       command: d3 remote log datadatdatTest
       stdout:
@@ -114,6 +129,7 @@ tests:
       env:
         get:
           - COMMIT_GUID2
+          - DATADATDAT_API_KEY
   - "remove remote succeeds":
       command: d3 remote rm datadatdatTest origin
       stdout: Removed origin from datadatdatTest
@@ -122,11 +138,21 @@ tests:
       stdout:
         contains:
           - Removing repository datadatdatTest
+
+  - "test list repos by org API endpoint - testorg (before cleanup)":
+      command: 'curl -sf -H "Authorization: Bearer 80d141e9375c062be6c819e86f0e15e1c36bfcd5fd86286c30ad28b2e2ec8511" http://127.0.0.1:3000/api/v1/repos/testorg'
+      stdout:
+        contains: testorg/datadatdat-test
+
   - "cleanup - delete test repository from datadatdat-remote-server":
-      command: curl -X DELETE -f http://127.0.0.1:8080/api/v1/repos/testorg/datadatdat-test
+      command: >-
+        curl -X DELETE -f -H "Authorization: Bearer 80d141e9375c062be6c819e86f0e15e1c36bfcd5fd86286c30ad28b2e2ec8511"
+        http://127.0.0.1:8080/api/v1/repos/testorg/datadatdat-test
 
   - "web UI: create test repo for web UI tests":
-      command: curl -X POST -f http://127.0.0.1:8080/api/v1/repos/webtest/ui-repo
+      command: >-
+        curl -X POST -f -H "Authorization: Bearer 80d141e9375c062be6c819e86f0e15e1c36bfcd5fd86286c30ad28b2e2ec8511"
+        http://127.0.0.1:8080/api/v1/repos/webtest/ui-repo
       stdout:
         contains: "ui-repo"
 
@@ -157,9 +183,12 @@ tests:
       command: d3 push webUITest
       stdout:
         contains: Push completed successfully
+      env:
+        get:
+          - DATADATDAT_API_KEY
 
   - "web UI: test commits list API returns initial commit":
-      command: curl -sf http://127.0.0.1:3000/api/v1/repos/webtest/ui-repo/commits
+      command: 'curl -sf -H "Authorization: Bearer 80d141e9375c062be6c819e86f0e15e1c36bfcd5fd86286c30ad28b2e2ec8511" http://127.0.0.1:3000/api/v1/repos/webtest/ui-repo/commits'
       stdout:
         contains:
           - $WEB_COMMIT_1
@@ -169,7 +198,7 @@ tests:
           - WEB_COMMIT_1
 
   - "web UI: test individual commit API":
-      command: curl -sf http://127.0.0.1:3000/api/v1/repos/webtest/ui-repo/commits/$WEB_COMMIT_1
+      command: 'curl -sf -H "Authorization: Bearer 80d141e9375c062be6c819e86f0e15e1c36bfcd5fd86286c30ad28b2e2ec8511" http://127.0.0.1:3000/api/v1/repos/webtest/ui-repo/commits/$WEB_COMMIT_1'
       stdout:
         contains:
           - Initial web UI test commit
@@ -196,9 +225,12 @@ tests:
       command: d3 push webUITest
       stdout:
         contains: Push completed successfully
+      env:
+        get:
+          - DATADATDAT_API_KEY
 
   - "web UI: test commit data freshness (no caching) - verify 2 commits":
-      command: curl -sf http://127.0.0.1:3000/api/v1/repos/webtest/ui-repo/commits
+      command: 'curl -sf -H "Authorization: Bearer 80d141e9375c062be6c819e86f0e15e1c36bfcd5fd86286c30ad28b2e2ec8511" http://127.0.0.1:3000/api/v1/repos/webtest/ui-repo/commits'
       stdout:
         contains:
           - $WEB_COMMIT_1
@@ -211,7 +243,7 @@ tests:
           - WEB_COMMIT_2
 
   - "web UI: verify second commit details via API":
-      command: curl -sf http://127.0.0.1:3000/api/v1/repos/webtest/ui-repo/commits/$WEB_COMMIT_2
+      command: 'curl -sf -H "Authorization: Bearer 80d141e9375c062be6c819e86f0e15e1c36bfcd5fd86286c30ad28b2e2ec8511" http://127.0.0.1:3000/api/v1/repos/webtest/ui-repo/commits/$WEB_COMMIT_2'
       stdout:
         contains:
           - $WEB_COMMIT_2
@@ -240,9 +272,14 @@ tests:
       command: d3 push webUITest
       stdout:
         contains: Push completed successfully
+      env:
+        get:
+          - DATADATDAT_API_KEY
 
   - "web UI: test manifest updates on push - verify all 3 commits in manifest":
-      command: curl -s http://127.0.0.1:8080/api/v1/repos/webtest/ui-repo/manifest
+      command: >-
+        curl -s -H "Authorization: Bearer 80d141e9375c062be6c819e86f0e15e1c36bfcd5fd86286c30ad28b2e2ec8511"
+        http://127.0.0.1:8080/api/v1/repos/webtest/ui-repo/manifest
       stdout:
         contains:
           - $WEB_COMMIT_1
@@ -255,7 +292,7 @@ tests:
           - WEB_COMMIT_3
 
   - "web UI: verify all 3 commits via web UI API":
-      command: curl -sf http://127.0.0.1:3000/api/v1/repos/webtest/ui-repo/commits
+      command: 'curl -sf -H "Authorization: Bearer 80d141e9375c062be6c819e86f0e15e1c36bfcd5fd86286c30ad28b2e2ec8511" http://127.0.0.1:3000/api/v1/repos/webtest/ui-repo/commits'
       stdout:
         contains:
           - $WEB_COMMIT_1
@@ -279,24 +316,19 @@ tests:
           - WEB_COMMIT_1
 
   - "web UI: test API error handling - non-existent repo returns empty":
-      command: curl -s http://127.0.0.1:3000/api/v1/repos/fake/nonexistent/commits
+      command: 'curl -s -H "Authorization: Bearer 80d141e9375c062be6c819e86f0e15e1c36bfcd5fd86286c30ad28b2e2ec8511" http://127.0.0.1:3000/api/v1/repos/fake/nonexistent/commits'
       stdout:
         contains: '"commits":[]'
 
   - "web UI: test API error handling - invalid commit ID returns error":
-      command: curl -s http://127.0.0.1:3000/api/v1/repos/webtest/ui-repo/commits/invalid-commit-id
+      command: 'curl -s -H "Authorization: Bearer 80d141e9375c062be6c819e86f0e15e1c36bfcd5fd86286c30ad28b2e2ec8511" http://127.0.0.1:3000/api/v1/repos/webtest/ui-repo/commits/invalid-commit-id'
       stdout:
         contains: error
 
   - "web UI: test list all repos API endpoint":
-      command: curl -sf http://127.0.0.1:3000/api/v1/repos
+      command: 'curl -sf -H "Authorization: Bearer 80d141e9375c062be6c819e86f0e15e1c36bfcd5fd86286c30ad28b2e2ec8511" http://127.0.0.1:3000/api/v1/repos'
       stdout:
         contains: webtest/ui-repo
-
-  - "web UI: test list repos by org API endpoint - testorg":
-      command: curl -sf http://127.0.0.1:3000/api/v1/repos/testorg
-      stdout:
-        contains: testorg/test-repo
 
   - "web UI: check to see if database is up and running":
       command: bash -c "for i in {1..18}; do docker exec webUITest pg_isready && break || sleep 5; done"
@@ -368,6 +400,9 @@ tests:
       command: d3 clone -n webUITestClone http://datadatdat-api-gateway:8080/webtest/ui-repo
       stdout:
         contains: checked out
+      env:
+        get:
+          - DATADATDAT_API_KEY
 
   - "web UI: test clone with manifest - verify all commits present":
       command: d3 remote log webUITestClone
@@ -379,6 +414,9 @@ tests:
       env:
         get:
           - WEB_COMMIT_1
+          - WEB_COMMIT_2
+          - WEB_COMMIT_3
+          - DATADATDAT_API_KEY
           - WEB_COMMIT_2
           - WEB_COMMIT_3
 
