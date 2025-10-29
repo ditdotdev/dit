@@ -1,52 +1,52 @@
 # Clean Slate Testing for Datadatdat
 
-> **Note**: All clean slate testing scripts are located in this `cleanslate` folder. Run scripts from within this directory or use the relative path `.\cleanslate\script-name.ps1` from the main Datadatdat directory.
+> **Note**: All clean slate testing scripts are located in this `cleanslate` folder. Run scripts from within this directory or use the relative path `./cleanslate/script-name.sh` (Bash) from the main Datadatdat directory.
 
 ## Quick Start
 
 For complete automated clean slate testing:
 
-```powershell
+```bash
 cd cleanslate
-.\clean-slate-automation.ps1 -Verbose
+bash clean-slate-automation.sh --verbose
 ```
 
 **For troubleshooting existing Docker issues:**
-```powershell
-.\troubleshoot-docker.ps1 -Verbose -Fix
+```bash
+bash troubleshoot-docker.sh --verbose --fix
 ```
 
 **For ZFS pool management with Docker verification:**
-```powershell
-.\setup-zfs-pools.ps1 -Clean -VerifyDocker
+```bash
+bash setup-zfs-pools.sh --clean --verify-docker
 ```
 
 ## Available Scripts
 
-1. **`clean-slate-automation.ps1`** - Complete automation for the entire clean slate process
+1. **`clean-slate-automation.sh`** - Complete automation for the entire clean slate process
    - Full environment teardown and rebuild
    - PostgreSQL testing
    - Enhanced error handling and verbose logging
-   - Usage: `.\clean-slate-automation.ps1 -Verbose`
+   - Usage: `bash clean-slate-automation.sh --verbose`
 
-2. **`setup-zfs-pools.ps1`** - Enhanced ZFS pool management with Docker verification
-   - `-Clean` parameter for complete pool reset
-   - `-VerifyDocker` parameter for container conflict detection
+2. **`setup-zfs-pools.sh`** - Enhanced ZFS pool management with Docker verification
+   - `--clean` parameter for complete pool reset
+   - `--verify-docker` parameter for container conflict detection
    - Automated troubleshooting guidance
-   - Usage: `.\setup-zfs-pools.ps1 -Clean -VerifyDocker`
+   - Usage: `bash setup-zfs-pools.sh --clean --verify-docker`
 
-3. **`troubleshoot-docker.ps1`** - Comprehensive Docker diagnostic tool
+3. **`troubleshoot-docker.sh`** - Comprehensive Docker diagnostic tool
    - Container name conflict detection and resolution
    - Docker socket testing and verification
-   - Automatic fix capabilities with `-Fix` parameter
-   - Usage: `.\troubleshoot-docker.ps1 -Verbose -Fix`
+   - Automatic fix capabilities with `--fix` parameter
+   - Usage: `bash troubleshoot-docker.sh --verbose --fix`
 
 ## Prerequisites
 
 Before running these scripts, ensure you have:
 - Windows Subsystem for Linux 2 (WSL2) installed and running
 - Docker Desktop installed (scripts will automatically start it if not running)
-- PowerShell 5.1 or higher
+- Bash shell (Git Bash, WSL Bash, or similar)
 - Administrative privileges for ZFS operations
 - Custom ZFS-enabled WSL2 kernel
 - Git repositories: `datadatdat` and `zfs-builder`
@@ -78,16 +78,16 @@ A clean slate test involves:
 ### 1. Environment Preparation
 
 #### Uninstall Existing Datadatdat
-```powershell
-cd c:\dev\datadatdat
-.\d3.exe uninstall -f
+```bash
+cd c:/dev/datadatdat
+./d3.exe uninstall -f
 ```
 
 #### Clean Docker Environment
-```powershell
+```bash
 # Stop and remove all containers
-docker stop $(docker ps -aq) 2>$null
-docker rm $(docker ps -aq) 2>$null
+docker stop $(docker ps -aq) 2>/dev/null || true
+docker rm $(docker ps -aq) 2>/dev/null || true
 
 # Remove all volumes
 docker volume prune -f
@@ -100,34 +100,36 @@ docker system prune -a -f
 ```
 
 #### Clean ZFS Pools (Complete Clean Slate)
-```powershell
-# Use the setup script with -Clean parameter to remove existing pools
-.\setup-zfs-pools.ps1 -Clean
+```bash
+# Use the setup script with --clean parameter to remove existing pools
+bash setup-zfs-pools.sh --clean
 ```
 
 #### Restart Docker Desktop
-```powershell
-Stop-Process -Name "Docker Desktop" -Force -ErrorAction SilentlyContinue
-Start-Sleep 5
-Start-Process "C:\Program Files\Docker\Docker\Docker Desktop.exe"
-Start-Sleep 30  # Wait for Docker to start
+```bash
+# Stop Docker Desktop
+taskkill //F //IM "Docker Desktop.exe" 2>/dev/null || true
+sleep 5
+# Start Docker Desktop
+"/c/Program Files/Docker/Docker/Docker Desktop.exe" &
+sleep 30  # Wait for Docker to start
 ```
 
 ### 2. ZFS Pool Setup
 
 #### Automated Setup (Recommended)
 For normal setup:
-```powershell
-.\setup-zfs-pools.ps1
+```bash
+bash setup-zfs-pools.sh
 ```
 
 For clean slate setup (includes cleanup):
-```powershell
-.\setup-zfs-pools.ps1 -Clean
+```bash
+bash setup-zfs-pools.sh --clean
 ```
 
 #### Manual Setup (Alternative)
-```powershell
+```bash
 # Create pool storage directory
 wsl sudo mkdir -p /datadatdat-pools
 
@@ -157,8 +159,8 @@ datadatdat-docker   960M   104K   960M        -         -     0%     0%  1.00x  
 
 Build the custom Datadatdat container with ZFS support:
 
-```powershell
-cd c:\dev\datadatdat
+```bash
+cd c:/dev/datadatdat
 docker build -t datadatdat:latest -f Dockerfile . --no-cache
 ```
 
@@ -166,19 +168,19 @@ docker build -t datadatdat:latest -f Dockerfile . --no-cache
 
 Install Datadatdat using the custom container:
 
-```powershell
-.\d3.exe install
+```bash
+./d3.exe install
 ```
 
 ### 5. Database Testing
 
 #### Create PostgreSQL Repository
-```powershell
-.\d3.exe run --name pgtest -e POSTGRES_PASSWORD=password postgres
+```bash
+./d3.exe run --name pgtest -e POSTGRES_PASSWORD=password postgres
 ```
 
 #### Verify Database Connectivity
-```powershell
+```bash
 # Check container is running
 docker exec datadatdat-docker-launch docker ps
 
@@ -187,22 +189,22 @@ docker exec datadatdat-docker-launch docker exec pgtest psql -U postgres -c "SEL
 ```
 
 #### Test Data Versioning
-```powershell
+```bash
 # Create some test data
 docker exec datadatdat-docker-launch docker exec pgtest psql -U postgres -c "CREATE TABLE test (id SERIAL PRIMARY KEY, name VARCHAR(100));"
 docker exec datadatdat-docker-launch docker exec pgtest psql -U postgres -c "INSERT INTO test (name) VALUES ('Test Entry 1'), ('Test Entry 2');"
 
 # Commit the changes
-.\d3.exe commit -m "Initial test data" pgtest
+./d3.exe commit -m "Initial test data" pgtest
 
 # Add more data
 docker exec datadatdat-docker-launch docker exec pgtest psql -U postgres -c "INSERT INTO test (name) VALUES ('Test Entry 3'), ('Test Entry 4');"
 
 # Create another commit
-.\d3.exe commit -m "Additional test data" pgtest
+./d3.exe commit -m "Additional test data" pgtest
 
 # Verify commits
-.\d3.exe log pgtest
+./d3.exe log pgtest
 ```
 
 ## Troubleshooting
@@ -219,15 +221,15 @@ docker exec datadatdat-docker-launch docker exec pgtest psql -U postgres -c "INS
 
 #### ZFS Pool Issues
 **Issue**: Pools not found or corrupted
-**Solution**: Run `.\setup-zfs-pools.ps1 -Clean` to recreate pools
+**Solution**: Run `bash setup-zfs-pools.sh --clean` to recreate pools
 
 #### Docker Desktop Not Running
 **Issue**: "Cannot connect to the Docker daemon"
-**Solution**: Scripts automatically detect and start Docker Desktop. If manual intervention is needed, ensure Docker Desktop is installed and WSL2 integration is enabled. Use `.\troubleshoot-docker.ps1 -Fix` for automatic startup.
+**Solution**: Scripts automatically detect and start Docker Desktop. If manual intervention is needed, ensure Docker Desktop is installed and WSL2 integration is enabled. Use `bash troubleshoot-docker.sh --fix` for automatic startup.
 
 ### Diagnostic Commands
 
-```powershell
+```bash
 # Check Docker status
 docker version
 docker info
@@ -237,7 +239,7 @@ wsl zpool list
 wsl zpool status
 
 # Check Datadatdat status
-.\d3.exe status
+./d3.exe status
 
 # Check running containers
 docker ps -a
@@ -250,11 +252,11 @@ docker logs datadatdat-docker-server
 
 If you want to run these scripts from the main Datadatdat directory, use:
 
-```powershell
-# From c:\dev\datadatdat\
-.\cleanslate\clean-slate-automation.ps1 -Verbose
-.\cleanslate\setup-zfs-pools.ps1 -Clean -VerifyDocker
-.\cleanslate\troubleshoot-docker.ps1 -Verbose -Fix
+```bash
+# From c:/dev/datadatdat/
+bash cleanslate/clean-slate-automation.sh --verbose
+bash cleanslate/setup-zfs-pools.sh --clean --verify-docker
+bash cleanslate/troubleshoot-docker.sh --verbose --fix
 ```
 
 ## Verified Working Components

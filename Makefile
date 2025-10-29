@@ -84,7 +84,10 @@ test-ssh-workflow:
 	$(VEXRUN) -f $(PWD)/tests/endtoend/remotes/ssh/sshWorkflowTests.yml
 
 test-datadatdat-workflow:
-	$(VEXRUN) -f $(PWD)/tests/endtoend/remotes/datadatdat/datadatdatWorkflowTests.yml
+	DATADATDAT_API_KEY=80d141e9375c062be6c819e86f0e15e1c36bfcd5fd86286c30ad28b2e2ec8511 $(VEXRUN) -f $(PWD)/tests/endtoend/remotes/datadatdat/datadatdatWorkflowTests.yml
+
+test-auth-workflow:
+	$(VEXRUN) -f $(PWD)/tests/endtoend/remotes/datadatdat/authWorkflowTests.yml
 
 test-multi-context:
 	$(VEXRUN) -d $(PWD)/tests/endtoend/multi-context
