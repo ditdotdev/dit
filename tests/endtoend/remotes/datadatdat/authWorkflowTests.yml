@@ -206,7 +206,7 @@ tests:
         - -d
         - datadatdat
         - -c
-        - "INSERT INTO audit_log (event_type, user_id, event_details, created_at) VALUES ('test_event', (SELECT id FROM users WHERE github_login = 'testadmin'), '{\\\"action\\\":\\\"e2e_test\\\"}', NOW());"
+        - "INSERT INTO audit_log (event_type, user_id, event_details, created_at) VALUES ('test_event', (SELECT id FROM users WHERE github_login = 'testadmin'), json_build_object('action', 'e2e_test'), NOW());"
       stdout:
         contains: "INSERT"
 
