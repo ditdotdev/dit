@@ -156,7 +156,7 @@ tests:
         contains: Running controlled container webUITest
 
   - "web UI: check to see if database is up and running":
-      command: bash -c "for i in {1..18}; do docker exec webUITest pg_isready && break || sleep 5; done"
+      command: [bash, -c, "for i in {1..18}; do docker exec webUITest pg_isready && break || sleep 5; done"]
       stdout:
         contains: accepting connections
 
@@ -201,7 +201,7 @@ tests:
           - WEB_COMMIT_1
 
   - "web UI: make database changes for second commit":
-      command: docker exec webUITest psql -U postgres -c "CREATE TABLE test_table (id SERIAL PRIMARY KEY, name VARCHAR(100));"
+      command: [docker, exec, webUITest, psql, -U, postgres, -c, "CREATE TABLE test_table (id SERIAL PRIMARY KEY, name VARCHAR(100));"]
       stdout:
         contains: CREATE TABLE
   - "web UI: create second commit":
@@ -247,7 +247,7 @@ tests:
           - WEB_COMMIT_2
 
   - "web UI: make database changes for third commit":
-      command: docker exec webUITest psql -U postgres -c "INSERT INTO test_table (name) VALUES ('Alice'), ('Bob');"
+      command: [docker, exec, webUITest, psql, -U, postgres, -c, "INSERT INTO test_table (name) VALUES ('Alice'), ('Bob');"]
       stdout:
         contains: INSERT
 
@@ -323,12 +323,12 @@ tests:
         contains: webtest/ui-repo
 
   - "web UI: check to see if database is up and running":
-      command: bash -c "for i in {1..18}; do docker exec webUITest pg_isready && break || sleep 5; done"
+      command: [bash, -c, "for i in {1..18}; do docker exec webUITest pg_isready && break || sleep 5; done"]
       stdout:
         contains: accepting connections
 
   - "web UI: verify empty database at first commit":
-      command: docker exec webUITest psql -U postgres -c "\dt"
+      command: [docker, exec, webUITest, psql, -U, postgres, -c, "\\dt"]
       stderr:
         contains: Did not find any
 
@@ -341,17 +341,17 @@ tests:
           - WEB_COMMIT_2
 
   - "web UI: check to see if database is up and running":
-      command: bash -c "for i in {1..18}; do docker exec webUITest pg_isready && break || sleep 5; done"
+      command: [bash, -c, "for i in {1..18}; do docker exec webUITest pg_isready && break || sleep 5; done"]
       stdout:
         contains: accepting connections
         
   - "web UI: verify table exists at second commit":
-      command: docker exec webUITest psql -U postgres -c "\dt"
+      command: [docker, exec, webUITest, psql, -U, postgres, -c, "\\dt"]
       stdout:
         contains: test_table
 
   - "web UI: verify table is empty at second commit":
-      command: docker exec webUITest psql -U postgres -c "SELECT COUNT(*) FROM test_table;"
+      command: [docker, exec, webUITest, psql, -U, postgres, -c, "SELECT COUNT(*) FROM test_table;"]
       stdout:
         contains: " 0"
 
@@ -364,17 +364,17 @@ tests:
           - WEB_COMMIT_3
 
   - "web UI: check to see if database is up and running":
-      command: bash -c "for i in {1..18}; do docker exec webUITest pg_isready && break || sleep 5; done"
+      command: [bash, -c, "for i in {1..18}; do docker exec webUITest pg_isready && break || sleep 5; done"]
       stdout:
         contains: accepting connections
 
   - "web UI: verify data exists at third commit":
-      command: docker exec webUITest psql -U postgres -c "SELECT COUNT(*) FROM test_table;"
+      command: [docker, exec, webUITest, psql, -U, postgres, -c, "SELECT COUNT(*) FROM test_table;"]
       stdout:
         contains: " 2"
 
   - "web UI: verify correct data at third commit":
-      command: docker exec webUITest psql -U postgres -c "SELECT name FROM test_table ORDER BY name;"
+      command: [docker, exec, webUITest, psql, -U, postgres, -c, "SELECT name FROM test_table ORDER BY name;"]
       stdout:
         contains:
           - Alice
