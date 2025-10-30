@@ -582,22 +582,10 @@ go mod graph | grep datadatdat | grep remote-sdk-go
 # All providers should use same remote-sdk-go version
 ```
 
-##### 4.2 Test Locally
+##### 4.2 Build Release Artifacts
 ```bash
-# Run full test suite including datadatdat-remote-server E2E tests
-make e2e
-# If tests fail: ./d3.exe uninstall -f && make e2e
-
-# CRITICAL: Test datadatdat remote workflow specifically
-make test-datadatdat-workflow
-# This runs the E2E tests for datadatdat-remote-server integration
-# All 20 tests must pass before proceeding with release
-```
-
-##### 4.3 Build Release Artifacts
-```bash
-# CRITICAL: Build BEFORE committing - this updates d3.exe and d3-linux in root
-export VERSION="v1.1.0"  # Use v1.1.0 for this release
+# CRITICAL: Build FIRST - E2E tests need to run against this build
+export VERSION="v1.2.0"  # Set your version
 make clean  # Clean all caches
 VERSION=$VERSION make release
 
@@ -612,7 +600,20 @@ VERSION=$VERSION make release
 # These root binaries should be committed as part of the release
 
 # Verify version in binary
-./d3.exe --version  # Should show: datadatdat version v1.1.0
+./d3.exe --version  # Should show: datadatdat version v1.2.0
+```
+
+##### 4.3 Test Locally
+```bash
+# Run full test suite including datadatdat-remote-server E2E tests
+# These tests use the d3.exe built in step 4.2
+make e2e
+# If tests fail: ./d3.exe uninstall -f && make e2e
+
+# CRITICAL: Test datadatdat remote workflow specifically
+make test-datadatdat-workflow
+# This runs the E2E tests for datadatdat-remote-server integration
+# All 20 tests must pass before proceeding with release
 ```
 
 ##### 4.4 Commit, Tag, and Push
