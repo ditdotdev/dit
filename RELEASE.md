@@ -679,12 +679,28 @@ gh workflow view end-to-end-test.yml --web
 - Catches issues before users download the release
 - Prevents publishing broken releases
 
-##### 4.5 Publish Release (Only After E2E Tests Pass)
+##### 4.5 Upload Artifacts to Draft Release
 ```bash
-# GitHub Actions created a draft release when you pushed the tag
-# Now we publish it after E2E tests confirm it works
+# Upload the locally built artifacts to the draft release
+cd /c/dev/datadatdat
 
-# Check that draft release exists
+# Upload all release artifacts
+gh release upload $VERSION \
+  release/darwin-amd64/datadatdat-cli-$VERSION-darwin_amd64.zip \
+  release/darwin-arm64/datadatdat-cli-$VERSION-darwin_arm64.zip \
+  release/linux-amd64/datadatdat-cli-$VERSION-linux_amd64.tar \
+  release/linux-arm64/datadatdat-cli-$VERSION-linux_arm64.tar \
+  release/windows/datadatdat-cli-$VERSION-windows_amd64.zip
+
+# Verify artifacts were uploaded
+gh release view $VERSION
+```
+
+##### 4.6 Publish Release (Only After E2E Tests Pass)
+```bash
+# Now publish the release after E2E tests confirm it works and artifacts are uploaded
+
+# Check that draft release exists with artifacts
 gh release list --limit 5
 gh release view $VERSION
 
