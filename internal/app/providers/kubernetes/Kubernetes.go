@@ -2,9 +2,9 @@ package kubernetes
 
 import (
 	"context"
+	"datadatdat/internal/app/clients"
 	client "github.com/datadatdat/datadatdat-client-go"
 	"os"
-	"datadatdat/internal/app/clients"
 )
 
 func init() {

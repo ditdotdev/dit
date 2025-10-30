@@ -1,11 +1,11 @@
 package clients
 
 import (
+	"datadatdat/internal/app"
 	"github.com/buger/jsonparser"
 	"os"
 	"strconv"
 	"strings"
-	"datadatdat/internal/app"
 )
 
 const EOL = "\n"

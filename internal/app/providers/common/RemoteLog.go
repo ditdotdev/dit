@@ -3,8 +3,8 @@ package common
 import (
 	"fmt"
 	"github.com/antihax/optional"
-	"github.com/datadatdat/remote-sdk-go/remote"
 	client "github.com/datadatdat/datadatdat-client-go"
+	"github.com/datadatdat/remote-sdk-go/remote"
 	"os"
 	"strconv"
 )

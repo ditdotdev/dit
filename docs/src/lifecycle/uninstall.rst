@@ -1,7 +1,7 @@
 .. _lifecycle_uninstall:
 
 Uninstalling Datadatdat
-==================
+=======================
 
 The :ref:`cli_cmd_install` command will install supporting Datadatdat infrastructure
 automatically, including installing ZFS on the host or Docker VM if necessary.

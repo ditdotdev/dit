@@ -1,5 +1,5 @@
 Datadatdat Documentation
-===================
+========================
 
 This documentation provides detailed reference information on using Datadatdat for
 managing data as code on your laptop. For a general introduction and overview
