@@ -1,14 +1,14 @@
 package kubernetes
 
 import (
+	"datadatdat/internal/app"
+	"datadatdat/internal/app/clients"
 	"fmt"
 	"github.com/briandowns/spinner"
 	"os"
 	"strconv"
 	"strings"
 	"time"
-	"datadatdat/internal/app"
-	"datadatdat/internal/app/clients"
 )
 
 func Install(latest string, registry string, verbose bool, port int, context string) {

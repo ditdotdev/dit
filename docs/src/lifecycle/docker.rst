@@ -1,7 +1,7 @@
 .. _lifecycle_docker:
 
 Datadatdat with Docker
-=================
+======================
 
 Datadatdat for docker is designed to run on any system that supports docker, but
 there are some dependencies that limit the set of supported operation systems,

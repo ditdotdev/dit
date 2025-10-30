@@ -1,12 +1,12 @@
 package local
 
 import (
+	"datadatdat/internal/app/clients"
 	"fmt"
 	client "github.com/datadatdat/datadatdat-client-go"
 	"os"
 	"strconv"
 	"strings"
-	"datadatdat/internal/app/clients"
 )
 
 func Run(container string, repository string, envVars []string, args []string, disablePortMap bool, createRepo bool, port int, context string) (string, error) {

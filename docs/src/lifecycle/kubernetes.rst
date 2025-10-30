@@ -1,7 +1,7 @@
 .. _lifecycle_kubernetes:
 
 Datadatdat with Kubernetes
-=====================
+==========================
 
 Datadatdat provides a way to run repositories in different container environments,
 known as "contexts" (see :ref:`lifecycle_context` for more information). A

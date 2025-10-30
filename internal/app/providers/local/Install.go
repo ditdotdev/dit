@@ -1,15 +1,15 @@
 package local
 
 import (
+	"datadatdat/internal/app"
+	"datadatdat/internal/app/clients"
+	"datadatdat/internal/app/utils"
 	"fmt"
 	"github.com/briandowns/spinner"
 	"os"
 	"strconv"
 	"strings"
 	"time"
-	"datadatdat/internal/app"
-	"datadatdat/internal/app/clients"
-	"datadatdat/internal/app/utils"
 )
 
 var ce = utils.CommandExecutor(60, false)

@@ -1,13 +1,13 @@
 package local
 
 import (
+	"datadatdat/internal/app/clients"
 	"encoding/json"
 	"fmt"
 	datadatdatclient "github.com/datadatdat/datadatdat-client-go"
 	"os"
 	"strconv"
 	"strings"
-	"datadatdat/internal/app/clients"
 )
 
 func getLocalSrcFromPath(path string, mounts []mount) string {

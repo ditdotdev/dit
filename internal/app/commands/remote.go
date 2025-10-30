@@ -1,11 +1,11 @@
 package commands
 
 import (
+	"datadatdat/internal/app/providers"
 	"fmt"
 	"github.com/spf13/cobra"
 	"os"
 	"strings"
-	"datadatdat/internal/app/providers"
 )
 
 // remoteCmd represents the remote command

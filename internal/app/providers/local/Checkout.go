@@ -1,12 +1,12 @@
 package local
 
 import (
+	"datadatdat/internal/app/clients"
 	"fmt"
 	"github.com/antihax/optional"
 	datadatdatclient "github.com/datadatdat/datadatdat-client-go"
 	"os"
 	"strconv"
-	"datadatdat/internal/app/clients"
 )
 
 func Checkout(repo string, guid string, tags []string, port int, context string) {

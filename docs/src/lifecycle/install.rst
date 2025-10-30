@@ -17,7 +17,7 @@ If you can run a basic Linux docker container you're ready for the next step::
     ready
 
 Downloading Datadatdat
----------------------
+----------------------
 To download Datadatdat, head over to the
 `Download Page <https://datadatdat.com/download>`_ and download the archive
 specific to your platform. Extract the archive and place it in a location that
@@ -29,7 +29,7 @@ If you can get the current Datadatdat version you're ready for the next step::
     d3 version 0.5.2
 
 Installing Datadatdat
---------------------
+---------------------
 While Datadatdat is delivered as a standalone executable, it relies on a
 containerized service to do a lot of the heavy lifting. The ``d3 install``
 command will download and run these containers. It may take some time
