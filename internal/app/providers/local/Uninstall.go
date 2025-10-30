@@ -1,10 +1,10 @@
 package local
 
 import (
+	"datadatdat/internal/app/clients"
 	"fmt"
 	"os"
 	"strconv"
-	"datadatdat/internal/app/clients"
 )
 
 func Uninstall(version string, force bool, removeImages bool, port int, context string) {

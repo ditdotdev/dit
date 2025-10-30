@@ -1,10 +1,10 @@
 package commands
 
 import (
+	"datadatdat/internal/app/providers"
 	"fmt"
 	"github.com/spf13/cobra"
 	"os"
-	"datadatdat/internal/app/providers"
 )
 
 var contextType string

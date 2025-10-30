@@ -1,7 +1,7 @@
 .. _lifecycle_context:
 
 Managing Datadatdat Contexts
-=======================
+============================
 
 All d3 repositories are associated with a single context. Each context
 has a type, either Docker or Kubernetes, that defines how it manages

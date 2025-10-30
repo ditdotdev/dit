@@ -1,12 +1,12 @@
 package kubernetes
 
 import (
+	"datadatdat/internal/app/clients"
 	"fmt"
 	"github.com/briandowns/spinner"
 	"os"
 	"strconv"
 	"time"
-	"datadatdat/internal/app/clients"
 )
 
 func Uninstall(force bool, removeImages bool, context string, port int) {

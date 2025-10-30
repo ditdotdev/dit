@@ -1,9 +1,9 @@
 package common
 
 import (
+	"datadatdat/internal/app/clients"
 	"fmt"
 	"strconv"
-	"datadatdat/internal/app/clients"
 )
 
 // TODO pass this from provider as param
