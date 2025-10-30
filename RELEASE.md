@@ -1,4 +1,28 @@
-# Datadatdat Ecosystem Release Process
+cd /c/dev/datadatdat
+export VERSION="v1.2.0"
+
+# Upload all release artifacts to the draft release
+gh release upload $VERSION \
+  release/darwin-amd64/datadatdat-cli-$VERSION-darwin_amd64.zip \
+  release/darwin-arm64/datadatdat-cli-$VERSION-darwin_arm64.zip \
+  release/linux-amd64/datadatdat-cli-$VERSION-linux_amd64.tar \
+  release/linux-arm64/datadatdat-cli-$VERSION-linux_arm64.tar \
+  release/windows/datadatdat-cli-$VERSION-windows_amd64.zip
+
+# Verify artifacts were uploaded
+gh release view $VERSIONcd /c/dev/datadatdat
+export VERSION="v1.2.0"
+
+# Upload all release artifacts to the draft release
+gh release upload $VERSION \
+  release/darwin-amd64/datadatdat-cli-$VERSION-darwin_amd64.zip \
+  release/darwin-arm64/datadatdat-cli-$VERSION-darwin_arm64.zip \
+  release/linux-amd64/datadatdat-cli-$VERSION-linux_amd64.tar \
+  release/linux-arm64/datadatdat-cli-$VERSION-linux_arm64.tar \
+  release/windows/datadatdat-cli-$VERSION-windows_amd64.zip
+
+# Verify artifacts were uploaded
+gh release view $VERSION# Datadatdat Ecosystem Release Process
 
 This document outlines the comprehensive release process for the Datadatdat data management platform. The ecosystem consists of multiple interdependent components that must be released in a specific order to maintain compatibility.
 
@@ -639,15 +663,41 @@ git commit -m "Release $VERSION: Update all dependencies and fix issues
 # Push commits first
 git push origin master
 
-# Create tag and push (triggers GitHub Actions to create draft release)
+# Create tag and push
 git tag $VERSION
 git push origin $VERSION
-
-# GitHub Actions will create a DRAFT release automatically
-# DO NOT publish yet - we need to run E2E tests first
 ```
 
-##### 4.4 Run E2E Test Workflow (CRITICAL GATE)
+##### 4.5 Create Draft Release with Artifacts
+```bash
+# NOTE: The datadatdat CLI repo does NOT have automated release creation
+# We must manually create the draft release and upload artifacts
+
+# Create draft release with all artifacts
+gh release create $VERSION --draft \
+  --title "$VERSION - Authorization Header Support" \
+  --notes "## Release $VERSION
+
+### 🔧 Key Changes
+- [List your changes here]
+
+### 🧪 Testing
+- All E2E tests passing
+- Full integration testing completed
+
+### 📦 Artifacts
+Cross-platform binaries included for all supported platforms." \
+  release/darwin-amd64/datadatdat-cli-$VERSION-darwin_amd64.zip \
+  release/darwin-arm64/datadatdat-cli-$VERSION-darwin_arm64.zip \
+  release/linux-amd64/datadatdat-cli-$VERSION-linux_amd64.tar \
+  release/linux-arm64/datadatdat-cli-$VERSION-linux_arm64.tar \
+  release/windows/datadatdat-cli-$VERSION-windows_amd64.zip
+
+# Verify draft release was created with all artifacts
+gh release view $VERSION
+```
+
+##### 4.7 Run E2E Test Workflow (CRITICAL GATE)
 **⚠️ DO NOT proceed to publishing until this step passes!**
 
 ```bash
@@ -666,11 +716,11 @@ gh run list --workflow=end-to-end-test.yml --limit 5
 gh workflow view end-to-end-test.yml --web
 
 # CRITICAL DECISION POINT:
-# ✅ If E2E workflow PASSES → Proceed to step 4.5 (Publish Release)
+# ✅ If E2E workflow PASSES → Proceed to step 4.8 (Publish Release)
 # ❌ If E2E workflow FAILS → DO NOT PUBLISH
-#    - Delete the tag: git tag -d $VERSION && git push origin --delete $VERSION
+#    - Delete the release and tag: gh release delete $VERSION --yes && git tag -d $VERSION && git push origin --delete $VERSION
 #    - Fix the issues
-#    - Restart from step 4.1 with a new version (e.g., v1.1.1)
+#    - Restart from step 4.1 with a new version (e.g., v1.2.1)
 ```
 
 **Why This Step is Critical:**
@@ -679,26 +729,9 @@ gh workflow view end-to-end-test.yml --web
 - Catches issues before users download the release
 - Prevents publishing broken releases
 
-##### 4.5 Upload Artifacts to Draft Release
+##### 4.8 Publish Release (Only After E2E Tests Pass)
 ```bash
-# Upload the locally built artifacts to the draft release
-cd /c/dev/datadatdat
-
-# Upload all release artifacts
-gh release upload $VERSION \
-  release/darwin-amd64/datadatdat-cli-$VERSION-darwin_amd64.zip \
-  release/darwin-arm64/datadatdat-cli-$VERSION-darwin_arm64.zip \
-  release/linux-amd64/datadatdat-cli-$VERSION-linux_amd64.tar \
-  release/linux-arm64/datadatdat-cli-$VERSION-linux_arm64.tar \
-  release/windows/datadatdat-cli-$VERSION-windows_amd64.zip
-
-# Verify artifacts were uploaded
-gh release view $VERSION
-```
-
-##### 4.6 Publish Release (Only After E2E Tests Pass)
-```bash
-# Now publish the release after E2E tests confirm it works and artifacts are uploaded
+# Now publish the release after E2E tests confirm it works
 
 # Check that draft release exists with artifacts
 gh release list --limit 5
