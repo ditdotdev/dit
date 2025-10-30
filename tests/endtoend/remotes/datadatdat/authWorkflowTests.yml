@@ -27,20 +27,20 @@ tests:
   # ========================================
 
   - "auth: cleanup existing test users from previous runs":
-      command: docker exec datadatdat-postgres psql -U datadatdat -d datadatdat -c "DELETE FROM sessions WHERE user_id IN (SELECT id FROM users WHERE github_login IN ('testuser', 'testadmin', 'blockeduser', 'newuser')); DELETE FROM whitelisted_users WHERE user_id IN (SELECT id FROM users WHERE github_login IN ('testuser', 'testadmin', 'blockeduser', 'newuser')); DELETE FROM access_requests WHERE user_id IN (SELECT id FROM users WHERE github_login IN ('testuser', 'testadmin', 'blockeduser', 'newuser')); DELETE FROM users WHERE github_login IN ('testuser', 'testadmin', 'blockeduser', 'newuser');"
+      command: [docker, exec, datadatdat-postgres, psql, -U, datadatdat, -d, datadatdat, -c, "DELETE FROM sessions WHERE user_id IN (SELECT id FROM users WHERE github_login IN ('testuser', 'testadmin', 'blockeduser', 'newuser')); DELETE FROM whitelisted_users WHERE user_id IN (SELECT id FROM users WHERE github_login IN ('testuser', 'testadmin', 'blockeduser', 'newuser')); DELETE FROM access_requests WHERE user_id IN (SELECT id FROM users WHERE github_login IN ('testuser', 'testadmin', 'blockeduser', 'newuser')); DELETE FROM users WHERE github_login IN ('testuser', 'testadmin', 'blockeduser', 'newuser');"]
 
   - "auth: create initial admin user":
-      command: docker exec datadatdat-postgres psql -U datadatdat -d datadatdat -c "INSERT INTO users (github_id, github_login, github_email, github_name, is_whitelisted, is_admin, created_at, updated_at) VALUES (100001, 'testadmin', 'admin@test.com', 'Test Admin', true, true, NOW(), NOW()) ON CONFLICT (github_id) DO UPDATE SET is_whitelisted = true, is_admin = true; INSERT INTO whitelisted_users (user_id, approved_by, approved_at, reason) VALUES ((SELECT id FROM users WHERE github_login = 'testadmin'), (SELECT id FROM users WHERE github_login = 'testadmin'), NOW(), 'E2E Test Admin User') ON CONFLICT (user_id) DO NOTHING;"
+      command: [docker, exec, datadatdat-postgres, psql, -U, datadatdat, -d, datadatdat, -c, "INSERT INTO users (github_id, github_login, github_email, github_name, is_whitelisted, is_admin, created_at, updated_at) VALUES (100001, 'testadmin', 'admin@test.com', 'Test Admin', true, true, NOW(), NOW()) ON CONFLICT (github_id) DO UPDATE SET is_whitelisted = true, is_admin = true; INSERT INTO whitelisted_users (user_id, approved_by, approved_at, reason) VALUES ((SELECT id FROM users WHERE github_login = 'testadmin'), (SELECT id FROM users WHERE github_login = 'testadmin'), NOW(), 'E2E Test Admin User') ON CONFLICT (user_id) DO NOTHING;"]
       stdout:
         contains: "INSERT"
 
   - "auth: create whitelisted test user":
-      command: docker exec datadatdat-postgres psql -U datadatdat -d datadatdat -c "INSERT INTO users (github_id, github_login, github_email, github_name, is_whitelisted, is_admin, created_at, updated_at) VALUES (100002, 'testuser', 'user@test.com', 'Test User', true, false, NOW(), NOW()) ON CONFLICT (github_id) DO UPDATE SET is_whitelisted = true, is_admin = false; INSERT INTO whitelisted_users (user_id, approved_by, approved_at, reason) VALUES ((SELECT id FROM users WHERE github_login = 'testuser'), (SELECT id FROM users WHERE github_login = 'testadmin'), NOW(), 'E2E Test User') ON CONFLICT (user_id) DO NOTHING;"
+      command: [docker, exec, datadatdat-postgres, psql, -U, datadatdat, -d, datadatdat, -c, "INSERT INTO users (github_id, github_login, github_email, github_name, is_whitelisted, is_admin, created_at, updated_at) VALUES (100002, 'testuser', 'user@test.com', 'Test User', true, false, NOW(), NOW()) ON CONFLICT (github_id) DO UPDATE SET is_whitelisted = true, is_admin = false; INSERT INTO whitelisted_users (user_id, approved_by, approved_at, reason) VALUES ((SELECT id FROM users WHERE github_login = 'testuser'), (SELECT id FROM users WHERE github_login = 'testadmin'), NOW(), 'E2E Test User') ON CONFLICT (user_id) DO NOTHING;"]
       stdout:
         contains: "INSERT"
 
   - "auth: create non-whitelisted user":
-      command: docker exec datadatdat-postgres psql -U datadatdat -d datadatdat -c "INSERT INTO users (github_id, github_login, github_email, github_name, is_whitelisted, is_admin, created_at, updated_at) VALUES (100003, 'blockeduser', 'blocked@test.com', 'Blocked User', false, false, NOW(), NOW()) ON CONFLICT (github_id) DO UPDATE SET is_whitelisted = false, is_admin = false;"
+      command: [docker, exec, datadatdat-postgres, psql, -U, datadatdat, -d, datadatdat, -c, "INSERT INTO users (github_id, github_login, github_email, github_name, is_whitelisted, is_admin, created_at, updated_at) VALUES (100003, 'blockeduser', 'blocked@test.com', 'Blocked User', false, false, NOW(), NOW()) ON CONFLICT (github_id) DO UPDATE SET is_whitelisted = false, is_admin = false;"]
       stdout:
         contains: "INSERT"
 
@@ -73,9 +73,7 @@ tests:
   # ========================================
 
   - "auth: authenticated user can create repository":
-      command: >-
-        curl -s -X POST -H "Authorization: Bearer 80d141e9375c062be6c819e86f0e15e1c36bfcd5fd86286c30ad28b2e2ec8511"
-        http://127.0.0.1:8080/api/v1/repos/testorg/auth-test-repo
+      command: [curl, -s, -X, POST, -H, "Authorization: Bearer 80d141e9375c062be6c819e86f0e15e1c36bfcd5fd86286c30ad28b2e2ec8511", "http://127.0.0.1:8080/api/v1/repos/testorg/auth-test-repo"]
       stdout:
         contains: "auth-test-repo"
 
@@ -84,9 +82,7 @@ tests:
   # ========================================
 
   - "auth: verify API gateway forwards auth headers correctly":
-      command: >-
-        curl -s -H "Authorization: Bearer 80d141e9375c062be6c819e86f0e15e1c36bfcd5fd86286c30ad28b2e2ec8511"
-        http://127.0.0.1:8080/health
+      command: [curl, -s, -H, "Authorization: Bearer 80d141e9375c062be6c819e86f0e15e1c36bfcd5fd86286c30ad28b2e2ec8511", "http://127.0.0.1:8080/health"]
       stdout:
         contains: "healthy"
 
@@ -95,17 +91,17 @@ tests:
   # ========================================
 
   - "auth: create access request for non-whitelisted user":
-      command: docker exec datadatdat-postgres psql -U datadatdat -d datadatdat -c "INSERT INTO access_requests (user_id, reason, status, created_at) VALUES ((SELECT id FROM users WHERE github_login = 'blockeduser'), 'E2E Test Access Request', 'pending', NOW());"
+      command: [docker, exec, datadatdat-postgres, psql, -U, datadatdat, -d, datadatdat, -c, "INSERT INTO access_requests (user_id, reason, status, created_at) VALUES ((SELECT id FROM users WHERE github_login = 'blockeduser'), 'E2E Test Access Request', 'pending', NOW());"]
       stdout:
         contains: "INSERT"
 
   - "auth: verify access request was created":
-      command: docker exec datadatdat-postgres psql -U datadatdat -d datadatdat -t -A -c "SELECT COUNT(*) FROM access_requests ar JOIN users u ON ar.user_id = u.id WHERE u.github_login = 'blockeduser' AND ar.status = 'pending';"
+      command: [docker, exec, datadatdat-postgres, psql, -U, datadatdat, -d, datadatdat, -t, -A, -c, "SELECT COUNT(*) FROM access_requests ar JOIN users u ON ar.user_id = u.id WHERE u.github_login = 'blockeduser' AND ar.status = 'pending';"]
       stdout:
         contains: "1"
 
   - "auth: get access request ID":
-      command: docker exec datadatdat-postgres psql -U datadatdat -d datadatdat -t -A -c "SELECT ar.id FROM access_requests ar JOIN users u ON ar.user_id = u.id WHERE u.github_login = 'blockeduser' AND ar.status = 'pending' LIMIT 1;"
+      command: [docker, exec, datadatdat-postgres, psql, -U, datadatdat, -d, datadatdat, -t, -A, -c, "SELECT ar.id FROM access_requests ar JOIN users u ON ar.user_id = u.id WHERE u.github_login = 'blockeduser' AND ar.status = 'pending' LIMIT 1;"]
       env:
         set:
           - ACCESS_REQUEST_ID:
@@ -124,17 +120,12 @@ tests:
   # ========================================
 
   - "auth: admin can add user directly to whitelist":
-      command: |
-        docker exec datadatdat-postgres psql -U datadatdat -d datadatdat -c "
-        INSERT INTO users (github_id, github_login, github_email, github_name, is_whitelisted, is_admin, created_at, updated_at)
-        VALUES (100004, 'newuser', 'new@test.com', 'New User', false, false, NOW(), NOW())
-        ON CONFLICT (github_id) DO NOTHING;
-        "
+      command: [docker, exec, datadatdat-postgres, psql, -U, datadatdat, -d, datadatdat, -c, "INSERT INTO users (github_id, github_login, github_email, github_name, is_whitelisted, is_admin, created_at, updated_at) VALUES (100004, 'newuser', 'new@test.com', 'New User', false, false, NOW(), NOW()) ON CONFLICT (github_id) DO NOTHING;"]
       stdout:
         contains: "INSERT"
 
   - "auth: get new user ID for whitelist add":
-      command: docker exec datadatdat-postgres psql -U datadatdat -d datadatdat -t -A -c "SELECT id FROM users WHERE github_login = 'newuser' LIMIT 1;"
+      command: [docker, exec, datadatdat-postgres, psql, -U, datadatdat, -d, datadatdat, -t, -A, -c, "SELECT id FROM users WHERE github_login = 'newuser' LIMIT 1;"]
       env:
         set:
           - NEW_USER_ID:
@@ -149,7 +140,7 @@ tests:
           - NEW_USER_ID
 
   - "auth: verify new user exists in database":
-      command: docker exec datadatdat-postgres psql -U datadatdat -d datadatdat -t -A -c "SELECT COUNT(*) FROM users WHERE github_login = 'newuser';"
+      command: [docker, exec, datadatdat-postgres, psql, -U, datadatdat, -d, datadatdat, -t, -A, -c, "SELECT COUNT(*) FROM users WHERE github_login = 'newuser';"]
       stdout:
         contains: "1"
 
@@ -158,16 +149,12 @@ tests:
   # ========================================
 
   - "auth: malformed token is rejected":
-      command: >-
-        curl -s -o /dev/null -w "%{http_code}" -H "Authorization: Bearer not.a.valid.token"
-        http://127.0.0.1:8080/api/v1/repos
+      command: [curl, -s, -o, /dev/null, -w, "%{http_code}", -H, "Authorization: Bearer not.a.valid.token", "http://127.0.0.1:8080/api/v1/repos"]
       stdout:
         contains: "401"
 
   - "auth: invalid Bearer format returns 401":
-      command: >-
-        curl -s -o /dev/null -w "%{http_code}" -H "Authorization: InvalidFormat sometoken"
-        http://127.0.0.1:8080/api/v1/repos
+      command: [curl, -s, -o, /dev/null, -w, "%{http_code}", -H, "Authorization: InvalidFormat sometoken", "http://127.0.0.1:8080/api/v1/repos"]
       stdout:
         contains: "401"
 
@@ -176,11 +163,7 @@ tests:
   # ========================================
 
   - "auth: multiple authenticated requests succeed":
-      command: >-
-        curl -s -o /dev/null -w "%{http_code}" -H "Authorization: Bearer 80d141e9375c062be6c819e86f0e15e1c36bfcd5fd86286c30ad28b2e2ec8511"
-        http://127.0.0.1:8080/health &&
-        curl -s -o /dev/null -w "%{http_code}" -H "Authorization: Bearer 80d141e9375c062be6c819e86f0e15e1c36bfcd5fd86286c30ad28b2e2ec8511"
-        http://127.0.0.1:8080/health
+      command: [bash, -c, "curl -s -o /dev/null -w \"%{http_code}\" -H \"Authorization: Bearer 80d141e9375c062be6c819e86f0e15e1c36bfcd5fd86286c30ad28b2e2ec8511\" http://127.0.0.1:8080/health && curl -s -o /dev/null -w \"%{http_code}\" -H \"Authorization: Bearer 80d141e9375c062be6c819e86f0e15e1c36bfcd5fd86286c30ad28b2e2ec8511\" http://127.0.0.1:8080/health"]
       stdout:
         contains: "200"
 
@@ -189,22 +172,22 @@ tests:
   # ========================================
 
   - "auth: create session for test user":
-      command: docker exec datadatdat-postgres psql -U datadatdat -d datadatdat -c "DELETE FROM sessions WHERE jti = 'test-session-001'; INSERT INTO sessions (user_id, jti, expires_at, created_at) VALUES ((SELECT id FROM users WHERE github_login = 'testuser'), 'test-session-001', NOW() + INTERVAL '24 hours', NOW());"
+      command: [docker, exec, datadatdat-postgres, psql, -U, datadatdat, -d, datadatdat, -c, "DELETE FROM sessions WHERE jti = 'test-session-001'; INSERT INTO sessions (user_id, jti, expires_at, created_at) VALUES ((SELECT id FROM users WHERE github_login = 'testuser'), 'test-session-001', NOW() + INTERVAL '24 hours', NOW());"]
       stdout:
         contains: "INSERT"
 
   - "auth: verify session was created":
-      command: docker exec datadatdat-postgres psql -U datadatdat -d datadatdat -t -A -c "SELECT COUNT(*) FROM sessions WHERE jti = 'test-session-001';"
+      command: [docker, exec, datadatdat-postgres, psql, -U, datadatdat, -d, datadatdat, -t, -A, -c, "SELECT COUNT(*) FROM sessions WHERE jti = 'test-session-001';"]
       stdout:
         contains: "1"
 
   - "auth: revoke session":
-      command: docker exec datadatdat-postgres psql -U datadatdat -d datadatdat -c "UPDATE sessions SET revoked_at = NOW() WHERE jti = 'test-session-001';"
+      command: [docker, exec, datadatdat-postgres, psql, -U, datadatdat, -d, datadatdat, -c, "UPDATE sessions SET revoked_at = NOW() WHERE jti = 'test-session-001';"]
       stdout:
         contains: "UPDATE"
 
   - "auth: verify session was revoked":
-      command: docker exec datadatdat-postgres psql -U datadatdat -d datadatdat -t -A -c "SELECT revoked_at IS NOT NULL FROM sessions WHERE jti = 'test-session-001';"
+      command: [docker, exec, datadatdat-postgres, psql, -U, datadatdat, -d, datadatdat, -t, -A, -c, "SELECT revoked_at IS NOT NULL FROM sessions WHERE jti = 'test-session-001';"]
       stdout:
         contains: "t"
 
@@ -213,17 +196,17 @@ tests:
   # ========================================
 
   - "auth: create audit log entry":
-      command: docker exec datadatdat-postgres psql -U datadatdat -d datadatdat -c "INSERT INTO audit_log (event_type, user_id, event_details, created_at) VALUES ('test_event', (SELECT id FROM users WHERE github_login = 'testadmin'), '{\"action\":\"e2e_test\"}', NOW());"
+      command: [docker, exec, datadatdat-postgres, psql, -U, datadatdat, -d, datadatdat, -c, "INSERT INTO audit_log (event_type, user_id, event_details, created_at) VALUES ('test_event', (SELECT id FROM users WHERE github_login = 'testadmin'), '{\"action\":\"e2e_test\"}', NOW());"]
       stdout:
         contains: "INSERT"
 
   - "auth: verify audit log entry exists":
-      command: docker exec datadatdat-postgres psql -U datadatdat -d datadatdat -t -A -c "SELECT COUNT(*) FROM audit_log al JOIN users u ON al.user_id = u.id WHERE al.event_type = 'test_event' AND u.github_login = 'testadmin';"
+      command: [docker, exec, datadatdat-postgres, psql, -U, datadatdat, -d, datadatdat, -t, -A, -c, "SELECT COUNT(*) FROM audit_log al JOIN users u ON al.user_id = u.id WHERE al.event_type = 'test_event' AND u.github_login = 'testadmin';"]
       stdout:
         contains: "1"
 
   - "auth: verify audit log has metadata":
-      command: docker exec datadatdat-postgres psql -U datadatdat -d datadatdat -t -A -c "SELECT al.event_details->>'action' FROM audit_log al JOIN users u ON al.user_id = u.id WHERE al.event_type = 'test_event' AND u.github_login = 'testadmin';"
+      command: [docker, exec, datadatdat-postgres, psql, -U, datadatdat, -d, datadatdat, -t, -A, -c, "SELECT al.event_details->>'action' FROM audit_log al JOIN users u ON al.user_id = u.id WHERE al.event_type = 'test_event' AND u.github_login = 'testadmin';"]
       stdout:
         contains: "e2e_test"
 
@@ -235,9 +218,7 @@ tests:
       command: d3 run -n authCliTest mongo
 
   - "auth: create test repository with authenticated API":
-      command: >-
-        curl -s -X POST -H "Authorization: Bearer 80d141e9375c062be6c819e86f0e15e1c36bfcd5fd86286c30ad28b2e2ec8511"
-        http://127.0.0.1:8080/api/v1/repos/authtest/cli-test-repo
+      command: [curl, -s, -X, POST, -H, "Authorization: Bearer 80d141e9375c062be6c819e86f0e15e1c36bfcd5fd86286c30ad28b2e2ec8511", "http://127.0.0.1:8080/api/v1/repos/authtest/cli-test-repo"]
       stdout:
         contains: "cli-test-repo"
 
@@ -255,10 +236,7 @@ tests:
         contains: http://datadatdat-api-gateway:8080/authtest/cli-test-repo
 
   - "auth: push commit with authenticated API (simulated)":
-      command: >-
-        curl -s -X POST -H "Authorization: Bearer 80d141e9375c062be6c819e86f0e15e1c36bfcd5fd86286c30ad28b2e2ec8511"
-        -H "Content-Type: application/json"
-        http://127.0.0.1:8080/api/v1/repos/authtest/cli-test-repo/commits
+      command: [curl, -s, -X, POST, -H, "Authorization: Bearer 80d141e9375c062be6c819e86f0e15e1c36bfcd5fd86286c30ad28b2e2ec8511", -H, "Content-Type: application/json", "http://127.0.0.1:8080/api/v1/repos/authtest/cli-test-repo/commits"]
 
   - "auth: cleanup - remove auth CLI test repo":
       command: d3 rm authCliTest -f
@@ -270,67 +248,63 @@ tests:
   # ========================================
 
   - "auth: cleanup - delete test repository (auth-test-repo)":
-      command: >-
-        curl -s -X DELETE -H "Authorization: Bearer 80d141e9375c062be6c819e86f0e15e1c36bfcd5fd86286c30ad28b2e2ec8511"
-        http://127.0.0.1:8080/api/v1/repos/testorg/auth-test-repo
+      command: [curl, -s, -X, DELETE, -H, "Authorization: Bearer 80d141e9375c062be6c819e86f0e15e1c36bfcd5fd86286c30ad28b2e2ec8511", "http://127.0.0.1:8080/api/v1/repos/testorg/auth-test-repo"]
 
   - "auth: cleanup - delete test repository (cli-test-repo)":
-      command: >-
-        curl -s -X DELETE -H "Authorization: Bearer 80d141e9375c062be6c819e86f0e15e1c36bfcd5fd86286c30ad28b2e2ec8511"
-        http://127.0.0.1:8080/api/v1/repos/authtest/cli-test-repo
+      command: [curl, -s, -X, DELETE, -H, "Authorization: Bearer 80d141e9375c062be6c819e86f0e15e1c36bfcd5fd86286c30ad28b2e2ec8511", "http://127.0.0.1:8080/api/v1/repos/authtest/cli-test-repo"]
 
   - "auth: cleanup - delete test session":
-      command: docker exec datadatdat-postgres psql -U datadatdat -d datadatdat -c "DELETE FROM sessions WHERE jti = 'test-session-001';"
+      command: [docker, exec, datadatdat-postgres, psql, -U, datadatdat, -d, datadatdat, -c, "DELETE FROM sessions WHERE jti = 'test-session-001';"]
       stdout:
         contains: "DELETE"
 
   - "auth: cleanup - delete test audit log entries":
-      command: docker exec datadatdat-postgres psql -U datadatdat -d datadatdat -c "DELETE FROM audit_log WHERE event_type = 'test_event';"
+      command: [docker, exec, datadatdat-postgres, psql, -U, datadatdat, -d, datadatdat, -c, "DELETE FROM audit_log WHERE event_type = 'test_event';"]
       stdout:
         contains: "DELETE"
 
   - "auth: cleanup - delete all remaining audit log entries for test users":
-      command: docker exec datadatdat-postgres psql -U datadatdat -d datadatdat -c "DELETE FROM audit_log WHERE user_id IN (SELECT id FROM users WHERE github_login IN ('testuser', 'testadmin', 'blockeduser', 'newuser'));"
+      command: [docker, exec, datadatdat-postgres, psql, -U, datadatdat, -d, datadatdat, -c, "DELETE FROM audit_log WHERE user_id IN (SELECT id FROM users WHERE github_login IN ('testuser', 'testadmin', 'blockeduser', 'newuser'));"]
       stdout:
         contains: "DELETE"
 
   - "auth: cleanup - delete access requests for test users":
-      command: docker exec datadatdat-postgres psql -U datadatdat -d datadatdat -c "DELETE FROM access_requests WHERE user_id IN (SELECT id FROM users WHERE github_login IN ('testuser', 'testadmin', 'blockeduser', 'newuser'));"
+      command: [docker, exec, datadatdat-postgres, psql, -U, datadatdat, -d, datadatdat, -c, "DELETE FROM access_requests WHERE user_id IN (SELECT id FROM users WHERE github_login IN ('testuser', 'testadmin', 'blockeduser', 'newuser'));"]
       stdout:
         contains: "DELETE"
 
   - "auth: cleanup - delete whitelisted_users entries":
-      command: docker exec datadatdat-postgres psql -U datadatdat -d datadatdat -c "DELETE FROM whitelisted_users WHERE user_id IN (SELECT id FROM users WHERE github_login IN ('testuser', 'testadmin', 'blockeduser', 'newuser'));"
+      command: [docker, exec, datadatdat-postgres, psql, -U, datadatdat, -d, datadatdat, -c, "DELETE FROM whitelisted_users WHERE user_id IN (SELECT id FROM users WHERE github_login IN ('testuser', 'testadmin', 'blockeduser', 'newuser'));"]
       stdout:
         contains: "DELETE"
 
   - "auth: cleanup - delete all sessions for test users":
-      command: docker exec datadatdat-postgres psql -U datadatdat -d datadatdat -c "DELETE FROM sessions WHERE user_id IN (SELECT id FROM users WHERE github_login IN ('testuser', 'testadmin', 'blockeduser', 'newuser'));"
+      command: [docker, exec, datadatdat-postgres, psql, -U, datadatdat, -d, datadatdat, -c, "DELETE FROM sessions WHERE user_id IN (SELECT id FROM users WHERE github_login IN ('testuser', 'testadmin', 'blockeduser', 'newuser'));"]
       stdout:
         contains: "DELETE"
 
   - "auth: cleanup - delete test users":
-      command: docker exec datadatdat-postgres psql -U datadatdat -d datadatdat -c "DELETE FROM users WHERE github_login IN ('testuser', 'testadmin', 'blockeduser', 'newuser');"
+      command: [docker, exec, datadatdat-postgres, psql, -U, datadatdat, -d, datadatdat, -c, "DELETE FROM users WHERE github_login IN ('testuser', 'testadmin', 'blockeduser', 'newuser');"]
       stdout:
         contains: "DELETE"
 
   - "auth: verify all test users removed":
-      command: docker exec datadatdat-postgres psql -U datadatdat -d datadatdat -t -A -c "SELECT COUNT(*) FROM users WHERE github_login IN ('testuser', 'testadmin', 'blockeduser', 'newuser');"
+      command: [docker, exec, datadatdat-postgres, psql, -U, datadatdat, -d, datadatdat, -t, -A, -c, "SELECT COUNT(*) FROM users WHERE github_login IN ('testuser', 'testadmin', 'blockeduser', 'newuser');"]
       stdout:
         contains: "0"
 
   - "auth: verify all test sessions removed":
-      command: docker exec datadatdat-postgres psql -U datadatdat -d datadatdat -t -A -c "SELECT COUNT(*) FROM sessions WHERE jti = 'test-session-001';"
+      command: [docker, exec, datadatdat-postgres, psql, -U, datadatdat, -d, datadatdat, -t, -A, -c, "SELECT COUNT(*) FROM sessions WHERE jti = 'test-session-001';"]
       stdout:
         contains: "0"
 
   - "auth: verify all test access requests removed":
-      command: docker exec datadatdat-postgres psql -U datadatdat -d datadatdat -t -A -c "SELECT COUNT(*) FROM access_requests WHERE user_id IN (SELECT id FROM users WHERE github_login IN ('testuser', 'testadmin', 'blockeduser', 'newuser'));"
+      command: [docker, exec, datadatdat-postgres, psql, -U, datadatdat, -d, datadatdat, -t, -A, -c, "SELECT COUNT(*) FROM access_requests WHERE user_id IN (SELECT id FROM users WHERE github_login IN ('testuser', 'testadmin', 'blockeduser', 'newuser'));"]
       stdout:
         contains: "0"
 
   - "auth: verify all test audit log entries removed":
-      command: docker exec datadatdat-postgres psql -U datadatdat -d datadatdat -t -A -c "SELECT COUNT(*) FROM audit_log WHERE event_type = 'test_event';"
+      command: [docker, exec, datadatdat-postgres, psql, -U, datadatdat, -d, datadatdat, -t, -A, -c, "SELECT COUNT(*) FROM audit_log WHERE event_type = 'test_event';"]
       stdout:
         contains: "0"
 
