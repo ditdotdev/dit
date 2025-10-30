@@ -163,7 +163,7 @@ tests:
   # ========================================
 
   - "auth: multiple authenticated requests succeed":
-      command: [bash, -c, "curl -s -o /dev/null -w \"%{http_code}\" -H \"Authorization: Bearer 80d141e9375c062be6c819e86f0e15e1c36bfcd5fd86286c30ad28b2e2ec8511\" http://127.0.0.1:8080/health && curl -s -o /dev/null -w \"%{http_code}\" -H \"Authorization: Bearer 80d141e9375c062be6c819e86f0e15e1c36bfcd5fd86286c30ad28b2e2ec8511\" http://127.0.0.1:8080/health"]
+      command: [bash, -c, "curl -s -o /dev/null -w '%{http_code}' -H 'Authorization: Bearer 80d141e9375c062be6c819e86f0e15e1c36bfcd5fd86286c30ad28b2e2ec8511' http://127.0.0.1:8080/health && curl -s -o /dev/null -w '%{http_code}' -H 'Authorization: Bearer 80d141e9375c062be6c819e86f0e15e1c36bfcd5fd86286c30ad28b2e2ec8511' http://127.0.0.1:8080/health"]
       stdout:
         contains: "200"
 
@@ -196,7 +196,17 @@ tests:
   # ========================================
 
   - "auth: create audit log entry":
-      command: [docker, exec, datadatdat-postgres, psql, -U, datadatdat, -d, datadatdat, -c, "INSERT INTO audit_log (event_type, user_id, event_details, created_at) VALUES ('test_event', (SELECT id FROM users WHERE github_login = 'testadmin'), '{\"action\":\"e2e_test\"}', NOW());"]
+      command:
+        - docker
+        - exec
+        - datadatdat-postgres
+        - psql
+        - -U
+        - datadatdat
+        - -d
+        - datadatdat
+        - -c
+        - "INSERT INTO audit_log (event_type, user_id, event_details, created_at) VALUES ('test_event', (SELECT id FROM users WHERE github_login = 'testadmin'), '{\\\"action\\\":\\\"e2e_test\\\"}', NOW());"
       stdout:
         contains: "INSERT"
 
