@@ -1,8 +1,8 @@
 package commands
 
 import (
-	"github.com/spf13/cobra"
 	"datadatdat/internal/app/providers"
+	"github.com/spf13/cobra"
 )
 
 // runCmd represents the run command

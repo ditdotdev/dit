@@ -1,9 +1,9 @@
 package commands
 
 import (
+	"datadatdat/internal/app/providers"
 	"fmt"
 	"github.com/spf13/cobra"
-	"datadatdat/internal/app/providers"
 )
 
 // listCmd represents the list command

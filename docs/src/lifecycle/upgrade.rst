@@ -1,7 +1,7 @@
 .. _lifecycle_upgrade:
 
 Upgrading Datadatdat
-===============
+====================
 
 Datadatdat can be automatically upgraded with the :ref:`cli_cmd_upgrade` command.
 This command works by:
