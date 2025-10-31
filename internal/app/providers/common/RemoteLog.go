@@ -2,16 +2,17 @@ package common
 
 import (
 	"fmt"
-	client "github.com/datadatdat/datadatdat-client-go"
-	"github.com/datadatdat/remote-sdk-go/remote"
 	"os"
 	"strconv"
+
+	client "github.com/datadatdat/datadatdat-client-go"
+	"github.com/datadatdat/remote-sdk-go/remote"
 )
 
 func RemoteLog(repo string, remoteName string, tags []string, port int) {
 	cfg.Servers[0].URL = "http://localhost:" + strconv.Itoa(port)
 
-	remotes, _, _ := remotesApi.ListRemotes(ctx, repo)
+	remotes, _, _ := remotesApi.ListRemotes(ctx, repo).Execute()
 	if len(remotes) == 0 {
 		fmt.Println("remote is not set, run 'remote add' first")
 		os.Exit(1)
@@ -23,9 +24,7 @@ func RemoteLog(repo string, remoteName string, tags []string, port int) {
 			Provider:   r.Provider,
 			Properties: gp,
 		}
-		o := optional.NewInterface(tags)
-		opts := client.ListRemoteCommitsOpts{Tag: o}
-		commits, _, err := remotesApi.ListRemoteCommits(ctx, repo, r.Name, p, &opts)
+		commits, _, err := remotesApi.ListRemoteCommits(ctx, repo, r.Name).DatadatdatRemoteParameters(p).Tag(tags).Execute()
 		if err == nil {
 			for _, c := range commits {
 				if !first {

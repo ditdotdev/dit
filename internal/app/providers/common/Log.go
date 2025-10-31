@@ -2,7 +2,6 @@ package common
 
 import (
 	"fmt"
-	client "github.com/datadatdat/datadatdat-client-go"
 	"strconv"
 )
 
@@ -10,9 +9,7 @@ func Log(repo string, tags []string, port int) {
 	cfg.Servers[0].URL = "http://localhost:" + strconv.Itoa(port)
 
 	first := true
-	o := optional.NewInterface(tags)
-	opts := client.ListCommitsOpts{Tag: o}
-	commits, _, _ := commitsApi.ListCommits(ctx, repo, &opts)
+	commits, _, _ := commitsApi.ListCommits(ctx, repo).Tag(tags).Execute()
 
 	for _, commit := range commits {
 		if !first {

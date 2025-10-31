@@ -23,12 +23,12 @@ func Pull(repoName string, guid string, remoteName string, tags []string, metada
 	} else {
 		name = remoteName
 	}
-	_, _, err := remotesApi.ListRemotes(ctx, repoName)
+	_, _, err := remotesApi.ListRemotes(ctx, repoName).Execute()
 	if err != nil {
 		fmt.Println("remote is not set, run 'remote add' first")
 		os.Exit(1)
 	}
-	remote, _, _ := remotesApi.GetRemote(ctx, repoName, name)
+	remote, _, _ := remotesApi.GetRemote(ctx, repoName, name).Execute()
 	commit := datadatdatclient.Commit{
 		Id: "id",
 	}
@@ -42,11 +42,10 @@ func Pull(repoName string, guid string, remoteName string, tags []string, metada
 			fmt.Println("tags cannot be specified when commit is also specified")
 			os.Exit(1)
 		}
-		commit, _, _ = remotesApi.GetRemoteCommit(ctx, repoName, remote.Name, guid, params)
+		commitPtr, _, _ := remotesApi.GetRemoteCommit(ctx, repoName, remote.Name, guid).DatadatdatRemoteParameters(params).Execute()
+		commit = *commitPtr
 	} else {
-		o := optional.NewInterface(tags)
-		opts := datadatdatclient.ListRemoteCommitsOpts{Tag: o}
-		remoteCommits, _, _ := remotesApi.ListRemoteCommits(ctx, repoName, remote.Name, params, &opts)
+		remoteCommits, _, _ := remotesApi.ListRemoteCommits(ctx, repoName, remote.Name).DatadatdatRemoteParameters(params).Tag(tags).Execute()
 		if len(remoteCommits) == 0 {
 			fmt.Println("no matching commits found in remote, unable to pull latest")
 			os.Exit(1)
@@ -57,12 +56,9 @@ func Pull(repoName string, guid string, remoteName string, tags []string, metada
 		fmt.Println("remote commit not found")
 		os.Exit(1)
 	}
-	pullOpts := &datadatdatclient.PullOpts{
-		MetadataOnly: optional.NewBool(metadataOnly),
-	}
-	op, _, _ := operationsApi.Pull(ctx, repoName, remote.Name, commit.Id, params, pullOpts)
+	op, _, _ := operationsApi.Pull(ctx, repoName, remote.Name, commit.Id).RemoteParameters(params).MetadataOnly(metadataOnly).Execute()
 
-	monitor := util.OperationMonitor(repoName, op)
+	monitor := util.OperationMonitor(repoName, *op)
 	if !monitor.Monitor(port) {
 		os.Exit(1)
 	}
