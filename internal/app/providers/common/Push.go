@@ -6,13 +6,12 @@ import (
 	"os"
 	"strconv"
 
-	"github.com/antihax/optional"
 	datadatdatclient "github.com/datadatdat/datadatdat-client-go"
 	rm "github.com/datadatdat/remote-sdk-go/remote"
 )
 
 func Push(repoName string, guid string, remoteName string, tags []string, metadataOnly bool, port int) {
-	cfg.BasePath = "http://localhost:" + strconv.Itoa(port)
+	cfg.Servers[0].URL = "http://localhost:" + strconv.Itoa(port)
 
 	var name string
 	if remoteName == "" {

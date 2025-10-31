@@ -8,7 +8,7 @@ import (
 )
 
 func Remove(repo string, force bool, port int, context string) {
-	cfg.BasePath = "http://localhost:" + strconv.Itoa(port)
+	cfg.Servers[0].URL = "http://localhost:" + strconv.Itoa(port)
 	docker := clients.Docker(context, port)
 
 	id, _ := docker.GetValFromContainer(repo, "Id")

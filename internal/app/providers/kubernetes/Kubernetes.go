@@ -3,8 +3,9 @@ package kubernetes
 import (
 	"context"
 	"datadatdat/internal/app/clients"
-	client "github.com/datadatdat/datadatdat-client-go"
 	"os"
+
+	client "github.com/datadatdat/datadatdat-client-go"
 )
 
 func init() {
@@ -14,9 +15,9 @@ func init() {
 
 var cfg = client.NewConfiguration()
 var apiClient = client.NewAPIClient(cfg)
-var repositoriesApi = apiClient.RepositoriesApi
-var commitsApi = apiClient.CommitsApi
-var volumesApi = apiClient.VolumesApi
+var repositoriesApi = apiClient.RepositoriesAPI
+var commitsApi = apiClient.CommitsAPI
+var volumesApi = apiClient.VolumesAPI
 var ctx = context.Background()
 
 var k8s = clients.Kubernetes("default", "localhost", 5001)

@@ -8,7 +8,7 @@ import (
 )
 
 func DeleteCommit(repo string, commit string, port int) {
-	cfg.BasePath = "http://localhost:" + strconv.Itoa(port)
+	cfg.Servers[0].URL = "http://localhost:" + strconv.Itoa(port)
 
 	if _, err := commitsApi.DeleteCommit(ctx, repo, commit); err != nil {
 		fmt.Printf("Error deleting commit %s: %v\n", commit, err)
@@ -18,7 +18,7 @@ func DeleteCommit(repo string, commit string, port int) {
 }
 
 func DeleteTags(repo string, commit string, tags []string, port int) {
-	cfg.BasePath = "http://localhost:" + strconv.Itoa(port)
+	cfg.Servers[0].URL = "http://localhost:" + strconv.Itoa(port)
 
 	c, _, _ := commitsApi.GetCommit(ctx, repo, commit)
 	cTags := c.Properties["tags"].(map[string]string)

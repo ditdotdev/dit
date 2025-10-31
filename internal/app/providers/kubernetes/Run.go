@@ -10,7 +10,7 @@ import (
 )
 
 func Run(container string, repository string, envVars []string, args []string, disablePortMap bool, createRepo bool, port int, context string) {
-	cfg.BasePath = "http://localhost:" + strconv.Itoa(port)
+	cfg.Servers[0].URL = "http://localhost:" + strconv.Itoa(port)
 	docker := clients.Docker(context, port)
 
 	if len(args) > 0 {

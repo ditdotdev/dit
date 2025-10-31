@@ -9,13 +9,12 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/antihax/optional"
 	client "github.com/datadatdat/datadatdat-client-go"
 	"github.com/datadatdat/remote-sdk-go/remote"
 )
 
 func Clone(uri string, repo string, guid string, params []string, args []string, disablePortMap bool, tags []string, port int, context string) {
-	cfg.BasePath = "http://localhost:" + strconv.Itoa(port)
+	cfg.Servers[0].URL = "http://localhost:" + strconv.Itoa(port)
 	docker := clients.Docker(context, port)
 
 	var parsedUri, _ = url.Parse(uri) //TODO handle err

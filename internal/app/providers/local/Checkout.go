@@ -3,22 +3,18 @@ package local
 import (
 	"datadatdat/internal/app/clients"
 	"fmt"
-	"github.com/antihax/optional"
-	datadatdatclient "github.com/datadatdat/datadatdat-client-go"
 	"os"
 	"strconv"
 )
 
 func Checkout(repo string, guid string, tags []string, port int, context string) {
-	cfg.BasePath = "http://localhost:" + strconv.Itoa(port)
+	cfg.Servers[0].URL = "http://localhost:" + strconv.Itoa(port)
 	docker := clients.Docker(context, port)
 
 	var sourceCommit string
 	if guid == "" {
 		if len(tags) > 0 {
-			o := optional.NewInterface(tags)
-			opts := datadatdatclient.ListCommitsOpts{Tag: o}
-			commits, _, _ := commitsApi.ListCommits(ctx, repo, &opts)
+			commits, _, _ := commitsApi.ListCommits(ctx, repo).Tag(tags).Execute()
 			if len(commits) == 0 {
 				fmt.Println("no matching commits found")
 				os.Exit(1)

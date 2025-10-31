@@ -3,10 +3,11 @@ package common
 import (
 	"context"
 	"fmt"
-	client "github.com/datadatdat/datadatdat-client-go"
 	"os"
 	"strings"
 	"unicode"
+
+	client "github.com/datadatdat/datadatdat-client-go"
 )
 
 func init() {
@@ -16,11 +17,11 @@ func init() {
 
 var cfg = client.NewConfiguration()
 var apiClient = client.NewAPIClient(cfg)
-var commitsApi = apiClient.CommitsApi
-var operationsApi = apiClient.OperationsApi
-var remotesApi = apiClient.RemotesApi
-var repositoriesApi = apiClient.RepositoriesApi
-var volumesApi = apiClient.VolumesApi
+var commitsApi = apiClient.CommitsAPI
+var operationsApi = apiClient.OperationsAPI
+var remotesApi = apiClient.RemotesAPI
+var repositoriesApi = apiClient.RepositoriesAPI
+var volumesApi = apiClient.VolumesAPI
 var ctx = context.Background()
 
 func ifContainsPrint(m map[string]interface{}, k string) {

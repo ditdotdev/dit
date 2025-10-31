@@ -12,7 +12,7 @@ import (
 )
 
 func Install(latest string, registry string, verbose bool, port int, context string) {
-	cfg.BasePath = "http://localhost:" + strconv.Itoa(port)
+	cfg.Servers[0].URL = "http://localhost:" + strconv.Itoa(port)
 	docker := clients.Docker(context, port)
 
 	s := spinner.New(spinner.CharSets[9], 100*time.Millisecond)

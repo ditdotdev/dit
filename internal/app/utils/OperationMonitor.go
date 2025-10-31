@@ -3,10 +3,10 @@ package utils
 import (
 	"context"
 	"fmt"
-	"github.com/antihax/optional"
-	datadatdatclient "github.com/datadatdat/datadatdat-client-go"
 	"strconv"
 	"time"
+
+	datadatdatclient "github.com/datadatdat/datadatdat-client-go"
 )
 
 const (
@@ -17,7 +17,7 @@ const (
 
 var cfg = datadatdatclient.NewConfiguration()
 var apiClient = datadatdatclient.NewAPIClient(cfg)
-var operationsApi = apiClient.OperationsApi
+var operationsApi = apiClient.OperationsAPI
 var ctx = context.Background()
 
 type operationMonitor struct {
@@ -38,7 +38,7 @@ func (om operationMonitor) IsTerminal(state string) bool {
 }
 
 func (om operationMonitor) Monitor(port int) bool {
-	cfg.BasePath = "http://localhost:" + strconv.Itoa(port)
+	cfg.Servers[0].URL = "http://localhost:" + strconv.Itoa(port)
 
 	padLen := 0
 	//aborted := false
@@ -46,24 +46,25 @@ func (om operationMonitor) Monitor(port int) bool {
 	var lastId int32 = 0
 
 	for !om.IsTerminal(state) {
-		p := &datadatdatclient.GetOperationProgressOpts{LastId: optional.NewInt32(lastId)}
-		entries, _, err := operationsApi.GetOperationProgress(ctx, om.operation.Id, p)
+		entries, _, err := operationsApi.GetOperationProgress(ctx, om.operation.Id).LastId(lastId).Execute()
 		if err == nil {
 			if len(entries) > 0 {
 				state = entries[len(entries)-1].Type
 			}
 			for _, e := range entries {
 				if e.Type != "PROGRESS" {
-					if e.Message != "" {
-						fmt.Println(e.Message)
+					if e.Message != nil && *e.Message != "" {
+						fmt.Println(*e.Message)
 					}
 					padLen = 0
 				} else {
-					m := e.Message
-					if len(m) > padLen {
-						padLen = len(m)
+					if e.Message != nil {
+						m := *e.Message
+						if len(m) > padLen {
+							padLen = len(m)
+						}
+						fmt.Printf("\r%s", m[0:(padLen-len(m)+1)])
 					}
-					fmt.Printf("\r%s", m[0:(padLen-len(m)+1)])
 				}
 				if e.Id > lastId {
 					lastId = e.Id

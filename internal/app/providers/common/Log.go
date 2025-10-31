@@ -2,13 +2,12 @@ package common
 
 import (
 	"fmt"
-	"github.com/antihax/optional"
 	client "github.com/datadatdat/datadatdat-client-go"
 	"strconv"
 )
 
 func Log(repo string, tags []string, port int) {
-	cfg.BasePath = "http://localhost:" + strconv.Itoa(port)
+	cfg.Servers[0].URL = "http://localhost:" + strconv.Itoa(port)
 
 	first := true
 	o := optional.NewInterface(tags)

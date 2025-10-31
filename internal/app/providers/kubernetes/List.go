@@ -6,7 +6,7 @@ import (
 )
 
 func List(context string, port int) {
-	cfg.BasePath = "http://localhost:" + strconv.Itoa(port)
+	cfg.Servers[0].URL = "http://localhost:" + strconv.Itoa(port)
 	repos, _, _ := repositoriesApi.ListRepositories(ctx)
 	for _, repo := range repos {
 		var status string

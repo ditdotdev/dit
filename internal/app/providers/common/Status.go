@@ -8,7 +8,7 @@ import (
 
 // TODO pass this from provider as param
 func getContainersStatus(port int, context string) []runtimeStatus {
-	cfg.BasePath = "http://localhost:" + strconv.Itoa(port)
+	cfg.Servers[0].URL = "http://localhost:" + strconv.Itoa(port)
 	docker := clients.Docker(context, port)
 
 	repos, _, _ := repositoriesApi.ListRepositories(ctx)
@@ -42,7 +42,7 @@ func ByteCountBinary(b int64) string {
 }
 
 func Status(repo string, port int, context string) {
-	cfg.BasePath = "http://localhost:" + strconv.Itoa(port)
+	cfg.Servers[0].URL = "http://localhost:" + strconv.Itoa(port)
 
 	s, _, _ := repositoriesApi.GetRepositoryStatus(ctx, repo)
 	for _, r := range getContainersStatus(port, context) {

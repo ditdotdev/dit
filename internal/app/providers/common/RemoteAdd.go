@@ -17,7 +17,7 @@ import (
 )
 
 func RemoteAdd(repo string, uri string, remoteName string, params map[string]string, port int) {
-	cfg.BasePath = "http://localhost:" + strconv.Itoa(port)
+	cfg.Servers[0].URL = "http://localhost:" + strconv.Itoa(port)
 
 	var name string
 	if remoteName != "" {

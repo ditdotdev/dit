@@ -6,7 +6,7 @@ import (
 )
 
 func Start(repoName string, port int) {
-	cfg.BasePath = "http://localhost:" + strconv.Itoa(port)
+	cfg.Servers[0].URL = "http://localhost:" + strconv.Itoa(port)
 
 	repo, _, _ := repositoriesApi.GetRepository(ctx, repoName)
 	fmt.Println("Updating deployment")

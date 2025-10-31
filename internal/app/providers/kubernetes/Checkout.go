@@ -2,7 +2,6 @@ package kubernetes
 
 import (
 	"fmt"
-	"github.com/antihax/optional"
 	datadatdatclient "github.com/datadatdat/datadatdat-client-go"
 	"os"
 	"strconv"
@@ -10,14 +9,12 @@ import (
 )
 
 func Checkout(repoName string, guid string, tags []string, port int) {
-	cfg.BasePath = "http://localhost:" + strconv.Itoa(port)
+	cfg.Servers[0].URL = "http://localhost:" + strconv.Itoa(port)
 
 	var sourceCommit string
 	if guid == "" {
 		if len(tags) > 0 {
-			o := optional.NewInterface(tags)
-			l := datadatdatclient.ListCommitsOpts{Tag: o}
-			commits, _, _ := commitsApi.ListCommits(ctx, repoName, &l)
+			commits, _, _ := commitsApi.ListCommits(ctx, repoName).Tag(tags).Execute()
 			if len(commits) == 0 {
 				fmt.Println("no matching commits found")
 				os.Exit(1)

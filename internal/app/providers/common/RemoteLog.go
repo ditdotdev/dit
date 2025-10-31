@@ -2,7 +2,6 @@ package common
 
 import (
 	"fmt"
-	"github.com/antihax/optional"
 	client "github.com/datadatdat/datadatdat-client-go"
 	"github.com/datadatdat/remote-sdk-go/remote"
 	"os"
@@ -10,7 +9,7 @@ import (
 )
 
 func RemoteLog(repo string, remoteName string, tags []string, port int) {
-	cfg.BasePath = "http://localhost:" + strconv.Itoa(port)
+	cfg.Servers[0].URL = "http://localhost:" + strconv.Itoa(port)
 
 	remotes, _, _ := remotesApi.ListRemotes(ctx, repo)
 	if len(remotes) == 0 {

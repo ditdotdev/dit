@@ -7,7 +7,7 @@ import (
 )
 
 func Abort(repo string, port int) {
-	cfg.BasePath = "http://localhost:" + strconv.Itoa(port)
+	cfg.Servers[0].URL = "http://localhost:" + strconv.Itoa(port)
 
 	var operations, _, _ = operationsApi.ListOperations(ctx, nil) //TODO handle error
 	var abortCount = 0

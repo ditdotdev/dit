@@ -8,7 +8,7 @@ import (
 )
 
 func TagCommit(repo string, guid string, tags []string, port int) {
-	cfg.BasePath = "http://localhost:" + strconv.Itoa(port)
+	cfg.Servers[0].URL = "http://localhost:" + strconv.Itoa(port)
 
 	commit, _, _ := commitsApi.GetCommit(ctx, repo, guid)
 	commitTags := make(map[string]string)

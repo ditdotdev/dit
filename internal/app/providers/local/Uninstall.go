@@ -8,7 +8,7 @@ import (
 )
 
 func Uninstall(version string, force bool, removeImages bool, port int, context string) {
-	cfg.BasePath = "http://localhost:" + strconv.Itoa(port)
+	cfg.Servers[0].URL = "http://localhost:" + strconv.Itoa(port)
 	docker := clients.Docker(context, port)
 
 	serverAvailable, _ := docker.DatadatdatServerIsAvailable()

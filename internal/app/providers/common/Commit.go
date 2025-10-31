@@ -9,7 +9,7 @@ import (
 )
 
 func Commit(repo string, message string, tags []string, user string, email string, port int) {
-	cfg.BasePath = "http://localhost:" + strconv.Itoa(port)
+	cfg.Servers[0].URL = "http://localhost:" + strconv.Itoa(port)
 
 	repoProps, _, _ := repositoriesApi.GetRepository(ctx, repo)
 	metadata := Metadata{}.Load(repoProps.Properties)

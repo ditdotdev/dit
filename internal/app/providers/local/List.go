@@ -7,7 +7,7 @@ import (
 )
 
 func List(context string, port int) {
-	cfg.BasePath = "http://localhost:" + strconv.Itoa(port)
+	cfg.Servers[0].URL = "http://localhost:" + strconv.Itoa(port)
 	docker := clients.Docker("", port)
 
 	repos, _, _ := repositoriesApi.ListRepositories(ctx)

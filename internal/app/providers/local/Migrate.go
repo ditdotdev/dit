@@ -23,7 +23,7 @@ func getLocalSrcFromPath(path string, mounts []mount) string {
 type Commit func(string, string, []string, string, string, int)
 
 func Migrate(container string, name string, user string, email string, commit Commit, port int, context string) {
-	cfg.BasePath = "http://localhost:" + strconv.Itoa(port)
+	cfg.Servers[0].URL = "http://localhost:" + strconv.Itoa(port)
 	docker := clients.Docker(context, port)
 
 	_, err := docker.InspectContainer(container)

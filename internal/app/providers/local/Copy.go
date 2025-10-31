@@ -17,7 +17,7 @@ type mount struct {
 }
 
 func Copy(repo string, driver string, source string, path string, port int, context string) {
-	cfg.BasePath = "http://localhost:" + strconv.Itoa(port)
+	cfg.Servers[0].URL = "http://localhost:" + strconv.Itoa(port)
 	docker := clients.Docker(context, port)
 
 	info, err := docker.InspectContainer(repo)
