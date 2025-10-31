@@ -3,10 +3,11 @@ package local
 import (
 	"datadatdat/internal/app/clients"
 	"fmt"
-	client "github.com/datadatdat/datadatdat-client-go"
 	"os"
 	"strconv"
 	"strings"
+
+	client "github.com/datadatdat/datadatdat-client-go"
 )
 
 func Run(container string, repository string, envVars []string, args []string, disablePortMap bool, createRepo bool, port int, context string) (string, error) {
@@ -75,7 +76,7 @@ func Run(container string, repository string, envVars []string, args []string, d
 		Properties: nil,
 	}
 	if createRepo {
-		_, _, err := repositoriesApi.CreateRepository(ctx, repo)
+		_, _, err := repositoriesApi.CreateRepository(ctx).Repository(repo).Execute()
 		if err != nil && err.Error() == "409 Conflict" {
 			fmt.Println("repository '" + repo.Name + "' already exists")
 			os.Exit(1)
@@ -198,7 +199,7 @@ func Run(container string, repository string, envVars []string, args []string, d
 		Name:       containerName,
 		Properties: metadata,
 	}
-	_, _, err = repositoriesApi.UpdateRepository(ctx, containerName, updateRepo)
+	_, _, err = repositoriesApi.UpdateRepository(ctx, containerName).Repository(updateRepo).Execute()
 	if err != nil {
 		fmt.Println(err)
 		os.Exit(1)

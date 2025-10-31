@@ -13,7 +13,7 @@ func Uninstall(version string, force bool, removeImages bool, port int, context 
 
 	serverAvailable, _ := docker.DatadatdatServerIsAvailable()
 	if serverAvailable {
-		var repos, _, _ = repositoriesApi.ListRepositories(ctx)
+		var repos, _, _ = repositoriesApi.ListRepositories(ctx).Execute()
 		for _, repo := range repos {
 			if !force {
 				fmt.Println("repository '" + repo.Name + "' exists, remove first or use '-f'")

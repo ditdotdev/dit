@@ -42,7 +42,7 @@ func Clone(uri string, repo string, guid string, params []string, args []string,
 	}
 	var err error
 	cleanup := false
-	_, _, err = repositoriesApi.CreateRepository(ctx, repository).Execute()
+	_, _, err = repositoriesApi.CreateRepository(ctx).Repository(repository).Execute()
 	if err != nil && err.Error() == "409 Conflict" {
 		removeRepo(repoName, port, context)
 	} else {

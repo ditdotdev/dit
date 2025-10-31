@@ -2,19 +2,23 @@ package common
 
 import (
 	"fmt"
-	client "github.com/datadatdat/datadatdat-client-go"
-	"github.com/google/uuid"
 	"strconv"
 	"strings"
+
+	client "github.com/datadatdat/datadatdat-client-go"
+	"github.com/google/uuid"
 )
 
 func Commit(repo string, message string, tags []string, user string, email string, port int) {
 	cfg.Servers[0].URL = "http://localhost:" + strconv.Itoa(port)
 
-	repoProps, _, _ := repositoriesApi.GetRepository(ctx, repo)
+	repoProps, _, _ := repositoriesApi.GetRepository(ctx, repo).Execute()
 	metadata := Metadata{}.Load(repoProps.Properties)
-	repoStatus, _, _ := repositoriesApi.GetRepositoryStatus(ctx, repo) //TODO handle this error
-	sourceCommit := repoStatus.SourceCommit
+	repoStatus, _, _ := repositoriesApi.GetRepositoryStatus(ctx, repo).Execute() //TODO handle this error
+	var sourceCommit string
+	if repoStatus.SourceCommit != nil {
+		sourceCommit = *repoStatus.SourceCommit
+	}
 	tagMetadata := make(map[string]string)
 	for _, tag := range tags {
 		var k string
@@ -41,6 +45,6 @@ func Commit(repo string, message string, tags []string, user string, email strin
 		Id:         guid,
 		Properties: metadata.ToMap(),
 	}
-	response, _, _ := commitsApi.CreateCommit(ctx, repo, commit)
+	response, _, _ := commitsApi.CreateCommit(ctx, repo).Commit(commit).Execute()
 	fmt.Println("Commit " + response.Id)
 }

@@ -21,12 +21,12 @@ func Checkout(repo string, guid string, tags []string, port int, context string)
 			}
 			sourceCommit = commits[0].Id
 		} else {
-			status, _, _ := repositoriesApi.GetRepositoryStatus(ctx, repo)
-			if status.SourceCommit == "" {
+			status, _, _ := repositoriesApi.GetRepositoryStatus(ctx, repo).Execute()
+			if status.SourceCommit == nil || *status.SourceCommit == "" {
 				fmt.Println("no commits present, run 'd3 commit' first")
 				os.Exit(1)
 			}
-			sourceCommit = status.SourceCommit
+			sourceCommit = *status.SourceCommit
 		}
 	} else {
 		if len(tags) > 0 {
@@ -40,7 +40,7 @@ func Checkout(repo string, guid string, tags []string, port int, context string)
 		fmt.Printf("Warning: Failed to stop container %s: %v\n", repo, err)
 	}
 	fmt.Println("Checkout " + sourceCommit)
-	if _, err := commitsApi.CheckoutCommit(ctx, repo, sourceCommit); err != nil {
+	if _, err := commitsApi.CheckoutCommit(ctx, repo, sourceCommit).Execute(); err != nil {
 		fmt.Printf("Error checking out commit %s: %v\n", sourceCommit, err)
 		os.Exit(1)
 	}

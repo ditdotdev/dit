@@ -11,7 +11,7 @@ func getContainersStatus(port int, context string) []runtimeStatus {
 	cfg.Servers[0].URL = "http://localhost:" + strconv.Itoa(port)
 	docker := clients.Docker(context, port)
 
-	repos, _, _ := repositoriesApi.ListRepositories(ctx)
+	repos, _, _ := repositoriesApi.ListRepositories(ctx).Execute()
 	var r []runtimeStatus
 	for _, repo := range repos {
 		status, err := docker.GetValFromContainer(repo.Name, "State", "Status")
@@ -44,26 +44,26 @@ func ByteCountBinary(b int64) string {
 func Status(repo string, port int, context string) {
 	cfg.Servers[0].URL = "http://localhost:" + strconv.Itoa(port)
 
-	s, _, _ := repositoriesApi.GetRepositoryStatus(ctx, repo)
+	s, _, _ := repositoriesApi.GetRepositoryStatus(ctx, repo).Execute()
 	for _, r := range getContainersStatus(port, context) {
 		if r.name == repo {
 			o := fmt.Sprintf("%20s %s", "Status: ", r.status)
 			fmt.Println(o)
 		}
 	}
-	if s.LastCommit != "" {
-		o := fmt.Sprintf("%20s %s", "Last Commit: ", s.LastCommit)
+	if s.LastCommit != nil && *s.LastCommit != "" {
+		o := fmt.Sprintf("%20s %s", "Last Commit: ", *s.LastCommit)
 		fmt.Println(o)
 	}
-	if s.SourceCommit != "" {
-		o := fmt.Sprintf("%20s %s", "Source Commit: ", s.SourceCommit)
+	if s.SourceCommit != nil && *s.SourceCommit != "" {
+		o := fmt.Sprintf("%20s %s", "Source Commit: ", *s.SourceCommit)
 		fmt.Println(o)
 	}
-	vols, _, _ := volumesApi.ListVolumes(ctx, repo)
+	vols, _, _ := volumesApi.ListVolumes(ctx, repo).Execute()
 	o := fmt.Sprintf("%-30s  %-12s  %s", "Volume", "Uncompressed", "Compressed")
 	fmt.Println(o)
 	for _, v := range vols {
-		vstat, _, _ := volumesApi.GetVolumeStatus(ctx, repo, v.Name)
+		vstat, _, _ := volumesApi.GetVolumeStatus(ctx, repo, v.Name).Execute()
 		o := fmt.Sprintf("%-30s  %-12s  %s", vstat.Properties["path"],
 			ByteCountBinary(vstat.LogicalSize),
 			ByteCountBinary(vstat.ActualSize),

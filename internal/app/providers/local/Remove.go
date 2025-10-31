@@ -30,10 +30,10 @@ func Remove(repo string, force bool, port int, context string) {
 			}
 		}
 	}
-	volumes, _, _ := volumesApi.ListVolumes(ctx, repo)
+	volumes, _, _ := volumesApi.ListVolumes(ctx, repo).Execute()
 	for _, volume := range volumes {
 		fmt.Println("Deleting volume " + volume.Name)
-		_, err := volumesApi.DeactivateVolume(ctx, repo, volume.Name)
+		_, err := volumesApi.DeactivateVolume(ctx, repo, volume.Name).Execute()
 		if err != nil {
 			panic(err.Error())
 		}
@@ -46,7 +46,7 @@ func Remove(repo string, force bool, port int, context string) {
 			 * not allow it to be removed. Falling back on the VolumeApi
 			 * fixes this condition.
 			 */
-			if _, err := volumesApi.DeleteVolume(ctx, repo, volume.Name); err != nil {
+			if _, err := volumesApi.DeleteVolume(ctx, repo, volume.Name).Execute(); err != nil {
 				fmt.Printf("Warning: Failed to delete volume %s: %v\n", volume.Name, err)
 			}
 		}
@@ -61,7 +61,7 @@ func Remove(repo string, force bool, port int, context string) {
 	//	}
 	//}
 
-	_, err := repositoriesApi.DeleteRepository(ctx, repo)
+	_, err := repositoriesApi.DeleteRepository(ctx, repo).Execute()
 	if err != nil {
 		// Handle 404 gracefully - repository may already be deleted
 		errMsg := err.Error()
