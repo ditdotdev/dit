@@ -23,7 +23,7 @@ jobs:
       - name: Configure Git for private modules
         run: |
           git config --global url."https://x-access-token:${{ secrets.GO_MODULES_TOKEN }}@github.com/".insteadOf "https://github.com/"
-          git config --global credential.helper store
+          git config --global credential helper store
           echo "https://x-access-token:${{ secrets.GO_MODULES_TOKEN }}@github.com" > ~/.git-credentials
         shell: bash
       - uses: actions/setup-go@v5
@@ -48,6 +48,92 @@ jobs:
           GONOPROXY: github.com/datadatdat/*
           GONOSUMDB: github.com/datadatdat/*
           GIT_TERMINAL_PROMPT: 0
+
+  e2e-test:
+    name: End to End Tests
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GO_MODULES_TOKEN }}
+      - name: Configure Git for private modules
+        run: |
+          git config --global url."https://x-access-token:${{ secrets.GO_MODULES_TOKEN }}@github.com/".insteadOf "https://github.com/"
+          git config --global credential.helper store
+          echo "https://x-access-token:${{ secrets.GO_MODULES_TOKEN }}@github.com" > ~/.git-credentials
+        shell: bash
+      - name: Config Git
+        run: |
+          git config --global user.name "test.runner"
+          git config --global user.email "test@runner.com"
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.25.1'
+      - name: Configure Go for private modules
+        run: |
+          go env -w GOPRIVATE=github.com/datadatdat/*
+          go env -w GONOPROXY=github.com/datadatdat/*
+          go env -w GONOSUMDB=github.com/datadatdat/*
+          go env -w GOPROXY=direct
+        shell: bash
+        env:
+          GOPRIVATE: github.com/datadatdat/*
+          GONOPROXY: github.com/datadatdat/*
+          GONOSUMDB: github.com/datadatdat/*
+      - name: Output Kernel Info
+        run: |
+         docker pull busybox
+         docker run busybox uname -a
+      - name: Build Datadatdat
+        run: |
+          VERSION=$(git describe --tags --abbrev=0 2>/dev/null || echo "v1.1.0")
+          echo "Building d3 CLI with version: $VERSION"
+          make build VERSION=$VERSION
+        shell: bash
+        env:
+          GOPRIVATE: github.com/datadatdat/*
+          GONOPROXY: github.com/datadatdat/*
+          GONOSUMDB: github.com/datadatdat/*
+          GIT_TERMINAL_PROMPT: 0
+      - name: Install OpenZFS
+        run: |
+          echo "Installing ZFS for Ubuntu $(lsb_release -rs) kernel $(uname -r)..."
+          sudo apt-get update
+          
+          echo "Installing ZFS userspace tools and kernel modules..."
+          sudo apt-get install -y zfsutils-linux
+          
+          echo "Loading ZFS kernel modules..."
+          sudo modprobe zfs
+          
+          echo "Verifying ZFS installation..."
+          zfs version
+          zpool version
+          lsmod | grep zfs
+          
+          echo "Testing ZFS functionality..."
+          # Create a test file for ZFS pool
+          sudo dd if=/dev/zero of=/tmp/zfs-test-file bs=1M count=100
+          sudo zpool create testpool /tmp/zfs-test-file
+          sudo zfs create testpool/testfs
+          sudo zfs list
+          sudo zpool destroy testpool
+          sudo rm -f /tmp/zfs-test-file
+          echo "ZFS installation and test completed successfully!"
+      - name: Setup Test Requirements
+        run: |
+          # Generate SSH keys using the project's generateKey.sh script
+          cd tests/endtoend/remotes/ssh
+          ./generateKey.sh ubuntu-22.04
+      - name: Run Test Suite
+        run: |
+          export PATH=$GITHUB_WORKSPACE/build:$PATH
+          make e2e
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_REGION: ${{ secrets.AWS_REGION }}
+
   docs:
     name: Build Documentation
     runs-on: ubuntu-latest
