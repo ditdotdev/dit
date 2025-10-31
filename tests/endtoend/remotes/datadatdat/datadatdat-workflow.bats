@@ -1,0 +1,463 @@
+#!/usr/bin/env bats
+
+# Load shared test helpers
+load '../../test_helper'
+
+# Setup: Verify datadatdat-remote-server is running
+setup_file() {
+  # Set API key for authentication
+  export DATADATDAT_API_KEY=80d141e9375c062be6c819e86f0e15e1c36bfcd5fd86286c30ad28b2e2ec8511
+  
+  # Verify the server is healthy
+  run curl -s http://127.0.0.1:8080/health
+  assert_success
+  [[ "$output" == *"healthy"* ]] || {
+    echo "datadatdat-remote-server is not running or not healthy"
+    return 1
+  }
+}
+
+# Cleanup after all tests
+teardown_file() {
+  # Best effort cleanup - don't fail if already cleaned
+  curl -X DELETE -sf -H "Authorization: Bearer ${DATADATDAT_API_KEY}" \
+    "http://127.0.0.1:8080/api/v1/repos/testorg/datadatdat-test" 2>/dev/null || true
+  curl -X DELETE -sf -H "Authorization: Bearer ${DATADATDAT_API_KEY}" \
+    "http://127.0.0.1:8080/api/v1/repos/webtest/ui-repo" 2>/dev/null || true
+  
+  # Remove any leftover local repositories
+  "$D3" rm -f datadatdatTest 2>/dev/null || true
+  "$D3" rm -f webUITest 2>/dev/null || true
+  "$D3" rm -f webUITestClone 2>/dev/null || true
+}
+
+@test "create test repository in datadatdat-remote-server" {
+  run curl -X POST -f -H "Authorization: Bearer ${DATADATDAT_API_KEY}" \
+    "http://127.0.0.1:8080/api/v1/repos/testorg/datadatdat-test"
+  assert_success
+  assert_output --partial "datadatdat-test"
+}
+
+@test "run empty mongo db" {
+  run "$D3" run -n datadatdatTest mongo
+  assert_success
+  assert_output --partial "Running controlled container datadatdatTest"
+}
+
+@test "create new commit" {
+  run "$D3" commit -m "datadatdatTest Commit" datadatdatTest
+  assert_success
+  assert_output --partial "Commit"
+  
+  # Extract commit GUID (second word in output)
+  COMMIT_GUID=$(echo "$output" | grep -oE 'Commit [a-f0-9-]+' | awk '{print $2}')
+  echo "$COMMIT_GUID" > "$BATS_TMPDIR/commit_guid.txt"
+}
+
+@test "add datadatdat remote succeeds" {
+  run "$D3" remote add http://datadatdat-api-gateway:8080/testorg/datadatdat-test datadatdatTest
+  assert_success
+}
+
+@test "repo has datadatdat remote" {
+  run "$D3" remote ls datadatdatTest
+  assert_success
+  assert_output --partial "http://datadatdat-api-gateway:8080/testorg/datadatdat-test"
+}
+
+@test "list remote commits returns empty list" {
+  run "$D3" remote log datadatdatTest
+  assert_success
+  [[ "$output" != *"Commit"* ]]
+}
+
+@test "get non-existent remote commit fails" {
+  run "$D3" pull datadatdatTest
+  assert_failure
+}
+
+@test "push commit succeeds" {
+  COMMIT_GUID=$(cat "$BATS_TMPDIR/commit_guid.txt")
+  run "$D3" push datadatdatTest
+  assert_success
+  assert_output --partial "Pushing ${COMMIT_GUID} to 'origin'"
+  assert_output --partial "Push completed successfully"
+}
+
+@test "list remote commits returns pushed commit" {
+  COMMIT_GUID=$(cat "$BATS_TMPDIR/commit_guid.txt")
+  run "$D3" remote log datadatdatTest
+  assert_success
+  assert_output --partial "Commit ${COMMIT_GUID}"
+  assert_output --partial "datadatdatTest Commit"
+}
+
+@test "push of same commit fails" {
+  COMMIT_GUID=$(cat "$BATS_TMPDIR/commit_guid.txt")
+  run "$D3" push datadatdatTest
+  assert_failure
+  assert_output --partial "commit ${COMMIT_GUID} exists in remote 'origin'"
+}
+
+@test "delete local commit succeeds" {
+  COMMIT_GUID=$(cat "$BATS_TMPDIR/commit_guid.txt")
+  run "$D3" delete -c "$COMMIT_GUID" datadatdatTest
+  assert_success
+  assert_output "${COMMIT_GUID} deleted"
+}
+
+@test "list local commits is empty" {
+  run "$D3" log datadatdatTest
+  assert_success
+  [[ "$output" != *"Commit"* ]]
+}
+
+@test "pull original commit succeeds" {
+  COMMIT_GUID=$(cat "$BATS_TMPDIR/commit_guid.txt")
+  run "$D3" pull datadatdatTest
+  assert_success
+  assert_output --partial "Pulling ${COMMIT_GUID} from 'origin'"
+  assert_output --partial "Pull completed successfully"
+}
+
+@test "checkout commit succeeds" {
+  COMMIT_GUID=$(cat "$BATS_TMPDIR/commit_guid.txt")
+  run "$D3" checkout -c "$COMMIT_GUID" datadatdatTest
+  assert_success
+  assert_output --partial "Stopping container datadatdatTest"
+  assert_output --partial "Checkout ${COMMIT_GUID}"
+  assert_output --partial "Starting container datadatdatTest"
+  assert_output --partial "${COMMIT_GUID} checked out"
+}
+
+@test "create second commit" {
+  run "$D3" commit -m "Second datadatdatTest Commit" datadatdatTest
+  assert_success
+  assert_output --partial "Commit"
+  
+  # Extract commit GUID
+  COMMIT_GUID2=$(echo "$output" | grep -oE 'Commit [a-f0-9-]+' | awk '{print $2}')
+  echo "$COMMIT_GUID2" > "$BATS_TMPDIR/commit_guid2.txt"
+}
+
+@test "push second commit succeeds" {
+  run "$D3" push datadatdatTest
+  assert_success
+  assert_output --partial "Push completed successfully"
+}
+
+@test "list remote commits shows both commits" {
+  run "$D3" remote log datadatdatTest
+  assert_success
+  assert_output --partial "Second datadatdatTest Commit"
+  assert_output --partial "datadatdatTest Commit"
+}
+
+@test "remove remote succeeds" {
+  run "$D3" remote rm datadatdatTest origin
+  assert_success
+  assert_output "Removed origin from datadatdatTest"
+}
+
+@test "remove datadatdatTest repository succeeds" {
+  run "$D3" rm -f datadatdatTest
+  assert_success
+  assert_output --partial "Removing repository datadatdatTest"
+}
+
+@test "test list repos by org API endpoint - testorg (before cleanup)" {
+  run curl -sf -H "Authorization: Bearer ${DATADATDAT_API_KEY}" \
+    "http://127.0.0.1:3000/api/v1/repos/testorg"
+  assert_success
+  assert_output --partial "testorg/datadatdat-test"
+}
+
+@test "cleanup - delete test repository from datadatdat-remote-server" {
+  run curl -X DELETE -f -H "Authorization: Bearer ${DATADATDAT_API_KEY}" \
+    "http://127.0.0.1:8080/api/v1/repos/testorg/datadatdat-test"
+  assert_success
+}
+
+# ===== Web UI Tests =====
+
+@test "web UI: create test repo for web UI tests" {
+  run curl -X POST -f -H "Authorization: Bearer ${DATADATDAT_API_KEY}" \
+    "http://127.0.0.1:8080/api/v1/repos/webtest/ui-repo"
+  assert_success
+  assert_output --partial "ui-repo"
+}
+
+@test "web UI: run postgres for web UI tests" {
+  run "$D3" run -n webUITest postgres -e POSTGRES_PASSWORD=postgres
+  assert_success
+  assert_output --partial "Running controlled container webUITest"
+}
+
+@test "web UI: check to see if database is up and running" {
+  run bash -c "for i in {1..18}; do docker exec webUITest pg_isready && break || sleep 5; done"
+  assert_success
+  assert_output --partial "accepting connections"
+}
+
+@test "web UI: create initial commit" {
+  run "$D3" commit -m "Initial web UI test commit" webUITest
+  assert_success
+  assert_output --partial "Commit"
+  
+  # Extract commit GUID
+  WEB_COMMIT_1=$(echo "$output" | grep -oE 'Commit [a-f0-9-]+' | awk '{print $2}')
+  echo "$WEB_COMMIT_1" > "$BATS_TMPDIR/web_commit_1.txt"
+}
+
+@test "web UI: add remote" {
+  run "$D3" remote add http://datadatdat-api-gateway:8080/webtest/ui-repo webUITest
+  assert_success
+}
+
+@test "web UI: push initial commit" {
+  run "$D3" push webUITest
+  assert_success
+  assert_output --partial "Push completed successfully"
+}
+
+@test "web UI: test commits list API returns initial commit" {
+  WEB_COMMIT_1=$(cat "$BATS_TMPDIR/web_commit_1.txt")
+  run curl -sf -H "Authorization: Bearer ${DATADATDAT_API_KEY}" \
+    "http://127.0.0.1:3000/api/v1/repos/webtest/ui-repo/commits"
+  assert_success
+  assert_output --partial "${WEB_COMMIT_1}"
+  assert_output --partial "Initial web UI test commit"
+}
+
+@test "web UI: test individual commit API" {
+  WEB_COMMIT_1=$(cat "$BATS_TMPDIR/web_commit_1.txt")
+  run curl -sf -H "Authorization: Bearer ${DATADATDAT_API_KEY}" \
+    "http://127.0.0.1:3000/api/v1/repos/webtest/ui-repo/commits/${WEB_COMMIT_1}"
+  assert_success
+  assert_output --partial "Initial web UI test commit"
+}
+
+@test "web UI: make database changes for second commit" {
+  run docker exec webUITest psql -U postgres -c \
+    "CREATE TABLE test_table (id SERIAL PRIMARY KEY, name VARCHAR(100));"
+  assert_success
+  assert_output --partial "CREATE TABLE"
+}
+
+@test "web UI: create second commit" {
+  run "$D3" commit -m "Added test table" webUITest
+  assert_success
+  assert_output --partial "Commit"
+  
+  # Extract commit GUID
+  WEB_COMMIT_2=$(echo "$output" | grep -oE 'Commit [a-f0-9-]+' | awk '{print $2}')
+  echo "$WEB_COMMIT_2" > "$BATS_TMPDIR/web_commit_2.txt"
+}
+
+@test "web UI: push second commit" {
+  run "$D3" push webUITest
+  assert_success
+  assert_output --partial "Push completed successfully"
+}
+
+@test "web UI: test commit data freshness (no caching) - verify 2 commits" {
+  WEB_COMMIT_1=$(cat "$BATS_TMPDIR/web_commit_1.txt")
+  WEB_COMMIT_2=$(cat "$BATS_TMPDIR/web_commit_2.txt")
+  run curl -sf -H "Authorization: Bearer ${DATADATDAT_API_KEY}" \
+    "http://127.0.0.1:3000/api/v1/repos/webtest/ui-repo/commits"
+  assert_success
+  assert_output --partial "${WEB_COMMIT_1}"
+  assert_output --partial "${WEB_COMMIT_2}"
+  assert_output --partial "Initial web UI test commit"
+  assert_output --partial "Added test table"
+}
+
+@test "web UI: verify second commit details via API" {
+  WEB_COMMIT_2=$(cat "$BATS_TMPDIR/web_commit_2.txt")
+  run curl -sf -H "Authorization: Bearer ${DATADATDAT_API_KEY}" \
+    "http://127.0.0.1:3000/api/v1/repos/webtest/ui-repo/commits/${WEB_COMMIT_2}"
+  assert_success
+  assert_output --partial "${WEB_COMMIT_2}"
+  assert_output --partial "Added test table"
+}
+
+@test "web UI: make database changes for third commit" {
+  run docker exec webUITest psql -U postgres -c \
+    "INSERT INTO test_table (name) VALUES ('Alice'), ('Bob');"
+  assert_success
+  assert_output --partial "INSERT"
+}
+
+@test "web UI: create third commit" {
+  run "$D3" commit -m "Added test data" webUITest
+  assert_success
+  assert_output --partial "Commit"
+  
+  # Extract commit GUID
+  WEB_COMMIT_3=$(echo "$output" | grep -oE 'Commit [a-f0-9-]+' | awk '{print $2}')
+  echo "$WEB_COMMIT_3" > "$BATS_TMPDIR/web_commit_3.txt"
+}
+
+@test "web UI: push third commit" {
+  run "$D3" push webUITest
+  assert_success
+  assert_output --partial "Push completed successfully"
+}
+
+@test "web UI: test manifest updates on push - verify all 3 commits in manifest" {
+  WEB_COMMIT_1=$(cat "$BATS_TMPDIR/web_commit_1.txt")
+  WEB_COMMIT_2=$(cat "$BATS_TMPDIR/web_commit_2.txt")
+  WEB_COMMIT_3=$(cat "$BATS_TMPDIR/web_commit_3.txt")
+  run curl -s -H "Authorization: Bearer ${DATADATDAT_API_KEY}" \
+    "http://127.0.0.1:8080/api/v1/repos/webtest/ui-repo/manifest"
+  assert_success
+  assert_output --partial "${WEB_COMMIT_1}"
+  assert_output --partial "${WEB_COMMIT_2}"
+  assert_output --partial "${WEB_COMMIT_3}"
+}
+
+@test "web UI: verify all 3 commits via web UI API" {
+  WEB_COMMIT_1=$(cat "$BATS_TMPDIR/web_commit_1.txt")
+  WEB_COMMIT_2=$(cat "$BATS_TMPDIR/web_commit_2.txt")
+  WEB_COMMIT_3=$(cat "$BATS_TMPDIR/web_commit_3.txt")
+  run curl -sf -H "Authorization: Bearer ${DATADATDAT_API_KEY}" \
+    "http://127.0.0.1:3000/api/v1/repos/webtest/ui-repo/commits"
+  assert_success
+  assert_output --partial "${WEB_COMMIT_1}"
+  assert_output --partial "${WEB_COMMIT_2}"
+  assert_output --partial "${WEB_COMMIT_3}"
+  assert_output --partial "Initial web UI test commit"
+  assert_output --partial "Added test table"
+  assert_output --partial "Added test data"
+}
+
+@test "web UI: checkout first commit" {
+  WEB_COMMIT_1=$(cat "$BATS_TMPDIR/web_commit_1.txt")
+  run "$D3" checkout -c "$WEB_COMMIT_1" webUITest
+  assert_success
+  assert_output --partial "checked out"
+}
+
+@test "web UI: test API error handling - non-existent repo returns empty" {
+  run curl -s -H "Authorization: Bearer ${DATADATDAT_API_KEY}" \
+    "http://127.0.0.1:3000/api/v1/repos/fake/nonexistent/commits"
+  assert_success
+  assert_output --partial '"commits":[]'
+}
+
+@test "web UI: test API error handling - invalid commit ID returns error" {
+  run curl -s -H "Authorization: Bearer ${DATADATDAT_API_KEY}" \
+    "http://127.0.0.1:3000/api/v1/repos/webtest/ui-repo/commits/invalid-commit-id"
+  assert_success
+  assert_output --partial "error"
+}
+
+@test "web UI: test list all repos API endpoint" {
+  run curl -sf -H "Authorization: Bearer ${DATADATDAT_API_KEY}" \
+    "http://127.0.0.1:3000/api/v1/repos"
+  assert_success
+  assert_output --partial "webtest/ui-repo"
+}
+
+@test "web UI: verify empty database at first commit" {
+  # Wait for database
+  run bash -c "for i in {1..18}; do docker exec webUITest pg_isready && break || sleep 5; done"
+  assert_success
+  
+  run bash -c "docker exec webUITest psql -U postgres -c '\\dt' 2>&1"
+  assert_success
+  assert_output --partial "Did not find any"
+}
+
+@test "web UI: checkout second commit" {
+  WEB_COMMIT_2=$(cat "$BATS_TMPDIR/web_commit_2.txt")
+  run "$D3" checkout -c "$WEB_COMMIT_2" webUITest
+  assert_success
+  assert_output --partial "checked out"
+}
+
+@test "web UI: verify table exists at second commit" {
+  # Wait for database
+  run bash -c "for i in {1..18}; do docker exec webUITest pg_isready && break || sleep 5; done"
+  assert_success
+  
+  run docker exec webUITest psql -U postgres -c "\\dt"
+  assert_success
+  assert_output --partial "test_table"
+}
+
+@test "web UI: verify table is empty at second commit" {
+  run docker exec webUITest psql -U postgres -c "SELECT COUNT(*) FROM test_table;"
+  assert_success
+  assert_output --partial " 0"
+}
+
+@test "web UI: checkout third commit" {
+  WEB_COMMIT_3=$(cat "$BATS_TMPDIR/web_commit_3.txt")
+  run "$D3" checkout -c "$WEB_COMMIT_3" webUITest
+  assert_success
+  assert_output --partial "checked out"
+}
+
+@test "web UI: verify data exists at third commit" {
+  # Wait for database
+  run bash -c "for i in {1..18}; do docker exec webUITest pg_isready && break || sleep 5; done"
+  assert_success
+  
+  run docker exec webUITest psql -U postgres -c "SELECT COUNT(*) FROM test_table;"
+  assert_success
+  assert_output --partial " 2"
+}
+
+@test "web UI: verify correct data at third commit" {
+  run docker exec webUITest psql -U postgres -c "SELECT name FROM test_table ORDER BY name;"
+  assert_success
+  assert_output --partial "Alice"
+  assert_output --partial "Bob"
+}
+
+@test "web UI: cleanup - remove test repo" {
+  run "$D3" rm webUITest -f
+  assert_success
+  assert_output --partial "webUITest removed"
+}
+
+@test "web UI: cleanup - remove previous clone if exists" {
+  # Best effort - don't fail if doesn't exist
+  "$D3" rm webUITestClone -f 2>/dev/null || true
+}
+
+@test "web UI: test clone with manifest - clone from remote" {
+  run "$D3" clone -n webUITestClone http://datadatdat-api-gateway:8080/webtest/ui-repo
+  assert_success
+  assert_output --partial "checked out"
+}
+
+@test "web UI: test clone with manifest - verify all commits present" {
+  WEB_COMMIT_1=$(cat "$BATS_TMPDIR/web_commit_1.txt")
+  WEB_COMMIT_2=$(cat "$BATS_TMPDIR/web_commit_2.txt")
+  WEB_COMMIT_3=$(cat "$BATS_TMPDIR/web_commit_3.txt")
+  run "$D3" remote log webUITestClone
+  assert_success
+  assert_output --partial "${WEB_COMMIT_1}"
+  assert_output --partial "${WEB_COMMIT_2}"
+  assert_output --partial "${WEB_COMMIT_3}"
+}
+
+@test "web UI: cleanup - remove cloned repo" {
+  run "$D3" rm webUITestClone -f
+  assert_success
+  assert_output --partial "webUITestClone removed"
+}
+
+@test "web UI: verify no repositories exist after cleanup" {
+  run "$D3" ls
+  assert_success
+  # Should just show header, no repositories
+  assert_output --partial "CONTEXT"
+  assert_output --partial "REPOSITORY"
+  assert_output --partial "STATUS"
+  # Count lines - should be just header (3 lines or less)
+  lines_count=$(echo "$output" | wc -l)
+  [[ $lines_count -le 3 ]]
+}

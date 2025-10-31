@@ -23,7 +23,7 @@ jobs:
       - name: Configure Git for private modules
         run: |
           git config --global url."https://x-access-token:${{ secrets.GO_MODULES_TOKEN }}@github.com/".insteadOf "https://github.com/"
-          git config --global credential helper store
+          git config --global credential.helper store
           echo "https://x-access-token:${{ secrets.GO_MODULES_TOKEN }}@github.com" > ~/.git-credentials
         shell: bash
       - uses: actions/setup-go@v5
@@ -89,6 +89,8 @@ jobs:
           VERSION=$(git describe --tags --abbrev=0 2>/dev/null || echo "v1.1.0")
           echo "Building d3 CLI with version: $VERSION"
           make build VERSION=$VERSION
+          cp build/d3 d3
+          echo "d3 binary copied to root directory"
         shell: bash
         env:
           GOPRIVATE: github.com/datadatdat/*
@@ -120,6 +122,10 @@ jobs:
           sudo zpool destroy testpool
           sudo rm -f /tmp/zfs-test-file
           echo "ZFS installation and test completed successfully!"
+      - name: Install BATS
+        run: |
+          sudo npm install -g bats
+          bats --version
       - name: Setup Test Requirements
         run: |
           # Generate SSH keys using the project's generateKey.sh script
