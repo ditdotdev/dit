@@ -1,5 +1,3 @@
-VEXRUN_FILE := $(PWD)/utils/vexrun.jar
-VEXRUN := java -jar $(VEXRUN_FILE)
 DATADATDAT_TARGET := $(PWD)/build/d3
 DATADATDAT_BIN := /usr/local/bin/d3
 RELEASE_DIR := $(PWD)/release
@@ -54,43 +52,39 @@ link:
 unlink:
 	rm  $(DATADATDAT_BIN)
 
-test-setup:
-	curl -Ls https://github.com/datadatdat/vexrun/releases/download/v0.0.5/vexrun-0.0.5.jar -z $(VEXRUN_FILE) -o $(VEXRUN_FILE)
-
 test-install:
-	$(VEXRUN) -f $(PWD)/tests/endtoend/infrastructure/Install.yml
+	bats $(PWD)/tests/endtoend/infrastructure/install.bats
 
 test-uninstall:
-	$(VEXRUN) -f $(PWD)/tests/endtoend/infrastructure/Uninstall.yml
+	bats $(PWD)/tests/endtoend/infrastructure/uninstall.bats
 
 test-getting-started:
-	$(VEXRUN) -d $(PWD)/tests/endtoend/getting-started
+	bats $(PWD)/tests/endtoend/getting-started/getting-started.bats
 
 test-tags:
-	$(VEXRUN) -d $(PWD)/tests/endtoend/tags
+	bats $(PWD)/tests/endtoend/tags/clone-tags.bats
 
 test-db-matrix:
-	$(VEXRUN) -f $(PWD)/tests/endtoend/db-matrix/databases.yml
+	bats $(PWD)/tests/endtoend/db-matrix/db-matrix.bats
 
 test-docker-context:
-	docker pull datadatdat/nginx-test:latest
-	docker tag datadatdat/nginx-test:latest nginx-test
-	$(VEXRUN) -d $(PWD)/tests/endtoend/context/docker
+	bats $(PWD)/tests/endtoend/context/docker/docker-tests.bats
 
 test-s3-workflow:
-	$(VEXRUN) -f $(PWD)/tests/endtoend/remotes/s3/s3WorkflowTests.yml
+	bats $(PWD)/tests/endtoend/remotes/s3/s3-workflow.bats
 
 test-ssh-workflow:
-	$(VEXRUN) -f $(PWD)/tests/endtoend/remotes/ssh/sshWorkflowTests.yml
+	bats $(PWD)/tests/endtoend/remotes/ssh/ssh-workflow.bats
 
 test-datadatdat-workflow:
-	DATADATDAT_API_KEY=80d141e9375c062be6c819e86f0e15e1c36bfcd5fd86286c30ad28b2e2ec8511 $(VEXRUN) -f $(PWD)/tests/endtoend/remotes/datadatdat/datadatdatWorkflowTests.yml
+	bats $(PWD)/tests/endtoend/remotes/datadatdat/datadatdat-workflow.bats
 
 test-auth-workflow:
-	$(VEXRUN) -f $(PWD)/tests/endtoend/remotes/datadatdat/authWorkflowTests.yml
+	bats $(PWD)/tests/endtoend/remotes/datadatdat/auth-workflow.bats
 
 test-multi-context:
-	$(VEXRUN) -d $(PWD)/tests/endtoend/multi-context
+	bats $(PWD)/tests/endtoend/multi-context/multi-context.bats
 
-#e2e: test-setup test-install test-getting-started test-tags test-docker-context test-s3-workflow test-ssh-workflow test-datadatdat-workflow test-uninstall
-e2e: test-setup test-install test-getting-started test-tags test-docker-context test-s3-workflow test-ssh-workflow test-uninstall
+#skipping test-auth-workflow test-uninstall for e2e. we run these in datadatdat-remote-server gh actions
+# TODO: diagnose test-multi-context test-db-matrix in gh actions and readd to e2e
+e2e: test-install test-getting-started test-tags test-docker-context test-s3-workflow test-ssh-workflow test-uninstall

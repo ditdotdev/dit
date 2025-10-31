@@ -43,9 +43,9 @@ Before running the tests, ensure:
    make build
    ```
 
-4. **vexrun test runner is installed**
+4. **BATS test runner is installed**
    ```bash
-   make test-setup
+   npm install -g bats
    ```
 
 ## Running Tests
@@ -68,7 +68,8 @@ make test-auth-workflow
 
 ### Run specific test file manually:
 ```bash
-java -jar utils/vexrun.jar -f tests/endtoend/remotes/datadatdat/authWorkflowTests.yml
+bats tests/endtoend/remotes/datadatdat/datadatdat-workflow.bats
+bats tests/endtoend/remotes/datadatdat/auth-workflow.bats
 ```
 
 ## Test Coverage
