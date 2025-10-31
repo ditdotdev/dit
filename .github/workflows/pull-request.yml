@@ -120,6 +120,10 @@ jobs:
           sudo zpool destroy testpool
           sudo rm -f /tmp/zfs-test-file
           echo "ZFS installation and test completed successfully!"
+      - name: Install BATS
+        run: |
+          sudo npm install -g bats
+          bats --version
       - name: Setup Test Requirements
         run: |
           # Generate SSH keys using the project's generateKey.sh script
