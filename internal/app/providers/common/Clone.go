@@ -42,13 +42,13 @@ func Clone(uri string, repo string, guid string, params []string, args []string,
 	}
 	var err error
 	cleanup := false
-	_, _, err = repositoriesApi.CreateRepository(ctx, repository)
+	_, _, err = repositoriesApi.CreateRepository(ctx, repository).Execute()
 	if err != nil && err.Error() == "409 Conflict" {
 		removeRepo(repoName, port, context)
 	} else {
 		cleanup = true
 		RemoteAdd(repoName, plainUri, "", nil, port) //TODO fix params
-		rm, _, _ := remotesApi.GetRemote(ctx, repoName, "origin")
+		rm, _, _ := remotesApi.GetRemote(ctx, repoName, "origin").Execute()
 		gp, _ := remote.Get(rm.Provider).GetParameters(rm.Properties)
 		p := client.RemoteParameters{
 			Provider:   rm.Provider,
@@ -59,9 +59,7 @@ func Clone(uri string, repo string, guid string, params []string, args []string,
 			Properties: map[string]interface{}{"foo": "bar"},
 		}
 		if commitId == "" {
-			optTags := optional.NewInterface(tags)
-			commitsOpts := &client.ListRemoteCommitsOpts{Tag: optTags}
-			remoteCommits, _, _ := remotesApi.ListRemoteCommits(ctx, repoName, rm.Name, p, commitsOpts)
+			remoteCommits, _, _ := remotesApi.ListRemoteCommits(ctx, repoName, rm.Name).DatadatdatRemoteParameters(p).Tag(tags).Execute()
 			if len(remoteCommits) == 0 {
 				fmt.Println("unable to find any matching commits in remote repository")
 				removeRepo(repoName, port, context)
@@ -74,7 +72,7 @@ func Clone(uri string, repo string, guid string, params []string, args []string,
 			if len(tags) > 0 {
 				fmt.Println("tags cannot be specified with commit ID")
 			}
-			c, _, _ := remotesApi.GetRemoteCommit(ctx, repoName, rm.Name, commitId, p)
+			c, _, _ := remotesApi.GetRemoteCommit(ctx, repoName, rm.Name, commitId).DatadatdatRemoteParameters(p).Execute()
 			commit = client.Commit{
 				Id:         c.Id,
 				Properties: c.Properties,

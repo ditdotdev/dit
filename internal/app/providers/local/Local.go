@@ -2,8 +2,9 @@ package local
 
 import (
 	"context"
-	client "github.com/datadatdat/datadatdat-client-go"
 	"os"
+
+	client "github.com/datadatdat/datadatdat-client-go"
 )
 
 func init() {
@@ -17,7 +18,7 @@ func init() {
 
 var cfg = client.NewConfiguration()
 var apiClient = client.NewAPIClient(cfg)
-var commitsApi = apiClient.CommitsApi
-var repositoriesApi = apiClient.RepositoriesApi
-var volumesApi = apiClient.VolumesApi
+var commitsApi = apiClient.CommitsAPI
+var repositoriesApi = apiClient.RepositoriesAPI
+var volumesApi = apiClient.VolumesAPI
 var ctx = context.Background()

@@ -3,10 +3,11 @@ package kubernetes
 import (
 	"datadatdat/internal/app/clients"
 	"fmt"
-	"github.com/briandowns/spinner"
 	"os"
 	"strconv"
 	"time"
+
+	"github.com/briandowns/spinner"
 )
 
 func Uninstall(force bool, removeImages bool, context string, port int) {
@@ -15,7 +16,7 @@ func Uninstall(force bool, removeImages bool, context string, port int) {
 
 	available, _ := docker.DatadatdatServerIsAvailable()
 	if available {
-		repos, _, _ := repositoriesApi.ListRepositories(ctx)
+		repos, _, _ := repositoriesApi.ListRepositories(ctx).Execute()
 		for _, repo := range repos {
 			if !force {
 				fmt.Println("repository" + repo.Name + "exists, remove first or use '-f'")

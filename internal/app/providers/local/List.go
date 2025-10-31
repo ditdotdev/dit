@@ -10,7 +10,7 @@ func List(context string, port int) {
 	cfg.Servers[0].URL = "http://localhost:" + strconv.Itoa(port)
 	docker := clients.Docker("", port)
 
-	repos, _, _ := repositoriesApi.ListRepositories(ctx)
+	repos, _, _ := repositoriesApi.ListRepositories(ctx).Execute()
 	for _, repo := range repos {
 		var status string
 		info, err := docker.GetValFromContainer(repo.Name, "State", "Status")

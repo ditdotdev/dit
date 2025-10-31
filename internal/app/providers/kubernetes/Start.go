@@ -8,7 +8,7 @@ import (
 func Start(repoName string, port int) {
 	cfg.Servers[0].URL = "http://localhost:" + strconv.Itoa(port)
 
-	repo, _, _ := repositoriesApi.GetRepository(ctx, repoName)
+	repo, _, _ := repositoriesApi.GetRepository(ctx, repoName).Execute()
 	fmt.Println("Updating deployment")
 	k8s.StartStatefulSet(repoName)
 

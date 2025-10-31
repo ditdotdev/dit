@@ -19,17 +19,17 @@ func Push(repoName string, guid string, remoteName string, tags []string, metada
 	} else {
 		name = remoteName
 	}
-	_, _, err := remotesApi.ListRemotes(ctx, repoName)
+	_, _, err := remotesApi.ListRemotes(ctx, repoName).Execute()
 	if err != nil {
 		fmt.Println("remote is not set, run 'remote add' first")
 		os.Exit(1)
 	}
-	repoStatus, _, _ := repositoriesApi.GetRepositoryStatus(ctx, repoName)
-	if repoStatus.LastCommit == "" {
+	repoStatus, _, _ := repositoriesApi.GetRepositoryStatus(ctx, repoName).Execute()
+	if repoStatus.LastCommit == nil || *repoStatus.LastCommit == "" {
 		fmt.Println("container has no history, run 'commit' to first commit state")
 		os.Exit(1)
 	}
-	remote, _, _ := remotesApi.GetRemote(ctx, repoName, name)
+	remote, _, _ := remotesApi.GetRemote(ctx, repoName, name).Execute()
 	commit := datadatdatclient.Commit{
 		Id: "id",
 	}
@@ -44,14 +44,14 @@ func Push(repoName string, guid string, remoteName string, tags []string, metada
 			fmt.Println("tags cannot be specified when commit is also specified")
 			os.Exit(1)
 		}
-		commit, _, _ = commitsApi.GetCommit(ctx, repoName, guid)
+		commitPtr, _, _ := commitsApi.GetCommit(ctx, repoName, guid).Execute()
+		commit = *commitPtr
 	} else {
 		if len(tags) == 0 {
-			commit, _, _ = commitsApi.GetCommit(ctx, repoName, repoStatus.LastCommit)
+			commitPtr, _, _ := commitsApi.GetCommit(ctx, repoName, *repoStatus.LastCommit).Execute()
+			commit = *commitPtr
 		} else {
-			optTags := optional.NewInterface(tags)
-			commitsOpts := &datadatdatclient.ListCommitsOpts{Tag: optTags}
-			commits, _, _ := commitsApi.ListCommits(ctx, repoName, commitsOpts)
+			commits, _, _ := commitsApi.ListCommits(ctx, repoName).Tag(tags).Execute()
 			if len(commits) == 0 {
 				fmt.Println("no matching commits found, unable to push latest")
 				os.Exit(1)
@@ -63,10 +63,7 @@ func Push(repoName string, guid string, remoteName string, tags []string, metada
 		fmt.Println("no matching commits found, unable to push latest")
 		os.Exit(1)
 	}
-	pushOpts := &datadatdatclient.PushOpts{
-		MetadataOnly: optional.NewBool(metadataOnly),
-	}
-	op, _, err := operationsApi.Push(ctx, repoName, remote.Name, commit.Id, params, pushOpts)
+	op, _, err := operationsApi.Push(ctx, repoName, remote.Name, commit.Id).RemoteParameters(params).MetadataOnly(metadataOnly).Execute()
 	if err != nil {
 		if e, ok := err.(datadatdatclient.GenericOpenAPIError); ok {
 			m := e.Model().(datadatdatclient.ApiError)
@@ -74,7 +71,7 @@ func Push(repoName string, guid string, remoteName string, tags []string, metada
 			os.Exit(1)
 		}
 	}
-	monitor := util.OperationMonitor(repoName, op)
+	monitor := util.OperationMonitor(repoName, *op)
 	if !monitor.Monitor(port) {
 		os.Exit(1)
 	}
