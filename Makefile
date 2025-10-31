@@ -85,5 +85,5 @@ test-auth-workflow:
 test-multi-context:
 	bats $(PWD)/tests/endtoend/multi-context/multi-context.bats
 
-#e2e: test-setup test-install test-getting-started test-tags test-docker-context test-s3-workflow test-ssh-workflow test-datadatdat-workflow test-auth-workflow test-uninstall
-e2e: test-setup test-install test-getting-started test-tags test-docker-context test-s3-workflow test-ssh-workflow test-multi-context test-db-matrix test-uninstall
+#skipping test-auth-workflow test-uninstall for e2e. we run these in datadatdat-remote-server gh actions
+e2e: test-install test-getting-started test-tags test-docker-context test-s3-workflow test-ssh-workflow test-multi-context test-db-matrix test-uninstall

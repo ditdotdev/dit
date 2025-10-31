@@ -23,7 +23,7 @@ jobs:
       - name: Configure Git for private modules
         run: |
           git config --global url."https://x-access-token:${{ secrets.GO_MODULES_TOKEN }}@github.com/".insteadOf "https://github.com/"
-          git config --global credential helper store
+          git config --global credential.helper store
           echo "https://x-access-token:${{ secrets.GO_MODULES_TOKEN }}@github.com" > ~/.git-credentials
         shell: bash
       - uses: actions/setup-go@v5
