@@ -530,10 +530,9 @@ dependencies {
      - **Core Go**: t1t4n, t1t4n-server, datadatdat-client-go, remote-sdk-go
      - **Remote Go**: s3-remote-go, ssh-remote-go, nop-remote-go, s3web-remote-go  
      - **Docker Infrastructure**: t1t4n-docker-proxy (fixed volume naming), zfs-builder, zfs-linuxkit, zfs-releases
-     - **Testing Infrastructure**: ssh-test-server, localstack, dynamodb-local
+     - **Testing Infrastructure**: ssh-test-server, localstack, dynamodb-local (now using BATS)
      - **Cloud Infrastructure**: community-aws
      - **Kotlin Repositories**: s3-remote, ssh-remote, s3web-remote, nop-remote, remote-sdk, command-executor, plugin-launcher, delphix-remote
-     - **Maven Projects**: vexrun (3/3 tests passing)
      - **Documentation**: t1t4n-data.github.io, t1t4n-demos, template, .github
    - **Cross-Platform Fixes Applied**:
      - Fixed POSIX file permissions issues on Windows (ssh-remote, remote-sdk)

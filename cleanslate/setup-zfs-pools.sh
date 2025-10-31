@@ -121,6 +121,8 @@ if [ "$CLEAN" = true ]; then
     echo "Destroying existing ZFS pools..."
     wsl sudo zpool destroy datadatdat-docker 2>/dev/null || true
     wsl sudo zpool destroy datadatdat 2>/dev/null || true
+    wsl sudo zpool destroy datadatdat-one 2>/dev/null || true
+    wsl sudo zpool destroy datadatdat-two 2>/dev/null || true
     
     # Remove pool image files
     echo "Removing pool image files..."
@@ -168,9 +170,13 @@ if [ -n "$existing_pools" ] && ! [[ "$existing_pools" =~ no\ pools\ available ]]
     echo "Fixing any hostid mismatches..."
     wsl sudo zpool export datadatdat 2>/dev/null || true
     wsl sudo zpool export datadatdat-docker 2>/dev/null || true
+    wsl sudo zpool export datadatdat-one 2>/dev/null || true
+    wsl sudo zpool export datadatdat-two 2>/dev/null || true
     sleep 2
     wsl sudo zpool import datadatdat 2>/dev/null || true
     wsl sudo zpool import datadatdat-docker 2>/dev/null || true
+    wsl sudo zpool import datadatdat-one 2>/dev/null || true
+    wsl sudo zpool import datadatdat-two 2>/dev/null || true
 fi
 
 # Create pool storage directory
@@ -225,6 +231,54 @@ else
     echo -e "${GREEN}OK datadatdat pool already exists${NC}"
 fi
 
+# Create datadatdat-one pool if it does not exist (for multi-context tests)
+echo "Checking for datadatdat-one pool..."
+datadatdat_one_exists=$(wsl zpool list datadatdat-one 2>/dev/null || true)
+if [ -z "$datadatdat_one_exists" ]; then
+    echo -e "${YELLOW}Creating datadatdat-one pool (for multi-context tests)...${NC}"
+    
+    # Create image file
+    wsl sudo dd if=/dev/zero of=/datadatdat-pools/datadatdat-one.img bs=1M count=1024 2>/dev/null
+    
+    # Create loop device and get its path
+    loop_device=$(wsl sudo losetup --show -f /datadatdat-pools/datadatdat-one.img)
+    
+    if [ -n "$loop_device" ]; then
+        # Create the pool
+        wsl sudo zpool create datadatdat-one "$loop_device"
+        echo -e "${GREEN}OK datadatdat-one pool created successfully${NC}"
+    else
+        echo -e "${RED}X Failed to create loop device for datadatdat-one${NC}"
+        exit 1
+    fi
+else
+    echo -e "${GREEN}OK datadatdat-one pool already exists${NC}"
+fi
+
+# Create datadatdat-two pool if it does not exist (for multi-context tests)
+echo "Checking for datadatdat-two pool..."
+datadatdat_two_exists=$(wsl zpool list datadatdat-two 2>/dev/null || true)
+if [ -z "$datadatdat_two_exists" ]; then
+    echo -e "${YELLOW}Creating datadatdat-two pool (for multi-context tests)...${NC}"
+    
+    # Create image file
+    wsl sudo dd if=/dev/zero of=/datadatdat-pools/datadatdat-two.img bs=1M count=1024 2>/dev/null
+    
+    # Create loop device and get its path
+    loop_device=$(wsl sudo losetup --show -f /datadatdat-pools/datadatdat-two.img)
+    
+    if [ -n "$loop_device" ]; then
+        # Create the pool
+        wsl sudo zpool create datadatdat-two "$loop_device"
+        echo -e "${GREEN}OK datadatdat-two pool created successfully${NC}"
+    else
+        echo -e "${RED}X Failed to create loop device for datadatdat-two${NC}"
+        exit 1
+    fi
+else
+    echo -e "${GREEN}OK datadatdat-two pool already exists${NC}"
+fi
+
 # Final verification
 echo ""
 echo -e "${GREEN}Final ZFS pool status:${NC}"
@@ -236,6 +290,8 @@ wsl zpool status
 
 echo ""
 echo -e "${GREEN}✓ ZFS pools are ready for Datadatdat!${NC}"
+echo -e "${CYAN}Standard pools: datadatdat, datadatdat-docker${NC}"
+echo -e "${CYAN}Multi-context test pools: datadatdat-one, datadatdat-two${NC}"
 echo -e "${CYAN}You can now run: ../d3.exe install${NC}"
 
 echo ""

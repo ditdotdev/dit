@@ -246,8 +246,8 @@ datadatdat-remote-server (Microservices platform - "GitHub for Data")
 
 ### Supporting Components (Independent)
 - **plugin-launcher** - Can be released independently
-- **vexrun** - Testing framework, independent releases
 - **zfs-builder**, **zfs-releases** - ZFS infrastructure, independent
+- **Testing** - Now uses BATS (Bash Automated Testing System) instead of previous custom testing solution
 
 ## Version Strategy
 
