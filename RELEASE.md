@@ -396,6 +396,15 @@ gh pr list --repo datadatdat/nop-remote-go
 gh pr list --repo datadatdat/datadatdat-remote-go
 
 # Each PR will have title: "Update remote-sdk-go to v1.3.0"
+
+# Check PR status and CI results (recommended: wait 30s for checks to start)
+for repo in s3-remote-go ssh-remote-go s3web-remote-go nop-remote-go datadatdat-remote-go; do
+  echo "=== Checking $repo ==="
+  gh pr view auto-update-sdk-$NEW_SDK_VERSION --repo datadatdat/$repo --json number,title,checks
+done
+
+# Or check a specific PR by number
+gh pr checks <PR_NUMBER> --repo datadatdat/<REPO_NAME>
 ```
 
 **✅ FULLY AUTOMATED (v1.3.0+):** One tag push triggers SDK release + PR creation in all 5 providers!
@@ -405,7 +414,14 @@ gh pr list --repo datadatdat/datadatdat-remote-go
 **Your job:** Review and merge (5 PRs), then tag each provider (5 tags)
 
 ```bash
+# Check all PRs are passing (wait for CI to complete if needed)
+for repo in s3-remote-go ssh-remote-go s3web-remote-go nop-remote-go datadatdat-remote-go; do
+  echo "=== $repo ==="
+  gh pr view auto-update-sdk-$NEW_SDK_VERSION --repo datadatdat/$repo --json number,title,checks --jq '.checks[] | "\(.name): \(.conclusion)"'
+done
+
 # Review and merge the PRs (automated tests already passed)
+# Replace <PR_NUMBER> with actual PR numbers from gh pr list
 gh pr merge <PR_NUMBER> --repo datadatdat/s3-remote-go --squash --delete-branch
 gh pr merge <PR_NUMBER> --repo datadatdat/ssh-remote-go --squash --delete-branch
 gh pr merge <PR_NUMBER> --repo datadatdat/s3web-remote-go --squash --delete-branch
