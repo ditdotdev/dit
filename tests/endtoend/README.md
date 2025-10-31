@@ -13,19 +13,27 @@ This creates the necessary ZFS infrastructure in WSL2 that Datadatdat containers
 
 ### Running Tests
 
-```
+```bash
+# Run all end-to-end tests
 make e2e
+
+# Or run individual test suites
+make test-install
+make test-getting-started
+make test-s3-workflow
+make test-ssh-workflow
 ```
 
-## Manual Install
+## Prerequisites
 
-*   Download runner from [here](https://github.com/datadatdat/vexrun/releases)
-*   `alias vexrun="java -jar vexrun-VERSION.jar"`
-*   Make sure datadatdat and docker are both in PATH
+*   Install BATS: `npm install -g bats`
+*   Make sure datadatdat (d3) and docker are both in PATH
 
 ## Getting Started Tests
-```
-vexrun -d ./src/endtoend-test/getting-started
+```bash
+bats tests/endtoend/getting-started/getting-started.bats
+# Or via Makefile
+make test-getting-started
 ```
 
 ## S3 Tests
@@ -38,8 +46,11 @@ The following environment variables must be set:
 Alternately, `aws configure` can be used to set up AWS access. 
 
 ```bash
-datadatdat clone s3web://demo.datadatdat.com/hello-world/postgres hello-world 
-vexrun -f ./src/endtoend-test/remotes/RemoteWorkflowTests.yml -p REMOTE s3 -p URI s3://datadatdat-testdata/e2etest -p REPO hello-world
+# Run S3 workflow tests
+make test-s3-workflow
+
+# Or run directly with BATS
+bats tests/endtoend/remotes/s3/s3-workflow.bats
 ```
 
 ## SSH Tests
