@@ -1,0 +1,59 @@
+name: Validate Dependencies
+on:
+  pull_request:
+    paths:
+      - 'go.mod'
+      - 'go.sum'
+
+jobs:
+  validate:
+    name: Check Dependency Alignment
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.25.1'
+      
+      - name: Configure Git for private modules
+        run: |
+          git config --global url."https://x-access-token:${{ secrets.GO_MODULES_TOKEN }}@github.com/".insteadOf "https://github.com/"
+        env:
+          GO_MODULES_TOKEN: ${{ secrets.GO_MODULES_TOKEN }}
+      
+      - name: Check for version conflicts
+        run: |
+          echo "Checking remote-sdk-go version alignment..."
+          go mod graph | grep datadatdat | grep remote-sdk-go | tee /tmp/sdk-versions.txt
+          
+          SDK_VERSIONS=$(cat /tmp/sdk-versions.txt | awk '{print $NF}' | sort -u | wc -l)
+          
+          if [ $SDK_VERSIONS -gt 1 ]; then
+            echo "❌ ERROR: Multiple remote-sdk-go versions detected!"
+            echo ""
+            echo "All providers must use the same remote-sdk-go version:"
+            cat /tmp/sdk-versions.txt
+            exit 1
+          fi
+          
+          echo "✅ All providers use the same remote-sdk-go version"
+      
+      - name: Check for replace directives
+        run: |
+          if grep -q "^replace" go.mod; then
+            echo "❌ ERROR: Replace directives found in go.mod!"
+            echo ""
+            echo "Replace directives must be removed before release:"
+            grep "^replace" go.mod
+            echo ""
+            echo "Run: sed -i '/^replace/d' go.mod && go mod tidy"
+            exit 1
+          fi
+          echo "✅ No replace directives found"
+      
+      - name: Verify all dependencies downloadable
+        run: |
+          go mod download
+          go mod verify
+          echo "✅ All dependencies verified"

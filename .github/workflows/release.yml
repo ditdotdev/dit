@@ -1,0 +1,112 @@
+name: Release
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: Build Release Artifacts
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+      
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.25.1'
+      
+      - name: Configure Git for private modules
+        run: |
+          git config --global url."https://x-access-token:${{ secrets.GO_MODULES_TOKEN }}@github.com/".insteadOf "https://github.com/"
+        env:
+          GO_MODULES_TOKEN: ${{ secrets.GO_MODULES_TOKEN }}
+      
+      - name: Configure Go for private modules
+        run: |
+          go env -w GOPRIVATE=github.com/datadatdat/*
+          go env -w GONOPROXY=github.com/datadatdat/*
+          go env -w GONOSUMDB=github.com/datadatdat/*
+          go env -w GOPROXY=direct
+      
+      - name: Build cross-platform releases
+        run: |
+          VERSION=${GITHUB_REF#refs/tags/}
+          make clean
+          VERSION=$VERSION make release
+      
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-artifacts
+          path: release/
+          retention-days: 1
+  
+  e2e-test:
+    name: End-to-End Tests
+    needs: build
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Download artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: release-artifacts
+          path: release/
+      
+      - name: Extract Linux binary
+        run: |
+          VERSION=${GITHUB_REF#refs/tags/}
+          cd release/linux-amd64
+          tar -xf datadatdat-cli-$VERSION-linux_amd64.tar
+          chmod +x d3
+          ./d3 --version
+      
+      - name: Install BATS
+        run: sudo npm install -g bats
+      
+      - name: Install OpenZFS
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y zfsutils-linux
+          sudo modprobe zfs
+      
+      - name: Setup ZFS pools
+        run: |
+          cd cleanslate
+          sudo bash setup-zfs-pools.sh
+      
+      - name: Run E2E tests
+        run: |
+          export PATH=$PWD/release/linux-amd64:$PATH
+          make e2e
+  
+  create-release:
+    name: Create GitHub Release
+    needs: e2e-test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Download artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: release-artifacts
+          path: release/
+      
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        with:
+          draft: false
+          generate_release_notes: true
+          files: |
+            release/darwin-amd64/datadatdat-cli-${{ github.ref_name }}-darwin_amd64.zip
+            release/darwin-arm64/datadatdat-cli-${{ github.ref_name }}-darwin_arm64.zip
+            release/linux-amd64/datadatdat-cli-${{ github.ref_name }}-linux_amd64.tar
+            release/linux-arm64/datadatdat-cli-${{ github.ref_name }}-linux_arm64.tar
+            release/windows/datadatdat-cli-${{ github.ref_name }}-windows_amd64.zip
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

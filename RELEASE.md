@@ -409,50 +409,41 @@ gh release list --limit 5
 5. **Publish Release**: Use `gh release edit` to publish the draft
 6. **Confirm**: Verify it shows as "Latest" not "Draft"
 
-**⚠️ IMPORTANT:** Note the `$NEW_SDK_VERSION` - this SAME version will be used by ALL remote providers in Step 1.2!
+**✅ AUTOMATED (v1.3.0+):** The `dependency-cascade` workflow automatically creates PRs in all 5 Go provider repos when remote-sdk-go releases.
 
-##### 1.2 Update and Release Remote Providers (Go) - CRITICAL STEP - DO NOT SKIP
-**⚠️ WARNING: This step is MANDATORY and was previously missed, causing version conflicts**
-
-For each provider (s3-remote-go, ssh-remote-go, s3web-remote-go, nop-remote-go, datadatdat-remote-go):
+##### 1.2 Merge Provider PRs and Release - NOW MOSTLY AUTOMATED
+**What's automated:** PRs are auto-created with updated go.mod, tests run automatically  
+**Your job:** Review and merge the PRs
 
 ```bash
-cd /c/dev/s3-remote-go  # Repeat for each provider
+# Check for auto-created PRs from the dependency-cascade workflow
+gh pr list --repo datadatdat/s3-remote-go
+gh pr list --repo datadatdat/ssh-remote-go
+gh pr list --repo datadatdat/s3web-remote-go
+gh pr list --repo datadatdat/nop-remote-go
+gh pr list --repo datadatdat/datadatdat-remote-go
 
-# Update dependency to new remote-sdk-go version
-go get github.com/datadatdat/remote-sdk-go@$NEW_SDK_VERSION
-go mod tidy
+# Review tests passed, then merge each PR
+# The PRs will have title like "Update remote-sdk-go to v1.3.0"
+gh pr merge <PR_NUMBER> --repo datadatdat/s3-remote-go --squash
+# Repeat for all 5 providers
 
-# Run tests to ensure compatibility
-go test ./...
+# After merging, tag each provider to trigger release
+export NEW_PROVIDER_VERSION="v1.3.0"
+for repo in s3-remote-go ssh-remote-go s3web-remote-go nop-remote-go datadatdat-remote-go; do
+  cd /c/dev/$repo
+  git pull origin master
+  git tag $NEW_PROVIDER_VERSION
+  git push origin $NEW_PROVIDER_VERSION
+  echo "✅ Tagged $repo at $NEW_PROVIDER_VERSION"
+done
 
-# Commit and create release
-export NEW_PROVIDER_VERSION="v1.1.0"  # Use v1.1.0 for this release
-git add go.mod go.sum
-git commit -m "Update remote-sdk-go to $NEW_SDK_VERSION"
-git push origin master
-git tag $NEW_PROVIDER_VERSION
-git push origin $NEW_PROVIDER_VERSION
-
-# Wait for GitHub Action to complete
-gh run list --workflow=release.yml --limit 3
-# Look for ✓ status
-
-# Verify and publish draft release
-gh release list --limit 3
-gh release view $NEW_PROVIDER_VERSION
-# Verify binary is attached
-
-# Publish the draft release (CRITICAL!)
-gh release edit $NEW_PROVIDER_VERSION --draft=false --latest
-
-# Verify published
-gh release list --limit 3
+# GitHub Actions automatically build, test, and publish releases
+# No need to manually publish - it's all automated now!
 ```
 
-**✅ VALIDATION: After completing all providers, verify version alignment:**
+**✅ VALIDATION: After providers release, verify version alignment:**
 ```bash
-# Check that all providers are released and use the same remote-sdk-go version
 cd /c/dev/datadatdat
 go get github.com/datadatdat/s3-remote-go@$NEW_PROVIDER_VERSION
 go get github.com/datadatdat/ssh-remote-go@$NEW_PROVIDER_VERSION  
@@ -606,155 +597,60 @@ go mod graph | grep datadatdat | grep remote-sdk-go
 # All providers should use same remote-sdk-go version
 ```
 
-##### 4.2 Build Release Artifacts
+##### 4.2 Commit, Tag, and Push - EVERYTHING ELSE IS AUTOMATED
+**✅ AUTOMATED (v1.3.0+):** Build, test, release creation, and publishing all happen automatically via GitHub Actions
+
 ```bash
-# CRITICAL: Build FIRST - E2E tests need to run against this build
-export VERSION="v1.2.0"  # Set your version
-make clean  # Clean all caches
-VERSION=$VERSION make release
+export VERSION="v1.3.0"  # Set your version
 
-# Creates artifacts in release/ directory:
-# - datadatdat-cli-$VERSION-windows_amd64.zip
-# - datadatdat-cli-$VERSION-darwin_amd64.zip  
-# - datadatdat-cli-$VERSION-darwin_arm64.zip
-# - datadatdat-cli-$VERSION-linux_amd64.tar
-# - datadatdat-cli-$VERSION-linux_arm64.tar
+# Stage dependency updates
+git add go.mod go.sum
 
-# IMPORTANT: Also copies d3.exe and d3-linux to ROOT directory
-# These root binaries should be committed as part of the release
-
-# Verify version in binary
-./d3.exe --version  # Should show: datadatdat version v1.2.0
-```
-
-##### 4.3 Test Locally
-```bash
-# Run full test suite including datadatdat-remote-server E2E tests
-# These tests use the d3.exe built in step 4.2
-make e2e
-# If tests fail: ./d3.exe uninstall -f && make e2e
-
-# CRITICAL: Test datadatdat remote workflow specifically
-make test-datadatdat-workflow
-# This runs the E2E tests for datadatdat-remote-server integration
-# All 20 tests must pass before proceeding with release
-```
-
-##### 4.4 Commit, Tag, and Push
-```bash
-# Stage ALL changes including:
-# - Dependency updates (go.mod, go.sum)
-# - Code changes (if any)
-# - Built binaries in ROOT (d3.exe, d3-linux) - CRITICAL!
-# - Release artifacts stay in release/ directory (not committed)
-
-git add go.mod go.sum internal/app/commands/root.go internal/app/providers/ Makefile RELEASE.md d3.exe d3-linux
-
-# Commit with comprehensive message
-git commit -m "Release $VERSION: Update all dependencies and fix issues
-
-- Updated remote-sdk-go to v1.1.0
-- Updated all Go remote providers to v1.1.0
-- Added all remote provider imports
-- Fixed bugs and removed debug output
-- Built release binaries with $VERSION version
-- All E2E tests passing"
+# Commit with version message
+git commit -m "Release $VERSION: Update all dependencies"
 
 # Push commits first
 git push origin master
 
-# Create tag and push
+# Create and push tag - THIS TRIGGERS THE AUTOMATION
 git tag $VERSION
 git push origin $VERSION
-```
 
-##### 4.5 Create Draft Release with Artifacts
-```bash
-# NOTE: The datadatdat CLI repo does NOT have automated release creation
-# We must manually create the draft release and upload artifacts
+# Now sit back and let GitHub Actions do the work:
+# 1. ✅ Builds 5 cross-platform binaries (darwin/linux/windows, amd64/arm64)
+# 2. ✅ Runs full E2E test suite with BATS + ZFS
+# 3. ✅ Creates GitHub release with all artifacts
+# 4. ✅ Publishes release (NO DRAFT - goes live immediately)
 
-# Create draft release with all artifacts
-gh release create $VERSION --draft \
-  --title "$VERSION - Authorization Header Support" \
-  --notes "## Release $VERSION
-
-### 🔧 Key Changes
-- [List your changes here]
-
-### 🧪 Testing
-- All E2E tests passing
-- Full integration testing completed
-
-### 📦 Artifacts
-Cross-platform binaries included for all supported platforms." \
-  release/darwin-amd64/datadatdat-cli-$VERSION-darwin_amd64.zip \
-  release/darwin-arm64/datadatdat-cli-$VERSION-darwin_arm64.zip \
-  release/linux-amd64/datadatdat-cli-$VERSION-linux_amd64.tar \
-  release/linux-arm64/datadatdat-cli-$VERSION-linux_arm64.tar \
-  release/windows/datadatdat-cli-$VERSION-windows_amd64.zip
-
-# Verify draft release was created with all artifacts
-gh release view $VERSION
-```
-
-##### 4.7 Run E2E Test Workflow (CRITICAL GATE)
-**⚠️ DO NOT proceed to publishing until this step passes!**
-
-```bash
-# Manually trigger the "End to End Test" workflow on the tag
-# Note: This workflow runs on workflow_dispatch (manual trigger) or nightly schedule
-gh workflow run end-to-end-test.yml --ref $VERSION
-
-# Wait a moment for workflow to start, then monitor it
-sleep 10
+# Monitor the workflow
 gh run watch
 
-# Alternative: Check workflow status
-gh run list --workflow=end-to-end-test.yml --limit 5
-
-# Or view in browser
-gh workflow view end-to-end-test.yml --web
-
-# CRITICAL DECISION POINT:
-# ✅ If E2E workflow PASSES → Proceed to step 4.8 (Publish Release)
-# ❌ If E2E workflow FAILS → DO NOT PUBLISH
-#    - Delete the release and tag: gh release delete $VERSION --yes && git tag -d $VERSION && git push origin --delete $VERSION
-#    - Fix the issues
-#    - Restart from step 4.1 with a new version (e.g., v1.2.1)
+# Or check status
+gh run list --workflow=release.yml --limit 3
 ```
 
-**Why This Step is Critical:**
-- Tests the EXACT code that will be released (the tag)
-- Validates all dependencies work together in CI environment
-- Catches issues before users download the release
-- Prevents publishing broken releases
+**What the `release.yml` workflow does:**
+- Checks out code at the tag
+- Configures Go with GO_MODULES_TOKEN for private repos
+- Runs `make release` to build all platforms
+- Installs BATS and ZFS
+- Runs complete E2E test suite
+- Creates release with all binary artifacts
+- Publishes immediately (no manual review needed)
 
-##### 4.8 Publish Release (Only After E2E Tests Pass)
+**If release fails:**
 ```bash
-# Now publish the release after E2E tests confirm it works
+# Check the workflow logs
+gh run list --workflow=release.yml --limit 3
+gh run view <RUN_ID> --log-failed
 
-# Check that draft release exists with artifacts
-gh release list --limit 5
-gh release view $VERSION
+# If tests fail, delete tag and fix issues
+git tag -d $VERSION 
+git push origin --delete $VERSION
 
-# Publish the draft release
-gh release edit $VERSION --draft=false --latest
-
-# Verify release is now published
-gh release view $VERSION
-
-# Alternative: If you want to add release notes while publishing
-gh release edit $VERSION \
-  --draft=false \
-  --latest \
-  --notes "## Release v1.1.0
-
-### 🔧 Dependency Updates
-- remote-sdk-go v1.1.0
-- All Go remote providers v1.1.0 (s3-remote-go v1.1.2)
-- All Kotlin remote providers 1.1.0
-
-### 🎯 What's New
+# Fix issues, then retry with patch version
+export VERSION="v1.3.1"
+# ... repeat process
 - Added datadatdat-remote-server integration (\"GitHub for Data\")
 - All 5 remote providers now fully functional
 - Improved error handling and test reliability
