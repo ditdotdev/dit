@@ -1673,6 +1673,51 @@ gh release edit $VERSION --draft=false --latest
 # git tag -d $VERSION && git push origin --delete $VERSION
 
 # ========================================
+# PHASE 5.5: Upload CLI Binaries to MinIO (for Web Downloads)
+# ========================================
+
+# REQUIRED: After publishing the GitHub release, upload binaries to MinIO
+# This makes the CLI available for download via the web UI at /download
+
+cd /c/dev/datadatdat-remote-server/scripts
+
+# Run the upload script with the version
+./upload-release-to-minio.sh $VERSION
+
+# What this script does:
+# 1. Downloads all release artifacts from GitHub
+# 2. Extracts binaries from archives
+# 3. Generates SHA256 checksums for each platform
+# 4. Creates metadata.json with platform information
+# 5. Uploads everything to MinIO bucket: datadatdat-releases
+# 6. Organizes as: /$VERSION/{platform}/{binary + checksum}
+
+# Verify upload succeeded
+mc ls minio/datadatdat-releases/$VERSION/
+# Should show:
+#   metadata.json
+#   darwin-amd64/
+#   darwin-arm64/
+#   linux-amd64/
+#   linux-arm64/
+#   windows/
+
+# Test the download page
+echo "Visit: http://localhost:3000/download"
+echo "Should show $VERSION with all 5 platforms available"
+
+# If upload fails, troubleshoot:
+# - Check MinIO is running: docker ps | grep minio
+# - Check mc is configured: mc alias list
+# - Check GitHub release exists: gh release view $VERSION
+# - Re-run with --force to overwrite: ./upload-release-to-minio.sh $VERSION --force
+
+# Upload CLI binaries to MinIO (for web downloads)
+cd /c/dev/datadatdat-remote-server/scripts
+./upload-release-to-minio.sh $VERSION
+mc ls minio/datadatdat-releases/$VERSION/  # Verify
+
+# ========================================
 # PHASE 6: datadatdat-server
 # ========================================
 
