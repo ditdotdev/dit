@@ -119,85 +119,106 @@ if [ "$CLEAN" = true ]; then
     
     # Remove existing pools (ignore errors if pools don't exist)
     echo "Destroying existing ZFS pools..."
-    wsl sudo zpool destroy datadatdat-docker 2>/dev/null || true
-    wsl sudo zpool destroy datadatdat 2>/dev/null || true
-    wsl sudo zpool destroy datadatdat-one 2>/dev/null || true
-    wsl sudo zpool destroy datadatdat-two 2>/dev/null || true
+    $ZFS_CMD zpool destroy datadatdat-docker 2>/dev/null || true
+    $ZFS_CMD zpool destroy datadatdat 2>/dev/null || true
+    $ZFS_CMD zpool destroy datadatdat-one 2>/dev/null || true
+    $ZFS_CMD zpool destroy datadatdat-two 2>/dev/null || true
     
     # Remove pool image files
     echo "Removing pool image files..."
-    wsl sudo rm -rf /datadatdat-pools
+    $ZFS_CMD rm -rf /datadatdat-pools
     
     # Remove loop devices
     echo "Removing loop devices..."
-    wsl sudo losetup -D
+    $ZFS_CMD losetup -D
     
     # Verify cleanup
-    pool_check=$(wsl zpool list 2>/dev/null || echo "no pools available")
+    pool_check=$($ZFS_CMD zpool list 2>/dev/null || echo "no pools available")
     if [[ "$pool_check" =~ no\ pools\ available ]]; then
         echo -e "${GREEN}OK All ZFS pools successfully removed${NC}"
     else
         echo -e "${YELLOW}Some pools may still exist:${NC}"
-        wsl zpool list
+        $ZFS_CMD zpool list
     fi
 fi
 
-# Check if WSL is available
-if ! wsl --status &>/dev/null; then
-    echo -e "${RED}WSL is not available or not running${NC}"
-    exit 1
+# Detect environment (GitHub Actions, WSL, or native Linux)
+if [ -n "$GITHUB_ACTIONS" ]; then
+    echo -e "${CYAN}Detected GitHub Actions environment (native Linux)${NC}"
+    ENVIRONMENT="github-actions"
+    ZFS_CMD=""  # Direct commands, no WSL wrapper
+elif command -v wsl &>/dev/null && wsl --status &>/dev/null 2>&1; then
+    echo -e "${GREEN}WSL is available${NC}"
+    ENVIRONMENT="wsl"
+    ZFS_CMD="wsl sudo"  # Commands via WSL
+else
+    # Assume native Linux (Docker container, bare metal, etc.)
+    echo -e "${CYAN}Detected native Linux environment${NC}"
+    ENVIRONMENT="native-linux"
+    ZFS_CMD="sudo"  # Direct sudo commands
 fi
-echo -e "${GREEN}WSL is available${NC}"
 
 # Check ZFS kernel support
 echo "Checking ZFS kernel support..."
-zfs_support=$(wsl cat /proc/filesystems | grep zfs || true)
+case $ENVIRONMENT in
+    wsl)
+        zfs_support=$(wsl cat /proc/filesystems | grep zfs || true)
+        ;;
+    *)
+        zfs_support=$(cat /proc/filesystems 2>/dev/null | grep zfs || true)
+        ;;
+esac
+
 if [ -n "$zfs_support" ]; then
     echo -e "${GREEN}OK ZFS kernel support detected${NC}"
 else
     echo -e "${RED}X ZFS kernel support not found${NC}"
+    if [ "$ENVIRONMENT" = "github-actions" ]; then
+        echo -e "${YELLOW}Note: ZFS may need to be installed in GitHub Actions runners${NC}"
+        echo -e "${YELLOW}Consider using ZFS modules or Docker-based testing instead${NC}"
+    fi
     exit 1
 fi
 
 # Check if pools already exist
 echo "Checking existing ZFS pools..."
-existing_pools=$(wsl zpool list 2>/dev/null || true)
+existing_pools=$($ZFS_CMD zpool list 2>/dev/null || true)
 if [ -n "$existing_pools" ] && ! [[ "$existing_pools" =~ no\ pools\ available ]]; then
     echo -e "${YELLOW}Existing pools found:${NC}"
-    wsl zpool list
+    $ZFS_CMD zpool list
     
     # Handle hostid mismatches
     echo "Fixing any hostid mismatches..."
-    wsl sudo zpool export datadatdat 2>/dev/null || true
-    wsl sudo zpool export datadatdat-docker 2>/dev/null || true
-    wsl sudo zpool export datadatdat-one 2>/dev/null || true
-    wsl sudo zpool export datadatdat-two 2>/dev/null || true
+    $ZFS_CMD zpool export datadatdat 2>/dev/null || true
+    $ZFS_CMD zpool export datadatdat-docker 2>/dev/null || true
+    $ZFS_CMD zpool export datadatdat-one 2>/dev/null || true
+    $ZFS_CMD zpool export datadatdat-two 2>/dev/null || true
     sleep 2
-    wsl sudo zpool import datadatdat 2>/dev/null || true
-    wsl sudo zpool import datadatdat-docker 2>/dev/null || true
-    wsl sudo zpool import datadatdat-one 2>/dev/null || true
-    wsl sudo zpool import datadatdat-two 2>/dev/null || true
+    $ZFS_CMD zpool import datadatdat 2>/dev/null || true
+    $ZFS_CMD zpool import datadatdat-docker 2>/dev/null || true
+    $ZFS_CMD zpool import datadatdat-one 2>/dev/null || true
+    $ZFS_CMD zpool import datadatdat-two 2>/dev/null || true
 fi
 
 # Create pool storage directory
 echo "Creating pool storage directory..."
-wsl sudo mkdir -p /datadatdat-pools
+$ZFS_CMD mkdir -p /datadatdat-pools
 
 # Create datadatdat-docker pool if it does not exist
 echo "Checking for datadatdat-docker pool..."
-datadatdat_docker_exists=$(wsl zpool list datadatdat-docker 2>/dev/null || true)
+datadatdat_docker_exists=$($ZFS_CMD zpool list datadatdat-docker 2>/dev/null || true)
 if [ -z "$datadatdat_docker_exists" ]; then
     echo -e "${YELLOW}Creating datadatdat-docker pool...${NC}"
     
     # Create image file
-    wsl sudo dd if=/dev/zero of=/datadatdat-pools/datadatdat-docker.img bs=1M count=1024 2>/dev/null
+    $ZFS_CMD dd if=/dev/zero of=/datadatdat-pools/datadatdat-docker.img bs=1M count=1024 2>/dev/null
     
     # Create loop device and get its path
-    loop_device=$(wsl sudo losetup --show -f /datadatdat-pools/datadatdat-docker.img)
+    loop_device=$($ZFS_CMD losetup --show -f /datadatdat-pools/datadatdat-docker.img)
     
     if [ -n "$loop_device" ]; then
         # Create the pool
-        wsl sudo zpool create datadatdat-docker "$loop_device"
+        $ZFS_CMD zpool create datadatdat-docker "$loop_device"
         echo -e "${GREEN}OK datadatdat-docker pool created successfully${NC}"
     else
         echo -e "${RED}X Failed to create loop device for datadatdat-docker${NC}"
@@ -209,19 +230,19 @@ fi
 
 # Create main datadatdat pool if it does not exist
 echo "Checking for datadatdat pool..."
-datadatdat_exists=$(wsl zpool list datadatdat 2>/dev/null || true)
+datadatdat_exists=$($ZFS_CMD zpool list datadatdat 2>/dev/null || true)
 if [ -z "$datadatdat_exists" ]; then
     echo -e "${YELLOW}Creating datadatdat pool...${NC}"
     
     # Create image file
-    wsl sudo dd if=/dev/zero of=/datadatdat-pools/datadatdat.img bs=1M count=1024 2>/dev/null
+    $ZFS_CMD dd if=/dev/zero of=/datadatdat-pools/datadatdat.img bs=1M count=1024 2>/dev/null
     
     # Create loop device and get its path
-    loop_device=$(wsl sudo losetup --show -f /datadatdat-pools/datadatdat.img)
+    loop_device=$($ZFS_CMD losetup --show -f /datadatdat-pools/datadatdat.img)
     
     if [ -n "$loop_device" ]; then
         # Create the pool
-        wsl sudo zpool create datadatdat "$loop_device"
+        $ZFS_CMD zpool create datadatdat "$loop_device"
         echo -e "${GREEN}OK datadatdat pool created successfully${NC}"
     else
         echo -e "${RED}X Failed to create loop device for datadatdat${NC}"
@@ -233,19 +254,19 @@ fi
 
 # Create datadatdat-one pool if it does not exist (for multi-context tests)
 echo "Checking for datadatdat-one pool..."
-datadatdat_one_exists=$(wsl zpool list datadatdat-one 2>/dev/null || true)
+datadatdat_one_exists=$($ZFS_CMD zpool list datadatdat-one 2>/dev/null || true)
 if [ -z "$datadatdat_one_exists" ]; then
     echo -e "${YELLOW}Creating datadatdat-one pool (for multi-context tests)...${NC}"
     
     # Create image file
-    wsl sudo dd if=/dev/zero of=/datadatdat-pools/datadatdat-one.img bs=1M count=1024 2>/dev/null
+    $ZFS_CMD dd if=/dev/zero of=/datadatdat-pools/datadatdat-one.img bs=1M count=1024 2>/dev/null
     
     # Create loop device and get its path
-    loop_device=$(wsl sudo losetup --show -f /datadatdat-pools/datadatdat-one.img)
+    loop_device=$($ZFS_CMD losetup --show -f /datadatdat-pools/datadatdat-one.img)
     
     if [ -n "$loop_device" ]; then
         # Create the pool
-        wsl sudo zpool create datadatdat-one "$loop_device"
+        $ZFS_CMD zpool create datadatdat-one "$loop_device"
         echo -e "${GREEN}OK datadatdat-one pool created successfully${NC}"
     else
         echo -e "${RED}X Failed to create loop device for datadatdat-one${NC}"
@@ -257,19 +278,19 @@ fi
 
 # Create datadatdat-two pool if it does not exist (for multi-context tests)
 echo "Checking for datadatdat-two pool..."
-datadatdat_two_exists=$(wsl zpool list datadatdat-two 2>/dev/null || true)
+datadatdat_two_exists=$($ZFS_CMD zpool list datadatdat-two 2>/dev/null || true)
 if [ -z "$datadatdat_two_exists" ]; then
     echo -e "${YELLOW}Creating datadatdat-two pool (for multi-context tests)...${NC}"
     
     # Create image file
-    wsl sudo dd if=/dev/zero of=/datadatdat-pools/datadatdat-two.img bs=1M count=1024 2>/dev/null
+    $ZFS_CMD dd if=/dev/zero of=/datadatdat-pools/datadatdat-two.img bs=1M count=1024 2>/dev/null
     
     # Create loop device and get its path
-    loop_device=$(wsl sudo losetup --show -f /datadatdat-pools/datadatdat-two.img)
+    loop_device=$($ZFS_CMD losetup --show -f /datadatdat-pools/datadatdat-two.img)
     
     if [ -n "$loop_device" ]; then
         # Create the pool
-        wsl sudo zpool create datadatdat-two "$loop_device"
+        $ZFS_CMD zpool create datadatdat-two "$loop_device"
         echo -e "${GREEN}OK datadatdat-two pool created successfully${NC}"
     else
         echo -e "${RED}X Failed to create loop device for datadatdat-two${NC}"
@@ -282,11 +303,11 @@ fi
 # Final verification
 echo ""
 echo -e "${GREEN}Final ZFS pool status:${NC}"
-wsl zpool list
+$ZFS_CMD zpool list
 
 echo ""
 echo -e "${GREEN}Pool health check:${NC}"
-wsl zpool status
+$ZFS_CMD zpool status
 
 echo ""
 echo -e "${GREEN}✓ ZFS pools are ready for Datadatdat!${NC}"
