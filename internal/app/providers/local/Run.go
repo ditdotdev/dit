@@ -3,10 +3,11 @@ package local
 import (
 	"datadatdat/internal/app/clients"
 	"fmt"
-	client "github.com/datadatdat/datadatdat-client-go"
 	"os"
 	"strconv"
 	"strings"
+
+	client "github.com/datadatdat/datadatdat-client-go"
 )
 
 func Run(container string, repository string, envVars []string, args []string, disablePortMap bool, createRepo bool, port int, context string) (string, error) {
@@ -14,9 +15,12 @@ func Run(container string, repository string, envVars []string, args []string, d
 	cfg.BasePath = "http://localhost:" + strconv.Itoa(port)
 	docker := clients.Docker(context, port)
 
-	if repository != "" && strings.Contains(repository, "/") {
-		fmt.Println("Repository name cannot contain a slash")
-		os.Exit(1)
+	// Validate repository name if provided
+	if repository != "" {
+		if err := validateRepositoryName(repository); err != nil {
+			fmt.Println(err.Error())
+			os.Exit(1)
+		}
 	}
 
 	var containerName string

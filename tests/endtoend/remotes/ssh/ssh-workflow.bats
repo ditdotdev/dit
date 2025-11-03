@@ -25,14 +25,14 @@ teardown_file() {
 }
 
 @test "run empty mongo db" {
-  run "$D3" run -n sshTest mongo
+  run "$D3" run -n ssh-test mongo
   assert_success
-  assert_output --partial "Running controlled container sshTest"
+  assert_output --partial "Running controlled container ssh-test"
   sleep 10
 }
 
 @test "create new commit" {
-  run "$D3" commit -m "sshTest Commit" sshTest
+  run "$D3" commit -m "ssh-test Commit" ssh-test
   assert_success
   assert_output --partial "Commit"
   
@@ -45,7 +45,7 @@ teardown_file() {
   [ -f "$BATS_TMPDIR/ssh_host.txt" ] || skip "SSH_HOST not saved"
   SSH_HOST=$(cat "$BATS_TMPDIR/ssh_host.txt")
   
-  run "$D3" remote add "ssh://root:root@$SSH_HOST/test" sshTest
+  run "$D3" remote add "ssh://root:root@$SSH_HOST/test" ssh-test
   assert_success
 }
 
@@ -53,18 +53,18 @@ teardown_file() {
   [ -f "$BATS_TMPDIR/ssh_host.txt" ] || skip "SSH_HOST not saved"
   SSH_HOST=$(cat "$BATS_TMPDIR/ssh_host.txt")
   
-  run "$D3" remote ls sshTest
+  run "$D3" remote ls ssh-test
   assert_success
   assert_output --partial "ssh://root:*****@$SSH_HOST/test"
 }
 
 @test "list remote with password commits returns empty list" {
-  run "$D3" remote log sshTest
+  run "$D3" remote log ssh-test
   assert_success
 }
 
 @test "get non-existent remote commit with password fails" {
-  run "$D3" pull sshTest
+  run "$D3" pull ssh-test
   assert_failure
 }
 
@@ -72,7 +72,7 @@ teardown_file() {
   [ -f "$BATS_TMPDIR/ssh_commit_guid.txt" ] || skip "COMMIT_GUID not saved"
   COMMIT_GUID=$(cat "$BATS_TMPDIR/ssh_commit_guid.txt")
   
-  run "$D3" push sshTest
+  run "$D3" push ssh-test
   assert_success
   assert_output --partial "Pushing $COMMIT_GUID to 'origin'"
   assert_output --partial "Push completed successfully"
@@ -82,17 +82,17 @@ teardown_file() {
   [ -f "$BATS_TMPDIR/ssh_commit_guid.txt" ] || skip "COMMIT_GUID not saved"
   COMMIT_GUID=$(cat "$BATS_TMPDIR/ssh_commit_guid.txt")
   
-  run "$D3" remote log sshTest
+  run "$D3" remote log ssh-test
   assert_success
   assert_output --partial "Commit $COMMIT_GUID"
-  assert_output --partial "sshTest Commit"
+  assert_output --partial "ssh-test Commit"
 }
 
 @test "push of same commit with password fails" {
   [ -f "$BATS_TMPDIR/ssh_commit_guid.txt" ] || skip "COMMIT_GUID not saved"
   COMMIT_GUID=$(cat "$BATS_TMPDIR/ssh_commit_guid.txt")
   
-  run "$D3" push sshTest
+  run "$D3" push ssh-test
   assert_failure
   assert_output --partial "commit $COMMIT_GUID exists in remote 'origin'"
 }
@@ -101,13 +101,13 @@ teardown_file() {
   [ -f "$BATS_TMPDIR/ssh_commit_guid.txt" ] || skip "COMMIT_GUID not saved"
   COMMIT_GUID=$(cat "$BATS_TMPDIR/ssh_commit_guid.txt")
   
-  run "$D3" delete -c "$COMMIT_GUID" sshTest
+  run "$D3" delete -c "$COMMIT_GUID" ssh-test
   assert_success
   assert_output --partial "$COMMIT_GUID deleted"
 }
 
 @test "list local commits is empty" {
-  run "$D3" log sshTest
+  run "$D3" log ssh-test
   assert_success
 }
 
@@ -115,7 +115,7 @@ teardown_file() {
   [ -f "$BATS_TMPDIR/ssh_commit_guid.txt" ] || skip "COMMIT_GUID not saved"
   COMMIT_GUID=$(cat "$BATS_TMPDIR/ssh_commit_guid.txt")
   
-  run "$D3" pull sshTest
+  run "$D3" pull ssh-test
   assert_success
   assert_output --partial "Pulling $COMMIT_GUID from 'origin'"
   assert_output --partial "Pull completed successfully"
@@ -125,22 +125,22 @@ teardown_file() {
   [ -f "$BATS_TMPDIR/ssh_commit_guid.txt" ] || skip "COMMIT_GUID not saved"
   COMMIT_GUID=$(cat "$BATS_TMPDIR/ssh_commit_guid.txt")
   
-  run "$D3" checkout -c "$COMMIT_GUID" sshTest
+  run "$D3" checkout -c "$COMMIT_GUID" ssh-test
   assert_success
-  assert_output --partial "Stopping container sshTest"
+  assert_output --partial "Stopping container ssh-test"
   assert_output --partial "Checkout $COMMIT_GUID"
-  assert_output --partial "Starting container sshTest"
+  assert_output --partial "Starting container ssh-test"
   assert_output --partial "$COMMIT_GUID checked out"
 }
 
 @test "remove remote with password succeeds" {
-  run "$D3" remote rm sshTest origin
+  run "$D3" remote rm ssh-test origin
   assert_success
-  assert_output --partial "Removed origin from sshTest"
+  assert_output --partial "Removed origin from ssh-test"
 }
 
 @test "create new sshkey commit" {
-  run "$D3" commit -m "sshTest key Commit" sshTest
+  run "$D3" commit -m "ssh-test key Commit" ssh-test
   assert_success
   assert_output --partial "Commit"
   
@@ -163,7 +163,7 @@ teardown_file() {
   [ -f "$BATS_TMPDIR/ssh_host.txt" ] || skip "SSH_HOST not saved"
   SSH_HOST=$(cat "$BATS_TMPDIR/ssh_host.txt")
   
-  run "$D3" remote add -p "keyFile=$REPO_ROOT/tests/endtoend/remotes/ssh/sshKey" "ssh://root@$SSH_HOST/sshtest" sshTest
+  run "$D3" remote add -p "keyFile=$REPO_ROOT/tests/endtoend/remotes/ssh/sshKey" "ssh://root@$SSH_HOST/sshtest" ssh-test
   assert_success
 }
 
@@ -171,18 +171,18 @@ teardown_file() {
   [ -f "$BATS_TMPDIR/ssh_host.txt" ] || skip "SSH_HOST not saved"
   SSH_HOST=$(cat "$BATS_TMPDIR/ssh_host.txt")
   
-  run "$D3" remote ls sshTest
+  run "$D3" remote ls ssh-test
   assert_success
   assert_output --partial "ssh://root@$SSH_HOST/sshtest"
 }
 
 @test "list remote with ssh key commits returns empty list" {
-  run "$D3" remote log sshTest
+  run "$D3" remote log ssh-test
   assert_success
 }
 
 @test "get non-existent remote commit with ssh key fails" {
-  run "$D3" pull sshTest
+  run "$D3" pull ssh-test
   assert_failure
 }
 
@@ -190,7 +190,7 @@ teardown_file() {
   [ -f "$BATS_TMPDIR/ssh_key_commit_guid.txt" ] || skip "KEY_COMMIT_GUID not saved"
   KEY_COMMIT_GUID=$(cat "$BATS_TMPDIR/ssh_key_commit_guid.txt")
   
-  run "$D3" push sshTest
+  run "$D3" push ssh-test
   assert_success
   assert_output --partial "Pushing $KEY_COMMIT_GUID to 'origin'"
   assert_output --partial "Push completed successfully"
@@ -200,17 +200,17 @@ teardown_file() {
   [ -f "$BATS_TMPDIR/ssh_key_commit_guid.txt" ] || skip "KEY_COMMIT_GUID not saved"
   KEY_COMMIT_GUID=$(cat "$BATS_TMPDIR/ssh_key_commit_guid.txt")
   
-  run "$D3" remote log sshTest
+  run "$D3" remote log ssh-test
   assert_success
   assert_output --partial "Commit $KEY_COMMIT_GUID"
-  assert_output --partial "sshTest key Commit"
+  assert_output --partial "ssh-test key Commit"
 }
 
 @test "push of same commit with ssh key fails" {
   [ -f "$BATS_TMPDIR/ssh_key_commit_guid.txt" ] || skip "KEY_COMMIT_GUID not saved"
   KEY_COMMIT_GUID=$(cat "$BATS_TMPDIR/ssh_key_commit_guid.txt")
   
-  run "$D3" push sshTest
+  run "$D3" push ssh-test
   assert_failure
   assert_output --partial "commit $KEY_COMMIT_GUID exists in remote 'origin'"
 }
@@ -219,13 +219,13 @@ teardown_file() {
   [ -f "$BATS_TMPDIR/ssh_key_commit_guid.txt" ] || skip "KEY_COMMIT_GUID not saved"
   KEY_COMMIT_GUID=$(cat "$BATS_TMPDIR/ssh_key_commit_guid.txt")
   
-  run "$D3" delete -c "$KEY_COMMIT_GUID" sshTest
+  run "$D3" delete -c "$KEY_COMMIT_GUID" ssh-test
   assert_success
   assert_output --partial "$KEY_COMMIT_GUID deleted"
 }
 
 @test "list local commits is empty after key commit delete" {
-  run "$D3" log sshTest
+  run "$D3" log ssh-test
   assert_success
 }
 
@@ -233,7 +233,7 @@ teardown_file() {
   [ -f "$BATS_TMPDIR/ssh_key_commit_guid.txt" ] || skip "KEY_COMMIT_GUID not saved"
   KEY_COMMIT_GUID=$(cat "$BATS_TMPDIR/ssh_key_commit_guid.txt")
   
-  run "$D3" pull sshTest
+  run "$D3" pull ssh-test
   assert_success
   assert_output --partial "Pulling $KEY_COMMIT_GUID from 'origin'"
   assert_output --partial "Pull completed successfully"
@@ -243,21 +243,21 @@ teardown_file() {
   [ -f "$BATS_TMPDIR/ssh_key_commit_guid.txt" ] || skip "KEY_COMMIT_GUID not saved"
   KEY_COMMIT_GUID=$(cat "$BATS_TMPDIR/ssh_key_commit_guid.txt")
   
-  run "$D3" checkout -c "$KEY_COMMIT_GUID" sshTest
+  run "$D3" checkout -c "$KEY_COMMIT_GUID" ssh-test
   assert_success
-  assert_output --partial "Stopping container sshTest"
+  assert_output --partial "Stopping container ssh-test"
   assert_output --partial "Checkout $KEY_COMMIT_GUID"
-  assert_output --partial "Starting container sshTest"
+  assert_output --partial "Starting container ssh-test"
   assert_output --partial "$KEY_COMMIT_GUID checked out"
 }
 
 @test "remove remote with ssh key succeeds" {
-  run "$D3" remote rm sshTest origin
+  run "$D3" remote rm ssh-test origin
   assert_success
-  assert_output --partial "Removed origin from sshTest"
+  assert_output --partial "Removed origin from ssh-test"
 }
 
-@test "remove sshTest succeeds" {
-  run "$D3" rm -f sshTest
+@test "remove ssh-test succeeds" {
+  run "$D3" rm -f ssh-test
   assert_success
 }
