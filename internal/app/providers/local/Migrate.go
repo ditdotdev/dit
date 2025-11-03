@@ -4,10 +4,11 @@ import (
 	"datadatdat/internal/app/clients"
 	"encoding/json"
 	"fmt"
-	datadatdatclient "github.com/datadatdat/datadatdat-client-go"
 	"os"
 	"strconv"
 	"strings"
+
+	datadatdatclient "github.com/datadatdat/datadatdat-client-go"
 )
 
 func getLocalSrcFromPath(path string, mounts []mount) string {
@@ -37,8 +38,10 @@ func Migrate(container string, name string, user string, email string, commit Co
 		fmt.Println("Cannot migrate a running container. Please stop " + container)
 		os.Exit(1)
 	}
-	if strings.Contains(name, "/") {
-		fmt.Println("Repository name cannot contain a slash")
+
+	// Validate repository name
+	if err := validateRepositoryName(name); err != nil {
+		fmt.Println(err.Error())
 		os.Exit(1)
 	}
 	image, _ := docker.GetValFromContainer(container, "Image")
