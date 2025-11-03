@@ -11,8 +11,12 @@ func Remove(repo string, force bool, port int, context string) {
 	cfg.BasePath = "http://localhost:" + strconv.Itoa(port)
 	docker := clients.Docker(context, port)
 
+	// Track if we found any resources to remove
+	resourcesFound := false
+
 	id, _ := docker.GetValFromContainer(repo, "Id")
 	if id != "" {
+		resourcesFound = true
 		if !force {
 			r, _ := docker.GetValFromContainer(repo, "State", "Status")
 			if r == "running" {
@@ -31,6 +35,9 @@ func Remove(repo string, force bool, port int, context string) {
 		}
 	}
 	volumes, _, _ := volumesApi.ListVolumes(ctx, repo)
+	if len(volumes) > 0 {
+		resourcesFound = true
+	}
 	for _, volume := range volumes {
 		fmt.Println("Deleting volume " + volume.Name)
 		_, err := volumesApi.DeactivateVolume(ctx, repo, volume.Name)
@@ -63,12 +70,31 @@ func Remove(repo string, force bool, port int, context string) {
 
 	_, err := repositoriesApi.DeleteRepository(ctx, repo)
 	if err != nil {
-		// Handle 404 gracefully - repository may already be deleted
+		// Handle 404 - repository doesn't exist
 		errMsg := err.Error()
-		if errMsg != "404 Not Found" {
+		if errMsg == "404 Not Found" {
+			// If no other resources were found either, the repository doesn't exist
+			if !resourcesFound {
+				fmt.Printf("fatal: repository '%s' does not exist\n", repo)
+				os.Exit(1)
+			}
+			// Otherwise, resources were removed but API record was already gone
+			// Continue to success message
+		} else {
+			// Some other error occurred
 			panic(errMsg)
 		}
-		// Repository already deleted, continue
+	} else {
+		// Successfully deleted from API, mark as found
+		resourcesFound = true
 	}
-	fmt.Println(repo + " removed")
+
+	// Only print success if we actually found and removed something
+	if resourcesFound {
+		fmt.Println(repo + " removed")
+	} else {
+		// This shouldn't happen given the checks above, but just in case
+		fmt.Printf("fatal: repository '%s' does not exist\n", repo)
+		os.Exit(1)
+	}
 }
