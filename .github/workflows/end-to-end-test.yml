@@ -82,6 +82,10 @@ jobs:
           echo "ZFS installation and test completed successfully!"
       - name: Setup Test Requirements
         run: |
+          # Install BATS test framework
+          sudo npm install -g bats
+          bats --version
+          
           # Generate SSH keys using the project's generateKey.sh script
           cd tests/endtoend/remotes/ssh
           ./generateKey.sh ubuntu-22.04
