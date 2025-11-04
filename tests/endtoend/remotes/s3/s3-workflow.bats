@@ -9,7 +9,7 @@ URI="s3://demo-datadatdat/simple-test"
 REPO="hello-world"
 
 @test "can clone hello-world/postgres" {
-  run "$D3" clone -n hello-world s3web://demo-datadatdat.s3-website-us-east-1.amazonaws.com/hello-world/postgres
+  run "$D3" clone -n hello-world s3web://demo-datadatdat.s3-website-us-west-2.amazonaws.com/hello-world/postgres
   assert_success
   assert_output --partial "Running controlled container hello-world"
   assert_output --partial "Starting container hello-world"
