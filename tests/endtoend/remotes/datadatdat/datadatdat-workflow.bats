@@ -26,9 +26,9 @@ teardown_file() {
     "http://127.0.0.1:8080/api/v1/repos/webtest/ui-repo" 2>/dev/null || true
   
   # Remove any leftover local repositories
-  "$D3" rm -f datadatdatTest 2>/dev/null || true
-  "$D3" rm -f webUITest 2>/dev/null || true
-  "$D3" rm -f webUITestClone 2>/dev/null || true
+  "$D3" rm -f datadatdattest 2>/dev/null || true
+  "$D3" rm -f webuitest 2>/dev/null || true
+  "$D3" rm -f webuitestclone 2>/dev/null || true
 }
 
 @test "create test repository in datadatdat-remote-server" {
@@ -39,13 +39,13 @@ teardown_file() {
 }
 
 @test "run empty mongo db" {
-  run "$D3" run -n datadatdatTest mongo
+  run "$D3" run -n datadatdattest mongo
   assert_success
-  assert_output --partial "Running controlled container datadatdatTest"
+  assert_output --partial "Running controlled container datadatdattest"
 }
 
 @test "create new commit" {
-  run "$D3" commit -m "datadatdatTest Commit" datadatdatTest
+  run "$D3" commit -m "datadatdattest Commit" datadatdattest
   assert_success
   assert_output --partial "Commit"
   
@@ -55,30 +55,30 @@ teardown_file() {
 }
 
 @test "add datadatdat remote succeeds" {
-  run "$D3" remote add http://datadatdat-api-gateway:8080/testorg/datadatdat-test datadatdatTest
+  run "$D3" remote add http://datadatdat-api-gateway:8080/testorg/datadatdat-test datadatdattest
   assert_success
 }
 
 @test "repo has datadatdat remote" {
-  run "$D3" remote ls datadatdatTest
+  run "$D3" remote ls datadatdattest
   assert_success
   assert_output --partial "http://datadatdat-api-gateway:8080/testorg/datadatdat-test"
 }
 
 @test "list remote commits returns empty list" {
-  run "$D3" remote log datadatdatTest
+  run "$D3" remote log datadatdattest
   assert_success
   [[ "$output" != *"Commit"* ]]
 }
 
 @test "get non-existent remote commit fails" {
-  run "$D3" pull datadatdatTest
+  run "$D3" pull datadatdattest
   assert_failure
 }
 
 @test "push commit succeeds" {
   COMMIT_GUID=$(cat "$BATS_TMPDIR/commit_guid.txt")
-  run "$D3" push datadatdatTest
+  run "$D3" push datadatdattest
   assert_success
   assert_output --partial "Pushing ${COMMIT_GUID} to 'origin'"
   assert_output --partial "Push completed successfully"
@@ -86,35 +86,35 @@ teardown_file() {
 
 @test "list remote commits returns pushed commit" {
   COMMIT_GUID=$(cat "$BATS_TMPDIR/commit_guid.txt")
-  run "$D3" remote log datadatdatTest
+  run "$D3" remote log datadatdattest
   assert_success
   assert_output --partial "Commit ${COMMIT_GUID}"
-  assert_output --partial "datadatdatTest Commit"
+  assert_output --partial "datadatdattest Commit"
 }
 
 @test "push of same commit fails" {
   COMMIT_GUID=$(cat "$BATS_TMPDIR/commit_guid.txt")
-  run "$D3" push datadatdatTest
+  run "$D3" push datadatdattest
   assert_failure
   assert_output --partial "commit ${COMMIT_GUID} exists in remote 'origin'"
 }
 
 @test "delete local commit succeeds" {
   COMMIT_GUID=$(cat "$BATS_TMPDIR/commit_guid.txt")
-  run "$D3" delete -c "$COMMIT_GUID" datadatdatTest
+  run "$D3" delete -c "$COMMIT_GUID" datadatdattest
   assert_success
   assert_output "${COMMIT_GUID} deleted"
 }
 
 @test "list local commits is empty" {
-  run "$D3" log datadatdatTest
+  run "$D3" log datadatdattest
   assert_success
   [[ "$output" != *"Commit"* ]]
 }
 
 @test "pull original commit succeeds" {
   COMMIT_GUID=$(cat "$BATS_TMPDIR/commit_guid.txt")
-  run "$D3" pull datadatdatTest
+  run "$D3" pull datadatdattest
   assert_success
   assert_output --partial "Pulling ${COMMIT_GUID} from 'origin'"
   assert_output --partial "Pull completed successfully"
@@ -122,16 +122,16 @@ teardown_file() {
 
 @test "checkout commit succeeds" {
   COMMIT_GUID=$(cat "$BATS_TMPDIR/commit_guid.txt")
-  run "$D3" checkout -c "$COMMIT_GUID" datadatdatTest
+  run "$D3" checkout -c "$COMMIT_GUID" datadatdattest
   assert_success
-  assert_output --partial "Stopping container datadatdatTest"
+  assert_output --partial "Stopping container datadatdattest"
   assert_output --partial "Checkout ${COMMIT_GUID}"
-  assert_output --partial "Starting container datadatdatTest"
+  assert_output --partial "Starting container datadatdattest"
   assert_output --partial "${COMMIT_GUID} checked out"
 }
 
 @test "create second commit" {
-  run "$D3" commit -m "Second datadatdatTest Commit" datadatdatTest
+  run "$D3" commit -m "Second datadatdattest Commit" datadatdattest
   assert_success
   assert_output --partial "Commit"
   
@@ -141,28 +141,28 @@ teardown_file() {
 }
 
 @test "push second commit succeeds" {
-  run "$D3" push datadatdatTest
+  run "$D3" push datadatdattest
   assert_success
   assert_output --partial "Push completed successfully"
 }
 
 @test "list remote commits shows both commits" {
-  run "$D3" remote log datadatdatTest
+  run "$D3" remote log datadatdattest
   assert_success
-  assert_output --partial "Second datadatdatTest Commit"
-  assert_output --partial "datadatdatTest Commit"
+  assert_output --partial "Second datadatdattest Commit"
+  assert_output --partial "datadatdattest Commit"
 }
 
 @test "remove remote succeeds" {
-  run "$D3" remote rm datadatdatTest origin
+  run "$D3" remote rm datadatdattest origin
   assert_success
-  assert_output "Removed origin from datadatdatTest"
+  assert_output "Removed origin from datadatdattest"
 }
 
-@test "remove datadatdatTest repository succeeds" {
-  run "$D3" rm -f datadatdatTest
+@test "remove datadatdattest repository succeeds" {
+  run "$D3" rm -f datadatdattest
   assert_success
-  assert_output --partial "Removing repository datadatdatTest"
+  assert_output --partial "Removing repository datadatdattest"
 }
 
 @test "test list repos by org API endpoint - testorg (before cleanup)" {
@@ -188,19 +188,19 @@ teardown_file() {
 }
 
 @test "web UI: run postgres for web UI tests" {
-  run "$D3" run -n webUITest postgres -e POSTGRES_PASSWORD=postgres
+  run "$D3" run -n webuitest postgres -e POSTGRES_PASSWORD=postgres
   assert_success
-  assert_output --partial "Running controlled container webUITest"
+  assert_output --partial "Running controlled container webuitest"
 }
 
 @test "web UI: check to see if database is up and running" {
-  run bash -c "for i in {1..18}; do docker exec webUITest pg_isready && break || sleep 5; done"
+  run bash -c "for i in {1..18}; do docker exec webuitest pg_isready && break || sleep 5; done"
   assert_success
   assert_output --partial "accepting connections"
 }
 
 @test "web UI: create initial commit" {
-  run "$D3" commit -m "Initial web UI test commit" webUITest
+  run "$D3" commit -m "Initial web UI test commit" webuitest
   assert_success
   assert_output --partial "Commit"
   
@@ -210,12 +210,12 @@ teardown_file() {
 }
 
 @test "web UI: add remote" {
-  run "$D3" remote add http://datadatdat-api-gateway:8080/webtest/ui-repo webUITest
+  run "$D3" remote add http://datadatdat-api-gateway:8080/webtest/ui-repo webuitest
   assert_success
 }
 
 @test "web UI: push initial commit" {
-  run "$D3" push webUITest
+  run "$D3" push webuitest
   assert_success
   assert_output --partial "Push completed successfully"
 }
@@ -238,14 +238,14 @@ teardown_file() {
 }
 
 @test "web UI: make database changes for second commit" {
-  run docker exec webUITest psql -U postgres -c \
+  run docker exec webuitest psql -U postgres -c \
     "CREATE TABLE test_table (id SERIAL PRIMARY KEY, name VARCHAR(100));"
   assert_success
   assert_output --partial "CREATE TABLE"
 }
 
 @test "web UI: create second commit" {
-  run "$D3" commit -m "Added test table" webUITest
+  run "$D3" commit -m "Added test table" webuitest
   assert_success
   assert_output --partial "Commit"
   
@@ -255,7 +255,7 @@ teardown_file() {
 }
 
 @test "web UI: push second commit" {
-  run "$D3" push webUITest
+  run "$D3" push webuitest
   assert_success
   assert_output --partial "Push completed successfully"
 }
@@ -282,14 +282,14 @@ teardown_file() {
 }
 
 @test "web UI: make database changes for third commit" {
-  run docker exec webUITest psql -U postgres -c \
+  run docker exec webuitest psql -U postgres -c \
     "INSERT INTO test_table (name) VALUES ('Alice'), ('Bob');"
   assert_success
   assert_output --partial "INSERT"
 }
 
 @test "web UI: create third commit" {
-  run "$D3" commit -m "Added test data" webUITest
+  run "$D3" commit -m "Added test data" webuitest
   assert_success
   assert_output --partial "Commit"
   
@@ -299,7 +299,7 @@ teardown_file() {
 }
 
 @test "web UI: push third commit" {
-  run "$D3" push webUITest
+  run "$D3" push webuitest
   assert_success
   assert_output --partial "Push completed successfully"
 }
@@ -333,7 +333,7 @@ teardown_file() {
 
 @test "web UI: checkout first commit" {
   WEB_COMMIT_1=$(cat "$BATS_TMPDIR/web_commit_1.txt")
-  run "$D3" checkout -c "$WEB_COMMIT_1" webUITest
+  run "$D3" checkout -c "$WEB_COMMIT_1" webuitest
   assert_success
   assert_output --partial "checked out"
 }
@@ -361,74 +361,74 @@ teardown_file() {
 
 @test "web UI: verify empty database at first commit" {
   # Wait for database
-  run bash -c "for i in {1..18}; do docker exec webUITest pg_isready && break || sleep 5; done"
+  run bash -c "for i in {1..18}; do docker exec webuitest pg_isready && break || sleep 5; done"
   assert_success
   
-  run bash -c "docker exec webUITest psql -U postgres -c '\\dt' 2>&1"
+  run bash -c "docker exec webuitest psql -U postgres -c '\\dt' 2>&1"
   assert_success
   assert_output --partial "Did not find any"
 }
 
 @test "web UI: checkout second commit" {
   WEB_COMMIT_2=$(cat "$BATS_TMPDIR/web_commit_2.txt")
-  run "$D3" checkout -c "$WEB_COMMIT_2" webUITest
+  run "$D3" checkout -c "$WEB_COMMIT_2" webuitest
   assert_success
   assert_output --partial "checked out"
 }
 
 @test "web UI: verify table exists at second commit" {
   # Wait for database
-  run bash -c "for i in {1..18}; do docker exec webUITest pg_isready && break || sleep 5; done"
+  run bash -c "for i in {1..18}; do docker exec webuitest pg_isready && break || sleep 5; done"
   assert_success
   
-  run docker exec webUITest psql -U postgres -c "\\dt"
+  run docker exec webuitest psql -U postgres -c "\\dt"
   assert_success
   assert_output --partial "test_table"
 }
 
 @test "web UI: verify table is empty at second commit" {
-  run docker exec webUITest psql -U postgres -c "SELECT COUNT(*) FROM test_table;"
+  run docker exec webuitest psql -U postgres -c "SELECT COUNT(*) FROM test_table;"
   assert_success
   assert_output --partial " 0"
 }
 
 @test "web UI: checkout third commit" {
   WEB_COMMIT_3=$(cat "$BATS_TMPDIR/web_commit_3.txt")
-  run "$D3" checkout -c "$WEB_COMMIT_3" webUITest
+  run "$D3" checkout -c "$WEB_COMMIT_3" webuitest
   assert_success
   assert_output --partial "checked out"
 }
 
 @test "web UI: verify data exists at third commit" {
   # Wait for database
-  run bash -c "for i in {1..18}; do docker exec webUITest pg_isready && break || sleep 5; done"
+  run bash -c "for i in {1..18}; do docker exec webuitest pg_isready && break || sleep 5; done"
   assert_success
   
-  run docker exec webUITest psql -U postgres -c "SELECT COUNT(*) FROM test_table;"
+  run docker exec webuitest psql -U postgres -c "SELECT COUNT(*) FROM test_table;"
   assert_success
   assert_output --partial " 2"
 }
 
 @test "web UI: verify correct data at third commit" {
-  run docker exec webUITest psql -U postgres -c "SELECT name FROM test_table ORDER BY name;"
+  run docker exec webuitest psql -U postgres -c "SELECT name FROM test_table ORDER BY name;"
   assert_success
   assert_output --partial "Alice"
   assert_output --partial "Bob"
 }
 
 @test "web UI: cleanup - remove test repo" {
-  run "$D3" rm webUITest -f
+  run "$D3" rm webuitest -f
   assert_success
-  assert_output --partial "webUITest removed"
+  assert_output --partial "webuitest removed"
 }
 
 @test "web UI: cleanup - remove previous clone if exists" {
   # Best effort - don't fail if doesn't exist
-  "$D3" rm webUITestClone -f 2>/dev/null || true
+  "$D3" rm webuitestclone -f 2>/dev/null || true
 }
 
 @test "web UI: test clone with manifest - clone from remote" {
-  run "$D3" clone -n webUITestClone http://datadatdat-api-gateway:8080/webtest/ui-repo
+  run "$D3" clone -n webuitestclone http://datadatdat-api-gateway:8080/webtest/ui-repo
   assert_success
   assert_output --partial "checked out"
 }
@@ -437,7 +437,7 @@ teardown_file() {
   WEB_COMMIT_1=$(cat "$BATS_TMPDIR/web_commit_1.txt")
   WEB_COMMIT_2=$(cat "$BATS_TMPDIR/web_commit_2.txt")
   WEB_COMMIT_3=$(cat "$BATS_TMPDIR/web_commit_3.txt")
-  run "$D3" remote log webUITestClone
+  run "$D3" remote log webuitestclone
   assert_success
   assert_output --partial "${WEB_COMMIT_1}"
   assert_output --partial "${WEB_COMMIT_2}"
@@ -445,9 +445,9 @@ teardown_file() {
 }
 
 @test "web UI: cleanup - remove cloned repo" {
-  run "$D3" rm webUITestClone -f
+  run "$D3" rm webuitestclone -f
   assert_success
-  assert_output --partial "webUITestClone removed"
+  assert_output --partial "webuitestclone removed"
 }
 
 @test "web UI: verify no repositories exist after cleanup" {
