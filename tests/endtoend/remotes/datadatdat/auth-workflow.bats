@@ -48,7 +48,7 @@ teardown_file() {
     "http://127.0.0.1:8080/api/v1/repos/authtest/cli-test-repo" 2>/dev/null || true
   
   # Cleanup d3 test repository
-  "$D3" rm authCliTest -f 2>/dev/null || true
+  "$D3" rm authclitest -f 2>/dev/null || true
 }
 
 # ========================================
@@ -334,7 +334,7 @@ teardown_file() {
 # ========================================
 
 @test "auth: run mongo container for auth test" {
-  run "$D3" run -n authCliTest mongo
+  run "$D3" run -n authclitest mongo
   assert_success
 }
 
@@ -346,18 +346,18 @@ teardown_file() {
 }
 
 @test "auth: create commit for auth test" {
-  run "$D3" commit -m "Auth CLI Test Commit" authCliTest
+  run "$D3" commit -m "Auth CLI Test Commit" authclitest
   assert_success
   assert_output --partial "Commit"
 }
 
 @test "auth: add datadatdat remote with auth" {
-  run "$D3" remote add http://datadatdat-api-gateway:8080/authtest/cli-test-repo authCliTest
+  run "$D3" remote add http://datadatdat-api-gateway:8080/authtest/cli-test-repo authclitest
   assert_success
 }
 
 @test "auth: verify remote was added" {
-  run "$D3" remote ls authCliTest
+  run "$D3" remote ls authclitest
   assert_success
   assert_output --partial "http://datadatdat-api-gateway:8080/authtest/cli-test-repo"
 }
@@ -371,9 +371,9 @@ teardown_file() {
 }
 
 @test "auth: cleanup - remove auth CLI test repo" {
-  run "$D3" rm authCliTest -f
+  run "$D3" rm authclitest -f
   assert_success
-  assert_output --partial "authCliTest removed"
+  assert_output --partial "authclitest removed"
 }
 
 # ========================================
