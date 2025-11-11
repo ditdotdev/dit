@@ -229,26 +229,29 @@ datadatdat-remote-server (Microservices platform - "GitHub for Data")
 ```
 
 ### Release Order (Critical)
-1. **remote-sdk-go** - Foundation SDK for all remote providers
-2. **Remote providers** (can be done in parallel):
+1. **command-executor** (if changed) - Foundation library, must release BEFORE remote-sdk
+2. **remote-sdk-go** - Foundation SDK for all remote providers
+3. **Remote providers** (can be done in parallel):
    - s3-remote-go
    - ssh-remote-go  
    - s3web-remote-go
    - nop-remote-go
    - **datadatdat-remote-go** - NEW: Provider for datadatdat-remote-server
-3. **Kotlin remote providers** (can be done in parallel):
+4. **remote-sdk** (Kotlin/Maven) - Foundation for Kotlin providers (depends on command-executor)
+5. **Kotlin remote providers** (can be done in parallel):
    - s3-remote
-   - ssh-remote
+   - ssh-remote (depends on command-executor)
    - s3web-remote
    - nop-remote
+   - delphix-remote (depends on command-executor)
    - **datadatdat-remote** - NEW: Server-side provider for datadatdat-remote-server
-4. **datadatdat-client-go** - Auto-generated Go client
-5. **datadatdat** - Main CLI (depends on all above)
-6. **datadatdat-server** - Docker container (publishes to DockerHub)
-7. **datadatdat-remote-server** - NEW: Microservices platform (publishes 6 Docker images)
+6. **datadatdat-client-go** - Auto-generated Go client
+7. **datadatdat** - Main CLI (depends on all above)
+8. **datadatdat-server** - Docker container (publishes to DockerHub, depends on command-executor)
+9. **datadatdat-remote-server** - NEW: Microservices platform (publishes 6 Docker images)
 
 ### Supporting Components (Independent)
-- **plugin-launcher** - Can be released independently
+- **plugin-launcher** - Kotlin library with Go tests; can be released independently (no current dependencies)
 - **zfs-builder**, **zfs-releases** - ZFS infrastructure, independent
 - **Testing** - Now uses BATS (Bash Automated Testing System) instead of previous custom testing solution
 
@@ -490,6 +493,108 @@ aws s3 ls s3://datadatdat-maven/com/datadatdat/remote-sdk/1.1.0/
 ```
 
 **✅ VALIDATION: Verify remote-sdk 1.1.0 is published to Maven before continuing to Phase 2**
+
+##### 1.4 Update Provider build.gradle.kts Files - CRITICAL BEFORE TAGGING
+**🚨 NEW STEP (v1.4.0+): Update dependency versions BEFORE releasing providers**
+
+**Why This Matters:**
+- We release `remote-sdk` first as 1.4.0
+- Provider `build.gradle.kts` files still reference `remote-sdk:1.3.0`
+- If we tag providers NOW, they publish with OLD dependency versions
+- Published Maven artifacts will be INCORRECT
+- Must update source files BEFORE tagging
+
+```bash
+# For each Kotlin provider, update build.gradle.kts to use NEW versions
+# This is what we missed in the initial v1.4.0 release!
+
+# Example for datadatdat-remote:
+cd /c/dev/datadatdat-remote
+# Update server/build.gradle.kts: remote-sdk:1.3.0 → remote-sdk:1.4.0
+# Update client/build.gradle.kts: remote-sdk:1.3.0 → remote-sdk:1.4.0
+
+# ⚠️ IMPORTANT: Update ALL 6 Kotlin provider repos:
+# - datadatdat-remote (server + client)
+# - s3-remote (server + client)
+# - ssh-remote (server + client) - also has command-executor dependency
+# - s3web-remote (server + client)
+# - nop-remote (server + client)
+# - delphix-remote (server + client) - also has command-executor dependency
+
+# AUTOMATED UPDATE SCRIPT (recommended):
+cd /c/dev && for repo in datadatdat-remote s3-remote ssh-remote s3web-remote nop-remote delphix-remote; do
+  echo "=== Updating $repo ==="
+  cd /c/dev/$repo
+  
+  # Update server build.gradle.kts (remote-sdk dependency)
+  sed -i 's/remote-sdk:1\.3\.0/remote-sdk:1.4.0/g' server/build.gradle.kts
+  
+  # Update client build.gradle.kts (remote-sdk dependency)
+  sed -i 's/remote-sdk:1\.3\.0/remote-sdk:1.4.0/g' client/build.gradle.kts
+  
+  # For ssh-remote and delphix-remote, also update command-executor (if changed)
+  if [[ "$repo" == "ssh-remote" || "$repo" == "delphix-remote" ]]; then
+    sed -i 's/command-executor:1\.3\.0/command-executor:1.4.0/g' server/build.gradle.kts
+  fi
+  
+  # Commit the changes
+  git add server/build.gradle.kts client/build.gradle.kts
+  git commit -m "Update dependencies to remote-sdk:1.4.0"
+  git push origin master
+  
+  echo "✓ $repo updated"
+done
+
+# ✅ VALIDATION: Verify all build.gradle.kts files show correct versions
+for repo in datadatdat-remote s3-remote ssh-remote s3web-remote nop-remote delphix-remote; do
+  echo "=== $repo ==="
+  grep "com.datadatdat:remote-sdk:" /c/dev/$repo/server/build.gradle.kts
+done
+# All should show remote-sdk:1.4.0
+
+# NOW you can proceed to Phase 2 and tag the providers
+```
+
+**✅ VALIDATION: All provider build.gradle.kts files updated and committed BEFORE tagging**
+
+##### 1.3 Release command-executor (Foundation Library - REQUIRED if changed)
+
+**CRITICAL:** command-executor is a **dependency** of multiple components. Must be released BEFORE remote-sdk if there are changes.
+
+**Dependencies:** remote-sdk, datadatdat-server, ssh-remote, delphix-remote
+
+```bash
+cd /c/dev/command-executor
+
+# Check for changes since last release
+git log --oneline <LAST_TAG>..HEAD
+
+# If NO changes: Skip to Phase 1.4 (remote-sdk)
+# If changes exist: MUST release before remote-sdk
+
+# Build and test
+./gradlew build test
+
+# Tag and push (triggers automated Maven publishing to S3)
+git tag 1.4.0  # Note: NO 'v' prefix for Maven artifacts
+git push origin 1.4.0
+
+# Wait for GitHub Actions to publish
+gh run watch
+
+# CRITICAL: Verify published to S3 Maven bucket before continuing
+aws s3 ls s3://datadatdat-maven/com/datadatdat/command-executor/1.4.0/
+# Should show: command-executor-1.4.0.jar, .pom, etc.
+
+# ⚠️ IF COMMAND-EXECUTOR WAS RELEASED:
+# Update dependency version in these files BEFORE their releases:
+# - remote-sdk/build.gradle.kts (line 40)
+# - datadatdat-server/server/build.gradle.kts (line 43)
+# - ssh-remote/server/build.gradle.kts (line 24)
+# - delphix-remote/server/build.gradle.kts (line 25)
+```
+
+##### 1.4 Release remote-sdk (Kotlin/Maven)
 
 #### Phase 2: Kotlin Remote Providers (Maven JARs) - Parallel Process
 
