@@ -86,6 +86,10 @@ jobs:
         run: |
           export PATH=$PWD/release/linux-amd64:$PATH
           make e2e
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_REGION: ${{ secrets.AWS_REGION }}
   
   create-release:
     name: Create GitHub Release
