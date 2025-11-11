@@ -223,6 +223,8 @@ datadatdat-client-go (auto-generated from datadatdat-server OpenAPI spec)
     ↓
 datadatdat (CLI - depends on all remote providers and client)
     ↓
+datadatdat-docker-proxy (binary downloaded by datadatdat-server during Docker build)
+    ↓
 datadatdat-server (Docker container with ZFS + PostgreSQL)
     ↓
 datadatdat-remote-server (Microservices platform - "GitHub for Data")
@@ -247,8 +249,9 @@ datadatdat-remote-server (Microservices platform - "GitHub for Data")
    - **datadatdat-remote** - NEW: Server-side provider for datadatdat-remote-server
 6. **datadatdat-client-go** - Auto-generated Go client
 7. **datadatdat** - Main CLI (depends on all above)
-8. **datadatdat-server** - Docker container (publishes to DockerHub, depends on command-executor)
-9. **datadatdat-remote-server** - NEW: Microservices platform (publishes 6 Docker images)
+8. **datadatdat-docker-proxy** - 🚨 CRITICAL: Must be BEFORE datadatdat-server (binary downloaded during Docker build)
+9. **datadatdat-server** - Docker container (publishes to DockerHub, downloads docker-volume-proxy from S3)
+10. **datadatdat-remote-server** - NEW: Microservices platform (publishes 6 Docker images)
 
 ### Supporting Components (Independent)
 - **plugin-launcher** - Kotlin library with Go tests; can be released independently (no current dependencies)
@@ -775,6 +778,61 @@ go mod graph | grep datadatdat | grep remote-sdk-go
 # Should show ALL components using the SAME remote-sdk-go version
 # If you see version conflicts, you MUST create a patch release to fix alignment
 ```
+
+#### Phase 4.5: Docker Volume Proxy Release
+
+##### 4.5.1 Release datadatdat-docker-proxy
+**🚨 CRITICAL: Must be released BEFORE datadatdat-server**
+
+**Why:** datadatdat-server's Dockerfile downloads `docker-volume-proxy` binary from S3 during build:
+```dockerfile
+RUN curl -fssL https://datadatdat-maven.s3.amazonaws.com/datadatdat-docker-proxy/docker-volume-proxy -o /datadatdat/docker-volume-proxy
+```
+
+**When to release:**
+- After datadatdat-client-go is released (Phase 3)
+- Before datadatdat-server is released (Phase 5)
+- If datadatdat-docker-proxy has ANY changes since last release
+
+```bash
+cd /c/dev/datadatdat-docker-proxy
+
+# Check current dependencies
+grep "datadatdat-client-go" go.mod
+# Should show: github.com/datadatdat/datadatdat-client-go v1.4.0
+
+# If client version is outdated, update it
+go get github.com/datadatdat/datadatdat-client-go@v1.4.0
+go mod tidy
+
+# Commit if there are changes
+git add go.mod go.sum
+git commit -m "Update datadatdat-client-go to v1.4.0"
+git push origin master
+
+# Tag and push (triggers automated build and S3 upload)
+git tag v1.4.0
+git push origin v1.4.0
+
+# GitHub Action automatically:
+# - Builds docker-volume-proxy binary
+# - Uploads to S3: s3://datadatdat-maven/datadatdat-docker-proxy/docker-volume-proxy
+# - Creates GitHub release
+
+# Wait for GitHub Action to complete
+gh run list --workflow=release.yml --limit 3
+# Look for ✓ status
+
+# CRITICAL: Verify binary was uploaded to S3
+aws s3 ls s3://datadatdat-maven/datadatdat-docker-proxy/
+# Should show: docker-volume-proxy
+
+# Test the binary is downloadable
+curl -fsSL https://datadatdat-maven.s3.amazonaws.com/datadatdat-docker-proxy/docker-volume-proxy --head
+# Should return 200 OK
+```
+
+**✅ VALIDATION: Verify docker-volume-proxy is in S3 before releasing datadatdat-server**
 
 #### Phase 5: Docker Container Release
 
