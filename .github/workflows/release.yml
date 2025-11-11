@@ -82,6 +82,11 @@ jobs:
           cd cleanslate
           sudo bash setup-zfs-pools.sh
       
+      - name: Generate SSH test keys
+        run: |
+          cd tests/endtoend/remotes/ssh
+          bash generateKey.sh ubuntu-22.04
+      
       - name: Run E2E tests
         run: |
           export PATH=$PWD/release/linux-amd64:$PATH
