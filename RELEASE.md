@@ -51,7 +51,7 @@ This document outlines the comprehensive release process for the Datadatdat data
 - **Clean up local development state**: Remove ALL `replace` directives from go.mod files before release
 - **E2E testing requirement**: `make test-datadatdat-workflow` must pass (20/20 tests)
 - **6 remote providers**: Updated count (was 5, now 6 with datadatdat-remote-go)
-- **5 new Docker images**: Published to GHCR as ghcr.io/datadatdat/[service]:v1.1.0
+- **5 new Docker images**: Published to Amazon ECR (Elastic Container Registry)
 
 **Testing Strategy:**
 - E2E tests for datadatdat-remote-server are stored in `datadatdat/tests/endtoend/remotes/datadatdat/`
@@ -909,7 +909,7 @@ cd /c/dev/datadatdat-remote-server
 docker-compose -f deploy/compose/docker-compose.yml down
 ```
 
-##### 6.3 Release datadatdat-remote-server to GHCR
+##### 6.3 Release datadatdat-remote-server to Amazon ECR
 ```bash
 cd /c/dev/datadatdat-remote-server
 
@@ -923,12 +923,15 @@ git push origin $NEW_VERSION
 
 # GitHub Action automatically:
 # Job 1: Build
-#   - Builds 5 Docker images (linux/amd64):
-#     * ghcr.io/datadatdat/api-gateway:v1.1.0 and :latest
-#     * ghcr.io/datadatdat/api-repo-manifest:v1.1.0 and :latest
-#     * ghcr.io/datadatdat/api-ingest:v1.1.0 and :latest
-#     * ghcr.io/datadatdat/api-download:v1.1.0 and :latest
-#     * ghcr.io/datadatdat/worker:v1.1.0 and :latest
+#   - Builds 8 Docker images (linux/amd64):
+#     * $ECR_REGISTRY/datadatdat/api-gateway:v1.1.0 and :latest
+#     * $ECR_REGISTRY/datadatdat/api-repo-manifest:v1.1.0 and :latest
+#     * $ECR_REGISTRY/datadatdat/api-ingest:v1.1.0 and :latest
+#     * $ECR_REGISTRY/datadatdat/api-download:v1.1.0 and :latest
+#     * $ECR_REGISTRY/datadatdat/worker:v1.1.0 and :latest
+#     * $ECR_REGISTRY/datadatdat/auth-server:v1.1.0 and :latest
+#     * $ECR_REGISTRY/datadatdat/web:v1.1.0 and :latest
+#     * $ECR_REGISTRY/datadatdat/datadatdat-repo-web:v1.1.0 and :latest
 #   - Saves images as artifacts
 #
 # Job 2: E2E Testing (CRITICAL - tests before publish!)
@@ -941,50 +944,52 @@ git push origin $NEW_VERSION
 #   - Runs make test-datadatdat-workflow (20 E2E tests)
 #   - Tests must pass 100% before proceeding
 #
-# Job 3: Publish to GHCR (only if tests pass)
-#   - Authenticates to ghcr.io using GITHUB_TOKEN
+# Job 3: Publish to ECR (only if tests pass)
+#   - Authenticates to Amazon ECR using AWS credentials
 #   - Pushes all version tags (v1.1.0)
 #   - Pushes all latest tags
 #   - Creates GitHub draft release with deployment instructions
 ```
 
-##### 6.4 Authenticate to GHCR and Verify Release
+##### 6.4 Authenticate to Amazon ECR and Verify Release
 ```bash
-# Authenticate to GitHub Container Registry
-# You need a GitHub Personal Access Token with read:packages scope
-echo $GITHUB_TOKEN | docker login ghcr.io -u YOUR_GITHUB_USERNAME --password-stdin
+# Authenticate to Amazon Elastic Container Registry
+# You need AWS credentials with ECR permissions (AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY)
+export ECR_REGISTRY=$(aws ecr describe-repositories --region us-west-2 --repository-names datadatdat/api-gateway --query 'repositories[0].repositoryUri' --output text | cut -d'/' -f1)
+aws ecr get-login-password --region us-west-2 | docker login --username AWS --password-stdin $ECR_REGISTRY
 
-# OR: Use gh CLI to automatically authenticate
-gh auth token | docker login ghcr.io -u $(gh api user -q .login) --password-stdin
-
-# Pull all published images from GHCR (private registry)
-docker pull ghcr.io/datadatdat/api-gateway:v1.1.0
-docker pull ghcr.io/datadatdat/api-repo-manifest:v1.1.0
-docker pull ghcr.io/datadatdat/api-ingest:v1.1.0
-docker pull ghcr.io/datadatdat/api-download:v1.1.0
-docker pull ghcr.io/datadatdat/worker:v1.1.0
+# Pull all published images from ECR (private registry)
+docker pull $ECR_REGISTRY/datadatdat/api-gateway:v1.1.0
+docker pull $ECR_REGISTRY/datadatdat/api-repo-manifest:v1.1.0
+docker pull $ECR_REGISTRY/datadatdat/api-ingest:v1.1.0
+docker pull $ECR_REGISTRY/datadatdat/api-download:v1.1.0
+docker pull $ECR_REGISTRY/datadatdat/worker:v1.1.0
+docker pull $ECR_REGISTRY/datadatdat/auth-server:v1.1.0
+docker pull $ECR_REGISTRY/datadatdat/web:v1.1.0
+docker pull $ECR_REGISTRY/datadatdat/datadatdat-repo-web:v1.1.0
 
 # Verify latest tags are also available
-docker pull ghcr.io/datadatdat/api-gateway:latest
+docker pull $ECR_REGISTRY/datadatdat/api-gateway:latest
 
 # Check GitHub release
 gh release view v1.1.0 --repo datadatdat/datadatdat-remote-server
 
-# Verify all 5 images are listed in the release notes
+# Verify all 8 images are listed in the release notes
 ```
 
-##### 6.5 Deploy and Test with GHCR Images
+##### 6.5 Deploy and Test with Amazon ECR Images
 ```bash
 # CRITICAL: Verify the released images work correctly
 
 cd /c/dev/datadatdat-remote-server/deploy/compose
 
-# Authenticate to GHCR (if not already done)
-gh auth token | docker login ghcr.io -u $(gh api user -q .login) --password-stdin
+# Authenticate to Amazon ECR (if not already done)
+export ECR_REGISTRY=$(aws ecr describe-repositories --region us-west-2 --repository-names datadatdat/api-gateway --query 'repositories[0].repositoryUri' --output text | cut -d'/' -f1)
+aws ecr get-login-password --region us-west-2 | docker login --username AWS --password-stdin $ECR_REGISTRY
 
-# Create .env file to use GHCR and specific version
-cat > .env << 'EOF'
-REGISTRY=ghcr.io/
+# Create .env file to use ECR and specific version
+cat > .env << EOF
+REGISTRY=$ECR_REGISTRY/
 VERSION=v1.1.0
 EOF
 
@@ -1026,36 +1031,40 @@ docker-compose build
 docker-compose up -d
 ```
 
-**Option 2: Pull from GHCR - Specific Version (Production)**
+**Option 2: Pull from Amazon ECR - Specific Version (Production)**
 ```bash
 cd /c/dev/datadatdat-remote-server/deploy/compose
 
+# Authenticate to ECR
+export ECR_REGISTRY=$(aws ecr describe-repositories --region us-west-2 --repository-names datadatdat/api-gateway --query 'repositories[0].repositoryUri' --output text | cut -d'/' -f1)
+aws ecr get-login-password --region us-west-2 | docker login --username AWS --password-stdin $ECR_REGISTRY
+
 # Create .env file
-cat > .env << 'EOF'
-REGISTRY=ghcr.io/
+cat > .env << EOF
+REGISTRY=$ECR_REGISTRY/
 VERSION=v1.1.0
 EOF
-
-# Authenticate to GHCR
-gh auth token | docker login ghcr.io -u $(gh api user -q .login) --password-stdin
 
 # Pull and start
 docker-compose pull
 docker-compose up -d
 ```
 
-**Option 3: Pull from GHCR - Latest (Testing)**
+**Option 3: Pull from Amazon ECR - Latest (Testing)**
 ```bash
 cd /c/dev/datadatdat-remote-server/deploy/compose
 
+# Authenticate to ECR
+export ECR_REGISTRY=$(aws ecr describe-repositories --region us-west-2 --repository-names datadatdat/api-gateway --query 'repositories[0].repositoryUri' --output text | cut -d'/' -f1)
+aws ecr get-login-password --region us-west-2 | docker login --username AWS --password-stdin $ECR_REGISTRY
+
 # Create .env file
-cat > .env << 'EOF'
-REGISTRY=ghcr.io/
+cat > .env << EOF
+REGISTRY=$ECR_REGISTRY/
 VERSION=latest
 EOF
 
-# Authenticate and pull
-gh auth token | docker login ghcr.io -u $(gh api user -q .login) --password-stdin
+# Pull and start
 docker-compose pull
 docker-compose up -d
 ```
@@ -1209,7 +1218,7 @@ docker inspect datadatdat/datadatdat:latest
 - ✅ **remote-sdk-go**: Tag push → build → test → release → trigger cascade
 - ✅ **Go providers (5)**: Tag push → build → test → publish release (no draft)
 - ✅ **datadatdat-server**: Tag push → test → Docker publish to DockerHub
-- ✅ **datadatdat-remote-server**: Tag push → build → E2E test → Docker publish to GHCR
+- ✅ **datadatdat-remote-server**: Tag push → build → E2E test → Docker publish to Amazon ECR
 - ✅ **Dependency cascade**: SDK release → auto-create PRs in all providers
 
 ### 🎯 Semi-Automated (Human Review Required)
@@ -1919,14 +1928,20 @@ git push origin $VERSION
 # PHASE 8: Post-Release Validation
 # ========================================
 
+# Authenticate to Amazon ECR
+export ECR_REGISTRY=$(aws ecr describe-repositories --region us-west-2 --repository-names datadatdat/api-gateway --query 'repositories[0].repositoryUri' --output text | cut -d'/' -f1)
+aws ecr get-login-password --region us-west-2 | docker login --username AWS --password-stdin $ECR_REGISTRY
+
 # Verify Docker images
 docker pull datadatdat/datadatdat:v1.1.0
-docker pull datadatdat/api-gateway:v1.1.0
-docker pull datadatdat/api-repo-manifest:v1.1.0
-docker pull datadatdat/api-ingest:v1.1.0
-docker pull datadatdat/api-download:v1.1.0
-docker pull datadatdat/worker:v1.1.0
-docker pull datadatdat/datadatdat-provider-http:v1.1.0
+docker pull $ECR_REGISTRY/datadatdat/api-gateway:v1.1.0
+docker pull $ECR_REGISTRY/datadatdat/api-repo-manifest:v1.1.0
+docker pull $ECR_REGISTRY/datadatdat/api-ingest:v1.1.0
+docker pull $ECR_REGISTRY/datadatdat/api-download:v1.1.0
+docker pull $ECR_REGISTRY/datadatdat/worker:v1.1.0
+docker pull $ECR_REGISTRY/datadatdat/auth-server:v1.1.0
+docker pull $ECR_REGISTRY/datadatdat/web:v1.1.0
+docker pull $ECR_REGISTRY/datadatdat/datadatdat-repo-web:v1.1.0
 
 # Test with released images
 cd /c/dev/datadatdat-remote-server
