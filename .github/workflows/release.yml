@@ -64,6 +64,9 @@ jobs:
           tar -xf datadatdat-cli-$VERSION-linux_amd64.tar
           chmod +x d3
           ./d3 --version
+          # Create symlink in repo root for tests (they expect $REPO_ROOT/d3)
+          cd ../..
+          ln -s release/linux-amd64/d3 d3
       
       - name: Install BATS
         run: sudo npm install -g bats
