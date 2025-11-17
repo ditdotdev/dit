@@ -79,8 +79,14 @@ test-ssh-workflow:
 test-datadatdat-workflow:
 	bats tests/endtoend/remotes/datadatdat/datadatdat-workflow.bats
 
+test-datadatdat-workflow-prod:
+	bats tests/endtoend/remotes/datadatdat/datadatdat-workflow-prod.bats
+
 test-auth-workflow:
 	bats tests/endtoend/remotes/datadatdat/auth-workflow.bats
+
+test-auth-workflow-prod:
+	bats tests/endtoend/remotes/datadatdat/auth-workflow-prod.bats
 
 test-multi-context:
 	bats tests/endtoend/multi-context/multi-context.bats
