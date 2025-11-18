@@ -6,7 +6,7 @@ load '../../test_helper'
 # Setup: Verify datadatdat-remote-server is running
 setup_file() {
   # Set API key for authentication
-  export DATADATDAT_API_KEY=80d141e9375c062be6c819e86f0e15e1c36bfcd5fd86286c30ad28b2e2ec8511
+  export DATADATDAT_API_KEY=02b31569a9052bc4b3cf1c3819d4fc048d34c96eca21f2b8e2359b5ecdfec93a
   
   # Verify the server is healthy
   run curl -s http://127.0.0.1:8080/health
