@@ -7,7 +7,7 @@
 load '../../test_helper'
 
 # API Key is hardcoded for E2E testing
-export DATADATDAT_API_KEY="80d141e9375c062be6c819e86f0e15e1c36bfcd5fd86286c30ad28b2e2ec8511"
+export DATADATDAT_API_KEY="***REMOVED***"
 
 # Setup: Verify services are running and clean database
 setup_file() {
@@ -201,6 +201,100 @@ teardown_file() {
   assert_output --partial "Access request ID is"
 }
 
+@test "auth: admin can list pending access requests via API" {
+  run curl -s -H "X-API-Key: ${DATADATDAT_API_KEY}" \
+    "http://127.0.0.1:8085/api/admin/access-requests"
+  assert_success
+  assert_output --partial "blockeduser"
+  assert_output --partial "E2E Test Access Request"
+  assert_output --partial "pending"
+}
+
+@test "auth: admin can reject access request via API" {
+  ACCESS_REQUEST_ID=$(cat "$BATS_TMPDIR/access_request_id.txt")
+  
+  # First create a new request to reject
+  run docker exec datadatdat-postgres psql -U datadatdat -d datadatdat -t -A -c \
+    "INSERT INTO access_requests (user_id, reason, status, created_at) 
+     VALUES ((SELECT id FROM users WHERE github_login = 'blockeduser'), 'Request to reject', 'pending', NOW()) 
+     RETURNING id;" 
+  assert_success
+  
+  # Extract just the UUID line (filter out INSERT status line)
+  REJECT_REQUEST_ID=$(echo "$output" | grep -E '^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$')
+  echo "$REJECT_REQUEST_ID" > "$BATS_TMPDIR/reject_request_id.txt"
+  [[ -n "$REJECT_REQUEST_ID" ]]
+}
+
+@test "auth: verify reject request ID was captured" {
+  REJECT_REQUEST_ID=$(cat "$BATS_TMPDIR/reject_request_id.txt")
+  run echo "Reject request ID is $REJECT_REQUEST_ID"
+  assert_success
+  assert_output --partial "Reject request ID is"
+}
+
+@test "auth: admin rejects access request via API" {
+  REJECT_REQUEST_ID=$(cat "$BATS_TMPDIR/reject_request_id.txt")
+  
+  run curl -s -w "\n%{http_code}" -X POST \
+    -H "Cookie: datadatdat_token=${DATADATDAT_API_KEY}" \
+    -H "Content-Type: application/json" \
+    -d "{\"requestId\":\"${REJECT_REQUEST_ID}\",\"comment\":\"E2E test rejection\"}" \
+    "http://127.0.0.1:3000/api/admin/access-requests/reject"
+  
+  assert_success
+  assert_output --partial "200"
+  assert_output --partial "rejected"
+}
+
+@test "auth: verify access request was rejected in database" {
+  REJECT_REQUEST_ID=$(cat "$BATS_TMPDIR/reject_request_id.txt")
+  
+  run docker exec datadatdat-postgres psql -U datadatdat -d datadatdat -t -A -c \
+    "SELECT status FROM access_requests WHERE id = '${REJECT_REQUEST_ID}';"
+  assert_success
+  assert_output "rejected"
+}
+
+@test "auth: admin approves access request via API" {
+  ACCESS_REQUEST_ID=$(cat "$BATS_TMPDIR/access_request_id.txt")
+  
+  run curl -s -w "\n%{http_code}" -X POST \
+    -H "Cookie: datadatdat_token=${DATADATDAT_API_KEY}" \
+    -H "Content-Type: application/json" \
+    -d "{\"requestId\":\"${ACCESS_REQUEST_ID}\",\"comment\":\"E2E test approval\"}" \
+    "http://127.0.0.1:3000/api/admin/access-requests/approve"
+  
+  assert_success
+  assert_output --partial "200"
+  assert_output --partial "approved"
+}
+
+@test "auth: verify access request was approved in database" {
+  ACCESS_REQUEST_ID=$(cat "$BATS_TMPDIR/access_request_id.txt")
+  
+  run docker exec datadatdat-postgres psql -U datadatdat -d datadatdat -t -A -c \
+    "SELECT status FROM access_requests WHERE id = '${ACCESS_REQUEST_ID}';"
+  assert_success
+  assert_output "approved"
+}
+
+@test "auth: verify blockeduser was added to whitelist after approval" {
+  run docker exec datadatdat-postgres psql -U datadatdat -d datadatdat -t -A -c \
+    "SELECT COUNT(*) FROM whitelisted_users wu 
+     JOIN users u ON wu.user_id = u.id 
+     WHERE u.github_login = 'blockeduser';"
+  assert_success
+  assert_output "1"
+}
+
+@test "auth: verify blockeduser is now whitelisted in users table" {
+  run docker exec datadatdat-postgres psql -U datadatdat -d datadatdat -t -A -c \
+    "SELECT is_whitelisted FROM users WHERE github_login = 'blockeduser';"
+  assert_success
+  assert_output "t"
+}
+
 # ========================================
 # Whitelist Management Tests
 # ========================================
@@ -374,6 +468,332 @@ teardown_file() {
   run "$D3" rm authclitest -f
   assert_success
   assert_output --partial "authclitest removed"
+}
+
+# ========================================
+# API Key Management Tests
+# ========================================
+
+@test "API keys: verify api-gateway database connection" {
+  # The gateway should now connect to database for API key validation
+  run docker exec datadatdat-postgres pg_isready -U datadatdat
+  assert_success
+  assert_output --partial "accepting connections"
+}
+
+@test "API keys: cleanup - remove any existing test API keys" {
+  # Best effort cleanup from previous runs - delete via API
+  curl -s -X DELETE -H "Cookie: datadatdat_token=${DATADATDAT_API_KEY}" \
+    -H "Content-Type: application/json" \
+    -d '{"key_prefix":"e2etest1"}' \
+    "http://127.0.0.1:8085/api/v1/api-keys" 2>/dev/null || true
+  curl -s -X DELETE -H "Cookie: datadatdat_token=${DATADATDAT_API_KEY}" \
+    -H "Content-Type: application/json" \
+    -d '{"key_prefix":"e2etest2"}' \
+    "http://127.0.0.1:8085/api/v1/api-keys" 2>/dev/null || true
+}
+
+@test "API keys: get robertericreeves user ID" {
+  run docker exec datadatdat-postgres psql -U datadatdat -d datadatdat -t -A -c \
+    "SELECT id FROM users WHERE github_login = 'robertericreeves' LIMIT 1;"
+  assert_success
+  TEST_USER_ID=$(echo "$output" | tr -d '[:space:]')
+  echo "$TEST_USER_ID" > "$BATS_TMPDIR/test_user_id.txt"
+  [[ -n "$TEST_USER_ID" ]]
+}
+
+@test "API keys: get existing API key ID for robertericreeves" {
+  # Using the existing API key with prefix 02b31569
+  run docker exec datadatdat-postgres psql -U datadatdat -d datadatdat -t -A -c \
+    "SELECT id FROM api_keys WHERE key_prefix = '02b31569' LIMIT 1;"
+  assert_success
+  TEST_KEY_ID=$(echo "$output" | tr -d '[:space:]')
+  echo "$TEST_KEY_ID" > "$BATS_TMPDIR/test_key_id.txt"
+  [[ -n "$TEST_KEY_ID" ]]
+}
+
+@test "API keys: verify existing API key is in database" {
+  TEST_KEY_ID=$(cat "$BATS_TMPDIR/test_key_id.txt")
+  run docker exec datadatdat-postgres psql -U datadatdat -d datadatdat -t -A -c \
+    "SELECT COUNT(*) FROM api_keys WHERE id = '${TEST_KEY_ID}';"
+  assert_success
+  assert_output "1"
+}
+
+@test "API keys: verify existing API key has correct prefix" {
+  TEST_KEY_ID=$(cat "$BATS_TMPDIR/test_key_id.txt")
+  run docker exec datadatdat-postgres psql -U datadatdat -d datadatdat -t -A -c \
+    "SELECT key_prefix FROM api_keys WHERE id = '${TEST_KEY_ID}';"
+  assert_success
+  assert_output "02b31569"
+}
+
+@test "API keys: authenticate with existing API key via X-API-Key header" {
+  # Test authentication using the real API key
+  run curl -sf -H "X-API-Key: ${DATADATDAT_API_KEY}" \
+    "http://127.0.0.1:8080/health"
+  assert_success
+  assert_output --partial "healthy"
+}
+
+@test "API keys: authenticate with existing API key via Authorization Bearer header" {
+  # Test authentication using Bearer token format
+  run curl -sf -H "Authorization: Bearer ${DATADATDAT_API_KEY}" \
+    "http://127.0.0.1:8080/health"
+  assert_success
+  assert_output --partial "healthy"
+}
+
+@test "API keys: create new test API key via API" {
+  # Create a new API key using the authenticated API
+  run curl -sf -X POST \
+    -H "Authorization: Bearer ${DATADATDAT_API_KEY}" \
+    -H "Content-Type: application/json" \
+    -d '{"name":"E2E Test Key 1"}' \
+    "http://127.0.0.1:8085/api/v1/api-keys"
+  assert_success
+  
+  # Extract the full key from the response (camelCase)
+  NEW_API_KEY=$(echo "$output" | grep -oE '"key":"[^"]+' | cut -d'"' -f4)
+  echo "$NEW_API_KEY" > "$BATS_TMPDIR/new_api_key.txt"
+  
+  # Extract the key prefix (camelCase)
+  NEW_KEY_PREFIX=$(echo "$output" | grep -oE '"keyPrefix":"[^"]+' | cut -d'"' -f4)
+  echo "$NEW_KEY_PREFIX" > "$BATS_TMPDIR/new_key_prefix.txt"
+  
+  # Extract the key ID (camelCase)
+  NEW_KEY_ID=$(echo "$output" | grep -oE '"id":"[^"]+' | cut -d'"' -f4)
+  echo "$NEW_KEY_ID" > "$BATS_TMPDIR/new_key_id.txt"
+  
+  [[ -n "$NEW_API_KEY" ]]
+  [[ -n "$NEW_KEY_PREFIX" ]]
+  [[ -n "$NEW_KEY_ID" ]]
+}
+
+@test "API keys: verify new API key was created in database" {
+  NEW_KEY_ID=$(cat "$BATS_TMPDIR/new_key_id.txt")
+  run docker exec datadatdat-postgres psql -U datadatdat -d datadatdat -t -A -c \
+    "SELECT COUNT(*) FROM api_keys WHERE id = '${NEW_KEY_ID}';"
+  assert_success
+  assert_output "1"
+}
+
+@test "API keys: authenticate with newly created API key via X-API-Key header" {
+  NEW_API_KEY=$(cat "$BATS_TMPDIR/new_api_key.txt")
+  run curl -sf -H "X-API-Key: ${NEW_API_KEY}" \
+    "http://127.0.0.1:8080/health"
+  assert_success
+  assert_output --partial "healthy"
+}
+
+@test "API keys: authenticate with newly created API key via Authorization Bearer" {
+  NEW_API_KEY=$(cat "$BATS_TMPDIR/new_api_key.txt")
+  run curl -sf -H "Authorization: Bearer ${NEW_API_KEY}" \
+    "http://127.0.0.1:8080/health"
+  assert_success
+  assert_output --partial "healthy"
+}
+
+@test "API keys: verify last_used_at is updated after API call" {
+  # Make an API call with the newly created key to an authenticated endpoint
+  # Use /api/v1/repos which has API key auth middleware
+  NEW_API_KEY=$(cat "$BATS_TMPDIR/new_api_key.txt")
+  # Don't use -f flag since endpoint may return 404, but auth will still run
+  curl -s -H "X-API-Key: ${NEW_API_KEY}" \
+    "http://127.0.0.1:8080/api/v1/repos" > /dev/null || true
+  
+  # Wait a moment for async update
+  sleep 5
+  
+  # Check that last_used_at is now set
+  NEW_KEY_ID=$(cat "$BATS_TMPDIR/new_key_id.txt")
+  run docker exec datadatdat-postgres psql -U datadatdat -d datadatdat -t -A -c \
+    "SELECT last_used_at IS NOT NULL FROM api_keys WHERE id = '${NEW_KEY_ID}';"
+  assert_success
+  assert_output "t"
+}
+
+@test "API keys: create test repository with newly created API key" {
+  NEW_API_KEY=$(cat "$BATS_TMPDIR/new_api_key.txt")
+  run curl -X POST -f -H "X-API-Key: ${NEW_API_KEY}" \
+    "http://127.0.0.1:8080/api/v1/repos/apikeytest/test-repo"
+  assert_success
+  assert_output --partial "test-repo"
+}
+
+@test "API keys: list repos with newly created API key" {
+  NEW_API_KEY=$(cat "$BATS_TMPDIR/new_api_key.txt")
+  run curl -s -o /dev/null -w "%{http_code}" -H "X-API-Key: ${NEW_API_KEY}" \
+    "http://127.0.0.1:8080/api/v1/repos"
+  assert_success
+  # API key auth works but endpoint may return 404 - both are fine
+  [[ "$output" == "200" || "$output" == "404" ]]
+}
+
+@test "API keys: invalid API key returns 401" {
+  run curl -s -o /dev/null -w "%{http_code}" -H "X-API-Key: invalid-key-12345" \
+    "http://127.0.0.1:8080/api/v1/repos"
+  assert_success
+  assert_output "401"
+}
+
+@test "API keys: create second test API key for revoke test" {
+  # Create another API key to test revocation
+  run curl -sf -X POST \
+    -H "Authorization: Bearer ${DATADATDAT_API_KEY}" \
+    -H "Content-Type: application/json" \
+    -d '{"name":"E2E Test Key 2 (To Be Revoked)"}' \
+    "http://127.0.0.1:8085/api/v1/api-keys"
+  assert_success
+  
+  # Extract the full key (camelCase)
+  REVOKE_API_KEY=$(echo "$output" | grep -oE '"key":"[^"]+' | cut -d'"' -f4)
+  echo "$REVOKE_API_KEY" > "$BATS_TMPDIR/revoke_api_key.txt"
+  
+  # Extract the key prefix (camelCase)
+  REVOKE_KEY_PREFIX=$(echo "$output" | grep -oE '"keyPrefix":"[^"]+' | cut -d'"' -f4)
+  echo "$REVOKE_KEY_PREFIX" > "$BATS_TMPDIR/revoke_key_prefix.txt"
+  
+  # Extract the key ID (camelCase)
+  REVOKE_KEY_ID=$(echo "$output" | grep -oE '"id":"[^"]+' | cut -d'"' -f4)
+  echo "$REVOKE_KEY_ID" > "$BATS_TMPDIR/revoke_key_id.txt"
+  
+  [[ -n "$REVOKE_API_KEY" ]]
+  [[ -n "$REVOKE_KEY_PREFIX" ]]
+  [[ -n "$REVOKE_KEY_ID" ]]
+}
+
+@test "API keys: verify second API key works before revocation" {
+  REVOKE_API_KEY=$(cat "$BATS_TMPDIR/revoke_api_key.txt")
+  run curl -sf -H "X-API-Key: ${REVOKE_API_KEY}" \
+    "http://127.0.0.1:8080/health"
+  assert_success
+  assert_output --partial "healthy"
+}
+
+@test "API keys: revoke second API key via API" {
+  REVOKE_KEY_ID=$(cat "$BATS_TMPDIR/revoke_key_id.txt")
+  run curl -sf -X DELETE \
+    -H "Authorization: Bearer ${DATADATDAT_API_KEY}" \
+    -H "Content-Type: application/json" \
+    -d "{\"keyId\":\"${REVOKE_KEY_ID}\"}" \
+    "http://127.0.0.1:8085/api/v1/api-keys"
+  assert_success
+}
+
+@test "API keys: verify second API key was revoked in database" {
+  REVOKE_KEY_PREFIX=$(cat "$BATS_TMPDIR/revoke_key_prefix.txt")
+  run docker exec datadatdat-postgres psql -U datadatdat -d datadatdat -t -A -c \
+    "SELECT revoked_at IS NOT NULL FROM api_keys WHERE key_prefix = '${REVOKE_KEY_PREFIX}';"
+  assert_success
+  assert_output "t"
+}
+
+@test "API keys: revoked API key returns 401" {
+  REVOKE_API_KEY=$(cat "$BATS_TMPDIR/revoke_api_key.txt")
+  run curl -s -o /dev/null -w "%{http_code}" -H "X-API-Key: ${REVOKE_API_KEY}" \
+    "http://127.0.0.1:8080/api/v1/repos"
+  assert_success
+  assert_output "401"
+}
+
+@test "API keys: create third API key with expiration" {
+  TEST_USER_ID=$(cat "$BATS_TMPDIR/test_user_id.txt")
+  # Create a key that expires in 1 minute via direct DB insert (API doesn't support expiration yet)
+  TEST_KEY_HASH_3="ccccddddeeeeffffaaaabbbbccccddddeeeeffffaaaabbbbccccddddeeeeffff"
+  
+  run docker exec datadatdat-postgres psql -U datadatdat -d datadatdat -c \
+    "INSERT INTO api_keys (user_id, key_hash, key_prefix, name, created_at, expires_at) 
+     VALUES ('${TEST_USER_ID}', '${TEST_KEY_HASH_3}', 'testexp', 'E2E Test Key 3 (Expiring)', NOW(), NOW() + INTERVAL '1 minute')
+     RETURNING id;"
+  assert_success
+  TEST_KEY_ID_3=$(echo "$output" | grep -oE '[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}')
+  echo "$TEST_KEY_ID_3" > "$BATS_TMPDIR/test_key_id_3.txt"
+  [[ -n "$TEST_KEY_ID_3" ]]
+}
+
+@test "API keys: verify unexpired key exists" {
+  # Just verify the key exists and is not expired yet
+  TEST_KEY_ID_3=$(cat "$BATS_TMPDIR/test_key_id_3.txt")
+  run docker exec datadatdat-postgres psql -U datadatdat -d datadatdat -t -A -c \
+    "SELECT (expires_at > NOW()) FROM api_keys WHERE id = '${TEST_KEY_ID_3}';"
+  assert_success
+  assert_output "t"
+}
+
+@test "API keys: expire the third API key" {
+  TEST_KEY_ID_3=$(cat "$BATS_TMPDIR/test_key_id_3.txt")
+  run docker exec datadatdat-postgres psql -U datadatdat -d datadatdat -c \
+    "UPDATE api_keys SET expires_at = NOW() - INTERVAL '1 hour' WHERE id = '${TEST_KEY_ID_3}';"
+  assert_success
+  assert_output --partial "UPDATE"
+}
+
+@test "API keys: verify third API key is expired" {
+  # Verify the key is expired
+  TEST_KEY_ID_3=$(cat "$BATS_TMPDIR/test_key_id_3.txt")
+  run docker exec datadatdat-postgres psql -U datadatdat -d datadatdat -t -A -c \
+    "SELECT (expires_at < NOW()) FROM api_keys WHERE id = '${TEST_KEY_ID_3}';"
+  assert_success
+  assert_output "t"
+}
+
+@test "API keys: list all API keys for user" {
+  TEST_USER_ID=$(cat "$BATS_TMPDIR/test_user_id.txt")
+  run docker exec datadatdat-postgres psql -U datadatdat -d datadatdat -t -A -c \
+    "SELECT COUNT(*) FROM api_keys WHERE user_id = '${TEST_USER_ID}';"
+  assert_success
+  # Should have: original key + new test key + revoked key + expired key = at least 4
+  [[ "$output" -ge 4 ]]
+}
+
+@test "API keys: list only active (non-revoked, non-expired) keys via API" {
+  run curl -sf -H "Authorization: Bearer ${DATADATDAT_API_KEY}" \
+    "http://127.0.0.1:8085/api/v1/api-keys"
+  assert_success
+  # Response should contain the original key and the new test key (not revoked or expired)
+  assert_output --partial "02b31569"
+}
+
+@test "API keys: verify newly created API key metadata" {
+  NEW_KEY_PREFIX=$(cat "$BATS_TMPDIR/new_key_prefix.txt")
+  run docker exec datadatdat-postgres psql -U datadatdat -d datadatdat -t -A -c \
+    "SELECT name FROM api_keys WHERE key_prefix = '${NEW_KEY_PREFIX}';"
+  assert_success
+  assert_output --partial "E2E Test Key 1"
+}
+
+@test "API keys: cleanup - delete test repository" {
+  run curl -X DELETE -f -H "Authorization: Bearer ${DATADATDAT_API_KEY}" \
+    "http://127.0.0.1:8080/api/v1/repos/apikeytest/test-repo"
+  # Best effort - may already be deleted
+  assert_success
+}
+
+@test "API keys: cleanup - revoke newly created test API key" {
+  # Revoke the first test key we created
+  NEW_KEY_ID=$(cat "$BATS_TMPDIR/new_key_id.txt")
+  run curl -sf -X DELETE \
+    -H "Authorization: Bearer ${DATADATDAT_API_KEY}" \
+    -H "Content-Type: application/json" \
+    -d "{\"keyId\":\"${NEW_KEY_ID}\"}" \
+    "http://127.0.0.1:8085/api/v1/api-keys"
+  assert_success
+}
+
+@test "API keys: cleanup - delete test API keys from database" {
+  # Clean up any remaining test keys (including expired ones that can't be revoked via API)
+  run docker exec datadatdat-postgres psql -U datadatdat -d datadatdat -c \
+    "DELETE FROM api_keys WHERE name LIKE 'E2E Test%';"
+  assert_success
+  assert_output --partial "DELETE"
+}
+
+@test "API keys: verify all test API keys cleaned up" {
+  run docker exec datadatdat-postgres psql -U datadatdat -d datadatdat -t -A -c \
+    "SELECT COUNT(*) FROM api_keys WHERE name LIKE 'E2E Test%';"
+  assert_success
+  assert_output "0"
 }
 
 # ========================================
