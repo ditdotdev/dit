@@ -7,10 +7,8 @@ load '../../test_helper'
 setup_file() {
   # Set API key for authentication (get from AWS Secrets Manager or admin panel)
   # API Key is hardcoded for E2E testing
-  # TODO: Replace with real production API key
-
-  #export DATADATDAT_API_KEY="80d141e9375c062be6c819e86f0e15e1c36bfcd5fd86286c30ad28b2e2ec8511"
-  export DATADATDAT_API_KEY="db731f5132a2af5bdda9f6c71abdcd9e7eb94134d288a29472702ff545ffd3f6"
+  # Using the production API key that exists in RDS
+  export DATADATDAT_API_KEY="02b31569a9052bc4b3cf1c3819d4fc048d34c96eca21f2b8e2359b5ecdfec93a"
   
   # Verify the server is healthy
   run curl -s https://datadatdat.com/health
