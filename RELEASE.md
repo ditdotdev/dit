@@ -221,11 +221,11 @@ remote-sdk-go (foundation)
     ↓
 datadatdat-client-go (auto-generated from datadatdat-server OpenAPI spec)
     ↓
-datadatdat (CLI - depends on all remote providers and client)
-    ↓
 datadatdat-docker-proxy (binary downloaded by datadatdat-server during Docker build)
     ↓
 datadatdat-server (Docker container with ZFS + PostgreSQL)
+    ↓
+datadatdat (CLI - depends on all remote providers and client)
     ↓
 datadatdat-remote-server (Microservices platform - "GitHub for Data")
 ```
@@ -248,9 +248,9 @@ datadatdat-remote-server (Microservices platform - "GitHub for Data")
    - delphix-remote (depends on command-executor)
    - **datadatdat-remote** - NEW: Server-side provider for datadatdat-remote-server
 6. **datadatdat-client-go** - Auto-generated Go client
-7. **datadatdat** - Main CLI (depends on all above)
-8. **datadatdat-docker-proxy** - 🚨 CRITICAL: Must be BEFORE datadatdat-server (binary downloaded during Docker build)
-9. **datadatdat-server** - Docker container (publishes to DockerHub, downloads docker-volume-proxy from S3)
+7. **datadatdat-docker-proxy** - 🚨 CRITICAL: Must be BEFORE datadatdat-server (binary downloaded during Docker build)
+8. **datadatdat-server** - Docker container (publishes to DockerHub, downloads docker-volume-proxy from S3)
+9. **datadatdat** - Main CLI (depends on all above, runs E2E tests against datadatdat-server)
 10. **datadatdat-remote-server** - NEW: Microservices platform (publishes 6 Docker images)
 
 ### Supporting Components (Independent)
@@ -835,6 +835,51 @@ curl -fsSL https://datadatdat-maven.s3.amazonaws.com/datadatdat-docker-proxy/doc
 **✅ VALIDATION: Verify docker-volume-proxy is in S3 before releasing datadatdat-server**
 
 #### Phase 5: Docker Container Release
+
+**⚠️ BEFORE TAGGING datadatdat-server**: Update all dependencies in datadatdat-server to match the new release version.
+
+**Files to Update**:
+1. `server/build.gradle.kts` - All `com.datadatdat:*` Maven dependencies  
+2. `go.mod` - `datadatdat-client-go` version
+
+**Steps**:
+```bash
+cd /c/dev/datadatdat-server
+
+# Check current versions
+grep "com.datadatdat:" server/build.gradle.kts
+grep "datadatdat-client-go" go.mod
+
+# Update server/build.gradle.kts - change ALL old versions to new version:
+# - com.datadatdat:command-executor:$VERSION
+# - com.datadatdat:remote-sdk:$VERSION
+# - com.datadatdat:datadatdat-remote-client:$VERSION
+# - com.datadatdat:datadatdat-remote-server:$VERSION
+# - com.datadatdat:nop-remote-server:$VERSION
+# - com.datadatdat:ssh-remote-server:$VERSION
+# - com.datadatdat:s3-remote-server:$VERSION
+# - com.datadatdat:s3web-remote-server:$VERSION
+
+# Update go.mod - change datadatdat-client-go to v$VERSION
+go mod tidy
+
+# Commit and push BEFORE tagging
+git add server/build.gradle.kts go.mod go.sum
+git commit -m "Update dependencies to $VERSION"
+git push origin master
+```
+
+**Verification**:
+```bash
+# Verify all 8 Kotlin dependencies updated
+grep "com.datadatdat:.*:$VERSION" server/build.gradle.kts | wc -l  # Should be 8
+# Verify Go dependency updated  
+grep "datadatdat-client-go v$VERSION" go.mod
+```
+
+---
+
+**Now proceed with datadatdat-server release**:
 
 ##### 5.1 Release datadatdat-server
 ```bash
@@ -1829,12 +1874,11 @@ git commit -m "Release $VERSION: Update all dependencies and fix issues"
 # Push commits FIRST
 git push origin master
 
-# Then create and push tag (triggers GitHub Actions to create DRAFT release)
+# Then create and push tag (triggers GitHub Actions to create DRAFT release AND run E2E tests)
 git tag $VERSION
 git push origin $VERSION
 
-# ⚠️ CRITICAL: Run E2E Test workflow on the tag BEFORE publishing
-gh workflow run end-to-end-test.yml --ref $VERSION
+# ⚠️ CRITICAL: Monitor E2E Test workflow (automatically triggered by tag push)
 sleep 10
 gh run watch  # Monitor until complete
 
