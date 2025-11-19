@@ -6,13 +6,13 @@ require (
 	github.com/antihax/optional v1.0.0
 	github.com/briandowns/spinner v1.23.2
 	github.com/buger/jsonparser v1.1.1
-	github.com/datadatdat/datadatdat-client-go v1.4.0
-	github.com/datadatdat/datadatdat-remote-go v1.4.0
-	github.com/datadatdat/nop-remote-go v1.4.0
-	github.com/datadatdat/remote-sdk-go v1.4.0
-	github.com/datadatdat/s3-remote-go v1.4.0
-	github.com/datadatdat/s3web-remote-go v1.4.0
-	github.com/datadatdat/ssh-remote-go v1.4.0
+	github.com/datadatdat/datadatdat-client-go v1.5.0
+	github.com/datadatdat/datadatdat-remote-go v1.5.0
+	github.com/datadatdat/nop-remote-go v1.5.0
+	github.com/datadatdat/remote-sdk-go v1.5.0
+	github.com/datadatdat/s3-remote-go v1.5.0
+	github.com/datadatdat/s3web-remote-go v1.5.0
+	github.com/datadatdat/ssh-remote-go v1.5.0
 	github.com/google/uuid v1.6.0
 	github.com/spf13/cobra v1.10.1
 	github.com/spf13/viper v1.21.0
@@ -79,15 +79,15 @@ require (
 	github.com/subosito/gotenv v1.6.0 // indirect
 	github.com/x448/float16 v0.8.4 // indirect
 	go.yaml.in/yaml/v3 v3.0.4 // indirect
-	golang.org/x/crypto v0.40.0 // indirect
-	golang.org/x/net v0.42.0 // indirect
+	golang.org/x/crypto v0.43.0 // indirect
+	golang.org/x/net v0.46.1-0.20251013234738-63d1a5100f82 // indirect
 	golang.org/x/oauth2 v0.33.0 // indirect
-	golang.org/x/sys v0.34.0 // indirect
-	golang.org/x/term v0.33.0 // indirect
-	golang.org/x/text v0.28.0 // indirect
+	golang.org/x/sys v0.37.0 // indirect
+	golang.org/x/term v0.36.0 // indirect
+	golang.org/x/text v0.30.0 // indirect
 	golang.org/x/time v0.3.0 // indirect
 	google.golang.org/genproto v0.0.0-20200526211855-cb27e3aa2013 // indirect
-	google.golang.org/grpc v1.76.0 // indirect
+	google.golang.org/grpc v1.77.0 // indirect
 	google.golang.org/protobuf v1.36.10 // indirect
 	gopkg.in/inf.v0 v0.9.1 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
