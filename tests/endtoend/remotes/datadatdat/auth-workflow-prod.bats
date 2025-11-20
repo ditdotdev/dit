@@ -9,7 +9,7 @@ load '../../test_helper'
 # Production API key and environment
 export DATADATDAT_API_KEY="02b31569a9052bc4b3cf1c3819d4fc048d34c96eca21f2b8e2359b5ecdfec93a"
 export DATADATDAT_URL="https://datadatdat.com"
-export EC2_HOST="ec2-user@16.145.31.66"
+export EC2_HOST="ec2-user@100.22.249.49"
 export SSH_KEY="${SSH_KEY:-c:/dev/datadatdat-remote-server/datadatdat-ecs-host.pem}"
 export AUTH_SERVER_PREFIX="ecs-datadatdat-auth-server-prod"
 export API_GATEWAY_PREFIX="ecs-datadatdat-api-gateway-prod"
