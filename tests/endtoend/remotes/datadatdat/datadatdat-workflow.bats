@@ -465,20 +465,20 @@ teardown_file() {
 # ===== Download API Tests =====
 
 @test "download API: list versions endpoint returns valid JSON" {
-  run curl -sf "http://127.0.0.1:3000/api/downloads/versions"
+  run curl -sf -H "Authorization: Bearer ${DATADATDAT_API_KEY}" "http://127.0.0.1:3000/api/downloads/versions"
   assert_success
   # Should return JSON with versions array
   assert_output --partial '"versions"'
 }
 
 @test "download API: list versions returns v1.5.0" {
-  run curl -sf "http://127.0.0.1:3000/api/downloads/versions"
+  run curl -sf -H "Authorization: Bearer ${DATADATDAT_API_KEY}" "http://127.0.0.1:3000/api/downloads/versions"
   assert_success
   assert_output --partial '"version":"v1.5.0"'
 }
 
 @test "download API: version metadata has required fields" {
-  run curl -sf "http://127.0.0.1:3000/api/downloads/versions"
+  run curl -sf -H "Authorization: Bearer ${DATADATDAT_API_KEY}" "http://127.0.0.1:3000/api/downloads/versions"
   assert_success
   assert_output --partial '"release_date"'
   assert_output --partial '"platforms"'
@@ -486,13 +486,13 @@ teardown_file() {
 }
 
 @test "download API: version details endpoint returns v1.5.0" {
-  run curl -sf "http://127.0.0.1:3000/api/downloads/v1.5.0"
+  run curl -sf -H "Authorization: Bearer ${DATADATDAT_API_KEY}" "http://127.0.0.1:3000/api/downloads/v1.5.0"
   assert_success
   assert_output --partial '"version":"v1.5.0"'
 }
 
 @test "download API: v1.5.0 has linux-amd64 platform" {
-  run curl -sf "http://127.0.0.1:3000/api/downloads/v1.5.0"
+  run curl -sf -H "Authorization: Bearer ${DATADATDAT_API_KEY}" "http://127.0.0.1:3000/api/downloads/v1.5.0"
   assert_success
   assert_output --partial '"platform":"linux-amd64"'
   assert_output --partial '"os":"Linux"'
@@ -500,7 +500,7 @@ teardown_file() {
 }
 
 @test "download API: v1.5.0 has darwin-arm64 platform" {
-  run curl -sf "http://127.0.0.1:3000/api/downloads/v1.5.0"
+  run curl -sf -H "Authorization: Bearer ${DATADATDAT_API_KEY}" "http://127.0.0.1:3000/api/downloads/v1.5.0"
   assert_success
   assert_output --partial '"platform":"darwin-arm64"'
   assert_output --partial '"os":"macOS"'
@@ -508,14 +508,14 @@ teardown_file() {
 }
 
 @test "download API: v1.5.0 has windows platform" {
-  run curl -sf "http://127.0.0.1:3000/api/downloads/v1.5.0"
+  run curl -sf -H "Authorization: Bearer ${DATADATDAT_API_KEY}" "http://127.0.0.1:3000/api/downloads/v1.5.0"
   assert_success
   assert_output --partial '"platform":"windows"'
   assert_output --partial '"os":"Windows"'
 }
 
 @test "download API: platform metadata includes filename and size" {
-  run curl -sf "http://127.0.0.1:3000/api/downloads/v1.5.0"
+  run curl -sf -H "Authorization: Bearer ${DATADATDAT_API_KEY}" "http://127.0.0.1:3000/api/downloads/v1.5.0"
   assert_success
   assert_output --partial '"filename"'
   assert_output --partial '"size"'
@@ -524,21 +524,21 @@ teardown_file() {
 
 @test "download API: binary download returns file for linux-amd64" {
   # Download first 1KB to verify it's a binary file (not an error)
-  run bash -c "curl -sf 'http://127.0.0.1:3000/api/downloads/v1.5.0/linux-amd64' | head -c 1024 | wc -c"
+  run bash -c "curl -sf -H 'Authorization: Bearer ${DATADATDAT_API_KEY}' 'http://127.0.0.1:3000/api/downloads/v1.5.0/linux-amd64' | head -c 1024 | wc -c"
   assert_success
   # Should be exactly 1024 bytes (1KB downloaded)
   assert_output "1024"
 }
 
 @test "download API: binary download has correct content-type header" {
-  run curl -sI "http://127.0.0.1:3000/api/downloads/v1.5.0/linux-amd64"
+  run curl -sI -H "Authorization: Bearer ${DATADATDAT_API_KEY}" "http://127.0.0.1:3000/api/downloads/v1.5.0/linux-amd64"
   assert_success
   # Case-insensitive match for content-type header
   assert_output --partial "application/octet-stream"
 }
 
 @test "download API: binary download has content-disposition header" {
-  run curl -sI "http://127.0.0.1:3000/api/downloads/v1.5.0/linux-amd64"
+  run curl -sI -H "Authorization: Bearer ${DATADATDAT_API_KEY}" "http://127.0.0.1:3000/api/downloads/v1.5.0/linux-amd64"
   assert_success
   # Case-insensitive match for content-disposition header
   assert_output --partial "attachment"
@@ -546,14 +546,14 @@ teardown_file() {
 }
 
 @test "download API: invalid version returns 404" {
-  run curl -s -o /dev/null -w "%{http_code}" "http://127.0.0.1:3000/api/downloads/v99.99.99"
+  run curl -s -o /dev/null -w "%{http_code}" -H "Authorization: Bearer ${DATADATDAT_API_KEY}" "http://127.0.0.1:3000/api/downloads/v99.99.99"
   assert_success
   assert_output "404"
 }
 
 @test "download API: invalid platform returns 400 or 404" {
   # Invalid platform may return 400 (bad request) or 404 (not found)
-  run curl -s -o /dev/null -w "%{http_code}" "http://127.0.0.1:3000/api/downloads/v1.5.0/invalid-platform"
+  run curl -s -o /dev/null -w "%{http_code}" -H "Authorization: Bearer ${DATADATDAT_API_KEY}" "http://127.0.0.1:3000/api/downloads/v1.5.0/invalid-platform"
   assert_success
   # Accept either 400 or 404 as valid error responses
   [[ "$output" == "400" || "$output" == "404" ]]
@@ -561,7 +561,7 @@ teardown_file() {
 
 @test "download API: health check - storage is accessible" {
   # This test verifies the storage backend (S3/MinIO) is working
-  run curl -sf "http://127.0.0.1:3000/api/downloads/versions"
+  run curl -sf -H "Authorization: Bearer ${DATADATDAT_API_KEY}" "http://127.0.0.1:3000/api/downloads/versions"
   assert_success
   # Should not return error about storage
   [[ "$output" != *"Failed to list versions"* ]]
