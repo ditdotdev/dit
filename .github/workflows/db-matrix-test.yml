@@ -28,6 +28,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           token: ${{ secrets.GO_MODULES_TOKEN }}
+          fetch-depth: 0
       
       - name: Configure Git for private modules
         run: |
