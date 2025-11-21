@@ -44,10 +44,13 @@ jobs:
         # managed database service; no official DB server image on Docker Hub
 
         # Elasticsearch
-        - elasticsearch:8.18.8
-        - elasticsearch:8.19.7
-        - elasticsearch:9.1.7
-        - elasticsearch:9.2.1
+        # https://hub.docker.com/r/datadatdat/elasticsearch
+        # Wrapped versions of elasticsearch with VOLUME directives
+        # Source Dockerfiles: tests/endtoend/db-matrix/elasticsearch-*.Dockerfile
+        - datadatdat/elasticsearch:8.18.8
+        - datadatdat/elasticsearch:8.19.7
+        - datadatdat/elasticsearch:9.1.7
+        - datadatdat/elasticsearch:9.2.1
 
         # Google BigQuery
         # Managed cloud service; no official DB server image on Docker Hub
@@ -99,59 +102,62 @@ jobs:
         - neo4j:4.4
 
         # Oracle
-        # https://hub.docker.com/r/gvenzl/oracle-xe
-        #- gvenzl/oracle-xe:latest
-        #- gvenzl/oracle-xe:latest-faststart
-        #- gvenzl/oracle-xe:slim
-        - gvenzl/oracle-xe:slim-faststart
-        #- gvenzl/oracle-xe:full
-        #- gvenzl/oracle-xe:full-faststart
+        # https://hub.docker.com/r/datadatdat/oracle-xe
+        # https://hub.docker.com/r/datadatdat/oracle-free
+        # Wrapped versions of gvenzl/oracle-xe and gvenzl/oracle-free with VOLUME directives
+        # Source Dockerfiles: tests/endtoend/db-matrix/oracle-*.Dockerfile
+        #- datadatdat/oracle-xe:latest
+        #- datadatdat/oracle-xe:latest-faststart
+        #- datadatdat/oracle-xe:slim
+        - datadatdat/oracle-xe:slim-faststart
+        #- datadatdat/oracle-xe:full
+        #- datadatdat/oracle-xe:full-faststart
 
-        #- gvenzl/oracle-xe:21
-        #- gvenzl/oracle-xe:21-faststart
-        #- gvenzl/oracle-xe:21-slim
-        - gvenzl/oracle-xe:21-slim-faststart
-        #- gvenzl/oracle-xe:21-full
-        #- gvenzl/oracle-xe:21-full-faststart
+        #- datadatdat/oracle-xe:21
+        #- datadatdat/oracle-xe:21-faststart
+        #- datadatdat/oracle-xe:21-slim
+        - datadatdat/oracle-xe:21-slim-faststart
+        #- datadatdat/oracle-xe:21-full
+        #- datadatdat/oracle-xe:21-full-faststart
 
-        #- gvenzl/oracle-xe:18
-        #- gvenzl/oracle-xe:18-faststart
-        #- gvenzl/oracle-xe:18-slim
-        - gvenzl/oracle-xe:18-slim-faststart
-        #- gvenzl/oracle-xe:18-full
-        #- gvenzl/oracle-xe:18-full-faststart
+        #- datadatdat/oracle-xe:18
+        #- datadatdat/oracle-xe:18-faststart
+        #- datadatdat/oracle-xe:18-slim
+        - datadatdat/oracle-xe:18-slim-faststart
+        #- datadatdat/oracle-xe:18-full
+        #- datadatdat/oracle-xe:18-full-faststart
 
-        #- gvenzl/oracle-xe:11
-        #- gvenzl/oracle-xe:11-faststart
-        #- gvenzl/oracle-xe:11-slim
-        - gvenzl/oracle-xe:11-slim-faststart
-        #- gvenzl/oracle-xe:11-full
-        #- gvenzl/oracle-xe:11-full-faststart
+        #- datadatdat/oracle-xe:11
+        #- datadatdat/oracle-xe:11-faststart
+        #- datadatdat/oracle-xe:11-slim
+        - datadatdat/oracle-xe:11-slim-faststart
+        #- datadatdat/oracle-xe:11-full
+        #- datadatdat/oracle-xe:11-full-faststart
 
         # https://hub.docker.com/r/gvenzl/oracle-free
-        #- gvenzl/oracle-free:latest
-        #- gvenzl/oracle-free:latest-faststart
-        #- gvenzl/oracle-free:slim
-        - gvenzl/oracle-free:slim-faststart
-        #- gvenzl/oracle-free:full
-        #- gvenzl/oracle-free:full-faststart
+        #- datadatdat/oracle-free:latest
+        #- datadatdat/oracle-free:latest-faststart
+        #- datadatdat/oracle-free:slim
+        - datadatdat/oracle-free:slim-faststart
+        #- datadatdat/oracle-free:full
+        #- datadatdat/oracle-free:full-faststart
         
-        #- gvenzl/oracle-free:23
-        #- gvenzl/oracle-free:23-faststart
-        #- gvenzl/oracle-free:23-slim
-        - gvenzl/oracle-free:23-slim-faststart
-        #- gvenzl/oracle-free:23-full
-        #- gvenzl/oracle-free:23-full-faststart
+        #- datadatdat/oracle-free:23
+        #- datadatdat/oracle-free:23-faststart
+        #- datadatdat/oracle-free:23-slim
+        - datadatdat/oracle-free:23-slim-faststart
+        #- datadatdat/oracle-free:23-full
+        #- datadatdat/oracle-free:23-full-faststart
 
-        #- gvenzl/oracle-free:23.26.0
-        #- gvenzl/oracle-free:23.26.0-faststart
-        #- gvenzl/oracle-free:23.26.0-slim
-        - gvenzl/oracle-free:23.26.0-slim-faststart
-        #- gvenzl/oracle-free:23.26.0-full
-        #- gvenzl/oracle-free:23.26.0-full-faststart
+        #- datadatdat/oracle-free:23.26.0
+        #- datadatdat/oracle-free:23.26.0-faststart
+        #- datadatdat/oracle-free:23.26.0-slim
+        - datadatdat/oracle-free:23.26.0-slim-faststart
+        #- datadatdat/oracle-free:23.26.0-full
+        #- datadatdat/oracle-free:23.26.0-full-faststart
 
         # PostgreSQL
-        - postgres:1
+        - postgres:18
         - postgres:17
         - postgres:16
         - postgres:15
