@@ -40,7 +40,7 @@ var Version = app.DatadatdatVersion
 
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
-	Use:   "datadatdat",
+	Use:   "d3",
 	Short: "Datadatdat CLI",
 	Long:  `Datadatdat CLI`,
 }
