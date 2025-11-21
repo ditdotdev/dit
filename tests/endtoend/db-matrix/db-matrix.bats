@@ -51,6 +51,12 @@ test_database() {
     "$D3" run -n "$repo_name" \
       --disable-port-mapping \
       "$db_version" || return 1
+  elif [[ "$db_version" == *"oracle"* ]]; then
+    # Oracle requires password and has no exposed ports
+    "$D3" run -n "$repo_name" \
+      --disable-port-mapping \
+      -e "ORACLE_PASSWORD=YourStrong!Passw0rd" \
+      "$db_version" || return 1
   else
     "$D3" run -n "$repo_name" "$db_version" || return 1
   fi
