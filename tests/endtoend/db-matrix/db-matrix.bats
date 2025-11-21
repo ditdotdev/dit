@@ -9,16 +9,51 @@ URI_BASE="s3://datadatdat-testdata/e2etest"
 # Helper to run tests for a specific database version
 test_database() {
   local db_version="$1"
-  local db="${db_version%%:*}"
+  
+  # Extract database name - handle registry paths like datadatdat/mssql-server:2017
+  local db
+  if [[ "$db_version" == *"/"* ]]; then
+    # Has registry path - extract just the image name
+    db="${db_version##*/}"  # Get everything after last /
+    db="${db%%:*}"          # Remove version tag
+  else
+    # Simple format like postgres:16
+    db="${db_version%%:*}"
+  fi
+  
   local version="${db_version#*:}"
   local repo_name="${db}-test"
   # Use unique S3 path for each database version to avoid parallel test conflicts
-  local URI="${URI_BASE}/${db}-${version}"
+  # Sanitize the version to be filesystem-safe (replace / and : with -)
+  local safe_version="${version//\//-}"
+  safe_version="${safe_version//:/-}"
+  local URI="${URI_BASE}/${db}-${safe_version}"
   
   echo "  Testing $db:$version"
   
-  # Run
-  "$D3" run -n "$repo_name" "$db_version" || return 1
+  # Run - handle special database requirements
+  if [[ "$db_version" == *"mssql"* ]]; then
+    # SQL Server requires EULA acceptance and SA password
+    "$D3" run -n "$repo_name" \
+      -e "ACCEPT_EULA=Y" \
+      -e "MSSQL_SA_PASSWORD=YourStrong!Passw0rd" \
+      -e "MSSQL_PID=Developer" \
+      "$db_version" || return 1
+  elif [[ "$db_version" == *"db2"* ]]; then
+    # IBM Db2 requires license acceptance and instance password
+    "$D3" run -n "$repo_name" \
+      -e "LICENSE=accept" \
+      -e "DB2INST1_PASSWORD=YourStrong!Passw0rd" \
+      -e "DBNAME=testdb" \
+      "$db_version" || return 1
+  elif [[ "$db_version" == *"dynamodb"* ]]; then
+    # DynamoDB Local - disable port mapping to avoid conflicts
+    "$D3" run -n "$repo_name" \
+      --disable-port-mapping \
+      "$db_version" || return 1
+  else
+    "$D3" run -n "$repo_name" "$db_version" || return 1
+  fi
   
   # Commit
   local commit_output
@@ -62,7 +97,11 @@ test_database() {
   sleep 5
   
   # Clone
-  "$D3" clone -n "$repo_name" "$URI" || return 1
+  if [[ "$db_version" == *"dynamodb"* ]]; then
+    "$D3" clone -n "$repo_name" -P "$URI" || return 1
+  else
+    "$D3" clone -n "$repo_name" "$URI" || return 1
+  fi
   sleep 5
   
   # Note: The original YAML test expected duplicate clone to fail, but current implementation
