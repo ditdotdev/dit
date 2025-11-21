@@ -151,15 +151,19 @@ func (m Metadata) MapV2(metaMap map[string]interface{}) Metadata {
 		environment = nil
 	}
 
-	metaPorts := meta["ports"].([]interface{})
+	portsCheck := meta["ports"]
 	var ports []port
-	for _, v := range metaPorts {
-		mapPort := v.(map[string]interface{})
-		ports = append(ports, port{
-			Protocol: fmt.Sprintf("%v", mapPort["protocol"]),
-			Port:     fmt.Sprintf("%v", mapPort["port"]),
-		})
+	if portsCheck != nil {
+		metaPorts := meta["ports"].([]interface{})
+		for _, v := range metaPorts {
+			mapPort := v.(map[string]interface{})
+			ports = append(ports, port{
+				Protocol: fmt.Sprintf("%v", mapPort["protocol"]),
+				Port:     fmt.Sprintf("%v", mapPort["port"]),
+			})
+		}
 	}
+
 	var volumes []volume
 	metaVols := meta["volumes"].([]interface{})
 	for _, v := range metaVols {
