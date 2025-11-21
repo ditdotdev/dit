@@ -81,30 +81,35 @@ test_database() {
   echo "  ✓ $db:$version completed"
 }
 
-@test "postgres 12.0 matrix tests" {
-  test_database "postgres:12.0"
-}
-
-@test "postgres 11.5 matrix tests" {
-  test_database "postgres:11.5"
-}
-
-@test "mongo 4 matrix tests" {
-  test_database "mongo:4"
-}
-
-@test "mongo 3.6.14 matrix tests" {
-  test_database "mongo:3.6.14"
+@test "database matrix test" {
+  # If DATABASE_VERSION is set (from GitHub Actions matrix), use it
+  # Otherwise, run all databases locally for backward compatibility
+  if [[ -n "$DATABASE_VERSION" ]]; then
+    test_database "$DATABASE_VERSION"
+  else
+    echo "Running all databases (local mode)"
+    test_database "postgres:16"
+    test_database "postgres:15"
+    test_database "mongo:7"
+    test_database "mongo:6"
+  fi
 }
 
 # Cleanup after all tests
 teardown_file() {
   # Best effort cleanup
-  for db_version in "postgres:12.0" "postgres:11.5" "mongo:4" "mongo:3.6.14"; do
-    local db="${db_version%%:*}"
+  # Clean up based on DATABASE_VERSION if set, otherwise clean all
+  if [[ -n "$DATABASE_VERSION" ]]; then
+    local db="${DATABASE_VERSION%%:*}"
     "$D3" rm -f "${db}-test" 2>/dev/null || true
     "$D3" rm -f "${db}-test2" 2>/dev/null || true
-  done
+  else
+    for db_version in "postgres:16" "postgres:15" "mongo:7" "mongo:6"; do
+      local db="${db_version%%:*}"
+      "$D3" rm -f "${db}-test" 2>/dev/null || true
+      "$D3" rm -f "${db}-test2" 2>/dev/null || true
+    done
+  fi
   
   # Clean up S3 assets
   aws s3 rm "$URI" --recursive 2>/dev/null || true
