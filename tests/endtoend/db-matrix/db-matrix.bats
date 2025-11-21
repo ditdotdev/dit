@@ -3,8 +3,8 @@
 # Load shared test helpers
 load '../test_helper'
 
-# S3 URI for testing
-URI="s3://datadatdat-testdata/e2etest"
+# S3 URI base for testing
+URI_BASE="s3://datadatdat-testdata/e2etest"
 
 # Helper to run tests for a specific database version
 test_database() {
@@ -12,6 +12,8 @@ test_database() {
   local db="${db_version%%:*}"
   local version="${db_version#*:}"
   local repo_name="${db}-test"
+  # Use unique S3 path for each database version to avoid parallel test conflicts
+  local URI="${URI_BASE}/${db}-${version}"
   
   echo "  Testing $db:$version"
   
@@ -81,31 +83,39 @@ test_database() {
   echo "  ✓ $db:$version completed"
 }
 
-@test "postgres 12.0 matrix tests" {
-  test_database "postgres:12.0"
-}
-
-@test "postgres 11.5 matrix tests" {
-  test_database "postgres:11.5"
-}
-
-@test "mongo 4 matrix tests" {
-  test_database "mongo:4"
-}
-
-@test "mongo 3.6.14 matrix tests" {
-  test_database "mongo:3.6.14"
+@test "database matrix test" {
+  # If DATABASE_VERSION is set (from GitHub Actions matrix), use it
+  # Otherwise, run all databases locally for backward compatibility
+  if [[ -n "$DATABASE_VERSION" ]]; then
+    test_database "$DATABASE_VERSION"
+  else
+    echo "Running all databases (local mode)"
+    test_database "postgres:16"
+    test_database "postgres:15"
+    test_database "mongo:7"
+    test_database "mongo:6"
+  fi
 }
 
 # Cleanup after all tests
 teardown_file() {
   # Best effort cleanup
-  for db_version in "postgres:12.0" "postgres:11.5" "mongo:4" "mongo:3.6.14"; do
-    local db="${db_version%%:*}"
+  # Clean up based on DATABASE_VERSION if set, otherwise clean all
+  if [[ -n "$DATABASE_VERSION" ]]; then
+    local db="${DATABASE_VERSION%%:*}"
+    local version="${DATABASE_VERSION#*:}"
     "$D3" rm -f "${db}-test" 2>/dev/null || true
     "$D3" rm -f "${db}-test2" 2>/dev/null || true
-  done
-  
-  # Clean up S3 assets
-  aws s3 rm "$URI" --recursive 2>/dev/null || true
+    # Clean up S3 assets for this specific database
+    aws s3 rm "${URI_BASE}/${db}-${version}" --recursive 2>/dev/null || true
+  else
+    for db_version in "postgres:16" "postgres:15" "mongo:7" "mongo:6"; do
+      local db="${db_version%%:*}"
+      local version="${db_version#*:}"
+      "$D3" rm -f "${db}-test" 2>/dev/null || true
+      "$D3" rm -f "${db}-test2" 2>/dev/null || true
+      # Clean up S3 assets for this specific database
+      aws s3 rm "${URI_BASE}/${db}-${version}" --recursive 2>/dev/null || true
+    done
+  fi
 }
