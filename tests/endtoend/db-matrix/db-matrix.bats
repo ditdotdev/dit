@@ -3,8 +3,8 @@
 # Load shared test helpers
 load '../test_helper'
 
-# S3 URI for testing
-URI="s3://datadatdat-testdata/e2etest"
+# S3 URI base for testing
+URI_BASE="s3://datadatdat-testdata/e2etest"
 
 # Helper to run tests for a specific database version
 test_database() {
@@ -12,6 +12,8 @@ test_database() {
   local db="${db_version%%:*}"
   local version="${db_version#*:}"
   local repo_name="${db}-test"
+  # Use unique S3 path for each database version to avoid parallel test conflicts
+  local URI="${URI_BASE}/${db}-${version}"
   
   echo "  Testing $db:$version"
   
@@ -101,16 +103,19 @@ teardown_file() {
   # Clean up based on DATABASE_VERSION if set, otherwise clean all
   if [[ -n "$DATABASE_VERSION" ]]; then
     local db="${DATABASE_VERSION%%:*}"
+    local version="${DATABASE_VERSION#*:}"
     "$D3" rm -f "${db}-test" 2>/dev/null || true
     "$D3" rm -f "${db}-test2" 2>/dev/null || true
+    # Clean up S3 assets for this specific database
+    aws s3 rm "${URI_BASE}/${db}-${version}" --recursive 2>/dev/null || true
   else
     for db_version in "postgres:16" "postgres:15" "mongo:7" "mongo:6"; do
       local db="${db_version%%:*}"
+      local version="${db_version#*:}"
       "$D3" rm -f "${db}-test" 2>/dev/null || true
       "$D3" rm -f "${db}-test2" 2>/dev/null || true
+      # Clean up S3 assets for this specific database
+      aws s3 rm "${URI_BASE}/${db}-${version}" --recursive 2>/dev/null || true
     done
   fi
-  
-  # Clean up S3 assets
-  aws s3 rm "$URI" --recursive 2>/dev/null || true
 }
