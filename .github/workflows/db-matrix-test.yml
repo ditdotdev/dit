@@ -18,11 +18,160 @@ jobs:
       fail-fast: false
       matrix:
         database:
-          - postgres:16
-          - postgres:15
-          - mongo:7
-          - mongo:6
     
+        # Amazon DynamoDB
+        # https://hub.docker.com/r/datadatdat/dynamodb-local
+        # Wrapped versions of amazon/dynamodb-local with VOLUME directives
+        # Source Dockerfiles: tests/endtoend/db-matrix/dynamodb-local-*.Dockerfile
+        - datadatdat/dynamodb-local:latest
+        - datadatdat/dynamodb-local:3.1.0
+        - datadatdat/dynamodb-local:3.0.0
+        - datadatdat/dynamodb-local:2.6.1
+        - datadatdat/dynamodb-local:2.5.4
+
+        # Apache Cassandra
+        # https://hub.docker.com/_/cassandra
+        - cassandra:5
+        - cassandra:4
+        - cassandra:4.0
+        - cassandra:3.11
+        - cassandra:3.0
+
+        # Apache Hive
+        # Not sure if this makes sense. 
+
+        # Databricks
+        # managed database service; no official DB server image on Docker Hub
+
+        # Elasticsearch
+        - elasticsearch:8.18.8
+        - elasticsearch:8.19.7
+        - elasticsearch:9.1.7
+        - elasticsearch:9.2.1
+
+        # Google BigQuery
+        # Managed cloud service; no official DB server image on Docker Hub
+
+        # IBM Db2
+        - icr.io/db2_community/db2:latest
+        - icr.io/db2_community/db2:12.1.3.0
+        - icr.io/db2_community/db2:11.5.9.0
+        - icr.io/db2_community/db2:11.5.8.0
+        - icr.io/db2_community/db2:11.5.5.1
+
+        # MariaDB
+        # https://hub.docker.com/_/mariadb
+        - mariadb:12
+        - mariadb:11
+        - mariadb:11.4
+        - mariadb:10
+
+        # Microsoft Access
+        # Yeah, we aren't doing this one.
+
+        # Microsoft Azure SQL DB
+        # Cloud DB service; no official DB server image on Docker Hub
+
+        # Microsoft SQL Server
+        # https://hub.docker.com/r/datadatdat/mssql-server
+        # Wrapped versions of mcr.microsoft.com/mssql/server with VOLUME directives
+        # Source Dockerfiles: tests/endtoend/db-matrix/mssql-*.Dockerfile
+        - datadatdat/mssql-server:2025
+        - datadatdat/mssql-server:2022
+        - datadatdat/mssql-server:2019
+        - datadatdat/mssql-server:2017
+
+        # MongoDB
+        - mongo:latest
+        - mongo:8
+        - mongo:8.0
+        - mongo:7
+        - mongo:6
+
+        # MySQL
+        - mysql:9
+        - mysql:8
+        - mysql:8.0
+
+        # Neo4j
+        - neo4j:2025
+        - neo4j:5
+        - neo4j:4.4
+
+        # Oracle
+        # https://hub.docker.com/r/gvenzl/oracle-xe
+        #- gvenzl/oracle-xe:latest
+        #- gvenzl/oracle-xe:latest-faststart
+        #- gvenzl/oracle-xe:slim
+        - gvenzl/oracle-xe:slim-faststart
+        #- gvenzl/oracle-xe:full
+        #- gvenzl/oracle-xe:full-faststart
+
+        #- gvenzl/oracle-xe:21
+        #- gvenzl/oracle-xe:21-faststart
+        #- gvenzl/oracle-xe:21-slim
+        - gvenzl/oracle-xe:21-slim-faststart
+        #- gvenzl/oracle-xe:21-full
+        #- gvenzl/oracle-xe:21-full-faststart
+
+        #- gvenzl/oracle-xe:18
+        #- gvenzl/oracle-xe:18-faststart
+        #- gvenzl/oracle-xe:18-slim
+        - gvenzl/oracle-xe:18-slim-faststart
+        #- gvenzl/oracle-xe:18-full
+        #- gvenzl/oracle-xe:18-full-faststart
+
+        #- gvenzl/oracle-xe:11
+        #- gvenzl/oracle-xe:11-faststart
+        #- gvenzl/oracle-xe:11-slim
+        - gvenzl/oracle-xe:11-slim-faststart
+        #- gvenzl/oracle-xe:11-full
+        #- gvenzl/oracle-xe:11-full-faststart
+
+        # https://hub.docker.com/r/gvenzl/oracle-free
+        #- gvenzl/oracle-free:latest
+        #- gvenzl/oracle-free:latest-faststart
+        #- gvenzl/oracle-free:slim
+        - gvenzl/oracle-free:slim-faststart
+        #- gvenzl/oracle-free:full
+        #- gvenzl/oracle-free:full-faststart
+        
+        #- gvenzl/oracle-free:23
+        #- gvenzl/oracle-free:23-faststart
+        #- gvenzl/oracle-free:23-slim
+        - gvenzl/oracle-free:23-slim-faststart
+        #- gvenzl/oracle-free:23-full
+        #- gvenzl/oracle-free:23-full-faststart
+
+        #- gvenzl/oracle-free:23.26.0
+        #- gvenzl/oracle-free:23.26.0-faststart
+        #- gvenzl/oracle-free:23.26.0-slim
+        - gvenzl/oracle-free:23.26.0-slim-faststart
+        #- gvenzl/oracle-free:23.26.0-full
+        #- gvenzl/oracle-free:23.26.0-full-faststart
+
+        # PostgreSQL
+        - postgres:1
+        - postgres:17
+        - postgres:16
+        - postgres:15
+        - postgres:14
+
+        # Redis
+        - redis:8
+        - redis:7
+        - redis:7.2
+        - redis:6
+
+        # Snowflake
+        # Snowflake is a managed cloud service; no official DB server image on Docker Hub (only third-party/local solutions and Snowflake’s own OCI registry for app images).
+
+        # Splunk
+        # Not a database server
+
+        # SQLite
+        # SQLite is fundamentally incompatible with datadatdat's model of versioning database servers with persistent storage.
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
