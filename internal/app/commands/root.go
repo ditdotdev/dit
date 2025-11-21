@@ -41,8 +41,8 @@ var Version = app.DatadatdatVersion
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
 	Use:   "datadatdat",
-	Short: "DataDatDat CLI",
-	Long:  `DataDatDat CLI`,
+	Short: "Datadatdat CLI",
+	Long:  `Datadatdat CLI`,
 }
 
 // Execute adds all child commands to the root command and sets flags appropriately.
@@ -58,7 +58,7 @@ func init() {
 	cobra.OnInitialize(initConfig)
 
 	//Global params
-	rootCmd.PersistentFlags().StringVar(&context, "context", "", "DataDatDat Provider Context")
+	rootCmd.PersistentFlags().StringVar(&context, "context", "", "Datadatdat Provider Context")
 	rootCmd.Version = Version // Use dynamic version set at build time
 }
 
