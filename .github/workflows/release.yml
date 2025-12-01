@@ -99,6 +99,12 @@ jobs:
           cd tests/endtoend/remotes/ssh
           bash generateKey.sh ubuntu-22.04
       
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKER_USER }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+      
       - name: Run E2E tests
         run: |
           export PATH=$PWD/release/linux-amd64:$PATH
