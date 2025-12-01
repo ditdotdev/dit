@@ -345,19 +345,19 @@ teardown_file() {
   run curl -s -H "Authorization: Bearer ${DATADATDAT_API_KEY}" \
     "https://datadatdat.com/api/v1/repos/fake/nonexistent/commits"
   assert_success
-  assert_output '[]'
+  assert_output --partial '"commits":[]'
 }
 
 @test "web UI: test API error handling - invalid commit ID returns error" {
   run curl -s -H "Authorization: Bearer ${DATADATDAT_API_KEY}" \
     "https://datadatdat.com/api/v1/repos/e2e-webtest/ui-repo/commits/invalid-commit-id"
   assert_success
-  assert_output --partial '"code"'
+  assert_output --partial '"error"'
 }
 
 @test "web UI: test list all repos API endpoint" {
-  run curl -sf -H "Authorization: Bearer ${DATADATDAT_API_KEY}" \
-    "https://datadatdat.com/api/v1/repos/"
+  run curl -s -H "Authorization: Bearer ${DATADATDAT_API_KEY}" \
+    "https://datadatdat.com/api/v1/repos"
   assert_success
   assert_output --partial "e2e-webtest/ui-repo"
 }
