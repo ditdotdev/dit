@@ -68,6 +68,18 @@ jobs:
           cd ../..
           ln -s release/linux-amd64/d3 d3
       
+      - name: Free up disk space
+        run: |
+          echo "Before cleanup:"
+          df -h
+          # Remove unnecessary preinstalled software
+          sudo rm -rf /usr/share/dotnet
+          sudo rm -rf /opt/ghc
+          sudo rm -rf /usr/local/share/boost
+          sudo rm -rf "$AGENT_TOOLSDIRECTORY"
+          echo "After cleanup:"
+          df -h
+      
       - name: Install BATS
         run: sudo npm install -g bats
       
@@ -81,18 +93,6 @@ jobs:
         run: |
           cd cleanslate
           sudo bash setup-zfs-pools.sh
-      
-      - name: Free up disk space
-        run: |
-          echo "Before cleanup:"
-          df -h
-          # Remove unnecessary preinstalled software
-          sudo rm -rf /usr/share/dotnet
-          sudo rm -rf /opt/ghc
-          sudo rm -rf /usr/local/share/boost
-          sudo rm -rf "$AGENT_TOOLSDIRECTORY"
-          echo "After cleanup:"
-          df -h
       
       - name: Generate SSH test keys
         run: |
