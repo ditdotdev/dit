@@ -178,6 +178,11 @@ jobs:
         # SQLite
         # SQLite is fundamentally incompatible with datadatdat's model of versioning database servers with persistent storage.
 
+        # Valkey
+        - valkey:9
+        - valkey:8
+        - valkey:7       
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
