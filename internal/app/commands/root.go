@@ -32,6 +32,7 @@ var (
 	remote       string
 	updateOnly   bool
 	removeImages bool
+	privileged   bool
 )
 
 // Version will be set at build time via -ldflags

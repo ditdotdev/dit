@@ -101,7 +101,7 @@ func Clone(uri string, repo string, guid string, params []string, args []string,
 		for _, v := range metadata.environment {
 			envs = append(envs, fmt.Sprintf("%v", v))
 		}
-		m, err := local.Run(imageRef, repoName, envs, args, disablePortMap, false, port, context)
+		m, err := local.Run(imageRef, repoName, envs, args, disablePortMap, false, false, port, context)
 		if err == nil {
 			fmt.Println(m)
 			Pull(repoName, commit.Id, "", make([]string, 0), false, port)
