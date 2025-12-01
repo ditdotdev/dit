@@ -3,13 +3,14 @@ package kubernetes
 import (
 	"datadatdat/internal/app/clients"
 	"fmt"
-	client "github.com/datadatdat/datadatdat-client-go"
 	"os"
 	"strconv"
 	"strings"
+
+	client "github.com/datadatdat/datadatdat-client-go"
 )
 
-func Run(container string, repository string, envVars []string, args []string, disablePortMap bool, createRepo bool, port int, context string) {
+func Run(container string, repository string, envVars []string, args []string, disablePortMap bool, privileged bool, createRepo bool, port int, context string) {
 	cfg.BasePath = "http://localhost:" + strconv.Itoa(port)
 	docker := clients.Docker(context, port)
 

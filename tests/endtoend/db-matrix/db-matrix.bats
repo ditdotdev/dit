@@ -40,8 +40,9 @@ test_database() {
       -e "MSSQL_PID=Developer" \
       "$db_version" || return 1
   elif [[ "$db_version" == *"db2"* ]]; then
-    # IBM Db2 requires license acceptance and instance password
+    # IBM Db2 requires license acceptance, instance password, and privileged mode
     "$D3" run -n "$repo_name" \
+      --privileged \
       -e "LICENSE=accept" \
       -e "DB2INST1_PASSWORD=YourStrong!Passw0rd" \
       -e "DBNAME=testdb" \

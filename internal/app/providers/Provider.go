@@ -23,7 +23,7 @@ type Provider interface {
 	RemoteLog(repo string, remoteName string, tags []string)
 	RemoteRemove(repo string, remote string)
 	Remove(repo string, force bool)
-	Run(image string, repo string, environments []string, arguments []string, disablePortMap bool)
+	Run(image string, repo string, environments []string, arguments []string, disablePortMap bool, privileged bool)
 	Start(repo string)
 	Status(repo string)
 	Stop(repo string)
