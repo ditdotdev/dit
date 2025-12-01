@@ -119,8 +119,8 @@ func (l local) Remove(repo string, force bool) {
 	lcl.Remove(repo, force, l.portNum, l.contextName)
 }
 
-func (l local) Run(image string, repo string, environments []string, arguments []string, disablePortMap bool) {
-	s, err := lcl.Run(image, repo, environments, arguments, disablePortMap, true, l.portNum, l.contextName)
+func (l local) Run(image string, repo string, environments []string, arguments []string, disablePortMap bool, privileged bool) {
+	s, err := lcl.Run(image, repo, environments, arguments, disablePortMap, privileged, true, l.portNum, l.contextName)
 	fmt.Println(s)
 	if err != nil {
 		os.Exit(1)

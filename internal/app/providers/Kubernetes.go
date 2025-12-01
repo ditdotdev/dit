@@ -107,8 +107,8 @@ func (k kubernetes) Remove(repo string, force bool) {
 	k8s.Remove(repo, force, k.portNum)
 }
 
-func (k kubernetes) Run(image string, repo string, environments []string, arguments []string, disablePortMap bool) {
-	k8s.Run(image, repo, environments, arguments, disablePortMap, true, k.portNum, k.contextName)
+func (k kubernetes) Run(image string, repo string, environments []string, arguments []string, disablePortMap bool, privileged bool) {
+	k8s.Run(image, repo, environments, arguments, disablePortMap, privileged, true, k.portNum, k.contextName)
 }
 
 func (k kubernetes) Start(repo string) {
