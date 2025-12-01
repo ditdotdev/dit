@@ -81,6 +81,19 @@ jobs:
           sudo zpool destroy testpool
           sudo rm -f /tmp/zfs-test-file  # Use sudo for cleanup
           echo "ZFS installation and test completed successfully!"
+      
+      - name: Free up disk space
+        run: |
+          echo "Before cleanup:"
+          df -h
+          # Remove unnecessary preinstalled software
+          sudo rm -rf /usr/share/dotnet
+          sudo rm -rf /opt/ghc
+          sudo rm -rf /usr/local/share/boost
+          sudo rm -rf "$AGENT_TOOLSDIRECTORY"
+          echo "After cleanup:"
+          df -h
+      
       - name: Setup Test Requirements
         run: |
           # Install BATS test framework
@@ -101,3 +114,10 @@ jobs:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           AWS_REGION: ${{ secrets.AWS_REGION }}
+      
+      - name: Cleanup Docker resources
+        if: always()
+        run: |
+          echo "Cleaning up Docker resources..."
+          docker system prune -af --volumes
+          df -h
