@@ -262,6 +262,18 @@ jobs:
           sudo rm -f /tmp/zfs-test-file
           echo "ZFS installation and test completed successfully!"
       
+      - name: Free up disk space
+        run: |
+          echo "Before cleanup:"
+          df -h
+          # Remove unnecessary preinstalled software to make room for database images
+          sudo rm -rf /usr/share/dotnet
+          sudo rm -rf /opt/ghc
+          sudo rm -rf /usr/local/share/boost
+          sudo rm -rf "$AGENT_TOOLSDIRECTORY"
+          echo "After cleanup:"
+          df -h
+      
       - name: Setup Test Requirements
         run: |
           # Install BATS test framework
@@ -299,3 +311,10 @@ jobs:
         run: |
           export PATH=$GITHUB_WORKSPACE/build:$PATH
           build/d3 uninstall --force || true
+      
+      - name: Cleanup Docker resources
+        if: always()
+        run: |
+          echo "Cleaning up Docker images and containers..."
+          docker system prune -af --volumes
+          df -h
