@@ -208,10 +208,10 @@ $ZFS_CMD mkdir -p /datadatdat-pools
 echo "Checking for datadatdat-docker pool..."
 datadatdat_docker_exists=$($ZFS_CMD zpool list datadatdat-docker 2>/dev/null || true)
 if [ -z "$datadatdat_docker_exists" ]; then
-    echo -e "${YELLOW}Creating datadatdat-docker pool (5GB)...${NC}"
+    echo -e "${YELLOW}Creating datadatdat-docker pool (2GB)...${NC}"
     
-    # Create image file (5GB = 5120MB)
-    $ZFS_CMD dd if=/dev/zero of=/datadatdat-pools/datadatdat-docker.img bs=1M count=5120 2>/dev/null
+    # Create image file (2GB = 2048MB)
+    $ZFS_CMD dd if=/dev/zero of=/datadatdat-pools/datadatdat-docker.img bs=1M count=2048 2>/dev/null
     
     # Create loop device and get its path
     loop_device=$($ZFS_CMD losetup --show -f /datadatdat-pools/datadatdat-docker.img)
@@ -232,10 +232,10 @@ fi
 echo "Checking for datadatdat pool..."
 datadatdat_exists=$($ZFS_CMD zpool list datadatdat 2>/dev/null || true)
 if [ -z "$datadatdat_exists" ]; then
-    echo -e "${YELLOW}Creating datadatdat pool (5GB)...${NC}"
+    echo -e "${YELLOW}Creating datadatdat pool (2GB)...${NC}"
     
-    # Create image file (5GB = 5120MB)
-    $ZFS_CMD dd if=/dev/zero of=/datadatdat-pools/datadatdat.img bs=1M count=5120 2>/dev/null
+    # Create image file (2GB = 2048MB)
+    $ZFS_CMD dd if=/dev/zero of=/datadatdat-pools/datadatdat.img bs=1M count=2048 2>/dev/null
     
     # Create loop device and get its path
     loop_device=$($ZFS_CMD losetup --show -f /datadatdat-pools/datadatdat.img)
@@ -256,10 +256,10 @@ fi
 echo "Checking for datadatdat-one pool..."
 datadatdat_one_exists=$($ZFS_CMD zpool list datadatdat-one 2>/dev/null || true)
 if [ -z "$datadatdat_one_exists" ]; then
-    echo -e "${YELLOW}Creating datadatdat-one pool (5GB for multi-context tests)...${NC}"
+    echo -e "${YELLOW}Creating datadatdat-one pool (2GB for multi-context tests)...${NC}"
     
-    # Create image file (5GB = 5120MB)
-    $ZFS_CMD dd if=/dev/zero of=/datadatdat-pools/datadatdat-one.img bs=1M count=5120 2>/dev/null
+    # Create image file (2GB = 2048MB)
+    $ZFS_CMD dd if=/dev/zero of=/datadatdat-pools/datadatdat-one.img bs=1M count=2048 2>/dev/null
     
     # Create loop device and get its path
     loop_device=$($ZFS_CMD losetup --show -f /datadatdat-pools/datadatdat-one.img)
@@ -280,10 +280,10 @@ fi
 echo "Checking for datadatdat-two pool..."
 datadatdat_two_exists=$($ZFS_CMD zpool list datadatdat-two 2>/dev/null || true)
 if [ -z "$datadatdat_two_exists" ]; then
-    echo -e "${YELLOW}Creating datadatdat-two pool (5GB for multi-context tests)...${NC}"
+    echo -e "${YELLOW}Creating datadatdat-two pool (2GB for multi-context tests)...${NC}"
     
-    # Create image file (5GB = 5120MB)
-    $ZFS_CMD dd if=/dev/zero of=/datadatdat-pools/datadatdat-two.img bs=1M count=5120 2>/dev/null
+    # Create image file (2GB = 2048MB)
+    $ZFS_CMD dd if=/dev/zero of=/datadatdat-pools/datadatdat-two.img bs=1M count=2048 2>/dev/null
     
     # Create loop device and get its path
     loop_device=$($ZFS_CMD losetup --show -f /datadatdat-pools/datadatdat-two.img)
