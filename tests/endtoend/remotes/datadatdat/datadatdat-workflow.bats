@@ -338,11 +338,11 @@ teardown_file() {
   assert_output --partial "checked out"
 }
 
-@test "web UI: test API error handling - non-existent repo returns empty" {
+@test "web UI: test API error handling - non-existent repo returns error" {
   run curl -s -H "Authorization: Bearer ${DATADATDAT_API_KEY}" \
     "http://127.0.0.1:3000/api/v1/repos/fake/nonexistent/commits"
   assert_success
-  assert_output --partial '"commits":[]'
+  assert_output --partial '"error":'
 }
 
 @test "web UI: test API error handling - invalid commit ID returns error" {
