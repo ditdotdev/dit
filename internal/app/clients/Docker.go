@@ -2,10 +2,11 @@ package clients
 
 import (
 	"datadatdat/internal/app"
-	"github.com/buger/jsonparser"
 	"os"
 	"strconv"
 	"strings"
+
+	"github.com/buger/jsonparser"
 )
 
 const EOL = "\n"
@@ -79,6 +80,12 @@ func (d docker) GetIdentity() string {
 }
 
 func (d docker) getLocalLaunchArgs() []string {
+	// Note: The /lib mount has been removed as it causes permission errors on Docker Desktop
+	// for macOS and is not needed. ZFS module loading uses multiple fallback strategies:
+	// 1. Docker Desktop (LinuxKit): Uses datadatdat/docker-desktop-zfs-kernel image
+	// 2. Precompiled modules: Downloaded from datadatdat.com for the specific kernel
+	// 3. On-demand compilation: Built via zfs-builder container
+	// The /lib mount was only useful for detecting pre-existing ZFS on native Linux hosts.
 	return []string{
 		"--privileged",
 		"--pid=host",
@@ -88,7 +95,6 @@ func (d docker) getLocalLaunchArgs() []string {
 		"--name=datadatdat-" + d.identity + "-launch",
 		"-v", "/var/lib:/var/lib",
 		"-v", "/run/docker:/run/docker",
-		"-v", "/lib:/var/lib/datadatdat-" + d.identity + "/system",
 		"-v", "datadatdat-" + d.identity + "-data:/var/lib/datadatdat-" + d.identity + "/data",
 		"-v", "/var/run/docker.sock:/var/run/docker.sock",
 	}

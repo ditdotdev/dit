@@ -1889,49 +1889,69 @@ gh release edit $VERSION --draft=false --latest
 # git tag -d $VERSION && git push origin --delete $VERSION
 
 # ========================================
-# PHASE 5.5: Upload CLI Binaries to MinIO (for Web Downloads)
+# PHASE 5.5: Upload CLI Binaries to Storage (for Web Downloads)
 # ========================================
 
-# REQUIRED: After publishing the GitHub release, upload binaries to MinIO
+# REQUIRED: After publishing the GitHub release, upload binaries to storage
 # This makes the CLI available for download via the web UI at /download
 
 cd /c/dev/datadatdat-remote-server/scripts
 
-# Run the upload script with the version
+# LOCAL DEVELOPMENT: Upload to local MinIO
 ./upload-release-to-minio.sh $VERSION
+
+# PRODUCTION: Upload to AWS S3
+# Get AWS credentials from datadatdat-terraform profile
+./upload-release-to-minio.sh \
+  --version $VERSION \
+  --github-repo datadatdat/datadatdat \
+  --minio-endpoint s3.amazonaws.com \
+  --minio-bucket datadatdat-releases \
+  --minio-access-key $(aws configure get aws_access_key_id --profile datadatdat-terraform) \
+  --minio-secret-key $(aws configure get aws_secret_access_key --profile datadatdat-terraform) \
+  --minio-use-ssl true
 
 # What this script does:
 # 1. Downloads all release artifacts from GitHub
 # 2. Extracts binaries from archives
 # 3. Generates SHA256 checksums for each platform
 # 4. Creates metadata.json with platform information
-# 5. Uploads everything to MinIO bucket: datadatdat-releases
+# 5. Uploads everything to storage bucket: datadatdat-releases
 # 6. Organizes as: /$VERSION/{platform}/{binary + checksum}
 
-# Verify upload succeeded
+# Verify upload succeeded (LOCAL)
 mc ls minio/datadatdat-releases/$VERSION/
-# Should show:
-#   metadata.json
-#   darwin-amd64/
-#   darwin-arm64/
-#   linux-amd64/
-#   linux-arm64/
-#   windows/
 
-# Test the download page
+# Verify upload succeeded (PRODUCTION)
+aws s3 ls s3://datadatdat-releases/$VERSION/ --recursive --profile datadatdat-terraform
+
+# Expected output:
+#   metadata.json
+#   darwin-amd64/datadatdat-cli-$VERSION-darwin_amd64.zip
+#   darwin-amd64/datadatdat-cli-$VERSION-darwin_amd64.zip.sha256
+#   darwin-arm64/datadatdat-cli-$VERSION-darwin_arm64.zip
+#   darwin-arm64/datadatdat-cli-$VERSION-darwin_arm64.zip.sha256
+#   linux-amd64/datadatdat-cli-$VERSION-linux_amd64.tar
+#   linux-amd64/datadatdat-cli-$VERSION-linux_amd64.tar.sha256
+#   linux-arm64/datadatdat-cli-$VERSION-linux_arm64.tar
+#   linux-arm64/datadatdat-cli-$VERSION-linux_arm64.tar.sha256
+#   windows/datadatdat-cli-$VERSION-windows_amd64.zip
+#   windows/datadatdat-cli-$VERSION-windows_amd64.zip.sha256
+
+# Test the download page (LOCAL)
 echo "Visit: http://localhost:3000/download"
 echo "Should show $VERSION with all 5 platforms available"
 
 # If upload fails, troubleshoot:
+# LOCAL:
 # - Check MinIO is running: docker ps | grep minio
 # - Check mc is configured: mc alias list
+# PRODUCTION:
+# - Check AWS credentials: aws sts get-caller-identity --profile datadatdat-terraform
+# - Check S3 bucket exists: aws s3 ls s3://datadatdat-releases/ --profile datadatdat-terraform
+# BOTH:
 # - Check GitHub release exists: gh release view $VERSION
-# - Re-run with --force to overwrite: ./upload-release-to-minio.sh $VERSION --force
-
-# Upload CLI binaries to MinIO (for web downloads)
-cd /c/dev/datadatdat-remote-server/scripts
-./upload-release-to-minio.sh $VERSION
-mc ls minio/datadatdat-releases/$VERSION/  # Verify
+# - Re-run with --force to overwrite (if script supports it)
 
 # ========================================
 # PHASE 6: datadatdat-server
