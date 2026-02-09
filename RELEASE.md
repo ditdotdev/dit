@@ -64,21 +64,21 @@ This document outlines the comprehensive release process for the Datadatdat data
 - [ ] **Phase 2**: Release 6 Kotlin remote providers with version 1.1.0 (NO 'v' prefix)
 - [ ] **Phase 2**: Verify datadatdat-remote publishes BOTH client and server artifacts to Maven
 
-### Phase 3-5: Core Components
+### Phase 3-6: Core Components
 - [ ] **Phase 3**: Release `datadatdat-client-go` v1.1.0 (if needed)
-- [ ] **Phase 4**: Remove replace directives from datadatdat/go.mod
-- [ ] **Phase 4**: Update datadatdat CLI dependencies to use NEW remote provider versions
-- [ ] **Phase 4**: Verify dependency alignment: `go mod graph | grep datadatdat | grep remote-sdk-go`
-- [ ] **Phase 4**: Run `make test-datadatdat-workflow` - ALL tests must pass
-- [ ] **Phase 4**: Release datadatdat CLI with aligned dependencies
-- [ ] **Phase 5**: Release datadatdat-server v1.1.0
+- [ ] **Phase 4**: Release `datadatdat-docker-proxy` v1.1.0 (⚠️ REQUIRED before Phase 5)
+- [ ] **Phase 5**: Release datadatdat-server v1.1.0 (⚠️ REQUIRED before Phase 6 - CLI E2E tests need this)
+- [ ] **Phase 6**: Remove replace directives from datadatdat/go.mod
+- [ ] **Phase 6**: Update datadatdat CLI dependencies to use NEW remote provider versions
+- [ ] **Phase 6**: Verify dependency alignment: `go mod graph | grep datadatdat | grep remote-sdk-go`
+- [ ] **Phase 6**: Release datadatdat CLI with aligned dependencies (E2E tests will use Phase 5 server image)
 
-### Phase 6: Remote Server Platform
-- [ ] **Phase 6.1**: Remove replace directives from datadatdat-remote-server/go.mod
-- [ ] **Phase 6.2**: Run local E2E tests - `make test-datadatdat-workflow` must pass
-- [ ] **Phase 6.3**: Release datadatdat-remote-server v1.1.0 (6 Docker images)
-- [ ] **Phase 6.4**: Verify all 6 Docker images published to DockerHub
-- [ ] **Phase 6.5**: Run E2E tests against released images
+### Phase 7: Remote Server Platform
+- [ ] **Phase 7.1**: Remove replace directives from datadatdat-remote-server/go.mod
+- [ ] **Phase 7.2**: Run local E2E tests - `make test-datadatdat-workflow` must pass
+- [ ] **Phase 7.3**: Release datadatdat-remote-server v1.1.0 (6 Docker images)
+- [ ] **Phase 7.4**: Verify all 6 Docker images published to DockerHub
+- [ ] **Phase 7.5**: Run E2E tests against released images
 
 ### Post-Release: Validation
 - [ ] **Post-Release**: Validate entire ecosystem has consistent dependency versions
@@ -181,9 +181,10 @@ The E2E tests for datadatdat-remote-server are stored in the **datadatdat** repo
 - [ ] **Phase 1**: Update and release remote-sdk-go v1.1.0
 - [ ] **Phase 2**: Update and release all Go remote providers v1.1.0
 - [ ] **Phase 3**: Update and release all Kotlin remote providers 1.1.0
-- [ ] **Phase 4**: Release datadatdat CLI v1.1.0
-- [ ] **Phase 5**: Release datadatdat-server v1.1.0
-- [ ] **Phase 6**: Release datadatdat-remote-server v1.1.0 (6 Docker images)
+- [ ] **Phase 4**: Release datadatdat-docker-proxy v1.1.0
+- [ ] **Phase 5**: Release datadatdat-server v1.1.0 (⚠️ BEFORE CLI)
+- [ ] **Phase 6**: Release datadatdat CLI v1.1.0 (E2E tests need server)
+- [ ] **Phase 7**: Release datadatdat-remote-server v1.1.0 (6 Docker images)
 
 **Last Updated**: October 20, 2025 - Ready for v1.1.0 release
 
