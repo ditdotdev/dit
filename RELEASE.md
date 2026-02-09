@@ -1,28 +1,4 @@
-cd /c/dev/datadatdat
-export VERSION="v1.2.0"
-
-# Upload all release artifacts to the draft release
-gh release upload $VERSION \
-  release/darwin-amd64/datadatdat-cli-$VERSION-darwin_amd64.zip \
-  release/darwin-arm64/datadatdat-cli-$VERSION-darwin_arm64.zip \
-  release/linux-amd64/datadatdat-cli-$VERSION-linux_amd64.tar \
-  release/linux-arm64/datadatdat-cli-$VERSION-linux_arm64.tar \
-  release/windows/datadatdat-cli-$VERSION-windows_amd64.zip
-
-# Verify artifacts were uploaded
-gh release view $VERSIONcd /c/dev/datadatdat
-export VERSION="v1.2.0"
-
-# Upload all release artifacts to the draft release
-gh release upload $VERSION \
-  release/darwin-amd64/datadatdat-cli-$VERSION-darwin_amd64.zip \
-  release/darwin-arm64/datadatdat-cli-$VERSION-darwin_arm64.zip \
-  release/linux-amd64/datadatdat-cli-$VERSION-linux_amd64.tar \
-  release/linux-arm64/datadatdat-cli-$VERSION-linux_arm64.tar \
-  release/windows/datadatdat-cli-$VERSION-windows_amd64.zip
-
-# Verify artifacts were uploaded
-gh release view $VERSION# Datadatdat Ecosystem Release Process
+# Datadatdat Ecosystem Release Process
 
 This document outlines the comprehensive release process for the Datadatdat data management platform. The ecosystem consists of multiple interdependent components that must be released in a specific order to maintain compatibility.
 
