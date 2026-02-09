@@ -39,6 +39,7 @@ release: darwin-amd64 darwin-arm64 linux-amd64 linux-arm64 windows
 	@echo "Copying release binaries to root directory..."
 	cp $(RELEASE_DIR)/windows/d3.exe d3.exe
 	cp $(RELEASE_DIR)/linux-amd64/d3 d3-linux
+	cp $(RELEASE_DIR)/darwin-arm64/d3 d3-macos-arm64
 	@echo "Release complete! Binaries copied to root directory."
 
 build:
