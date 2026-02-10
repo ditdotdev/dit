@@ -1875,7 +1875,27 @@ gh release edit $VERSION --draft=false --latest
 cd /c/dev/datadatdat-remote-server/scripts
 
 # Run the upload script with the version
-./upload-release-to-minio.sh $VERSION
+./upload-release-to-minio.sh --version $VERSION
+
+# ⚠️ CRITICAL: Update download API tests to match new version
+# The datadatdat-remote-server E2E tests check for specific version numbers
+# These must be updated BEFORE releasing datadatdat-remote-server
+cd /c/dev/datadatdat
+# Edit tests/endtoend/remotes/datadatdat/datadatdat-workflow.bats
+# Find and replace all occurrences of old version (e.g., v1.5.0) with $VERSION
+# Tests to update:
+#   - "download API: list versions returns v1.X.X"
+#   - "download API: version details endpoint returns v1.X.X"  
+#   - "download API: v1.X.X has linux-amd64 platform"
+#   - "download API: v1.X.X has darwin-arm64 platform"
+#   - "download API: v1.X.X has windows platform"
+#   - "download API: platform metadata includes filename and size"
+#   - "download API: binary download returns file for linux-amd64"
+#   - "download API: binary download has correct content-type header"
+#   - "download API: binary download has content-disposition header"
+git add tests/endtoend/remotes/datadatdat/datadatdat-workflow.bats
+git commit -m "Update download API tests to expect $VERSION"
+git push origin master
 
 # What this script does:
 # 1. Downloads all release artifacts from GitHub
