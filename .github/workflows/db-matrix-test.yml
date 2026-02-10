@@ -247,7 +247,7 @@ jobs:
           gh release download "$VERSION" --pattern "datadatdat-cli-${VERSION}-linux_amd64.tar"
           tar -xf "datadatdat-cli-${VERSION}-linux_amd64.tar" -C build
           chmod +x build/d3
-          build/d3 version
+          build/d3 --version
         shell: bash
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
