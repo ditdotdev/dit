@@ -239,17 +239,17 @@ jobs:
           docker pull busybox
           docker run busybox uname -a
       
-      - name: Build Datadatdat
+      - name: Download Datadatdat Release
         run: |
           VERSION=$(git describe --tags --abbrev=0)
-          echo "Building d3 CLI with version: $VERSION"
-          make build VERSION=$VERSION
+          echo "Downloading d3 CLI version: $VERSION"
+          mkdir -p build
+          gh release download "$VERSION" --pattern "d3-linux-amd64" --output build/d3
+          chmod +x build/d3
+          build/d3 version
         shell: bash
         env:
-          GOPRIVATE: github.com/datadatdat/*
-          GONOPROXY: github.com/datadatdat/*
-          GONOSUMDB: github.com/datadatdat/*
-          GIT_TERMINAL_PROMPT: 0
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       
       - name: Install OpenZFS
         run: |
