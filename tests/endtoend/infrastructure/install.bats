@@ -8,19 +8,18 @@ load '../test_helper'
   assert_success
   # Note: stdout check commented out in original YAML
   # assert_output --partial "Datadatdat CLI successfully installed, happy data versioning :)"
-  
-  # Wait 20 seconds as in original test
-  sleep 20
 }
 
 @test "d3 server is running" {
-  run docker inspect --type container --format='{{.State.Status}}' datadatdat-docker-server
+  # Wait up to 90 seconds (18 x 5) for server to be running
+  run bash -c 'for i in {1..18}; do docker inspect --type container --format="{{.State.Status}}" datadatdat-docker-server 2>/dev/null | grep -q "running" && break || sleep 5; done && docker inspect --type container --format="{{.State.Status}}" datadatdat-docker-server'
   assert_success
   assert_output --partial "running"
 }
 
 @test "d3 launch is running" {
-  run docker inspect --type container --format='{{.State.Status}}' datadatdat-docker-launch
+  # Wait up to 90 seconds (18 x 5) for launch to be running
+  run bash -c 'for i in {1..18}; do docker inspect --type container --format="{{.State.Status}}" datadatdat-docker-launch 2>/dev/null | grep -q "running" && break || sleep 5; done && docker inspect --type container --format="{{.State.Status}}" datadatdat-docker-launch'
   assert_success
   assert_output --partial "running"
 }
