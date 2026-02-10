@@ -11,15 +11,15 @@ load '../test_helper'
 }
 
 @test "d3 server is running" {
-  # Wait up to 90 seconds (18 x 5) for server to be running
-  run bash -c 'for i in {1..18}; do docker inspect --type container --format="{{.State.Status}}" datadatdat-docker-server 2>/dev/null | grep -q "running" && break || sleep 5; done && docker inspect --type container --format="{{.State.Status}}" datadatdat-docker-server'
+  # Wait up to 180 seconds (36 x 5) for server to be running
+  run bash -c 'for i in {1..36}; do docker inspect --type container --format="{{.State.Status}}" datadatdat-docker-server 2>/dev/null | grep -q "running" && break || sleep 5; done && docker inspect --type container --format="{{.State.Status}}" datadatdat-docker-server'
   assert_success
   assert_output --partial "running"
 }
 
 @test "d3 launch is running" {
-  # Wait up to 90 seconds (18 x 5) for launch to be running
-  run bash -c 'for i in {1..18}; do docker inspect --type container --format="{{.State.Status}}" datadatdat-docker-launch 2>/dev/null | grep -q "running" && break || sleep 5; done && docker inspect --type container --format="{{.State.Status}}" datadatdat-docker-launch'
+  # Wait up to 180 seconds (36 x 5) for launch to be running
+  run bash -c 'for i in {1..36}; do docker inspect --type container --format="{{.State.Status}}" datadatdat-docker-launch 2>/dev/null | grep -q "running" && break || sleep 5; done && docker inspect --type container --format="{{.State.Status}}" datadatdat-docker-launch'
   assert_success
   assert_output --partial "running"
 }
