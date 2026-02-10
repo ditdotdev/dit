@@ -244,7 +244,8 @@ jobs:
           VERSION=$(git describe --tags --abbrev=0)
           echo "Downloading d3 CLI version: $VERSION"
           mkdir -p build
-          gh release download "$VERSION" --pattern "d3-linux-amd64" --output build/d3
+          gh release download "$VERSION" --pattern "datadatdat-cli-${VERSION}-linux_amd64.tar"
+          tar -xf "datadatdat-cli-${VERSION}-linux_amd64.tar" -C build
           chmod +x build/d3
           build/d3 version
         shell: bash
