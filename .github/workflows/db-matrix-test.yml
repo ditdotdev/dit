@@ -37,6 +37,18 @@ jobs:
         - cassandra:3.11
         - cassandra:3.0
 
+        # Apache CouchDB
+        # https://hub.docker.com/_/couchdb
+        - couchdb:3.5
+        - couchdb:3.4
+        - couchdb:3.3
+
+        # CockroachDB
+        # https://hub.docker.com/r/cockroachdb/cockroach
+        - cockroachdb/cockroach:v25.4.3
+        - cockroachdb/cockroach:v25.2.11
+        - cockroachdb/cockroach:v24.3.25
+
         # Apache Hive
         # Not sure if this makes sense. 
 
