@@ -181,6 +181,14 @@ jobs:
         - redis:7.2
         - redis:6
 
+        # Valkey
+        # https://hub.docker.com/r/datadatdat/valkey
+        # Wrapped versions of valkey/valkey with VOLUME directives
+        # Source Dockerfiles: valkey-container/datadatdat-wrappers/*/Dockerfile
+        - datadatdat/valkey:9
+        - datadatdat/valkey:8
+        - datadatdat/valkey:7
+
         # Snowflake
         # Snowflake is a managed cloud service; no official DB server image on Docker Hub (only third-party/local solutions and Snowflake’s own OCI registry for app images).
 
@@ -189,11 +197,6 @@ jobs:
 
         # SQLite
         # SQLite is fundamentally incompatible with datadatdat's model of versioning database servers with persistent storage.
-
-        # Valkey
-        - valkey/valkey:9
-        - valkey/valkey:8
-        - valkey/valkey:7       
 
     steps:
       - name: Checkout code
