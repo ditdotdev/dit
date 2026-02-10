@@ -7,6 +7,7 @@ load '../../test_helper'
 setup_file() {
   docker pull datadatdat/nginx-test:latest
   docker tag datadatdat/nginx-test:latest nginx-test
+}
 
 @test "can run nginx-test" {
   run "$D3" run nginx-test
