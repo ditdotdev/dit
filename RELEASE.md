@@ -76,9 +76,17 @@ This document outlines the comprehensive release process for the Datadatdat data
 ### Phase 7: Remote Server Platform
 - [ ] **Phase 7.1**: Remove replace directives from datadatdat-remote-server/go.mod
 - [ ] **Phase 7.2**: Run local E2E tests - `make test-datadatdat-workflow` must pass
-- [ ] **Phase 7.3**: Release datadatdat-remote-server v1.1.0 (6 Docker images)
-- [ ] **Phase 7.4**: Verify all 6 Docker images published to DockerHub
-- [ ] **Phase 7.5**: Run E2E tests against released images
+- [ ] **Phase 7.3**: Release datadatdat-remote-server v1.1.0 (8 Docker images to ECR)
+- [ ] **Phase 7.4**: Verify all 8 Docker images published to Amazon ECR
+
+### Phase 8: AWS ECS Production Deployment
+- [ ] **Phase 8.1**: Retrieve v1.X.X image digests from ECR for all 8 services
+- [ ] **Phase 8.2**: Update update-task-definitions-with-digests.sh with new SHA256 hashes
+- [ ] **Phase 8.3**: Run update-task-definitions-with-digests.sh to register new task definitions
+- [ ] **Phase 8.4**: Wait 90-120s for deployment to complete
+- [ ] **Phase 8.5**: Verify running container digests match ECR v1.X.X digests
+- [ ] **Phase 8.6**: Monitor all 9 services show ACTIVE status and COMPLETED rollout
+- [ ] **Phase 8.7**: Test production site functionality at https://datadatdat.com
 
 ### Post-Release: Validation
 - [ ] **Post-Release**: Validate entire ecosystem has consistent dependency versions
@@ -184,7 +192,7 @@ The E2E tests for datadatdat-remote-server are stored in the **datadatdat** repo
 - [ ] **Phase 4**: Release datadatdat-docker-proxy v1.1.0
 - [ ] **Phase 5**: Release datadatdat-server v1.1.0 (⚠️ BEFORE CLI)
 - [ ] **Phase 6**: Release datadatdat CLI v1.1.0 (E2E tests need server)
-- [ ] **Phase 7**: Release datadatdat-remote-server v1.1.0 (6 Docker images)
+- [ ] **Phase 7**: Release datadatdat-remote-server v1.1.0 (8 Docker images to ECR)
 
 **Last Updated**: October 20, 2025 - Ready for v1.1.0 release
 
@@ -228,7 +236,7 @@ datadatdat-remote-server (Microservices platform - "GitHub for Data")
 7. **datadatdat-docker-proxy** - 🚨 CRITICAL: Must be BEFORE datadatdat-server (binary downloaded during Docker build)
 8. **datadatdat-server** - Docker container (publishes to DockerHub, downloads docker-volume-proxy from S3)
 9. **datadatdat** - Main CLI (depends on all above, runs E2E tests against datadatdat-server)
-10. **datadatdat-remote-server** - NEW: Microservices platform (publishes 6 Docker images)
+10. **datadatdat-remote-server** - NEW: Microservices platform (publishes 8 Docker images to ECR)
 
 ### Supporting Components (Independent)
 - **plugin-launcher** - Kotlin library with Go tests; can be released independently (no current dependencies)
@@ -241,7 +249,7 @@ datadatdat-remote-server (Microservices platform - "GitHub for Data")
 **ALL components will be updated to v1.1.0 for this major release:**
 - **datadatdat**: v1.1.0 (main CLI)
 - **datadatdat-server**: v1.1.0 (Docker container `datadatdat/datadatdat:1.1.0`)
-- **datadatdat-remote-server**: v1.1.0 (6 Docker images: api-gateway, api-repo-manifest, api-ingest, api-download, worker, datadatdat-provider-http)
+- **datadatdat-remote-server**: v1.1.0 (8 Docker images: api-gateway, api-repo-manifest, api-ingest, api-download, auth-server, web, worker, datadatdat-repo-web)
 - **datadatdat-client-go**: v1.1.0 (auto-generated client)
 - **remote-sdk-go**: v1.1.0 (foundation SDK)
 - **All Go remote providers**: v1.1.0 (including new datadatdat-remote-go)
@@ -1963,10 +1971,115 @@ git commit -m "Update dependencies for v1.1.0 release"
 git push origin master
 git tag $VERSION
 git push origin $VERSION
-# GitHub Action automatically publishes 6 Docker images
+# GitHub Action automatically publishes 8 Docker images to ECR
 
 # ========================================
-# PHASE 8: Post-Release Validation
+# PHASE 8: AWS ECS Production Deployment
+# ========================================
+
+# After releasing datadatdat-remote-server, deploy to AWS ECS production
+
+# CRITICAL STEP 1: Update task definitions with new v1.X.X image digests
+# -----------------------------------------------------------------------
+# ECS task definitions use immutable SHA256 digests, not mutable tags
+# Running deploy-containers.sh ALONE won't pull new images if digests unchanged
+
+cd /c/dev/datadatdat-remote-server
+
+# 1a. Retrieve v1.X.X digests from ECR for all 8 services
+for service in auth-server api-gateway api-repo-manifest api-ingest api-download datadatdat-repo-web worker web; do
+  digest=$(aws ecr describe-images \
+    --repository-name datadatdat/$service \
+    --region us-west-2 \
+    --image-ids imageTag=$VERSION \
+    --query 'imageDetails[0].imageDigest' \
+    --output text)
+  echo "    [\"$service\"]=\"$digest\""
+done
+
+# 1b. Update update-task-definitions-with-digests.sh with new SHA256 hashes
+# Edit the SERVICES array with output from above command
+# Example for v1.6.0:
+#   ["auth-server"]="sha256:92dc55d264af1052edba647af0ab0777fd63c0c639ee2d68c93437d58cb87371"
+#   ["api-gateway"]="sha256:351189e44f2b97b318e6abb6dba7d1564914f02c96bf82e95d496adcdf6836af"
+#   ... (all 8 services)
+
+# 1c. Run script to register new task definitions and trigger deployment
+bash update-task-definitions-with-digests.sh
+# Expected output:
+#   Updating task definition for api-ingest...     Registered new revision: 28
+#   Updating task definition for api-gateway...    Registered new revision: 27
+#   Updating task definition for auth-server...    Registered new revision: 26
+#   ... (all 8 services updated with new revisions)
+#   All task definitions updated with digest-based image references!
+
+# STEP 2: Verify deployment succeeded
+# ------------------------------------
+
+# 2a. Wait for deployment to complete (90-120 seconds)
+sleep 90
+
+# 2b. Verify running container digests match ECR v1.X.X digests
+aws ecs list-services \
+  --cluster datadatdat-prod \
+  --region us-west-2 \
+  --query 'serviceArns[*]' \
+  --output text | xargs -n1 basename | while read service; do
+    echo "=== $service ==="
+    task_arn=$(aws ecs list-tasks \
+      --cluster datadatdat-prod \
+      --service-name $service \
+      --region us-west-2 \
+      --query 'taskArns[0]' \
+      --output text)
+    if [ ! -z "$task_arn" ]; then
+      aws ecs describe-tasks \
+        --cluster datadatdat-prod \
+        --tasks $task_arn \
+        --region us-west-2 \
+        --query 'tasks[0].containers[0].imageDigest' \
+        --output text
+    fi
+done
+# Expected: All 8 services show v1.X.X digests matching ECR output from Step 1a
+
+# 2c. Monitor deployment status
+aws ecs list-services \
+  --cluster datadatdat-prod \
+  --region us-west-2 \
+  --query 'serviceArns[*]' \
+  --output text | xargs -n1 basename | while read service; do
+    echo "=== $service ==="
+    aws ecs describe-services \
+      --cluster datadatdat-prod \
+      --services $service \
+      --region us-west-2 \
+      --query 'services[0].[serviceName,status,runningCount,desiredCount,deployments[0].rolloutState,deployments[0].updatedAt]' \
+      --output text
+done
+# Expected: All 9 services show:
+#   Status: ACTIVE
+#   Running: 1/1 (or desired count)
+#   Rollout: COMPLETED
+#   UpdatedAt: Recent timestamp
+
+# 2d. Test production site functionality
+# Visit https://datadatdat.com
+# Verify auth, repo creation, commit operations work correctly
+
+# ⚠️ TROUBLESHOOTING: If containers aren't updating
+# -------------------------------------------------
+# Problem: deploy-containers.sh forces redeployment but doesn't update images
+# Cause: Task definitions still reference old SHA256 digests
+# Solution: Always run update-task-definitions-with-digests.sh FIRST (Step 1 above)
+
+# To manually force update without digest changes (not recommended):
+cd /c/dev/datadatdat-remote-server/deploy/terraform/scripts
+bash deploy-containers.sh
+# This only triggers --force-new-deployment without changing container images
+
+# ========================================
+# PHASE 9: Post-Release Validation
 # ========================================
 
 # Authenticate to Amazon ECR
