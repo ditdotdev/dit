@@ -45,9 +45,12 @@ jobs:
 
         # CockroachDB
         # https://hub.docker.com/r/cockroachdb/cockroach
-        - cockroachdb/cockroach:v25.4.3
-        - cockroachdb/cockroach:v25.2.11
-        - cockroachdb/cockroach:v24.3.25
+        # https://hub.docker.com/r/datadatdat/cockroach
+        # Wrapped versions of cockroachdb/cockroach with VOLUME directives
+        # Source Dockerfiles: tests/endtoend/db-matrix/cockroach-*.Dockerfile
+        - datadatdat/cockroach:v25.4.3
+        - datadatdat/cockroach:v25.2.11
+        - datadatdat/cockroach:v24.3.25
 
         # Apache Hive
         # Not sure if this makes sense. 
