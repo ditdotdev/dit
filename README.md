@@ -28,6 +28,11 @@ Datadatdat is distributed as a binary with accompanying docker image. Install Da
 datadatdat install
 ```
 
+**macOS users with Colima:** If you're using Colima instead of Docker Desktop, configure Docker to use Colima first:
+```bash
+docker context use colima
+```
+
 ## <a id="development"></a> Development and Testing
 
 ### Clean Slate Testing
