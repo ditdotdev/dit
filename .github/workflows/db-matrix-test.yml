@@ -305,7 +305,15 @@ jobs:
         run: |
           export PATH=$GITHUB_WORKSPACE/build:$PATH
           build/d3 install --verbose
-      
+
+      - name: Wait for Datadatdat server to be ready
+        run: |
+          echo "Waiting for datadatdat-docker-server container to start..."
+          timeout 120 bash -c 'until docker inspect datadatdat-docker-server --format "{{.State.Running}}" 2>/dev/null | grep -q true; do sleep 1; done'
+          echo "Container is up, waiting for Java server on port 5001..."
+          timeout 120 bash -c 'until docker exec datadatdat-docker-server nc -z localhost 5001 2>/dev/null; do sleep 1; done'
+          echo "Datadatdat server is ready"
+
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
