@@ -113,16 +113,23 @@ test_database() {
   
   # Rm
   "$D3" rm -f "$repo_name" || return 1
-  # Verify repository is removed
+  # Verify repository is removed from server (not just d3 ls, which only shows repos with Docker resources)
+  # We check that creating a new repository with the same name succeeds
   local timeout=30
   local elapsed=0
-  while "$D3" ls | grep -q "^$repo_name$"; do
-    if [ $elapsed -ge $timeout ]; then
-      echo "Timeout waiting for repository $repo_name to be removed"
-      return 1
+  while true; do
+    # Try to verify the repository doesn't exist by checking the server directly
+    # If we can't create it, the metadata still exists
+    if curl -s http://localhost:5001/repositories | grep -q "\"$repo_name\""; then
+      if [ $elapsed -ge $timeout ]; then
+        echo "Timeout waiting for repository $repo_name metadata to be removed from server"
+        return 1
+      fi
+      sleep 1
+      ((elapsed++))
+    else
+      break
     fi
-    sleep 1
-    ((elapsed++))
   done
   
   # Clone
@@ -156,10 +163,10 @@ test_database() {
   
   # Rm (final)
   "$D3" rm -f "$repo_name" || return 1
-  # Verify repository and container are fully removed
+  # Verify repository metadata and container are fully removed
   local timeout=30
   local elapsed=0
-  while "$D3" ls | grep -q "^$repo_name$" || docker ps -a --filter "name=$repo_name" --format "{{.Names}}" | grep -q "^$repo_name$"; do
+  while curl -s http://localhost:5001/repositories | grep -q "\"$repo_name\"" || docker ps -a --filter "name=$repo_name" --format "{{.Names}}" | grep -q "^$repo_name$"; do
     if [ $elapsed -ge $timeout ]; then
       echo "Timeout waiting for final cleanup of $repo_name"
       return 1
