@@ -179,15 +179,18 @@ jobs:
         - postgres:14
 
         # Redis
-        - redis:8
-        - redis:7
-        - redis:7.2
-        - redis:6
+        # https://hub.docker.com/r/datadatdat/redis
+        # Wrapped versions of redis with VOLUME directives
+        # Source Dockerfiles: tests/endtoend/db-matrix/redis-*.Dockerfile
+        - datadatdat/redis:8
+        - datadatdat/redis:7
+        - datadatdat/redis:7.2
+        - datadatdat/redis:6
 
         # Valkey
         # https://hub.docker.com/r/datadatdat/valkey
         # Wrapped versions of valkey/valkey with VOLUME directives
-        # Source Dockerfiles: valkey-container/datadatdat-wrappers/*/Dockerfile
+        # Source Dockerfiles: tests/endtoend/db-matrix/valkey-*.Dockerfile
         - datadatdat/valkey:9
         - datadatdat/valkey:8
         - datadatdat/valkey:7
@@ -206,7 +209,6 @@ jobs:
         uses: actions/checkout@v4
         with:
           token: ${{ secrets.GO_MODULES_TOKEN }}
-          ref: master
 
       - name: Configure Git for private modules
         run: |
