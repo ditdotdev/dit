@@ -40,9 +40,10 @@ test_database() {
       -e "MSSQL_PID=Developer" \
       "$db_version" || return 1
   elif [[ "$db_version" == *"db2"* ]]; then
-    # IBM Db2 requires license acceptance, instance password, and privileged mode
+    # IBM Db2 requires license acceptance and instance password.
+    # Disable port mapping: DB2 exposes port 22 (SSH) which conflicts with the runner's sshd.
     "$D3" run -n "$repo_name" \
-      --privileged \
+      --disable-port-mapping \
       -e "LICENSE=accept" \
       -e "DB2INST1_PASSWORD=YourStrong!Passw0rd" \
       -e "DBNAME=testdb" \
