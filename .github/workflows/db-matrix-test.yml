@@ -243,8 +243,14 @@ jobs:
           docker run busybox uname -a
 
       - name: Build Datadatdat from source
-        run: make build
+        run: |
+          VERSION=$(gh release view --json tagName -q .tagName)
+          echo "Building with version: $VERSION"
+          make build VERSION=$VERSION
+          build/d3 --version
         shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       
       - name: Install OpenZFS
         run: |
