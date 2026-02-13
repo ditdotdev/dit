@@ -72,7 +72,17 @@ test_database() {
   
   # Checkout
   "$D3" checkout --commit "$commit_guid" "$repo_name" || return 1
-  sleep 5
+  # Verify container is running after checkout
+  local timeout=30
+  local elapsed=0
+  while ! docker ps --filter "name=$repo_name" --format "{{.Status}}" | grep -q "Up"; do
+    if [ $elapsed -ge $timeout ]; then
+      echo "Timeout waiting for container $repo_name to be running after checkout"
+      return 1
+    fi
+    sleep 1
+    ((elapsed++))
+  done
   
   # Remote add
   "$D3" remote add -r s3 "$URI" "$repo_name" || return 1
@@ -103,7 +113,17 @@ test_database() {
   
   # Rm
   "$D3" rm -f "$repo_name" || return 1
-  sleep 5
+  # Verify repository is removed
+  local timeout=30
+  local elapsed=0
+  while "$D3" ls | grep -q "^$repo_name$"; do
+    if [ $elapsed -ge $timeout ]; then
+      echo "Timeout waiting for repository $repo_name to be removed"
+      return 1
+    fi
+    sleep 1
+    ((elapsed++))
+  done
   
   # Clone
   if [[ "$db_version" == *"dynamodb"* ]]; then
@@ -111,7 +131,17 @@ test_database() {
   else
     "$D3" clone -n "$repo_name" "$URI" || return 1
   fi
-  sleep 5
+  # Verify container is running after clone
+  local timeout=30
+  local elapsed=0
+  while ! docker ps --filter "name=$repo_name" --format "{{.Status}}" | grep -q "Up"; do
+    if [ $elapsed -ge $timeout ]; then
+      echo "Timeout waiting for container $repo_name to be running after clone"
+      return 1
+    fi
+    sleep 1
+    ((elapsed++))
+  done
   
   # Note: The original YAML test expected duplicate clone to fail, but current implementation
   # allows multiple repositories to clone from the same S3 URI (which is valid behavior)
@@ -126,8 +156,18 @@ test_database() {
   
   # Rm (final)
   "$D3" rm -f "$repo_name" || return 1
-  sleep 5
-  
+  # Verify repository and container are fully removed
+  local timeout=30
+  local elapsed=0
+  while "$D3" ls | grep -q "^$repo_name$" || docker ps -a --filter "name=$repo_name" --format "{{.Names}}" | grep -q "^$repo_name$"; do
+    if [ $elapsed -ge $timeout ]; then
+      echo "Timeout waiting for final cleanup of $repo_name"
+      return 1
+    fi
+    sleep 1
+    ((elapsed++))
+  done
+
   echo "  ✓ $db:$version completed"
 }
 
