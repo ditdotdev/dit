@@ -38,6 +38,7 @@ type Metadata struct {
 	environment []interface{}
 	ports       []port
 	volumes     []volume
+	privileged  bool
 }
 
 func (m *Metadata) SetUser(s string) {
@@ -58,6 +59,10 @@ func (m *Metadata) SetTags(t map[string]string) {
 
 func (m *Metadata) SetSource(s string) {
 	m.source = s
+}
+
+func (m Metadata) GetPrivileged() bool {
+	return m.privileged
 }
 
 func (m Metadata) ToMap() map[string]interface{} {
@@ -86,6 +91,7 @@ func (m Metadata) ToMap() map[string]interface{} {
 			"environment": m.environment,
 			"ports":       m.ports,
 			"volumes":     m.volumes,
+			"privileged":  m.privileged,
 		}
 	}
 	if m.version == V1 {
@@ -174,6 +180,14 @@ func (m Metadata) MapV2(metaMap map[string]interface{}) Metadata {
 		})
 	}
 
+	var privileged bool
+	privilegedCheck := meta["privileged"]
+	if privilegedCheck != nil {
+		privileged = privilegedCheck.(bool)
+	} else {
+		privileged = false
+	}
+
 	return Metadata{
 		version:     V2,
 		user:        user,
@@ -186,6 +200,7 @@ func (m Metadata) MapV2(metaMap map[string]interface{}) Metadata {
 		environment: environment,
 		ports:       ports,
 		volumes:     volumes,
+		privileged:  privileged,
 	}
 }
 

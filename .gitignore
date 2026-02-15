@@ -16,6 +16,7 @@ build
 # Development files
 /notes
 /.env
+/.claude
 
 # Jenkins
 .gradle

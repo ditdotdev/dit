@@ -43,10 +43,10 @@ func Clone(uri string, repo string, guid string, params []string, args []string,
 	}
 	var err error
 	cleanup := false
+
 	_, _, err = repositoriesApi.CreateRepository(ctx, repository)
-	if err != nil && err.Error() == "409 Conflict" {
-		removeRepo(repoName, port, context)
-	} else {
+
+	if err == nil {
 		cleanup = true
 		RemoteAdd(repoName, plainUri, "", nil, port) //TODO fix params
 		rm, _, _ := remotesApi.GetRemote(ctx, repoName, "origin")
@@ -101,7 +101,8 @@ func Clone(uri string, repo string, guid string, params []string, args []string,
 		for _, v := range metadata.environment {
 			envs = append(envs, fmt.Sprintf("%v", v))
 		}
-		m, err := local.Run(imageRef, repoName, envs, args, disablePortMap, false, false, port, context)
+		privileged := metadata.GetPrivileged()
+		m, err := local.Run(imageRef, repoName, envs, args, disablePortMap, privileged, false, port, context)
 		if err == nil {
 			fmt.Println(m)
 			Pull(repoName, commit.Id, "", make([]string, 0), false, port)
