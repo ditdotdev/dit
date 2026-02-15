@@ -113,25 +113,36 @@ test_database() {
   
   # Rm
   "$D3" rm -f "$repo_name" || return 1
-  # Verify repository is removed from server (not just d3 ls, which only shows repos with Docker resources)
-  # We check that creating a new repository with the same name succeeds
-  local timeout=30
+  # Verify repository is removed from server
+  echo "DEBUG: Verifying $repo_name is removed from server..."
+  local timeout=5
   local elapsed=0
   while true; do
-    # Try to verify the repository doesn't exist by checking the server directly
-    # If we can't create it, the metadata still exists
-    if curl -s http://localhost:5001/repositories | grep -q "\"$repo_name\""; then
+    # Check PostgreSQL directly for the repository
+    if docker exec datadatdat-docker-server psql -U postgres -d datadatdat -tAc "SELECT name FROM repositories WHERE name='$repo_name';" | grep -q "$repo_name"; then
+      echo "DEBUG: Repository $repo_name still exists in PostgreSQL after ${elapsed}s"
       if [ $elapsed -ge $timeout ]; then
-        echo "Timeout waiting for repository $repo_name metadata to be removed from server"
+        echo "ERROR: Timeout waiting for repository $repo_name metadata to be removed from server (waited ${timeout}s)"
+        echo "DEBUG: Current repositories in PostgreSQL:"
+        docker exec datadatdat-docker-server psql -U postgres -d datadatdat -c "SELECT name FROM repositories;"
         return 1
       fi
       sleep 1
       ((elapsed++))
     else
+      echo "DEBUG: Repository $repo_name successfully removed from PostgreSQL after ${elapsed}s"
       break
     fi
   done
-  
+
+  # Final check right before clone
+  echo "DEBUG: [$(date +%H:%M:%S.%3N)] Final PostgreSQL check before clone..."
+  if docker exec datadatdat-docker-server psql -U postgres -d datadatdat -tAc "SELECT name FROM repositories WHERE name='$repo_name';" | grep -q "$repo_name"; then
+    echo "ERROR: [$(date +%H:%M:%S.%3N)] Repository $repo_name EXISTS in PostgreSQL right before clone!"
+  else
+    echo "DEBUG: [$(date +%H:%M:%S.%3N)] Repository $repo_name NOT in PostgreSQL - proceeding with clone"
+  fi
+
   # Clone
   if [[ "$db_version" == *"dynamodb"* ]]; then
     "$D3" clone -n "$repo_name" -P "$URI" || return 1
