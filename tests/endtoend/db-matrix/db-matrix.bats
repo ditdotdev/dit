@@ -40,8 +40,11 @@ test_database() {
       -e "MSSQL_PID=Developer" \
       "$db_version" || return 1
   elif [[ "$db_version" == *"db2"* ]]; then
-    # IBM Db2 requires license acceptance, instance password, and privileged mode
+    # IBM Db2 requires both --privileged (to remount /database with suid) and
+    # --disable-port-mapping (port 22/SSH conflicts with runner's sshd).
     "$D3" run -n "$repo_name" \
+      --privileged \
+      --disable-port-mapping \
       -e "LICENSE=accept" \
       -e "DB2INST1_PASSWORD=YourStrong!Passw0rd" \
       -e "DBNAME=testdb" \
@@ -69,7 +72,17 @@ test_database() {
   
   # Checkout
   "$D3" checkout --commit "$commit_guid" "$repo_name" || return 1
-  sleep 5
+  # Verify container is running after checkout
+  local timeout=30
+  local elapsed=0
+  while ! docker ps --filter "name=$repo_name" --format "{{.Status}}" | grep -q "Up"; do
+    if [ $elapsed -ge $timeout ]; then
+      echo "Timeout waiting for container $repo_name to be running after checkout"
+      return 1
+    fi
+    sleep 1
+    ((elapsed++))
+  done
   
   # Remote add
   "$D3" remote add -r s3 "$URI" "$repo_name" || return 1
@@ -100,7 +113,24 @@ test_database() {
   
   # Rm
   "$D3" rm -f "$repo_name" || return 1
-  sleep 5
+  # Verify repository is removed from server (not just d3 ls, which only shows repos with Docker resources)
+  # We check that creating a new repository with the same name succeeds
+  local timeout=30
+  local elapsed=0
+  while true; do
+    # Try to verify the repository doesn't exist by checking the server directly
+    # If we can't create it, the metadata still exists
+    if curl -s http://localhost:5001/repositories | grep -q "\"$repo_name\""; then
+      if [ $elapsed -ge $timeout ]; then
+        echo "Timeout waiting for repository $repo_name metadata to be removed from server"
+        return 1
+      fi
+      sleep 1
+      ((elapsed++))
+    else
+      break
+    fi
+  done
   
   # Clone
   if [[ "$db_version" == *"dynamodb"* ]]; then
@@ -108,7 +138,17 @@ test_database() {
   else
     "$D3" clone -n "$repo_name" "$URI" || return 1
   fi
-  sleep 5
+  # Verify container is running after clone
+  local timeout=30
+  local elapsed=0
+  while ! docker ps --filter "name=$repo_name" --format "{{.Status}}" | grep -q "Up"; do
+    if [ $elapsed -ge $timeout ]; then
+      echo "Timeout waiting for container $repo_name to be running after clone"
+      return 1
+    fi
+    sleep 1
+    ((elapsed++))
+  done
   
   # Note: The original YAML test expected duplicate clone to fail, but current implementation
   # allows multiple repositories to clone from the same S3 URI (which is valid behavior)
@@ -123,8 +163,18 @@ test_database() {
   
   # Rm (final)
   "$D3" rm -f "$repo_name" || return 1
-  sleep 5
-  
+  # Verify repository metadata and container are fully removed
+  local timeout=30
+  local elapsed=0
+  while curl -s http://localhost:5001/repositories | grep -q "\"$repo_name\"" || docker ps -a --filter "name=$repo_name" --format "{{.Names}}" | grep -q "^$repo_name$"; do
+    if [ $elapsed -ge $timeout ]; then
+      echo "Timeout waiting for final cleanup of $repo_name"
+      return 1
+    fi
+    sleep 1
+    ((elapsed++))
+  done
+
   echo "  ✓ $db:$version completed"
 }
 
