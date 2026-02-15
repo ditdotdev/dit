@@ -37,8 +37,9 @@ type Metadata struct {
 	image       image
 	environment []interface{}
 	ports       []port
-	volumes     []volume
-	privileged  bool
+	volumes        []volume
+	privileged     bool
+	disablePortMap bool
 }
 
 func (m *Metadata) SetUser(s string) {
@@ -65,6 +66,10 @@ func (m Metadata) GetPrivileged() bool {
 	return m.privileged
 }
 
+func (m Metadata) GetDisablePortMap() bool {
+	return m.disablePortMap
+}
+
 func (m Metadata) ToMap() map[string]interface{} {
 	returnMap := make(map[string]interface{})
 	if m.user != "" {
@@ -87,11 +92,12 @@ func (m Metadata) ToMap() map[string]interface{} {
 	}
 	if m.version == V2 {
 		returnMap["v2"] = map[string]interface{}{
-			"image":       m.image,
-			"environment": m.environment,
-			"ports":       m.ports,
-			"volumes":     m.volumes,
-			"privileged":  m.privileged,
+			"image":          m.image,
+			"environment":    m.environment,
+			"ports":          m.ports,
+			"volumes":        m.volumes,
+			"privileged":     m.privileged,
+			"disablePortMap": m.disablePortMap,
 		}
 	}
 	if m.version == V1 {
@@ -188,19 +194,28 @@ func (m Metadata) MapV2(metaMap map[string]interface{}) Metadata {
 		privileged = false
 	}
 
+	var disablePortMap bool
+	disablePortMapCheck := meta["disablePortMap"]
+	if disablePortMapCheck != nil {
+		disablePortMap = disablePortMapCheck.(bool)
+	} else {
+		disablePortMap = false
+	}
+
 	return Metadata{
-		version:     V2,
-		user:        user,
-		email:       email,
-		message:     message,
-		source:      source,
-		tags:        tags,
-		timestamp:   timestamp,
-		image:       image,
-		environment: environment,
-		ports:       ports,
-		volumes:     volumes,
-		privileged:  privileged,
+		version:        V2,
+		user:           user,
+		email:          email,
+		message:        message,
+		source:         source,
+		tags:           tags,
+		timestamp:      timestamp,
+		image:          image,
+		environment:    environment,
+		ports:          ports,
+		volumes:        volumes,
+		privileged:     privileged,
+		disablePortMap: disablePortMap,
 	}
 }
 
