@@ -11,7 +11,6 @@ import (
 )
 
 func Run(container string, repository string, envVars []string, args []string, disablePortMap bool, privileged bool, createRepo bool, port int, context string) (string, error) {
-	fmt.Printf("DEBUG: Start of Run function, container=%s, repository=%s, args=%v\n", container, repository, args)
 	cfg.BasePath = "http://localhost:" + strconv.Itoa(port)
 	docker := clients.Docker(context, port)
 
@@ -43,7 +42,6 @@ func Run(container string, repository string, envVars []string, args []string, d
 	}
 
 	var tag string
-	fmt.Printf("DEBUG: About to parse container tag from: %s\n", container)
 	if strings.Contains(container, ":") {
 		containerParts := strings.Split(container, ":")
 		if len(containerParts) > 1 {
@@ -67,7 +65,6 @@ func Run(container string, repository string, envVars []string, args []string, d
 		os.Exit(1)
 	}
 	vols := docker.GetSliceFromImage(image+":"+tag, "Config", "Volumes")
-	fmt.Printf("DEBUG: Got vols from image %s:%s: %v (length: %d)\n", image, tag, vols, len(vols))
 	if len(vols) < 1 {
 		fmt.Println("No volumes found for image " + image)
 		os.Exit(1)
@@ -95,11 +92,8 @@ func Run(container string, repository string, envVars []string, args []string, d
 		path = strings.ReplaceAll(path, `"`, "")
 
 		fmt.Println("Creating docker volume " + volName + " with path " + path)
-		fmt.Printf("DEBUG: About to call docker.CreateVolume(%s, %s)\n", volName, path)
-		result, err := docker.CreateVolume(volName, path)
-		fmt.Printf("DEBUG: CreateVolume result=%s, err=%v\n", result, err)
+		_, err := docker.CreateVolume(volName, path)
 		if err != nil {
-			fmt.Printf("DEBUG: CreateVolume failed: %v\n", err)
 			return "", err
 		}
 		argList = append(argList, "-v")
@@ -132,9 +126,6 @@ func Run(container string, repository string, envVars []string, args []string, d
 		}
 	}
 	argList = append(argList, filteredArgs...)
-	fmt.Printf("DEBUG: About to append --name and containerName\n")
-	fmt.Printf("DEBUG: argList before: %v\n", argList)
-	fmt.Printf("DEBUG: containerName: %s\n", containerName)
 	argList = append(argList, "--name")
 	argList = append(argList, containerName)
 
@@ -199,6 +190,7 @@ func Run(container string, repository string, envVars []string, args []string, d
 			"environment": envVars,
 			"ports":       metaPorts,
 			"volumes":     metaVols,
+			"privileged":  privileged,
 		},
 	}
 
