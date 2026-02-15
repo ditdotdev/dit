@@ -1874,16 +1874,24 @@ gh release edit $VERSION --draft=false --latest
 # git tag -d $VERSION && git push origin --delete $VERSION
 
 # ========================================
-# PHASE 5.5: Upload CLI Binaries to MinIO (for Web Downloads)
+# PHASE 5.5: Upload CLI Binaries to S3 (for Web Downloads)
 # ========================================
 
-# REQUIRED: After publishing the GitHub release, upload binaries to MinIO
-# This makes the CLI available for download via the web UI at /download
+# REQUIRED: After publishing the GitHub release, upload binaries to S3
+# This makes the CLI available for download via the web UI at https://datadatdat.com/download
 
-cd /c/dev/datadatdat-remote-server/scripts
+# 🚨 CRITICAL: Use the PRODUCTION bucket name!
+# ⚠️ Production website reads from: datadatdat-releases-prod
+# ❌ DO NOT use: datadatdat-releases (this is the DEV bucket)
 
-# Run the upload script with the version
-./upload-release-to-minio.sh --version $VERSION
+cd /c/dev/datadatdat-remote-server
+
+# Upload to PRODUCTION S3 bucket (correct command)
+bash scripts/upload-release-to-minio.sh \
+  --version $VERSION \
+  --minio-endpoint s3.us-west-2.amazonaws.com \
+  --minio-bucket datadatdat-releases-prod \
+  --minio-use-ssl true
 
 # ⚠️ CRITICAL: Update download API tests to match new version
 # The datadatdat-remote-server E2E tests check for specific version numbers
@@ -1933,10 +1941,18 @@ echo "Should show $VERSION with all 5 platforms available"
 # - Check GitHub release exists: gh release view $VERSION
 # - Re-run with --force to overwrite: ./upload-release-to-minio.sh $VERSION --force
 
-# Upload CLI binaries to MinIO (for web downloads)
-cd /c/dev/datadatdat-remote-server/scripts
-./upload-release-to-minio.sh $VERSION
-mc ls minio/datadatdat-releases/$VERSION/  # Verify
+# Upload CLI binaries to PRODUCTION S3 bucket (for web downloads)
+# 🚨 CRITICAL: Use datadatdat-releases-prod (NOT datadatdat-releases)
+cd /c/dev/datadatdat-remote-server
+bash scripts/upload-release-to-minio.sh \
+  --version $VERSION \
+  --minio-endpoint s3.us-west-2.amazonaws.com \
+  --minio-bucket datadatdat-releases-prod \
+  --minio-use-ssl true
+
+# Verify upload succeeded
+aws s3 ls s3://datadatdat-releases-prod/$VERSION/
+# Should show: metadata.json and platform directories
 
 # ========================================
 # PHASE 6: datadatdat-server
