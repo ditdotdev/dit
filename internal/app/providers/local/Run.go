@@ -187,10 +187,11 @@ func Run(container string, repository string, envVars []string, args []string, d
 				"tag":    tag,
 				"digest": repoDigest,
 			},
-			"environment": envVars,
-			"ports":       metaPorts,
-			"volumes":     metaVols,
-			"privileged":  privileged,
+			"environment":    envVars,
+			"ports":          metaPorts,
+			"volumes":        metaVols,
+			"privileged":     privileged,
+			"disablePortMap": disablePortMap,
 		},
 	}
 

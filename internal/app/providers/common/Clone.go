@@ -102,7 +102,10 @@ func Clone(uri string, repo string, guid string, params []string, args []string,
 			envs = append(envs, fmt.Sprintf("%v", v))
 		}
 		privileged := metadata.GetPrivileged()
-		m, err := local.Run(imageRef, repoName, envs, args, disablePortMap, privileged, false, port, context)
+		// Use disablePortMap from metadata if available, otherwise use the command-line flag
+		metadataDisablePortMap := metadata.GetDisablePortMap()
+		finalDisablePortMap := disablePortMap || metadataDisablePortMap
+		m, err := local.Run(imageRef, repoName, envs, args, finalDisablePortMap, privileged, false, port, context)
 		if err == nil {
 			fmt.Println(m)
 			Pull(repoName, commit.Id, "", make([]string, 0), false, port)
