@@ -5,6 +5,13 @@ import (
 	"testing"
 )
 
+const (
+	testUserAlice    = "alice"
+	testTagEnvProd   = "prod"
+	testTagVersion10 = "1.0"
+	testImageName    = "postgres"
+)
+
 func TestStringFromMap(t *testing.T) {
 	tests := []struct {
 		name string
@@ -14,13 +21,13 @@ func TestStringFromMap(t *testing.T) {
 	}{
 		{
 			name: "key exists with string value",
-			m:    map[string]interface{}{"user": "alice"},
+			m:    map[string]interface{}{"user": testUserAlice},
 			key:  "user",
-			want: "alice",
+			want: testUserAlice,
 		},
 		{
 			name: "key does not exist",
-			m:    map[string]interface{}{"user": "alice"},
+			m:    map[string]interface{}{"user": testUserAlice},
 			key:  "email",
 			want: "",
 		},
@@ -64,15 +71,15 @@ func TestMetadata_ToMap_Empty(t *testing.T) {
 
 func TestMetadata_ToMap_WithUserFields(t *testing.T) {
 	m := Metadata{}
-	m.SetUser("alice")
+	m.SetUser(testUserAlice)
 	m.SetEmail("alice@example.com")
 	m.SetMessage("test commit")
 	m.SetSource("local")
 
 	result := m.ToMap()
 
-	if result["user"] != "alice" {
-		t.Errorf("ToMap() user = %v, want %q", result["user"], "alice")
+	if result["user"] != testUserAlice {
+		t.Errorf("ToMap() user = %v, want %q", result["user"], testUserAlice)
 	}
 	if result["email"] != "alice@example.com" {
 		t.Errorf("ToMap() email = %v, want %q", result["email"], "alice@example.com")
@@ -87,7 +94,7 @@ func TestMetadata_ToMap_WithUserFields(t *testing.T) {
 
 func TestMetadata_ToMap_OmitsEmptyFields(t *testing.T) {
 	m := Metadata{}
-	m.SetUser("alice")
+	m.SetUser(testUserAlice)
 	// email, message, source not set
 
 	result := m.ToMap()
@@ -111,7 +118,7 @@ func TestMetadata_ToMap_OmitsEmptyFields(t *testing.T) {
 
 func TestMetadata_ToMap_WithTags(t *testing.T) {
 	m := Metadata{}
-	m.SetTags(map[string]string{"env": "prod", "version": "1.0"})
+	m.SetTags(map[string]string{"env": testTagEnvProd, "version": testTagVersion10})
 
 	result := m.ToMap()
 
@@ -119,20 +126,20 @@ func TestMetadata_ToMap_WithTags(t *testing.T) {
 	if !ok {
 		t.Fatalf("ToMap() tags should be map[string]string, got %T", result["tags"])
 	}
-	if tags["env"] != "prod" {
-		t.Errorf("ToMap() tags[env] = %q, want %q", tags["env"], "prod")
+	if tags["env"] != testTagEnvProd {
+		t.Errorf("ToMap() tags[env] = %q, want %q", tags["env"], testTagEnvProd)
 	}
-	if tags["version"] != "1.0" {
-		t.Errorf("ToMap() tags[version] = %q, want %q", tags["version"], "1.0")
+	if tags["version"] != testTagVersion10 {
+		t.Errorf("ToMap() tags[version] = %q, want %q", tags["version"], testTagVersion10)
 	}
 }
 
 func TestMetadata_ToMap_V2Format(t *testing.T) {
 	m := Metadata{
 		version: V2,
-		user:    "alice",
+		user:    testUserAlice,
 		image: image{
-			Image:  "postgres",
+			Image:  testImageName,
 			Tag:    "latest",
 			Digest: "sha256:abc123",
 		},
@@ -157,8 +164,8 @@ func TestMetadata_ToMap_V2Format(t *testing.T) {
 	if !ok {
 		t.Fatalf("v2[image] should be image type, got %T", v2["image"])
 	}
-	if img.Image != "postgres" {
-		t.Errorf("v2 image.Image = %q, want %q", img.Image, "postgres")
+	if img.Image != testImageName {
+		t.Errorf("v2 image.Image = %q, want %q", img.Image, testImageName)
 	}
 	if img.Tag != "latest" {
 		t.Errorf("v2 image.Tag = %q, want %q", img.Tag, "latest")
@@ -211,12 +218,12 @@ func TestMetadata_ToMap_V1Format(t *testing.T) {
 
 func TestMetadata_Load_DetectsV2(t *testing.T) {
 	metaMap := map[string]interface{}{
-		"user":    "alice",
+		"user":    testUserAlice,
 		"email":   "alice@example.com",
 		"message": "test",
 		"v2": map[string]interface{}{
 			"image": map[string]interface{}{
-				"image":  "postgres",
+				"image":  testImageName,
 				"tag":    "latest",
 				"digest": "sha256:abc",
 			},
@@ -233,8 +240,8 @@ func TestMetadata_Load_DetectsV2(t *testing.T) {
 	if loaded.version != V2 {
 		t.Errorf("Load() should detect V2 format, got version=%q", loaded.version)
 	}
-	if loaded.user != "alice" {
-		t.Errorf("Load() user = %q, want %q", loaded.user, "alice")
+	if loaded.user != testUserAlice {
+		t.Errorf("Load() user = %q, want %q", loaded.user, testUserAlice)
 	}
 	if loaded.privileged != true {
 		t.Errorf("Load() privileged = %v, want true", loaded.privileged)
@@ -262,7 +269,7 @@ func TestMetadata_Load_DetectsV1(t *testing.T) {
 
 func TestMetadata_MapV2_FullParse(t *testing.T) {
 	metaMap := map[string]interface{}{
-		"user":      "alice",
+		"user":      testUserAlice,
 		"email":     "alice@example.com",
 		"message":   "snapshot",
 		"source":    "local",
@@ -273,7 +280,7 @@ func TestMetadata_MapV2_FullParse(t *testing.T) {
 		},
 		"v2": map[string]interface{}{
 			"image": map[string]interface{}{
-				"image":  "postgres",
+				"image":  testImageName,
 				"tag":    "16",
 				"digest": "sha256:abc123",
 			},
@@ -301,8 +308,8 @@ func TestMetadata_MapV2_FullParse(t *testing.T) {
 	if result.version != V2 {
 		t.Errorf("MapV2() version = %q, want %q", result.version, V2)
 	}
-	if result.user != "alice" {
-		t.Errorf("MapV2() user = %q, want %q", result.user, "alice")
+	if result.user != testUserAlice {
+		t.Errorf("MapV2() user = %q, want %q", result.user, testUserAlice)
 	}
 	if result.email != "alice@example.com" {
 		t.Errorf("MapV2() email = %q, want %q", result.email, "alice@example.com")
@@ -322,8 +329,8 @@ func TestMetadata_MapV2_FullParse(t *testing.T) {
 	if result.tags["version"] != "2.0" {
 		t.Errorf("MapV2() tags[version] = %q, want %q", result.tags["version"], "2.0")
 	}
-	if result.image.Image != "postgres" {
-		t.Errorf("MapV2() image.Image = %q, want %q", result.image.Image, "postgres")
+	if result.image.Image != testImageName {
+		t.Errorf("MapV2() image.Image = %q, want %q", result.image.Image, testImageName)
 	}
 	if result.image.Tag != "16" {
 		t.Errorf("MapV2() image.Tag = %q, want %q", result.image.Tag, "16")
@@ -356,10 +363,10 @@ func TestMetadata_MapV2_FullParse(t *testing.T) {
 
 func TestMetadata_MapV2_NilEnvironment(t *testing.T) {
 	metaMap := map[string]interface{}{
-		"user": "alice",
+		"user": testUserAlice,
 		"v2": map[string]interface{}{
 			"image": map[string]interface{}{
-				"image":  "postgres",
+				"image":  testImageName,
 				"tag":    "latest",
 				"digest": "sha256:abc",
 			},
@@ -382,10 +389,10 @@ func TestMetadata_MapV2_NilEnvironment(t *testing.T) {
 
 func TestMetadata_MapV2_NoTags(t *testing.T) {
 	metaMap := map[string]interface{}{
-		"user": "alice",
+		"user": testUserAlice,
 		"v2": map[string]interface{}{
 			"image": map[string]interface{}{
-				"image":  "postgres",
+				"image":  testImageName,
 				"tag":    "latest",
 				"digest": "sha256:abc",
 			},
@@ -405,10 +412,10 @@ func TestMetadata_MapV2_NoTags(t *testing.T) {
 
 func TestMetadata_MapV2_PrivilegedDefaults(t *testing.T) {
 	metaMap := map[string]interface{}{
-		"user": "alice",
+		"user": testUserAlice,
 		"v2": map[string]interface{}{
 			"image": map[string]interface{}{
-				"image":  "postgres",
+				"image":  testImageName,
 				"tag":    "latest",
 				"digest": "sha256:abc",
 			},
@@ -456,8 +463,8 @@ func TestMetadata_MapV1_BasicParse(t *testing.T) {
 		t.Errorf("MapV1() image.Digest = %q, want %q", result.image.Digest, "postgres@sha256:abc123")
 	}
 	// When Image key is not present, image name is derived from digest
-	if result.image.Image != "postgres" {
-		t.Errorf("MapV1() image.Image = %q, want %q (derived from digest with @)", result.image.Image, "postgres")
+	if result.image.Image != testImageName {
+		t.Errorf("MapV1() image.Image = %q, want %q (derived from digest with @)", result.image.Image, testImageName)
 	}
 }
 
@@ -470,8 +477,8 @@ func TestMetadata_MapV1_DigestWithColonFallback(t *testing.T) {
 	result := m.MapV1(metaMap)
 
 	// When digest contains : but not @, image name is derived by splitting on :
-	if result.image.Image != "postgres" {
-		t.Errorf("MapV1() image.Image = %q, want %q (derived from digest with :)", result.image.Image, "postgres")
+	if result.image.Image != testImageName {
+		t.Errorf("MapV1() image.Image = %q, want %q (derived from digest with :)", result.image.Image, testImageName)
 	}
 }
 
@@ -497,19 +504,19 @@ func TestMetadata_MapV1_TagsAsMapInterface(t *testing.T) {
 	metaMap := map[string]interface{}{
 		"container": "postgres:latest",
 		"tags": map[string]interface{}{
-			"env":     "prod",
-			"version": "1.0",
+			"env":     testTagEnvProd,
+			"version": testTagVersion10,
 		},
 	}
 
 	m := Metadata{}
 	result := m.MapV1(metaMap)
 
-	if result.tags["env"] != "prod" {
-		t.Errorf("MapV1() tags[env] = %q, want %q", result.tags["env"], "prod")
+	if result.tags["env"] != testTagEnvProd {
+		t.Errorf("MapV1() tags[env] = %q, want %q", result.tags["env"], testTagEnvProd)
 	}
-	if result.tags["version"] != "1.0" {
-		t.Errorf("MapV1() tags[version] = %q, want %q", result.tags["version"], "1.0")
+	if result.tags["version"] != testTagVersion10 {
+		t.Errorf("MapV1() tags[version] = %q, want %q", result.tags["version"], testTagVersion10)
 	}
 }
 
@@ -522,11 +529,11 @@ func TestMetadata_MapV1_TagsAsArray(t *testing.T) {
 	m := Metadata{}
 	result := m.MapV1(metaMap)
 
-	if result.tags["env"] != "prod" {
-		t.Errorf("MapV1() tags[env] = %q, want %q", result.tags["env"], "prod")
+	if result.tags["env"] != testTagEnvProd {
+		t.Errorf("MapV1() tags[env] = %q, want %q", result.tags["env"], testTagEnvProd)
 	}
-	if result.tags["version"] != "1.0" {
-		t.Errorf("MapV1() tags[version] = %q, want %q", result.tags["version"], "1.0")
+	if result.tags["version"] != testTagVersion10 {
+		t.Errorf("MapV1() tags[version] = %q, want %q", result.tags["version"], testTagVersion10)
 	}
 	// Standalone tag (no colon) should have empty value
 	if val, ok := result.tags["standalone"]; !ok || val != "" {
