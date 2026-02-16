@@ -27,6 +27,8 @@ build
 # Testing Files
 sshKey
 sshKey.pub
+coverage.out
+coverage.html
 
 # Large installer files (exceeds GitHub 100MB limit)
 Docker*.exe
