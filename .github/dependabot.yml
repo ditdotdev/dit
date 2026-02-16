@@ -24,3 +24,14 @@ updates:
     - 0.20.3
     - 0.20.4
     - 0.20.5
+
+- package-ecosystem: github-actions
+  directory: "/"
+  schedule:
+    interval: weekly
+  open-pull-requests-limit: 10
+- package-ecosystem: docker
+  directory: "/"
+  schedule:
+    interval: weekly
+  open-pull-requests-limit: 10
