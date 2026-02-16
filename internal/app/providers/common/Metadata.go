@@ -27,16 +27,16 @@ type volume struct {
 }
 
 type Metadata struct {
-	version     Version
-	user        string
-	email       string
-	message     string
-	source      string
-	tags        map[string]string
-	timestamp   string
-	image       image
-	environment []interface{}
-	ports       []port
+	version        Version
+	user           string
+	email          string
+	message        string
+	source         string
+	tags           map[string]string
+	timestamp      string
+	image          image
+	environment    []interface{}
+	ports          []port
 	volumes        []volume
 	privileged     bool
 	disablePortMap bool
