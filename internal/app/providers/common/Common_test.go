@@ -26,11 +26,11 @@ func captureStdout(f func()) string {
 
 func TestIfContainsPrint_KeyExists(t *testing.T) {
 	tests := []struct {
-		name     string
-		m        map[string]interface{}
-		key      string
-		wantKey  string
-		wantVal  string
+		name    string
+		m       map[string]interface{}
+		key     string
+		wantKey string
+		wantVal string
 	}{
 		{
 			name:    "prints user field",
