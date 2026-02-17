@@ -26,7 +26,7 @@ jobs:
           git config --global credential.helper store
           echo "https://x-access-token:${{ secrets.GO_MODULES_TOKEN }}@github.com" > ~/.git-credentials
         shell: bash
-      - uses: actions/setup-go@v5
+      - uses: actions/setup-go@v6
         with:
           go-version: '1.25.1'
       - name: Configure Go for private modules
@@ -67,7 +67,7 @@ jobs:
         run: |
           git config --global user.name "test.runner"
           git config --global user.email "test@runner.com"
-      - uses: actions/setup-go@v5
+      - uses: actions/setup-go@v6
         with:
           go-version: '1.25.1'
       - name: Configure Go for private modules
