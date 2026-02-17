@@ -14,7 +14,7 @@ jobs:
     name: Build Documentation
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - name: Configure GitHub SSH access
         uses: webfactory/ssh-agent@v0.9.1
         with:
