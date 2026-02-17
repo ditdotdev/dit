@@ -1,6 +1,6 @@
 # Used to create datadatdat:latest. Until we update Docker Hub, use this locally to build datadatdat:latest container.
 
-FROM ubuntu:22.04
+FROM ubuntu:24.04
 
 # Install required packages and ZFS 2.1.x userspace tools
 RUN apt-get update && \
