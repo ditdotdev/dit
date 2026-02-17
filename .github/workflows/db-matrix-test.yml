@@ -223,7 +223,7 @@ jobs:
           git config --global user.email "test@runner.com"
 
       - name: Set up Go
-        uses: actions/setup-go@v5
+        uses: actions/setup-go@v6
         with:
           go-version: '1.25.1'
 
