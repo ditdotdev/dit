@@ -189,18 +189,18 @@ wait_for_pr() {
     local elapsed=0
 
     if $DRY_RUN; then
-        log_dry "Wait for PR matching '$branch_pattern' in $ORG/$repo"
+        log_dry "Wait for PR matching '$branch_pattern' in $ORG/$repo" >&2
         echo "0"
         return 0
     fi
 
-    log_step "Waiting for PR matching '$branch_pattern' in $ORG/$repo..."
+    log_step "Waiting for PR matching '$branch_pattern' in $ORG/$repo..." >&2
     while [ $elapsed -lt $WORKFLOW_TIMEOUT ]; do
         local pr_number
         pr_number=$(gh pr list --repo "$ORG/$repo" --head "$branch_pattern" --json number --jq '.[0].number' 2>/dev/null || echo "")
 
         if [ -n "$pr_number" ] && [ "$pr_number" != "null" ]; then
-            log_success "Found PR #$pr_number in $ORG/$repo"
+            log_success "Found PR #$pr_number in $ORG/$repo" >&2
             echo "$pr_number"
             return 0
         fi
@@ -208,7 +208,7 @@ wait_for_pr() {
         sleep "$POLL_INTERVAL"
         elapsed=$((elapsed + POLL_INTERVAL))
     done
-    log_error "Timeout waiting for PR in $ORG/$repo matching '$branch_pattern'"
+    log_error "Timeout waiting for PR in $ORG/$repo matching '$branch_pattern'" >&2
     return 1
 }
 
