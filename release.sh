@@ -93,18 +93,41 @@ run_cmd() {
     "$@"
 }
 
+cleanup_draft_release() {
+    # Delete any existing draft release for a tag to prevent upload conflicts.
+    # The draft-release.yml workflow (release-drafter) creates drafts on master push,
+    # which can interfere with the release.yml upload step.
+    local repo="$1"
+    local tag="$2"
+    if $DRY_RUN; then
+        return 0
+    fi
+    if gh release view "$tag" --repo "$ORG/$repo" --json isDraft --jq '.isDraft' 2>/dev/null | grep -q "true"; then
+        log_warn "Deleting stale draft release $tag in $ORG/$repo"
+        gh release delete "$tag" --repo "$ORG/$repo" --yes 2>/dev/null || true
+    fi
+}
+
 tag_and_push() {
     # Usage: tag_and_push REPO_PATH TAG
     local repo_path="$1"
     local tag="$2"
+    local repo_name
+    repo_name=$(basename "$repo_path")
     log_step "Tagging $repo_path at $tag"
     if $DRY_RUN; then
         log_dry "cd $repo_path && git tag $tag && git push origin $tag"
         return 0
     fi
+    # Clean up any draft releases that could conflict with upload
+    cleanup_draft_release "$repo_name" "$tag"
     cd "$repo_path"
     git tag "$tag"
     git push origin "$tag"
+    # Wait briefly for draft-release.yml (release-drafter) to possibly create a new draft,
+    # then clean it up before the release.yml workflow reaches the upload step
+    sleep 10
+    cleanup_draft_release "$repo_name" "$tag"
 }
 
 commit_and_push() {
