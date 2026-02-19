@@ -733,7 +733,7 @@ phase_cli() {
         cd "$repo_path"
         log_step "Verifying dependency alignment..."
         local sdk_versions
-        sdk_versions=$(go mod graph | grep datadatdat | grep remote-sdk-go | awk '{print $2}' | sort -u)
+        sdk_versions=$(go mod graph | awk '$2 ~ /datadatdat\/remote-sdk-go@/ {print $2}' | sort -u)
         local sdk_count
         sdk_count=$(echo "$sdk_versions" | wc -l)
         if [ "$sdk_count" -gt 1 ]; then
@@ -741,7 +741,7 @@ phase_cli() {
             echo "$sdk_versions"
             exit 1
         fi
-        log_success "All providers use same remote-sdk-go version"
+        log_success "All providers use same remote-sdk-go version: $sdk_versions"
     fi
 
     # Update BATS test version expectations
