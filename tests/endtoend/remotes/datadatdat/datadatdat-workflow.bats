@@ -471,10 +471,10 @@ teardown_file() {
   assert_output --partial '"versions"'
 }
 
-@test "download API: list versions returns v1.6.0" {
+@test "download API: list versions returns v1.6.1" {
   run curl -sf -H "Cookie: datadatdat_token=${DATADATDAT_API_KEY}" "http://127.0.0.1:3000/api/downloads/versions"
   assert_success
-  assert_output --partial '"version":"v1.6.0"'
+  assert_output --partial '"version":"v1.6.1"'
 }
 
 @test "download API: version metadata has required fields" {
@@ -485,37 +485,37 @@ teardown_file() {
   assert_output --partial '"changelog_url"'
 }
 
-@test "download API: version details endpoint returns v1.6.0" {
-  run curl -sf -H "Cookie: datadatdat_token=${DATADATDAT_API_KEY}" "http://127.0.0.1:3000/api/downloads/v1.6.0"
+@test "download API: version details endpoint returns v1.6.1" {
+  run curl -sf -H "Cookie: datadatdat_token=${DATADATDAT_API_KEY}" "http://127.0.0.1:3000/api/downloads/v1.6.1"
   assert_success
-  assert_output --partial '"version":"v1.6.0"'
+  assert_output --partial '"version":"v1.6.1"'
 }
 
-@test "download API: v1.6.0 has linux-amd64 platform" {
-  run curl -sf -H "Cookie: datadatdat_token=${DATADATDAT_API_KEY}" "http://127.0.0.1:3000/api/downloads/v1.6.0"
+@test "download API: v1.6.1 has linux-amd64 platform" {
+  run curl -sf -H "Cookie: datadatdat_token=${DATADATDAT_API_KEY}" "http://127.0.0.1:3000/api/downloads/v1.6.1"
   assert_success
   assert_output --partial '"platform":"linux-amd64"'
   assert_output --partial '"os":"Linux"'
   assert_output --partial '"arch":"x86_64"'
 }
 
-@test "download API: v1.6.0 has darwin-arm64 platform" {
-  run curl -sf -H "Cookie: datadatdat_token=${DATADATDAT_API_KEY}" "http://127.0.0.1:3000/api/downloads/v1.6.0"
+@test "download API: v1.6.1 has darwin-arm64 platform" {
+  run curl -sf -H "Cookie: datadatdat_token=${DATADATDAT_API_KEY}" "http://127.0.0.1:3000/api/downloads/v1.6.1"
   assert_success
   assert_output --partial '"platform":"darwin-arm64"'
   assert_output --partial '"os":"macOS"'
   assert_output --partial '"arch":"Apple Silicon"'
 }
 
-@test "download API: v1.6.0 has windows platform" {
-  run curl -sf -H "Cookie: datadatdat_token=${DATADATDAT_API_KEY}" "http://127.0.0.1:3000/api/downloads/v1.6.0"
+@test "download API: v1.6.1 has windows platform" {
+  run curl -sf -H "Cookie: datadatdat_token=${DATADATDAT_API_KEY}" "http://127.0.0.1:3000/api/downloads/v1.6.1"
   assert_success
   assert_output --partial '"platform":"windows"'
   assert_output --partial '"os":"Windows"'
 }
 
 @test "download API: platform metadata includes filename and size" {
-  run curl -sf -H "Cookie: datadatdat_token=${DATADATDAT_API_KEY}" "http://127.0.0.1:3000/api/downloads/v1.6.0"
+  run curl -sf -H "Cookie: datadatdat_token=${DATADATDAT_API_KEY}" "http://127.0.0.1:3000/api/downloads/v1.6.1"
   assert_success
   assert_output --partial '"filename"'
   assert_output --partial '"size"'
@@ -524,21 +524,21 @@ teardown_file() {
 
 @test "download API: binary download returns file for linux-amd64" {
   # Download first 1KB to verify it's a binary file (not an error)
-  run bash -c "curl -sf -H 'Cookie: datadatdat_token=${DATADATDAT_API_KEY}' 'http://127.0.0.1:3000/api/downloads/v1.6.0/linux-amd64' | head -c 1024 | wc -c"
+  run bash -c "curl -sf -H 'Cookie: datadatdat_token=${DATADATDAT_API_KEY}' 'http://127.0.0.1:3000/api/downloads/v1.6.1/linux-amd64' | head -c 1024 | wc -c"
   assert_success
   # Should be exactly 1024 bytes (1KB downloaded)
   assert_output "1024"
 }
 
 @test "download API: binary download has correct content-type header" {
-  run curl -sI -H "Cookie: datadatdat_token=${DATADATDAT_API_KEY}" "http://127.0.0.1:3000/api/downloads/v1.6.0/linux-amd64"
+  run curl -sI -H "Cookie: datadatdat_token=${DATADATDAT_API_KEY}" "http://127.0.0.1:3000/api/downloads/v1.6.1/linux-amd64"
   assert_success
   # Case-insensitive match for content-type header
   assert_output --partial "application/octet-stream"
 }
 
 @test "download API: binary download has content-disposition header" {
-  run curl -sI -H "Cookie: datadatdat_token=${DATADATDAT_API_KEY}" "http://127.0.0.1:3000/api/downloads/v1.6.0/linux-amd64"
+  run curl -sI -H "Cookie: datadatdat_token=${DATADATDAT_API_KEY}" "http://127.0.0.1:3000/api/downloads/v1.6.1/linux-amd64"
   assert_success
   # Case-insensitive match for content-disposition header
   assert_output --partial "attachment"
