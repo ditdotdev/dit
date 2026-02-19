@@ -114,6 +114,21 @@ jobs:
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           AWS_REGION: ${{ secrets.AWS_REGION }}
       
+      - name: Dump server container logs
+        if: failure()
+        run: |
+          echo "=== datadatdat-docker-server logs ==="
+          docker logs datadatdat-docker-server 2>&1 || echo "No server container found"
+          echo ""
+          echo "=== datadatdat-docker-launch logs ==="
+          docker logs datadatdat-docker-launch 2>&1 || echo "No launch container found"
+          echo ""
+          echo "=== Docker containers ==="
+          docker ps -a
+          echo ""
+          echo "=== d3 config ==="
+          cat ~/.datadatdat/config 2>/dev/null || echo "No config found"
+
       - name: Cleanup Docker resources
         if: always()
         run: |
