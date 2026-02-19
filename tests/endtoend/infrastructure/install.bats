@@ -26,6 +26,14 @@ load '../test_helper'
 
 @test "d3 API is ready" {
   # Wait up to 180 seconds (36 x 5) for the server API to accept requests
-  run bash -c 'PORT=$(docker port datadatdat-docker-server 2>/dev/null | head -1 | grep -oP "\d+$"); for i in {1..36}; do curl -sf "http://localhost:$PORT/v1/repositories" > /dev/null 2>&1 && break || sleep 5; done && curl -sf "http://localhost:$PORT/v1/repositories" > /dev/null'
+  for i in $(seq 1 36); do
+    run "$D3" ls
+    if [ "$status" -eq 0 ] && echo "$output" | grep -q "CONTEXT"; then
+      break
+    fi
+    sleep 5
+  done
+  run "$D3" ls
   assert_success
+  assert_output --partial "CONTEXT"
 }
