@@ -296,6 +296,43 @@ verify_s3_artifact() {
     fi
 }
 
+verify_maven_pom() {
+    # Usage: verify_maven_pom ARTIFACT VERSION DEP_ARTIFACT DEP_VERSION
+    # Downloads POM from S3 Maven bucket and checks that a dependency has the expected version.
+    # Catches stale transitive deps (e.g., command-executor:1.6.0 in remote-sdk:1.6.1).
+    local artifact="$1"
+    local version="$2"
+    local dep_artifact="$3"
+    local dep_version="$4"
+
+    if $DRY_RUN; then
+        log_dry "Verify POM: $artifact:$version contains $dep_artifact:$dep_version"
+        return 0
+    fi
+
+    local pom_path="com/datadatdat/$artifact/$version/$artifact-$version.pom"
+    local tmp_pom
+    tmp_pom=$(mktemp)
+    if aws s3 cp "s3://$MAVEN_BUCKET/$pom_path" "$tmp_pom" 2>/dev/null; then
+        if grep -q "<artifactId>$dep_artifact</artifactId>" "$tmp_pom"; then
+            local pom_dep_version
+            pom_dep_version=$(grep -A1 "<artifactId>$dep_artifact</artifactId>" "$tmp_pom" | grep "<version>" | sed 's/.*<version>\(.*\)<\/version>.*/\1/')
+            if [ "$pom_dep_version" = "$dep_version" ]; then
+                log_success "POM verified: $artifact:$version contains $dep_artifact:$dep_version"
+            else
+                log_error "POM MISMATCH: $artifact:$version has $dep_artifact:$pom_dep_version (expected $dep_version)"
+                rm -f "$tmp_pom"
+                return 1
+            fi
+        else
+            log_info "POM for $artifact:$version does not reference $dep_artifact (OK if not a dependency)"
+        fi
+    else
+        log_warn "Could not download POM: s3://$MAVEN_BUCKET/$pom_path"
+    fi
+    rm -f "$tmp_pom"
+}
+
 verify_gh_release() {
     # Usage: verify_gh_release REPO TAG
     local repo="$1"
@@ -506,6 +543,29 @@ phase_go_foundation() {
         wait_for_workflow "$provider" "release.yml"
     done
 
+    # 8. Verify provider alignment — all must resolve to same remote-sdk-go version
+    if ! $DRY_RUN; then
+        log_step "Verifying Go provider alignment..."
+        cd "$WORKSPACE/datadatdat"
+        for provider in "${GO_PROVIDERS[@]}"; do
+            go get "github.com/datadatdat/$provider@v$VERSION" 2>/dev/null || true
+        done
+        go mod tidy 2>/dev/null || true
+        local sdk_versions
+        sdk_versions=$(go mod graph | awk '$2 ~ /datadatdat\/remote-sdk-go@/ {print $2}' | sort -u)
+        local sdk_count
+        sdk_count=$(echo "$sdk_versions" | grep -c . || echo "0")
+        if [ "$sdk_count" -gt 1 ]; then
+            log_error "Provider alignment FAILED! Multiple remote-sdk-go versions detected:"
+            echo "$sdk_versions"
+            log_error "STOP: Fix provider alignment before continuing to Phase 2"
+            exit 1
+        fi
+        log_success "All providers aligned on: $sdk_versions"
+        # Restore go.mod — Phase 6 will do the real update
+        git checkout go.mod go.sum 2>/dev/null || true
+    fi
+
     save_phase_state 1
     log_success "Phase 1 complete: Go foundation released at v$VERSION"
 }
@@ -539,6 +599,36 @@ phase_kotlin_foundation() {
         tag_and_push "$WORKSPACE/command-executor" "$VERSION"
         wait_for_workflow "command-executor" "release.yml"
         verify_s3_artifact "$MAVEN_BUCKET" "com/datadatdat/command-executor/$VERSION/"
+
+        # Update command-executor dependency in all downstream repos BEFORE tagging them
+        log_step "Updating command-executor dependency to $VERSION in downstream repos..."
+        local ce_downstream_files=(
+            "$WORKSPACE/remote-sdk/build.gradle.kts"
+            "$WORKSPACE/datadatdat-server/server/build.gradle.kts"
+            "$WORKSPACE/ssh-remote/server/build.gradle.kts"
+            "$WORKSPACE/delphix-remote/server/build.gradle.kts"
+        )
+        for gradle_file in "${ce_downstream_files[@]}"; do
+            if [ -f "$gradle_file" ]; then
+                if $DRY_RUN; then
+                    log_dry "Update command-executor:$PREV_VERSION -> $VERSION in $gradle_file"
+                else
+                    sed -i "s/command-executor:${PREV_VERSION}/command-executor:${VERSION}/g" "$gradle_file"
+                    local repo_dir
+                    repo_dir=$(dirname "$gradle_file")
+                    # For remote-sdk, build.gradle.kts is in the root
+                    # For others, it's in server/ so go up one level
+                    if [[ "$gradle_file" == */server/build.gradle.kts ]]; then
+                        repo_dir=$(dirname "$repo_dir")
+                    fi
+                    cd "$repo_dir"
+                    git add "$gradle_file"
+                    git commit -m "Update command-executor to $VERSION" || true
+                    git push origin master
+                    log_success "Updated command-executor in $(basename "$repo_dir")"
+                fi
+            fi
+        done
     else
         log_info "command-executor unchanged - skipping"
     fi
@@ -547,8 +637,11 @@ phase_kotlin_foundation() {
     tag_and_push "$WORKSPACE/remote-sdk" "$VERSION"
     wait_for_workflow "remote-sdk" "release.yml"
 
-    # 3. Verify remote-sdk published to Maven
+    # 3. Verify remote-sdk published to Maven (existence + POM content)
     verify_s3_artifact "$MAVEN_BUCKET" "com/datadatdat/remote-sdk/$VERSION/"
+    if $ce_has_changes; then
+        verify_maven_pom "remote-sdk" "$VERSION" "command-executor" "$VERSION"
+    fi
 
     # 4. Update build.gradle.kts in all 6 Kotlin providers
     log_step "Updating Kotlin provider dependencies to $VERSION..."
@@ -593,12 +686,15 @@ phase_kotlin_foundation() {
         wait_for_workflow "$provider" "release.yml"
     done
 
-    # 7. Verify Maven artifacts
+    # 7. Verify Maven artifacts (existence + POM content)
     log_step "Verifying Maven artifacts..."
     for provider in "${KOTLIN_PROVIDERS[@]}"; do
         # Server artifact
         verify_s3_artifact "$MAVEN_BUCKET" "com/datadatdat/${provider}-server/$VERSION/" || \
         verify_s3_artifact "$MAVEN_BUCKET" "com/datadatdat/${provider}/$VERSION/" || true
+        # Verify POM references correct remote-sdk version
+        verify_maven_pom "${provider}-server" "$VERSION" "remote-sdk" "$VERSION" || \
+        verify_maven_pom "${provider}" "$VERSION" "remote-sdk" "$VERSION" || true
     done
 
     save_phase_state 2
@@ -785,6 +881,14 @@ phase_cli() {
                 --minio-bucket "$PROD_RELEASES_BUCKET" \
                 --minio-use-ssl true
             log_success "CLI binaries uploaded to S3"
+
+            # Verify S3 upload succeeded - remote-server E2E tests depend on these binaries
+            log_step "Verifying S3 upload (required before Phase 7)..."
+            verify_s3_artifact "$PROD_RELEASES_BUCKET" "v$VERSION/metadata.json"
+            for platform in darwin-amd64 darwin-arm64 linux-amd64 linux-arm64 windows; do
+                verify_s3_artifact "$PROD_RELEASES_BUCKET" "v$VERSION/$platform/"
+            done
+            log_success "All 5 platforms verified in S3 — safe to proceed to Phase 7"
         fi
     else
         log_warn "Upload script not found at $upload_script - skipping S3 upload"
