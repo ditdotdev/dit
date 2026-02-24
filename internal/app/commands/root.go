@@ -44,6 +44,9 @@ var rootCmd = &cobra.Command{
 	Use:   "d3",
 	Short: "Datadatdat CLI",
 	Long:  `Datadatdat CLI`,
+	PersistentPreRun: func(cmd *cobra.Command, args []string) {
+		initProvider()
+	},
 }
 
 // Execute adds all child commands to the root command and sets flags appropriately.
@@ -73,6 +76,11 @@ func initConfig() {
 			fmt.Printf("Error creating config file: %v\n", err)
 		}
 	}
+}
+
+// initProvider resolves the provider context. Called from rootCmd's PersistentPreRun
+// (overridden by auth/org commands that don't need a provider).
+func initProvider() {
 	isInstall := false
 	for _, item := range os.Args {
 		if item == "install" || item == "ls" {

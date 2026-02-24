@@ -12,6 +12,14 @@ import (
 func init() {
 	_, d := os.LookupEnv("DATADATDAT_DEBUG")
 	cfg.Debug = d
+
+	// If DATADATDAT_API_KEY is not set, load from stored credentials.
+	// This allows 'd3 auth login' to persist credentials for remote operations.
+	if _, hasKey := os.LookupEnv("DATADATDAT_API_KEY"); !hasKey {
+		if key := GetAPIKey(CredentialsPath()); key != "" {
+			_ = os.Setenv("DATADATDAT_API_KEY", key)
+		}
+	}
 }
 
 var cfg = client.NewConfiguration()
