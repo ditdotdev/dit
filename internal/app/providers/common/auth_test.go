@@ -228,6 +228,108 @@ func TestRemoveCredentials(t *testing.T) {
 	}
 }
 
+func TestLoadCredentials_CorruptJSON(t *testing.T) {
+	tmpDir := t.TempDir()
+	credsFile := filepath.Join(tmpDir, "credentials")
+	_ = os.WriteFile(credsFile, []byte("not valid json{{{"), 0600)
+
+	_, err := LoadCredentials(credsFile)
+	if err == nil {
+		t.Fatal("LoadCredentials() should error on corrupt JSON")
+	}
+}
+
+func TestLoadCredentials_NilServersField(t *testing.T) {
+	tmpDir := t.TempDir()
+	credsFile := filepath.Join(tmpDir, "credentials")
+	// JSON with no "servers" key — Unmarshal leaves Servers as nil
+	_ = os.WriteFile(credsFile, []byte(`{"default_server":"x"}`), 0600)
+
+	creds, err := LoadCredentials(credsFile)
+	if err != nil {
+		t.Fatalf("LoadCredentials() error = %v", err)
+	}
+	if creds.Servers == nil {
+		t.Fatal("LoadCredentials() should initialize nil Servers map")
+	}
+}
+
+func TestGetAPIKey_NoDefaultServer(t *testing.T) {
+	t.Setenv("DATADATDAT_API_KEY", "")
+	os.Unsetenv("DATADATDAT_API_KEY")
+
+	tmpDir := t.TempDir()
+	credsFile := filepath.Join(tmpDir, "credentials")
+	creds := Credentials{
+		Servers: map[string]ServerCredential{
+			"http://localhost:8080": {APIKey: "key"},
+		},
+		DefaultServer: "", // no default
+	}
+	data, _ := json.Marshal(creds)
+	_ = os.WriteFile(credsFile, data, 0600)
+
+	key := GetAPIKey(credsFile)
+	if key != "" {
+		t.Errorf("GetAPIKey() = %q, want empty (no default server)", key)
+	}
+}
+
+func TestGetAPIKey_DefaultServerNotInMap(t *testing.T) {
+	t.Setenv("DATADATDAT_API_KEY", "")
+	os.Unsetenv("DATADATDAT_API_KEY")
+
+	tmpDir := t.TempDir()
+	credsFile := filepath.Join(tmpDir, "credentials")
+	creds := Credentials{
+		Servers:       map[string]ServerCredential{},
+		DefaultServer: "http://gone:8080",
+	}
+	data, _ := json.Marshal(creds)
+	_ = os.WriteFile(credsFile, data, 0600)
+
+	key := GetAPIKey(credsFile)
+	if key != "" {
+		t.Errorf("GetAPIKey() = %q, want empty (default server not in map)", key)
+	}
+}
+
+func TestGetAPIKey_CorruptFile(t *testing.T) {
+	t.Setenv("DATADATDAT_API_KEY", "")
+	os.Unsetenv("DATADATDAT_API_KEY")
+
+	tmpDir := t.TempDir()
+	credsFile := filepath.Join(tmpDir, "credentials")
+	_ = os.WriteFile(credsFile, []byte("corrupt"), 0600)
+
+	key := GetAPIKey(credsFile)
+	if key != "" {
+		t.Errorf("GetAPIKey() = %q, want empty (corrupt file)", key)
+	}
+}
+
+func TestGetAPIKeyForServer_CorruptFile(t *testing.T) {
+	tmpDir := t.TempDir()
+	credsFile := filepath.Join(tmpDir, "credentials")
+	_ = os.WriteFile(credsFile, []byte("corrupt"), 0600)
+
+	key := GetAPIKeyForServer(credsFile, "http://localhost:8080")
+	if key != "" {
+		t.Errorf("GetAPIKeyForServer() = %q, want empty (corrupt file)", key)
+	}
+}
+
+func TestRemoveCredentials_CorruptFile(t *testing.T) {
+	tmpDir := t.TempDir()
+	credsFile := filepath.Join(tmpDir, "credentials")
+	_ = os.WriteFile(credsFile, []byte("corrupt"), 0600)
+
+	err := RemoveCredentials(credsFile, "http://localhost:8080")
+	if err == nil {
+		t.Fatal("RemoveCredentials() should error on corrupt file")
+	}
+}
+
 func TestRemoveCredentials_NonexistentServer(t *testing.T) {
 	tmpDir := t.TempDir()
 	credsFile := filepath.Join(tmpDir, "credentials")

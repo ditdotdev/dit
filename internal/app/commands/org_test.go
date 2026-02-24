@@ -142,6 +142,219 @@ func TestOrgListCmd_NoAuth(t *testing.T) {
 	}
 }
 
+func TestOrgListCmd_DefaultServer(t *testing.T) {
+	resetOrgFlags()
+	t.Setenv("DATADATDAT_API_KEY", "")
+	os.Unsetenv("DATADATDAT_API_KEY")
+
+	// Mock server
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode([]map[string]interface{}{
+			{"name": "default-org"},
+		})
+	}))
+	defer server.Close()
+
+	tmpDir := t.TempDir()
+	credsFile := filepath.Join(tmpDir, "credentials")
+	origCredentialsPath := credentialsPathOverride
+	credentialsPathOverride = credsFile
+	defer func() { credentialsPathOverride = origCredentialsPath }()
+
+	// Store credentials with default server — no --server flag
+	creds := common.Credentials{
+		Servers: map[string]common.ServerCredential{
+			server.URL: {APIKey: "default-key"},
+		},
+		DefaultServer: server.URL,
+	}
+	data, _ := json.Marshal(creds)
+	_ = os.WriteFile(credsFile, data, 0600)
+
+	buf := new(bytes.Buffer)
+	rootCmd.SetOut(buf)
+	rootCmd.SetErr(buf)
+	rootCmd.SetArgs([]string{"org", "list"}) // no --server flag
+
+	err := rootCmd.Execute()
+	if err != nil {
+		t.Fatalf("org list with default server error = %v", err)
+	}
+}
+
+func TestOrgListCmd_NoServerConfigured(t *testing.T) {
+	resetOrgFlags()
+	t.Setenv("DATADATDAT_API_KEY", "some-key")
+
+	tmpDir := t.TempDir()
+	credsFile := filepath.Join(tmpDir, "credentials")
+	origCredentialsPath := credentialsPathOverride
+	credentialsPathOverride = credsFile
+	defer func() { credentialsPathOverride = origCredentialsPath }()
+
+	// Empty credentials — no default server
+	creds := common.Credentials{
+		Servers:       map[string]common.ServerCredential{},
+		DefaultServer: "",
+	}
+	data, _ := json.Marshal(creds)
+	_ = os.WriteFile(credsFile, data, 0600)
+
+	buf := new(bytes.Buffer)
+	rootCmd.SetOut(buf)
+	rootCmd.SetErr(buf)
+	rootCmd.SetArgs([]string{"org", "list"}) // no --server, no default
+
+	err := rootCmd.Execute()
+	if err == nil {
+		t.Fatal("org list without server should return error")
+	}
+}
+
+func TestOrgListCmd_ServerError(t *testing.T) {
+	resetOrgFlags()
+	t.Setenv("DATADATDAT_API_KEY", "test-key")
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusInternalServerError)
+		_, _ = w.Write([]byte("internal error"))
+	}))
+	defer server.Close()
+
+	tmpDir := t.TempDir()
+	credsFile := filepath.Join(tmpDir, "credentials")
+	origCredentialsPath := credentialsPathOverride
+	credentialsPathOverride = credsFile
+	defer func() { credentialsPathOverride = origCredentialsPath }()
+
+	creds := common.Credentials{
+		Servers: map[string]common.ServerCredential{
+			server.URL: {APIKey: "test-key"},
+		},
+		DefaultServer: server.URL,
+	}
+	data, _ := json.Marshal(creds)
+	_ = os.WriteFile(credsFile, data, 0600)
+
+	buf := new(bytes.Buffer)
+	rootCmd.SetOut(buf)
+	rootCmd.SetErr(buf)
+	rootCmd.SetArgs([]string{"org", "list", "--server", server.URL})
+
+	err := rootCmd.Execute()
+	if err == nil {
+		t.Fatal("org list with server error should return error")
+	}
+}
+
+func TestOrgListCmd_ServerUnauthorized(t *testing.T) {
+	resetOrgFlags()
+	t.Setenv("DATADATDAT_API_KEY", "bad-key")
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusUnauthorized)
+	}))
+	defer server.Close()
+
+	tmpDir := t.TempDir()
+	credsFile := filepath.Join(tmpDir, "credentials")
+	origCredentialsPath := credentialsPathOverride
+	credentialsPathOverride = credsFile
+	defer func() { credentialsPathOverride = origCredentialsPath }()
+
+	creds := common.Credentials{
+		Servers: map[string]common.ServerCredential{
+			server.URL: {APIKey: "bad-key"},
+		},
+		DefaultServer: server.URL,
+	}
+	data, _ := json.Marshal(creds)
+	_ = os.WriteFile(credsFile, data, 0600)
+
+	buf := new(bytes.Buffer)
+	rootCmd.SetOut(buf)
+	rootCmd.SetErr(buf)
+	rootCmd.SetArgs([]string{"org", "list", "--server", server.URL})
+
+	err := rootCmd.Execute()
+	if err == nil {
+		t.Fatal("org list with 401 should return error")
+	}
+}
+
+func TestOrgListCmd_EmptyList(t *testing.T) {
+	resetOrgFlags()
+	t.Setenv("DATADATDAT_API_KEY", "test-key")
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte("[]"))
+	}))
+	defer server.Close()
+
+	tmpDir := t.TempDir()
+	credsFile := filepath.Join(tmpDir, "credentials")
+	origCredentialsPath := credentialsPathOverride
+	credentialsPathOverride = credsFile
+	defer func() { credentialsPathOverride = origCredentialsPath }()
+
+	creds := common.Credentials{
+		Servers: map[string]common.ServerCredential{
+			server.URL: {APIKey: "test-key"},
+		},
+		DefaultServer: server.URL,
+	}
+	data, _ := json.Marshal(creds)
+	_ = os.WriteFile(credsFile, data, 0600)
+
+	buf := new(bytes.Buffer)
+	rootCmd.SetOut(buf)
+	rootCmd.SetErr(buf)
+	rootCmd.SetArgs([]string{"org", "list", "--server", server.URL})
+
+	err := rootCmd.Execute()
+	if err != nil {
+		t.Fatalf("org list with empty list error = %v", err)
+	}
+}
+
+func TestOrgListCmd_BadJSON(t *testing.T) {
+	resetOrgFlags()
+	t.Setenv("DATADATDAT_API_KEY", "test-key")
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte("not json"))
+	}))
+	defer server.Close()
+
+	tmpDir := t.TempDir()
+	credsFile := filepath.Join(tmpDir, "credentials")
+	origCredentialsPath := credentialsPathOverride
+	credentialsPathOverride = credsFile
+	defer func() { credentialsPathOverride = origCredentialsPath }()
+
+	creds := common.Credentials{
+		Servers: map[string]common.ServerCredential{
+			server.URL: {APIKey: "test-key"},
+		},
+		DefaultServer: server.URL,
+	}
+	data, _ := json.Marshal(creds)
+	_ = os.WriteFile(credsFile, data, 0600)
+
+	buf := new(bytes.Buffer)
+	rootCmd.SetOut(buf)
+	rootCmd.SetErr(buf)
+	rootCmd.SetArgs([]string{"org", "list", "--server", server.URL})
+
+	err := rootCmd.Execute()
+	if err == nil {
+		t.Fatal("org list with bad JSON should return error")
+	}
+}
+
 func TestOrgListCmd_LsAlias(t *testing.T) {
 	resetOrgFlags()
 	// Verify "org ls" works as alias for "org list"
