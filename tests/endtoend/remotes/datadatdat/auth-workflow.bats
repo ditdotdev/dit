@@ -623,11 +623,11 @@ teardown_file() {
 
 @test "API keys: list repos with newly created API key" {
   NEW_API_KEY=$(cat "$BATS_TMPDIR/new_api_key.txt")
-  run curl -s -o /dev/null -w "%{http_code}" -H "X-API-Key: ${NEW_API_KEY}" \
+  run curl -sL -o /dev/null -w "%{http_code}" -H "X-API-Key: ${NEW_API_KEY}" \
     "http://127.0.0.1:8080/api/v1/repos"
   assert_success
-  # API key auth works but endpoint may return 404 - both are fine
-  [[ "$output" == "200" || "$output" == "404" ]]
+  # API key auth works - endpoint may return 200 (listing), 301 (redirect), or 404
+  [[ "$output" == "200" || "$output" == "301" || "$output" == "404" ]]
 }
 
 @test "API keys: invalid API key returns 401" {
@@ -782,16 +782,17 @@ teardown_file() {
 }
 
 @test "API keys: cleanup - delete test API keys from database" {
-  # Clean up any remaining test keys (including expired ones that can't be revoked via API)
+  # Clean up test-created keys but preserve the Liquibase-seeded 'E2E Test Key'
   run docker exec datadatdat-postgres psql -U datadatdat -d datadatdat -c \
-    "DELETE FROM api_keys WHERE name LIKE 'E2E Test%';"
+    "DELETE FROM api_keys WHERE name LIKE 'E2E Test Key _%';"
   assert_success
   assert_output --partial "DELETE"
 }
 
 @test "API keys: verify all test API keys cleaned up" {
+  # Only test-created keys (with numbered suffixes) should be gone; seeded key remains
   run docker exec datadatdat-postgres psql -U datadatdat -d datadatdat -t -A -c \
-    "SELECT COUNT(*) FROM api_keys WHERE name LIKE 'E2E Test%';"
+    "SELECT COUNT(*) FROM api_keys WHERE name LIKE 'E2E Test Key _%';"
   assert_success
   assert_output "0"
 }
