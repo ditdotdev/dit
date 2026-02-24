@@ -86,6 +86,9 @@ test-datadatdat-workflow-prod:
 test-auth-workflow:
 	bats tests/endtoend/remotes/datadatdat/auth-workflow.bats
 
+test-org-workflow:
+	bats tests/endtoend/remotes/datadatdat/org-workflow.bats
+
 test-auth-workflow-prod:
 	bats tests/endtoend/remotes/datadatdat/auth-workflow-prod.bats
 
@@ -95,4 +98,4 @@ test-multi-context:
 # TODO: diagnose test-multi-context test-db-matrix in gh actions and readd to e2e
 e2e: test-install test-getting-started test-tags test-docker-context test-s3-workflow test-ssh-workflow test-uninstall
 
-e2e-server: test-install test-datadatdat-workflow test-auth-workflow test-uninstall
+e2e-server: test-install test-datadatdat-workflow test-auth-workflow test-org-workflow test-uninstall
