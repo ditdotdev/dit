@@ -22,7 +22,9 @@ func TestOrgListCmd_DisplaysOrgs(t *testing.T) {
 	resetOrgFlags()
 	// Ensure env var doesn't interfere — must use stored credentials
 	t.Setenv("DATADATDAT_API_KEY", "")
-	os.Unsetenv("DATADATDAT_API_KEY")
+	if err := os.Unsetenv("DATADATDAT_API_KEY"); err != nil {
+		t.Fatalf("failed to unset env: %v", err)
+	}
 
 	// Mock server that returns a list of orgs
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -123,7 +125,9 @@ func TestOrgListCmd_WithEnvVar(t *testing.T) {
 func TestOrgListCmd_NoAuth(t *testing.T) {
 	resetOrgFlags()
 	t.Setenv("DATADATDAT_API_KEY", "")
-	os.Unsetenv("DATADATDAT_API_KEY")
+	if err := os.Unsetenv("DATADATDAT_API_KEY"); err != nil {
+		t.Fatalf("failed to unset env: %v", err)
+	}
 
 	tmpDir := t.TempDir()
 	credsFile := filepath.Join(tmpDir, "credentials")
@@ -145,7 +149,9 @@ func TestOrgListCmd_NoAuth(t *testing.T) {
 func TestOrgListCmd_DefaultServer(t *testing.T) {
 	resetOrgFlags()
 	t.Setenv("DATADATDAT_API_KEY", "")
-	os.Unsetenv("DATADATDAT_API_KEY")
+	if err := os.Unsetenv("DATADATDAT_API_KEY"); err != nil {
+		t.Fatalf("failed to unset env: %v", err)
+	}
 
 	// Mock server
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -360,7 +366,7 @@ func TestOrgListCmd_LsAlias(t *testing.T) {
 	// Verify "org ls" works as alias for "org list"
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
-		fmt.Fprintln(w, "[]")
+		_, _ = fmt.Fprintln(w, "[]")
 	}))
 	defer server.Close()
 

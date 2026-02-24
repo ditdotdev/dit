@@ -34,7 +34,7 @@ func (ce commandExecutor) Exec(name string, arg ...string) (string, error) {
 	if ce.debug {
 		fmt.Printf("Executing: %s %v\n", name, arg)
 	}
-	out, err := exec.Command(name, arg...).CombinedOutput()
+	out, err := exec.Command(name, arg...).CombinedOutput() //nolint:gosec // command executor by design runs variable commands
 	if ce.debug && err != nil {
 		fmt.Printf("Command failed with error: %v\n", err)
 		fmt.Printf("Command output: %s\n", string(out))
