@@ -9,7 +9,7 @@ import (
 
 // ServerCredential holds authentication credentials for a single server.
 type ServerCredential struct {
-	APIKey string `json:"api_key"`
+	APIKey string `json:"api_key"` //nolint:gosec // not a hardcoded credential, just a struct field name
 }
 
 // Credentials holds all stored server credentials.
@@ -32,7 +32,7 @@ func CredentialsPath() string {
 func LoadCredentials(path string) (Credentials, error) {
 	empty := Credentials{Servers: make(map[string]ServerCredential)}
 
-	data, err := os.ReadFile(path)
+	data, err := os.ReadFile(path) //nolint:gosec // path is from controlled config, not user input
 	if err != nil {
 		if os.IsNotExist(err) {
 			return empty, nil

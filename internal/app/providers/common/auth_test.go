@@ -30,7 +30,9 @@ func TestGetAPIKey_EnvVarOverride(t *testing.T) {
 
 func TestGetAPIKey_FallsBackToStored(t *testing.T) {
 	t.Setenv("DATADATDAT_API_KEY", "")
-	os.Unsetenv("DATADATDAT_API_KEY")
+	if err := os.Unsetenv("DATADATDAT_API_KEY"); err != nil {
+		t.Fatalf("failed to unset env: %v", err)
+	}
 
 	tmpDir := t.TempDir()
 	credsFile := filepath.Join(tmpDir, "credentials")
@@ -51,7 +53,9 @@ func TestGetAPIKey_FallsBackToStored(t *testing.T) {
 
 func TestGetAPIKey_NoCredentials(t *testing.T) {
 	t.Setenv("DATADATDAT_API_KEY", "")
-	os.Unsetenv("DATADATDAT_API_KEY")
+	if err := os.Unsetenv("DATADATDAT_API_KEY"); err != nil {
+		t.Fatalf("failed to unset env: %v", err)
+	}
 
 	key := GetAPIKey("/nonexistent/credentials")
 	if key != "" {
@@ -256,7 +260,9 @@ func TestLoadCredentials_NilServersField(t *testing.T) {
 
 func TestGetAPIKey_NoDefaultServer(t *testing.T) {
 	t.Setenv("DATADATDAT_API_KEY", "")
-	os.Unsetenv("DATADATDAT_API_KEY")
+	if err := os.Unsetenv("DATADATDAT_API_KEY"); err != nil {
+		t.Fatalf("failed to unset env: %v", err)
+	}
 
 	tmpDir := t.TempDir()
 	credsFile := filepath.Join(tmpDir, "credentials")
@@ -277,7 +283,9 @@ func TestGetAPIKey_NoDefaultServer(t *testing.T) {
 
 func TestGetAPIKey_DefaultServerNotInMap(t *testing.T) {
 	t.Setenv("DATADATDAT_API_KEY", "")
-	os.Unsetenv("DATADATDAT_API_KEY")
+	if err := os.Unsetenv("DATADATDAT_API_KEY"); err != nil {
+		t.Fatalf("failed to unset env: %v", err)
+	}
 
 	tmpDir := t.TempDir()
 	credsFile := filepath.Join(tmpDir, "credentials")
@@ -296,7 +304,9 @@ func TestGetAPIKey_DefaultServerNotInMap(t *testing.T) {
 
 func TestGetAPIKey_CorruptFile(t *testing.T) {
 	t.Setenv("DATADATDAT_API_KEY", "")
-	os.Unsetenv("DATADATDAT_API_KEY")
+	if err := os.Unsetenv("DATADATDAT_API_KEY"); err != nil {
+		t.Fatalf("failed to unset env: %v", err)
+	}
 
 	tmpDir := t.TempDir()
 	credsFile := filepath.Join(tmpDir, "credentials")
