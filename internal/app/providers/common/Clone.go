@@ -38,6 +38,7 @@ func Clone(uri string, repo string, guid string, params []string, args []string,
 		Properties: make(map[string]interface{}),
 	}
 	plainUri := parsedUri.Scheme + "://" + parsedUri.Host + parsedUri.Path
+	serverUrl := parsedUri.Scheme + "://" + parsedUri.Host
 	if len(parsedUri.Query()) > 0 {
 		tag := parsedUri.Query().Get("tag")
 		tags = append(tags, tag)
@@ -65,7 +66,7 @@ func Clone(uri string, repo string, guid string, params []string, args []string,
 			commitsOpts := &client.ListRemoteCommitsOpts{Tag: optTags}
 			remoteCommits, resp, err := remotesApi.ListRemoteCommits(ctx, repoName, rm.Name, p, commitsOpts)
 			if err != nil {
-				handleRemoteError(err, resp, plainUri)
+				handleRemoteError(err, resp, serverUrl)
 				removeRepo(repoName, port, context)
 				return
 			}
@@ -84,7 +85,7 @@ func Clone(uri string, repo string, guid string, params []string, args []string,
 			}
 			c, resp, err := remotesApi.GetRemoteCommit(ctx, repoName, rm.Name, commitId, p)
 			if err != nil {
-				handleRemoteError(err, resp, plainUri)
+				handleRemoteError(err, resp, serverUrl)
 				removeRepo(repoName, port, context)
 				return
 			}
