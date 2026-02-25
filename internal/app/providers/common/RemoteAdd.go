@@ -35,13 +35,11 @@ func RemoteAdd(repo string, uri string, remoteName string, params map[string]str
 		fmt.Printf("Error parsing URI '%s': %v\n", uri, err)
 		os.Exit(1)
 	}
-	fmt.Printf("DEBUG: ParseURL returned provider='%s', props=%+v\n", provider, props)
 	r := client.Remote{
 		Provider:   provider,
 		Name:       name,
 		Properties: props,
 	}
-	fmt.Printf("DEBUG: Creating remote with provider='%s', name='%s'\n", r.Provider, r.Name)
 	_, _, err = remotesApi.CreateRemote(ctx, repo, r)
 	if err != nil {
 		fmt.Printf("Error creating remote: %v\n", err)
