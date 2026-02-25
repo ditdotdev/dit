@@ -12,6 +12,7 @@ import (
 	"github.com/antihax/optional"
 	client "github.com/datadatdat/datadatdat-client-go"
 	"github.com/datadatdat/remote-sdk-go/remote"
+	"net/http"
 )
 
 func Clone(uri string, repo string, guid string, params []string, args []string, disablePortMap bool, tags []string, port int, context string) {
@@ -62,7 +63,12 @@ func Clone(uri string, repo string, guid string, params []string, args []string,
 		if commitId == "" {
 			optTags := optional.NewInterface(tags)
 			commitsOpts := &client.ListRemoteCommitsOpts{Tag: optTags}
-			remoteCommits, _, _ := remotesApi.ListRemoteCommits(ctx, repoName, rm.Name, p, commitsOpts)
+			remoteCommits, resp, err := remotesApi.ListRemoteCommits(ctx, repoName, rm.Name, p, commitsOpts)
+			if err != nil {
+				handleRemoteError(err, resp, plainUri)
+				removeRepo(repoName, port, context)
+				return
+			}
 			if len(remoteCommits) == 0 {
 				fmt.Println("unable to find any matching commits in remote repository")
 				removeRepo(repoName, port, context)
@@ -76,7 +82,12 @@ func Clone(uri string, repo string, guid string, params []string, args []string,
 			if len(tags) > 0 {
 				fmt.Println("tags cannot be specified with commit ID")
 			}
-			c, _, _ := remotesApi.GetRemoteCommit(ctx, repoName, rm.Name, commitId, p)
+			c, resp, err := remotesApi.GetRemoteCommit(ctx, repoName, rm.Name, commitId, p)
+			if err != nil {
+				handleRemoteError(err, resp, plainUri)
+				removeRepo(repoName, port, context)
+				return
+			}
 			commit = client.Commit{
 				Id:         c.Id,
 				Properties: c.Properties,
@@ -116,6 +127,18 @@ func Clone(uri string, repo string, guid string, params []string, args []string,
 	}
 	if cleanup {
 		removeRepo(repoName, port, context)
+	}
+}
+
+func handleRemoteError(err error, resp *http.Response, uri string) {
+	if resp != nil && resp.StatusCode == http.StatusUnauthorized {
+		if uri != "" {
+			fmt.Printf("authentication required: run 'd3 auth login --server %s' to authenticate\n", uri)
+		} else {
+			fmt.Println("authentication required: run 'd3 auth login' to authenticate")
+		}
+	} else {
+		fmt.Printf("error communicating with remote: %v\n", err)
 	}
 }
 
