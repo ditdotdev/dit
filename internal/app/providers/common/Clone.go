@@ -119,7 +119,9 @@ func Clone(uri string, repo string, guid string, params []string, args []string,
 		metadataDisablePortMap := metadata.GetDisablePortMap()
 		finalDisablePortMap := disablePortMap || metadataDisablePortMap
 		m, err := local.Run(imageRef, repoName, envs, args, finalDisablePortMap, privileged, false, port, context)
-		if err == nil {
+		if err != nil {
+			fmt.Printf("failed to run container: %v\n", err)
+		} else {
 			fmt.Println(m)
 			Pull(repoName, commit.Id, "", make([]string, 0), false, port)
 			local.Checkout(repoName, commit.Id, nil, port, context)
