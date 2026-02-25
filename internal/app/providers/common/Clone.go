@@ -66,6 +66,7 @@ func Clone(uri string, repo string, guid string, params []string, args []string,
 			if len(remoteCommits) == 0 {
 				fmt.Println("unable to find any matching commits in remote repository")
 				removeRepo(repoName, port, context)
+				return
 			}
 			commit = client.Commit{
 				Id:         remoteCommits[0].Id,
