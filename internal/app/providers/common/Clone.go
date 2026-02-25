@@ -144,7 +144,6 @@ func handleRemoteError(err error, resp *http.Response, uri string) {
 }
 
 func removeRepo(repoName string, port int, context string) {
-	fmt.Println("repository '" + repoName + "' already exists")
 	local.Remove(repoName, true, port, context)
 	os.Exit(1)
 }
