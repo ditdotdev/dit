@@ -27,6 +27,7 @@ teardown_file() {
   "$D3" rm -f clonetest 2>/dev/null || true
   "$D3" rm -f clonecommittest 2>/dev/null || true
   "$D3" rm -f clonecommittest2 2>/dev/null || true
+  "$D3" rm -f cloneauthtest 2>/dev/null || true
   curl -X DELETE -sf -H "Authorization: Bearer ${DATADATDAT_API_KEY}" \
     "http://127.0.0.1:8080/api/v1/repos/clonetest/clonecommit" 2>/dev/null || true
 }
@@ -184,6 +185,27 @@ teardown_file() {
   assert_success
   assert_output --partial "Alice"
   assert_output --partial "Bob"
+}
+
+# ===== Test: clone without auth shows helpful error =====
+
+@test "clone-c: logout to clear stored credentials" {
+  "$D3" auth logout --server http://datadatdat-api-gateway:8080 2>/dev/null || true
+}
+
+@test "clone-c: clone without auth fails with authentication error" {
+  run env -u DATADATDAT_API_KEY "$D3" clone http://datadatdat-api-gateway:8080/clonetest/clonecommit -n cloneauthtest
+  assert_failure
+  assert_output --partial "authentication"
+}
+
+@test "clone-c: cleanup unauthenticated clone attempt" {
+  "$D3" rm -f cloneauthtest 2>/dev/null || true
+}
+
+@test "clone-c: re-login for final cleanup" {
+  run "$D3" auth login --server http://datadatdat-api-gateway:8080 --api-key "$DATADATDAT_API_KEY"
+  assert_success
 }
 
 @test "clone-c: final cleanup" {
