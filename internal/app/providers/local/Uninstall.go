@@ -22,6 +22,14 @@ func Uninstall(version string, force bool, removeImages bool, port int, context 
 			Remove(repo.Name, true, port, context)
 		}
 	}
+
+	// Teardown ZFS pools, network, and mounts before removing containers and volumes.
+	// The teardown script needs the network and volume to still be intact.
+	fmt.Println("Tearing down Datadatdat servers")
+	if _, err := docker.TeardownDatadatdatServers(); err != nil {
+		fmt.Printf("Warning: Failed to teardown datadatdat servers: %v\n", err)
+	}
+
 	if serverAvailable {
 		s, err := docker.RemoveDatadatdatServer()
 		if err != nil {
@@ -38,13 +46,8 @@ func Uninstall(version string, force bool, removeImages bool, port int, context 
 		}
 	}
 
-	fmt.Println("Tearing down Datadatdat servers")
-	if _, err := docker.TeardownDatadatdatServers(); err != nil { //TODO track this
-		fmt.Printf("Warning: Failed to teardown datadatdat servers: %v\n", err)
-	}
-
 	fmt.Println("Removing datadatdat-data Docker volume")
-	if _, err := docker.RemoveDatadatdatVolume(); err != nil { //TODO track this
+	if _, err := docker.RemoveDatadatdatVolume(); err != nil {
 		fmt.Printf("Warning: Failed to remove datadatdat volume: %v\n", err)
 	}
 
