@@ -1,7 +1,6 @@
 package app
 
 import (
-	"fmt"
 	"strconv"
 	"strings"
 )
@@ -24,7 +23,6 @@ func (Version) FromString(version string) Version {
 	}
 
 	v := strings.Split(cleanVersion, ".")
-	fmt.Printf("DEBUG Version.FromString: version='%s', cleaned='%s', split result=%v, length=%d\n", version, cleanVersion, v, len(v))
 	if len(v) < 3 {
 		// Handle malformed version strings gracefully
 		major, _ := strconv.Atoi(v[0])

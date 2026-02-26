@@ -12,6 +12,7 @@ import (
 	"github.com/antihax/optional"
 	client "github.com/datadatdat/datadatdat-client-go"
 	"github.com/datadatdat/remote-sdk-go/remote"
+	"net/http"
 )
 
 func Clone(uri string, repo string, guid string, params []string, args []string, disablePortMap bool, tags []string, port int, context string) {
@@ -37,6 +38,7 @@ func Clone(uri string, repo string, guid string, params []string, args []string,
 		Properties: make(map[string]interface{}),
 	}
 	plainUri := parsedUri.Scheme + "://" + parsedUri.Host + parsedUri.Path
+	serverUrl := parsedUri.Scheme + "://" + parsedUri.Host
 	if len(parsedUri.Query()) > 0 {
 		tag := parsedUri.Query().Get("tag")
 		tags = append(tags, tag)
@@ -62,10 +64,16 @@ func Clone(uri string, repo string, guid string, params []string, args []string,
 		if commitId == "" {
 			optTags := optional.NewInterface(tags)
 			commitsOpts := &client.ListRemoteCommitsOpts{Tag: optTags}
-			remoteCommits, _, _ := remotesApi.ListRemoteCommits(ctx, repoName, rm.Name, p, commitsOpts)
+			remoteCommits, resp, err := remotesApi.ListRemoteCommits(ctx, repoName, rm.Name, p, commitsOpts)
+			if err != nil {
+				handleRemoteError(err, resp, serverUrl)
+				removeRepo(repoName, port, context)
+				return
+			}
 			if len(remoteCommits) == 0 {
 				fmt.Println("unable to find any matching commits in remote repository")
 				removeRepo(repoName, port, context)
+				return
 			}
 			commit = client.Commit{
 				Id:         remoteCommits[0].Id,
@@ -75,7 +83,12 @@ func Clone(uri string, repo string, guid string, params []string, args []string,
 			if len(tags) > 0 {
 				fmt.Println("tags cannot be specified with commit ID")
 			}
-			c, _, _ := remotesApi.GetRemoteCommit(ctx, repoName, rm.Name, commitId, p)
+			c, resp, err := remotesApi.GetRemoteCommit(ctx, repoName, rm.Name, commitId, p)
+			if err != nil {
+				handleRemoteError(err, resp, serverUrl)
+				removeRepo(repoName, port, context)
+				return
+			}
 			commit = client.Commit{
 				Id:         c.Id,
 				Properties: c.Properties,
@@ -106,7 +119,9 @@ func Clone(uri string, repo string, guid string, params []string, args []string,
 		metadataDisablePortMap := metadata.GetDisablePortMap()
 		finalDisablePortMap := disablePortMap || metadataDisablePortMap
 		m, err := local.Run(imageRef, repoName, envs, args, finalDisablePortMap, privileged, false, port, context)
-		if err == nil {
+		if err != nil {
+			fmt.Printf("failed to run container: %v\n", err)
+		} else {
 			fmt.Println(m)
 			Pull(repoName, commit.Id, "", make([]string, 0), false, port)
 			local.Checkout(repoName, commit.Id, nil, port, context)
@@ -118,8 +133,19 @@ func Clone(uri string, repo string, guid string, params []string, args []string,
 	}
 }
 
+func handleRemoteError(err error, resp *http.Response, uri string) {
+	if resp != nil && resp.StatusCode == http.StatusUnauthorized {
+		if uri != "" {
+			fmt.Printf("authentication required: run 'd3 auth login --server %s' to authenticate\n", uri)
+		} else {
+			fmt.Println("authentication required: run 'd3 auth login' to authenticate")
+		}
+	} else {
+		fmt.Printf("error communicating with remote: %v\n", err)
+	}
+}
+
 func removeRepo(repoName string, port int, context string) {
-	fmt.Println("repository '" + repoName + "' already exists")
 	local.Remove(repoName, true, port, context)
 	os.Exit(1)
 }

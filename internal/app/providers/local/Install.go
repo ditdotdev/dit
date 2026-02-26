@@ -40,17 +40,14 @@ func Install(latest string, registry string, verbose bool, port int, context str
 		s.FinalMSG = "Latest docker image downloaded"
 		s.Start()
 		pullImage := pullRegistry + "/datadatdat:" + latest
-		fmt.Printf("DEBUG: Pulling image: %s\n", pullImage)
 		if _, err := docker.Pull(pullImage); err != nil {
 			fmt.Printf("Error pulling image %s: %v\n", pullImage, err)
 			os.Exit(1)
 		}
 		tagLatest := "datadatdat:" + latest
-		fmt.Printf("DEBUG: Tagging %s as %s\n", pullImage, tagLatest)
 		if _, err := docker.Tag(pullImage, tagLatest); err != nil {
 			fmt.Printf("Error tagging image: %v\n", err)
 		}
-		fmt.Printf("DEBUG: Tagging %s as datadatdat\n", pullImage)
 		if _, err := docker.Tag(pullImage, "datadatdat"); err != nil {
 			fmt.Printf("Error tagging image as datadatdat: %v\n", err)
 		}

@@ -3,6 +3,7 @@ package common
 import (
 	util "datadatdat/internal/app/utils"
 	"fmt"
+	"net/http"
 	"os"
 	"strconv"
 
@@ -43,11 +44,20 @@ func Pull(repoName string, guid string, remoteName string, tags []string, metada
 			fmt.Println("tags cannot be specified when commit is also specified")
 			os.Exit(1)
 		}
-		commit, _, _ = remotesApi.GetRemoteCommit(ctx, repoName, remote.Name, guid, params)
+		var resp *http.Response
+		commit, resp, err = remotesApi.GetRemoteCommit(ctx, repoName, remote.Name, guid, params)
+		if err != nil {
+			handleRemoteError(err, resp, "")
+			os.Exit(1)
+		}
 	} else {
 		o := optional.NewInterface(tags)
 		opts := datadatdatclient.ListRemoteCommitsOpts{Tag: o}
-		remoteCommits, _, _ := remotesApi.ListRemoteCommits(ctx, repoName, remote.Name, params, &opts)
+		remoteCommits, resp, err := remotesApi.ListRemoteCommits(ctx, repoName, remote.Name, params, &opts)
+		if err != nil {
+			handleRemoteError(err, resp, "")
+			os.Exit(1)
+		}
 		if len(remoteCommits) == 0 {
 			fmt.Println("no matching commits found in remote, unable to pull latest")
 			os.Exit(1)
