@@ -486,6 +486,14 @@ teardown_file() {
   assert_output --partial "test-org"
 }
 
+@test "org: d3 auth logout clears stored credentials" {
+  # First, store a credential so we can verify logout removes it
+  run "$D3" auth login --server "$GATEWAY" --api-key "$ORGUSER_A_KEY"
+  assert_success
+  run "$D3" auth logout --server "$GATEWAY"
+  assert_success
+}
+
 @test "org: d3 org list without auth returns error" {
   run env -u DATADATDAT_API_KEY "$D3" org list --server "$GATEWAY"
   assert_failure

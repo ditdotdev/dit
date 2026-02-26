@@ -44,6 +44,19 @@ teardown_file() {
   assert_output --partial "Running controlled container datadatdattest"
 }
 
+@test "d3 ls shows new repository" {
+  run "$D3" ls
+  assert_success
+  assert_output --partial "datadatdattest"
+  assert_output --partial "running"
+}
+
+@test "d3 status shows running container" {
+  run "$D3" status datadatdattest
+  assert_success
+  assert_output --partial "running"
+}
+
 @test "create new commit" {
   run "$D3" commit -m "datadatdattest Commit" datadatdattest
   assert_success
@@ -128,6 +141,24 @@ teardown_file() {
   assert_output --partial "Checkout ${COMMIT_GUID}"
   assert_output --partial "Starting container datadatdattest"
   assert_output --partial "${COMMIT_GUID} checked out"
+}
+
+@test "d3 status shows commit after checkout" {
+  COMMIT_GUID=$(cat "$BATS_TMPDIR/commit_guid.txt")
+  run "$D3" status datadatdattest
+  assert_success
+  assert_output --partial "running"
+  assert_output --partial "$COMMIT_GUID"
+}
+
+@test "d3 remote log shows author and message after push" {
+  COMMIT_GUID=$(cat "$BATS_TMPDIR/commit_guid.txt")
+  run "$D3" remote log datadatdattest
+  assert_success
+  assert_output --partial "Commit ${COMMIT_GUID}"
+  assert_output --partial "Author:"
+  assert_output --partial "Message:"
+  assert_output --partial "datadatdattest Commit"
 }
 
 @test "create second commit" {
@@ -431,6 +462,33 @@ teardown_file() {
   run "$D3" clone -n webuitestclone http://datadatdat-api-gateway:8080/webtest/ui-repo
   assert_success
   assert_output --partial "checked out"
+}
+
+@test "web UI: d3 ls shows cloned repo" {
+  run "$D3" ls
+  assert_success
+  assert_output --partial "webuitestclone"
+}
+
+@test "web UI: d3 status on cloned repo shows running" {
+  run "$D3" status webuitestclone
+  assert_success
+  assert_output --partial "running"
+  assert_output --partial "/var/lib/postgresql"
+}
+
+@test "web UI: d3 remote log on cloned repo shows all commits" {
+  WEB_COMMIT_1=$(cat "$BATS_TMPDIR/web_commit_1.txt")
+  WEB_COMMIT_2=$(cat "$BATS_TMPDIR/web_commit_2.txt")
+  WEB_COMMIT_3=$(cat "$BATS_TMPDIR/web_commit_3.txt")
+  run "$D3" remote log webuitestclone
+  assert_success
+  assert_output --partial "${WEB_COMMIT_1}"
+  assert_output --partial "${WEB_COMMIT_2}"
+  assert_output --partial "${WEB_COMMIT_3}"
+  assert_output --partial "Initial web UI test commit"
+  assert_output --partial "Added test table"
+  assert_output --partial "Added test data"
 }
 
 @test "web UI: test clone with manifest - verify all commits present" {
