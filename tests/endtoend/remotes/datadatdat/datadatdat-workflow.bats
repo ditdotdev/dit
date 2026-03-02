@@ -268,6 +268,17 @@ teardown_file() {
   assert_output --partial "Initial web UI test commit"
 }
 
+@test "web UI: commit details API includes non-zero size" {
+  WEB_COMMIT_1=$(cat "$BATS_TMPDIR/web_commit_1.txt")
+  run curl -sf -H "Authorization: Bearer ${DATADATDAT_API_KEY}" \
+    "http://127.0.0.1:3000/api/v1/repos/webtest/ui-repo/commits/${WEB_COMMIT_1}"
+  assert_success
+  # Size should be present in the response
+  [[ "$output" == *'"size":'* ]]
+  # Verify size is not 0 (volume archives have actual data)
+  ! [[ "$output" == *'"size":0'* ]]
+}
+
 @test "web UI: make database changes for second commit" {
   run docker exec webuitest psql -U postgres -c \
     "CREATE TABLE test_table (id SERIAL PRIMARY KEY, name VARCHAR(100));"
@@ -388,6 +399,17 @@ teardown_file() {
     "http://127.0.0.1:8080/api/v1/repos"
   assert_success
   assert_output --partial "webtest/ui-repo"
+}
+
+@test "web UI: repos list API includes totalSize" {
+  # Query the specific repo manifest to check totalSize (avoids stale data from other repos)
+  run curl -sLf -H "Authorization: Bearer ${DATADATDAT_API_KEY}" \
+    "http://127.0.0.1:8080/api/v1/repos/webtest/ui-repo/manifest"
+  assert_success
+  # totalSize should be present in the response
+  [[ "$output" == *'"totalSize":'* ]]
+  # Verify totalSize is not 0 (repo has actual volume data)
+  ! [[ "$output" == *'"totalSize":0'* ]]
 }
 
 @test "web UI: verify empty database at first commit" {
