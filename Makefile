@@ -95,6 +95,9 @@ test-clone-commit-workflow:
 test-billing-workflow:
 	bats tests/endtoend/remotes/datadatdat/billing-workflow.bats
 
+test-stripe-integration:
+	bats tests/endtoend/remotes/datadatdat/stripe-integration.bats
+
 test-auth-workflow-prod:
 	bats tests/endtoend/remotes/datadatdat/auth-workflow-prod.bats
 

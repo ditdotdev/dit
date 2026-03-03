@@ -282,6 +282,117 @@ teardown_file() {
 }
 
 # ========================================
+# Billing Subscription — Simulated Checkout + Active Subscription
+# ========================================
+# In E2E tests we cannot complete a real Stripe Checkout (requires browser).
+# Instead we simulate the webhook effect by inserting a subscription directly,
+# then verify the subscription API returns it correctly.
+
+@test "billing: simulate checkout — insert active subscription" {
+  BILLING_USER_ID=$(cat "$BATS_TMPDIR/billing_user_id.txt")
+
+  run docker exec datadatdat-postgres psql -U datadatdat -d datadatdat -c \
+    "INSERT INTO billing_subscriptions (user_id, stripe_subscription_id, stripe_customer_id, status, plan_name, current_period_start, current_period_end, cancel_at_period_end)
+     VALUES ('${BILLING_USER_ID}', 'sub_test_billing_e2e', 'cus_test_billing_e2e', 'active', 'storage', NOW(), NOW() + INTERVAL '30 days', false);"
+  assert_success
+  assert_output --partial "INSERT"
+}
+
+@test "billing: GET /api/v1/billing/subscription returns active subscription" {
+  run curl -s -H "X-API-Key: $BILLING_USER_KEY" \
+    "$AUTH_SERVER/api/v1/billing/subscription"
+  assert_success
+  assert_output --partial '"status":"active"'
+  assert_output --partial '"planName":"storage"'
+  assert_output --partial '"stripeSubscriptionId":"sub_test_billing_e2e"'
+}
+
+@test "billing: subscription response includes period dates" {
+  run curl -s -H "X-API-Key: $BILLING_USER_KEY" \
+    "$AUTH_SERVER/api/v1/billing/subscription"
+  assert_success
+  assert_output --partial '"currentPeriodStart"'
+  assert_output --partial '"currentPeriodEnd"'
+  assert_output --partial '"cancelAtPeriodEnd":false'
+}
+
+@test "billing: simulate subscription canceled at period end" {
+  BILLING_USER_ID=$(cat "$BATS_TMPDIR/billing_user_id.txt")
+
+  run docker exec datadatdat-postgres psql -U datadatdat -d datadatdat -c \
+    "UPDATE billing_subscriptions SET cancel_at_period_end = true, updated_at = NOW()
+     WHERE user_id = '${BILLING_USER_ID}';"
+  assert_success
+}
+
+@test "billing: subscription shows cancelAtPeriodEnd true" {
+  run curl -s -H "X-API-Key: $BILLING_USER_KEY" \
+    "$AUTH_SERVER/api/v1/billing/subscription"
+  assert_success
+  assert_output --partial '"cancelAtPeriodEnd":true'
+  assert_output --partial '"status":"active"'
+}
+
+@test "billing: simulate subscription fully canceled" {
+  BILLING_USER_ID=$(cat "$BATS_TMPDIR/billing_user_id.txt")
+
+  run docker exec datadatdat-postgres psql -U datadatdat -d datadatdat -c \
+    "UPDATE billing_subscriptions SET status = 'canceled', canceled_at = NOW(), updated_at = NOW()
+     WHERE user_id = '${BILLING_USER_ID}';"
+  assert_success
+}
+
+@test "billing: subscription shows canceled status" {
+  run curl -s -H "X-API-Key: $BILLING_USER_KEY" \
+    "$AUTH_SERVER/api/v1/billing/subscription"
+  assert_success
+  assert_output --partial '"status":"canceled"'
+  assert_output --partial '"canceledAt"'
+}
+
+@test "billing: reset subscription to active for remaining tests" {
+  BILLING_USER_ID=$(cat "$BATS_TMPDIR/billing_user_id.txt")
+
+  run docker exec datadatdat-postgres psql -U datadatdat -d datadatdat -c \
+    "UPDATE billing_subscriptions SET status = 'active', cancel_at_period_end = false, canceled_at = NULL, updated_at = NOW()
+     WHERE user_id = '${BILLING_USER_ID}';"
+  assert_success
+}
+
+# ========================================
+# Usage Reporting — Database Fields
+# ========================================
+
+@test "billing: verify usage_reported_for_period is null initially" {
+  BILLING_USER_ID=$(cat "$BATS_TMPDIR/billing_user_id.txt")
+
+  run docker exec datadatdat-postgres psql -U datadatdat -d datadatdat -t -A -c \
+    "SELECT usage_reported_for_period IS NULL FROM billing_subscriptions WHERE user_id = '${BILLING_USER_ID}';"
+  assert_success
+  RESULT=$(echo "$output" | tr -d '[:space:]')
+  [[ "$RESULT" == "t" ]]
+}
+
+@test "billing: simulate usage reported — mark as reported" {
+  BILLING_USER_ID=$(cat "$BATS_TMPDIR/billing_user_id.txt")
+
+  run docker exec datadatdat-postgres psql -U datadatdat -d datadatdat -c \
+    "UPDATE billing_subscriptions SET usage_reported_for_period = NOW(), updated_at = NOW()
+     WHERE user_id = '${BILLING_USER_ID}';"
+  assert_success
+}
+
+@test "billing: verify usage_reported_for_period is set" {
+  BILLING_USER_ID=$(cat "$BATS_TMPDIR/billing_user_id.txt")
+
+  run docker exec datadatdat-postgres psql -U datadatdat -d datadatdat -t -A -c \
+    "SELECT usage_reported_for_period IS NOT NULL FROM billing_subscriptions WHERE user_id = '${BILLING_USER_ID}';"
+  assert_success
+  RESULT=$(echo "$output" | tr -d '[:space:]')
+  [[ "$RESULT" == "t" ]]
+}
+
+# ========================================
 # Webhook Endpoint — Signature Validation
 # ========================================
 
