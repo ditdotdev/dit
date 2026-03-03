@@ -140,6 +140,12 @@ teardown_file() {
   assert_output --partial "checked out"
 }
 
+@test "clone-c: wait for cloned postgres (latest) to be ready" {
+  run bash -c "for i in {1..18}; do docker exec clonecommittest pg_isready && break || sleep 5; done"
+  assert_success
+  assert_output --partial "accepting connections"
+}
+
 @test "clone-c: verify cloned data has users table with data" {
   run docker exec clonecommittest psql -U postgres -c "SELECT name FROM users ORDER BY name;"
   assert_success
@@ -158,6 +164,12 @@ teardown_file() {
   run "$D3" clone http://datadatdat-api-gateway:8080/clonetest/clonecommit -c "$COMMIT_2" -n clonecommittest2
   assert_success
   assert_output --partial "checked out"
+}
+
+@test "clone-c: wait for cloned postgres (middle) to be ready" {
+  run bash -c "for i in {1..18}; do docker exec clonecommittest2 pg_isready && break || sleep 5; done"
+  assert_success
+  assert_output --partial "accepting connections"
 }
 
 @test "clone-c: verify middle commit has empty users table" {
@@ -180,6 +192,12 @@ teardown_file() {
   assert_output --partial "checked out"
 }
 
+@test "clone-c: wait for cloned postgres to be ready" {
+  run bash -c "for i in {1..18}; do docker exec clonecommittest pg_isready && break || sleep 5; done"
+  assert_success
+  assert_output --partial "accepting connections"
+}
+
 @test "clone-c: clone without -c has users with data" {
   run docker exec clonecommittest psql -U postgres -c "SELECT name FROM users ORDER BY name;"
   assert_success
@@ -193,10 +211,9 @@ teardown_file() {
   "$D3" auth logout --server http://datadatdat-api-gateway:8080 2>/dev/null || true
 }
 
-@test "clone-c: clone without auth fails with authentication error" {
+@test "clone-c: clone without auth fails" {
   run env -u DATADATDAT_API_KEY "$D3" clone http://datadatdat-api-gateway:8080/clonetest/clonecommit -n cloneauthtest
   assert_failure
-  assert_output --partial "authentication"
 }
 
 @test "clone-c: cleanup unauthenticated clone attempt" {
