@@ -104,7 +104,37 @@ test-auth-workflow-prod:
 test-multi-context:
 	bats tests/endtoend/multi-context/multi-context.bats
 
-# TODO: diagnose test-multi-context test-db-matrix in gh actions and readd to e2e
-e2e: test-install test-getting-started test-tags test-docker-context test-s3-workflow test-ssh-workflow test-uninstall
+test-container-lifecycle:
+	bats tests/endtoend/container-lifecycle/container-lifecycle.bats
 
-e2e-server: test-install test-datadatdat-workflow test-clone-commit-workflow test-auth-workflow test-org-workflow test-billing-workflow test-uninstall
+test-data-import:
+	bats tests/endtoend/data-import/data-import.bats
+
+test-tag-management:
+	bats tests/endtoend/tags/tag-management.bats
+
+test-upgrade:
+	bats tests/endtoend/infrastructure/upgrade.bats
+
+test-context-list:
+	bats tests/endtoend/context/context-list.bats
+
+test-error-handling:
+	bats tests/endtoend/error-handling/error-handling.bats
+
+test-push-pull-options:
+	bats tests/endtoend/push-pull/push-pull-options.bats
+
+test-abort-workflow:
+	bats tests/endtoend/remotes/datadatdat/abort-workflow.bats
+
+test-auth-status:
+	bats tests/endtoend/remotes/datadatdat/auth-status.bats
+
+test-push-pull-tags-remote:
+	bats tests/endtoend/remotes/datadatdat/push-pull-tags-remote.bats
+
+# TODO: diagnose test-multi-context test-db-matrix in gh actions and readd to e2e
+e2e: test-install test-getting-started test-tags test-tag-management test-docker-context test-container-lifecycle test-context-list test-data-import test-error-handling test-upgrade test-s3-workflow test-push-pull-options test-ssh-workflow test-uninstall
+
+e2e-server: test-install test-datadatdat-workflow test-clone-commit-workflow test-auth-workflow test-auth-status test-org-workflow test-billing-workflow test-abort-workflow test-push-pull-tags-remote test-uninstall
