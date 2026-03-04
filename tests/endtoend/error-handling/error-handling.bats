@@ -1,10 +1,7 @@
 #!/usr/bin/env bats
 
 # E2E Error Handling Tests
-# Verifies d3 CLI behavior for invalid operations
-#
-# NOTE: Several d3 commands return exit 0 even when given non-existent repos.
-# This file documents the actual behavior. See CLI deficiency notes below.
+# Verifies d3 CLI returns non-zero exit codes for invalid operations
 
 # Load shared test helpers
 load '../test_helper'
@@ -30,40 +27,37 @@ teardown_file() {
 }
 
 # ========================================
-# Commands that return exit 0 for non-existent repos (CLI deficiency)
-# These document current behavior - ideally these would return non-zero.
+# Commands that correctly return non-zero for non-existent repos
 # ========================================
 
-@test "d3 log on non-existent repo returns empty output" {
-  # DEFICIENCY: returns exit 0 with empty output
+@test "d3 log on non-existent repo fails" {
   run "$D3" log nonexistent-repo-xyz
-  assert_success
+  assert_failure
+  assert_output --partial "Error"
 }
 
-@test "d3 stop on non-existent repo prints error but exits 0" {
-  # DEFICIENCY: returns exit 0 despite printing error
+@test "d3 stop on non-existent repo fails" {
   run "$D3" stop nonexistent-repo-xyz
-  assert_success
+  assert_failure
   assert_output --partial "Error"
 }
 
-@test "d3 start on non-existent repo prints error but exits 0" {
-  # DEFICIENCY: returns exit 0 despite printing error
+@test "d3 start on non-existent repo fails" {
   run "$D3" start nonexistent-repo-xyz
-  assert_success
+  assert_failure
   assert_output --partial "Error"
 }
 
-@test "d3 status on non-existent repo returns empty data" {
-  # DEFICIENCY: returns exit 0 with just column headers
+@test "d3 status on non-existent repo fails" {
   run "$D3" status nonexistent-repo-xyz
-  assert_success
+  assert_failure
+  assert_output --partial "Error"
 }
 
-@test "d3 commit on non-existent repo exits 0" {
-  # DEFICIENCY: returns exit 0 for non-existent repos
+@test "d3 commit on non-existent repo fails" {
   run "$D3" commit -m "should fail" nonexistent-repo-xyz
-  assert_success
+  assert_failure
+  assert_output --partial "Error"
 }
 
 # ========================================

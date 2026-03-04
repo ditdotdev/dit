@@ -14,7 +14,14 @@ func TagCommit(repo string, guid string, tags []string, port int) {
 	commitTags := make(map[string]string)
 	t, ok := commit.Properties["tags"]
 	if ok {
-		commitTags = t.(map[string]string)
+		switch v := t.(type) {
+		case map[string]string:
+			commitTags = v
+		case map[string]interface{}:
+			for k, val := range v {
+				commitTags[k] = fmt.Sprintf("%v", val)
+			}
+		}
 	}
 	for _, tag := range tags {
 		if strings.Contains(tag, "=") {

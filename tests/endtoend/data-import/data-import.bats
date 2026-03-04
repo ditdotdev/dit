@@ -24,19 +24,18 @@ teardown_file() {
   sleep 5
 }
 
-@test "d3 cp copies file into repository" {
-  # BUG: d3 cp stops the container then fails with "Failed to unmarshal mounts: unexpected end of JSON input"
-  # The cp command stops the container and then cannot parse the mount information from the stopped container.
-  skip "Known CLI bug: d3 cp fails with 'Failed to unmarshal mounts' after stopping container"
-
-  echo "test content for cp" > "$BATS_TMPDIR/cptest_file.txt"
-  run "$D3" cp -s "$BATS_TMPDIR/cptest_file.txt" -d /tmp/ cp-test
+@test "d3 cp copies directory into repository" {
+  # d3 cp copies a directory's contents into a volume mount.
+  # Use repo-relative path since Git Bash /tmp is not visible to Docker Desktop on Windows.
+  mkdir -p "${REPO_ROOT}/cptest_data"
+  echo "test content for cp" > "${REPO_ROOT}/cptest_data/cptest_file.txt"
+  run "$D3" cp -s "${REPO_ROOT}/cptest_data" -d /data/configdb cp-test
+  rm -rf "${REPO_ROOT}/cptest_data"
   assert_success
 }
 
 @test "docker exec confirms copied file exists in container" {
-  skip "Depends on 'd3 cp' which has a known CLI bug"
-  run docker exec cp-test ls /tmp/cptest_file.txt
+  run docker exec cp-test ls /data/configdb/cptest_file.txt
   assert_success
 }
 
@@ -67,31 +66,29 @@ teardown_file() {
   sleep 5
 }
 
-@test "d3 migrate captures unmanaged container" {
-  # BUG: d3 migrate fails with "Container information is not available"
-  # The migrate command cannot read container metadata for containers not on the datadatdat-docker network.
-  skip "Known CLI bug: d3 migrate fails with 'Container information is not available'"
+@test "stop unmanaged container before migrate" {
+  run docker stop migrate-src
+  assert_success
+}
 
+@test "d3 migrate captures unmanaged container" {
   run "$D3" migrate -s migrate-src migrate-dest
   assert_success
 }
 
 @test "d3 ls shows migrated repository" {
-  skip "Depends on 'd3 migrate' which has a known CLI bug"
   run "$D3" ls
   assert_success
   assert_output --partial "migrate-dest"
 }
 
 @test "d3 status on migrated repo shows running" {
-  skip "Depends on 'd3 migrate' which has a known CLI bug"
   run "$D3" status migrate-dest
   assert_success
   assert_output --partial "running"
 }
 
 @test "d3 commit on migrated repo succeeds" {
-  skip "Depends on 'd3 migrate' which has a known CLI bug"
   run "$D3" commit -m "Migrated repo commit" migrate-dest
   assert_success
   assert_output --partial "Commit"

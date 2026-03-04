@@ -7,9 +7,6 @@
 load '../test_helper'
 
 @test "d3 upgrade runs without error" {
-  # DEFICIENCY: d3 upgrade panics with "implement me" - completely unimplemented
-  # See: internal/app/providers/Local.go:151
-  skip "Known CLI deficiency: d3 upgrade is not implemented (panics with 'implement me')"
   run "$D3" upgrade
   assert_success
 }

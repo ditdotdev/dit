@@ -2,9 +2,11 @@ package common
 
 import (
 	"fmt"
+	"os"
+	"strconv"
+
 	"github.com/antihax/optional"
 	client "github.com/datadatdat/datadatdat-client-go"
-	"strconv"
 )
 
 func Log(repo string, tags []string, port int) {
@@ -13,7 +15,15 @@ func Log(repo string, tags []string, port int) {
 	first := true
 	o := optional.NewInterface(tags)
 	opts := client.ListCommitsOpts{Tag: o}
-	commits, _, _ := commitsApi.ListCommits(ctx, repo, &opts)
+	commits, resp, err := commitsApi.ListCommits(ctx, repo, &opts)
+	if err != nil {
+		fmt.Printf("Error listing commits for %s: %v\n", repo, err)
+		os.Exit(1)
+	}
+	if resp != nil && resp.StatusCode >= 400 {
+		fmt.Printf("Error listing commits for %s: server returned %d\n", repo, resp.StatusCode)
+		os.Exit(1)
+	}
 
 	for _, commit := range commits {
 		if !first {
