@@ -224,4 +224,5 @@ teardown_file() {
       aws s3 rm "${URI_BASE}/${db}-${version}" --recursive 2>/dev/null || true
     done
   fi
+  cleanup_stale_aws_processes
 }
