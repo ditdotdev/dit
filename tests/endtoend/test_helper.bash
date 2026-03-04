@@ -81,5 +81,19 @@ get_docker_path() {
   fi
 }
 
+# Kill stale AWS CLI processes that may hang and block subsequent tests
+# Call this in teardown_file() for any test that uses AWS CLI
+cleanup_stale_aws_processes() {
+  local aws_pids
+  aws_pids=$(tasklist 2>/dev/null | grep -i "aws.exe" | awk '{print $2}' || true)
+  if [ -n "$aws_pids" ]; then
+    echo "# WARNING: Found stale aws.exe processes, killing them" >&3 || true
+    echo "$aws_pids" | while read -r pid; do
+      taskkill //PID "$pid" //F 2>/dev/null || true
+    done
+    sleep 1
+  fi
+}
+
 # Load helpers on import
 load_bats_helpers_if_available
