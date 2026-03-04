@@ -135,6 +135,6 @@ test-push-pull-tags-remote:
 	bats tests/endtoend/remotes/datadatdat/push-pull-tags-remote.bats
 
 # TODO: diagnose test-multi-context test-db-matrix in gh actions and readd to e2e
-e2e: test-install test-getting-started test-tags test-tag-management test-docker-context test-container-lifecycle test-context-list test-data-import test-error-handling test-upgrade test-s3-workflow test-push-pull-options test-ssh-workflow test-uninstall
+e2e: test-install test-getting-started test-tags test-tag-management test-docker-context test-container-lifecycle test-context-list test-data-import test-error-handling test-s3-workflow test-push-pull-options test-ssh-workflow test-upgrade test-uninstall
 
 e2e-server: test-install test-datadatdat-workflow test-clone-commit-workflow test-auth-workflow test-auth-status test-org-workflow test-billing-workflow test-abort-workflow test-push-pull-tags-remote test-uninstall

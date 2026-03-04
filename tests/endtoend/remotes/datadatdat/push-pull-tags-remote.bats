@@ -134,15 +134,11 @@ teardown_file() {
 }
 
 @test "push-pull-tags: pull only env=prod commit" {
-  # DEFICIENCY: d3 pull -t (tag-filtered pull) returns "no matching commits found in remote"
-  # on datadatdat remote - the remote API does not support tag-filtered pull
-  skip "Known CLI deficiency: d3 pull -t not supported on datadatdat remote"
   run "$D3" pull -t env=prod tagremote
   assert_success
 }
 
 @test "push-pull-tags: local log shows prod commit" {
-  skip "Depends on 'd3 pull -t' which is not supported on datadatdat remote"
   [ -f "$BATS_TMPDIR/tag_remote_commit_prod.txt" ] || skip "COMMIT_PROD not saved"
   COMMIT_PROD=$(cat "$BATS_TMPDIR/tag_remote_commit_prod.txt")
 
@@ -152,13 +148,11 @@ teardown_file() {
 }
 
 @test "push-pull-tags: pull env=staging commit" {
-  skip "Depends on 'd3 pull -t' which is not supported on datadatdat remote"
   run "$D3" pull -t env=staging tagremote
   assert_success
 }
 
 @test "push-pull-tags: local log shows both commits after pulls" {
-  skip "Depends on 'd3 pull -t' which is not supported on datadatdat remote"
   [ -f "$BATS_TMPDIR/tag_remote_commit_prod.txt" ] || skip "COMMIT_PROD not saved"
   [ -f "$BATS_TMPDIR/tag_remote_commit_staging.txt" ] || skip "COMMIT_STAGING not saved"
   COMMIT_PROD=$(cat "$BATS_TMPDIR/tag_remote_commit_prod.txt")

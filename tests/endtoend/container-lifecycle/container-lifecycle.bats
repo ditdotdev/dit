@@ -117,10 +117,10 @@ teardown_file() {
   assert_output --partial "Error"
 }
 
-@test "d3 status on non-existent repo returns no data" {
+@test "d3 status on non-existent repo prints error" {
   run "$D3" status nonexistent-lifecycle-xyz
-  assert_success
-  # Should have no meaningful status data - just column headers or empty
+  assert_failure
+  assert_output --partial "Error"
 }
 
 # ========================================

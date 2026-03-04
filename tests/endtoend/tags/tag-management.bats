@@ -135,9 +135,6 @@ teardown_file() {
 # ========================================
 
 @test "d3 delete --tags removes env=prod from first commit" {
-  # BUG: d3 delete --tags panics with "interface conversion: interface {} is map[string]interface {}, not map[string]string"
-  # See: internal/app/providers/common/Delete.go:24
-  skip "Known CLI bug: d3 delete --tags panics on type assertion"
   [ -f "$BATS_TMPDIR/tag_commit_one.txt" ] || skip "COMMIT_ONE not saved"
   COMMIT_ONE=$(cat "$BATS_TMPDIR/tag_commit_one.txt")
 
@@ -146,9 +143,8 @@ teardown_file() {
 }
 
 @test "d3 log --tags env=prod no longer returns first commit" {
-  skip "Depends on 'd3 delete --tags' which has a known CLI bug"
-  run "$D3" log -t env=prod tag-mgmt
   [ -f "$BATS_TMPDIR/tag_commit_one.txt" ] || skip "COMMIT_ONE not saved"
+  run "$D3" log -t env=prod tag-mgmt
   COMMIT_ONE=$(cat "$BATS_TMPDIR/tag_commit_one.txt")
 
   if echo "$output" | grep -q "$COMMIT_ONE"; then
