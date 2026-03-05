@@ -11,6 +11,7 @@ import (
 
 type mount struct {
 	Type        string
+	Name        string
 	Source      string
 	Target      string
 	Destination string
@@ -30,29 +31,35 @@ func Copy(repo string, driver string, source string, path string, port int, cont
 			os.Exit(1)
 		}
 	}
-	r, _ := docker.GetValFromContainer(repo, "State", "Running")
-	running, _ := strconv.ParseBool(r)
-	if running {
-		Stop(repo, port)
-	}
-	m, _ := docker.GetValFromContainer(repo, "HostConfig", "Mounts")
+	// Use top-level Mounts (not HostConfig.Mounts which is null for volume-driver mounts)
+	m, _ := docker.GetValFromContainer(repo, "Mounts")
 	var mounts []mount
 	err = json.Unmarshal([]byte(m), &mounts)
 	if err != nil {
 		fmt.Printf("Failed to unmarshal mounts: %v\n", err)
 		os.Exit(1)
 	}
-	if len(mounts) > 1 {
-		fmt.Println(repo + " has more than 1 volume mount. --path is required.")
-		os.Exit(1)
+	r, _ := docker.GetValFromContainer(repo, "State", "Running")
+	running, _ := strconv.ParseBool(r)
+	if running {
+		if err := Stop(repo, port); err != nil {
+			fmt.Printf("Error: failed to stop container: %v\n", err)
+			os.Exit(1)
+		}
 	}
 	if path == "" {
-		path = mounts[0].Target
+		if len(mounts) > 1 {
+			fmt.Println(repo + " has more than 1 volume mount. --destination is required.")
+			os.Exit(1)
+		}
+		path = mounts[0].Destination
 	}
 	for _, mount := range mounts {
-		if mount.Target == path {
+		if mount.Destination == path {
 			fmt.Println("Copying data to " + mount.Source)
-			v := strings.Split(mount.Source, "/")[1]
+			// Extract volume name from Docker volume name (format: "repo_v0" -> "v0")
+			parts := strings.SplitN(mount.Name, "_", 2)
+			v := parts[len(parts)-1]
 			_, _ = volumesApi.ActivateVolume(ctx, repo, v)
 			vol, _, _ := volumesApi.GetVolume(ctx, repo, v)
 			/*
@@ -69,7 +76,10 @@ func Copy(repo string, driver string, source string, path string, port int, cont
 		}
 	}
 	if running {
-		Start(repo, port)
+		if err := Start(repo, port); err != nil {
+			fmt.Printf("Error: failed to start container: %v\n", err)
+			os.Exit(1)
+		}
 	}
 	fmt.Println(repo + " running with data from " + source)
 }

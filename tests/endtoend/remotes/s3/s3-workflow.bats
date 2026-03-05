@@ -8,6 +8,16 @@ REMOTE="s3"
 URI="s3://demo-datadatdat/simple-test"
 REPO="hello-world"
 
+# Ensure API is ready (upgrade test may have restarted infrastructure)
+setup_file() {
+  for i in $(seq 1 36); do
+    if "$D3" ls 2>/dev/null | grep -q "CONTEXT"; then
+      return 0
+    fi
+    sleep 5
+  done
+}
+
 @test "can clone hello-world/postgres" {
   run "$D3" clone -n hello-world s3web://demo-datadatdat.s3-website-us-west-2.amazonaws.com/hello-world/postgres
   assert_success

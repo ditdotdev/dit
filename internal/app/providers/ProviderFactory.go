@@ -1,10 +1,12 @@
 package providers
 
 import (
-	"github.com/spf13/viper"
+	"fmt"
 	"net"
 	"os"
 	"strings"
+
+	"github.com/spf13/viper"
 )
 
 const (
@@ -126,7 +128,8 @@ func GetAvailablePort() int {
 
 func Create(name string, provider string, port int) Provider {
 	if Providers[name] != nil {
-		panic("context '" + name + "' already exists")
+		fmt.Println("Error: context '" + name + "' already exists. Run 'd3 uninstall' first or use 'd3 upgrade'.")
+		os.Exit(1)
 	}
 	var p Provider
 	switch provider {

@@ -128,7 +128,9 @@ func (l local) Run(image string, repo string, environments []string, arguments [
 }
 
 func (l local) Start(repo string) {
-	lcl.Start(repo, l.portNum)
+	if err := lcl.Start(repo, l.portNum); err != nil {
+		os.Exit(1)
+	}
 }
 
 func (l local) Status(repo string) {
@@ -136,7 +138,9 @@ func (l local) Status(repo string) {
 }
 
 func (l local) Stop(repo string) {
-	lcl.Stop(repo, l.portNum)
+	if err := lcl.Stop(repo, l.portNum); err != nil {
+		os.Exit(1)
+	}
 }
 
 func (l local) Tag(repo string, commit string, tags []string) {
@@ -148,7 +152,12 @@ func (l local) Uninstall(force bool, removeImage bool) {
 }
 
 func (l local) Upgrade(force bool, version string, finalize bool, path string) {
-	panic("implement me")
+	targetVersion := l.datadatdatServerVersion
+	if version != "" {
+		targetVersion = version
+	}
+	fmt.Println("Upgrading datadatdat infrastructure to " + targetVersion)
+	lcl.Install(targetVersion, l.dockerRegistryUrl, false, l.portNum, l.contextName)
 }
 
 func Local(contextName string, host string, port int) Provider {
