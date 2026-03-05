@@ -42,7 +42,10 @@ func Copy(repo string, driver string, source string, path string, port int, cont
 	r, _ := docker.GetValFromContainer(repo, "State", "Running")
 	running, _ := strconv.ParseBool(r)
 	if running {
-		Stop(repo, port)
+		if err := Stop(repo, port); err != nil {
+			fmt.Printf("Error: failed to stop container: %v\n", err)
+			os.Exit(1)
+		}
 	}
 	if path == "" {
 		if len(mounts) > 1 {
@@ -73,7 +76,10 @@ func Copy(repo string, driver string, source string, path string, port int, cont
 		}
 	}
 	if running {
-		Start(repo, port)
+		if err := Start(repo, port); err != nil {
+			fmt.Printf("Error: failed to start container: %v\n", err)
+			os.Exit(1)
+		}
 	}
 	fmt.Println(repo + " running with data from " + source)
 }
