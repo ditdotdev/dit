@@ -14,7 +14,7 @@ require (
 	github.com/datadatdat/s3web-remote-go v1.6.1
 	github.com/datadatdat/ssh-remote-go v1.6.1
 	github.com/google/uuid v1.6.0
-	github.com/spf13/cobra v1.10.1
+	github.com/spf13/cobra v1.10.2
 	github.com/spf13/viper v1.21.0
 	k8s.io/api v0.31.13
 	k8s.io/apimachinery v0.31.13
