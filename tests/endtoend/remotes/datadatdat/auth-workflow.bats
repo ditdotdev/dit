@@ -123,10 +123,12 @@ teardown_file() {
 # Unauthenticated Access Tests
 # ========================================
 
-@test "auth: unauthenticated request to protected API returns 401" {
+@test "auth: unauthenticated request to non-existent repo returns 404" {
+  # GitHub-style: unauthenticated access to non-existent/private repos returns 404
+  # to avoid leaking repository existence information
   run curl -s -o /dev/null -w "%{http_code}" http://127.0.0.1:8080/api/v1/repos/testorg/test-repo
   assert_success
-  assert_output "401"
+  assert_output "404"
 }
 
 @test "auth: unauthenticated request to admin endpoint returns 401" {
