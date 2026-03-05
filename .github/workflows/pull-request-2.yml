@@ -21,7 +21,7 @@ env:
   GOPRIVATE: github.com/datadatdat/*
   GONOPROXY: github.com/datadatdat/*
   GONOSUMDB: github.com/datadatdat/*
-  GOPROXY: direct
+  GOPROXY: https://proxy.golang.org,direct
   GIT_TERMINAL_PROMPT: 0
 
 jobs:
@@ -158,7 +158,7 @@ jobs:
           go env -w GOPRIVATE=github.com/datadatdat/*
           go env -w GONOPROXY=github.com/datadatdat/*
           go env -w GONOSUMDB=github.com/datadatdat/*
-          go env -w GOPROXY=direct
+          go env -w GOPROXY=https://proxy.golang.org,direct
 
       - name: Download dependencies
         run: go mod download

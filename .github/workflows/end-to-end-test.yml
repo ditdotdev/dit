@@ -35,7 +35,7 @@ jobs:
           go env -w GOPRIVATE=github.com/datadatdat/*
           go env -w GONOPROXY=github.com/datadatdat/*
           go env -w GONOSUMDB=github.com/datadatdat/*
-          go env -w GOPROXY=direct
+          go env -w GOPROXY=https://proxy.golang.org,direct
         shell: bash
         env:
           GOPRIVATE: github.com/datadatdat/*
