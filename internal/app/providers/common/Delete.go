@@ -21,7 +21,17 @@ func DeleteTags(repo string, commit string, tags []string, port int) {
 	cfg.BasePath = "http://localhost:" + strconv.Itoa(port)
 
 	c, _, _ := commitsApi.GetCommit(ctx, repo, commit)
-	cTags := c.Properties["tags"].(map[string]string)
+	cTags := make(map[string]string)
+	if t, ok := c.Properties["tags"]; ok {
+		switch v := t.(type) {
+		case map[string]string:
+			cTags = v
+		case map[string]interface{}:
+			for k, val := range v {
+				cTags[k] = fmt.Sprintf("%v", val)
+			}
+		}
+	}
 	for _, t := range tags {
 		if strings.Contains(t, "=") {
 			s := strings.Split(t, "=")

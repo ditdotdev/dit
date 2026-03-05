@@ -4,6 +4,7 @@ import (
 	"datadatdat/internal/app"
 	"github.com/buger/jsonparser"
 	"os"
+	"runtime"
 	"strconv"
 	"strings"
 )
@@ -342,5 +343,10 @@ func (d docker) Start(repo string) (string, error) {
 }
 
 func (d docker) Cp(source string, target string) (string, error) {
+	// On Windows, convert MSYS2/Git Bash paths (e.g. /c/dev/...) to Windows paths (C:/dev/...)
+	// so Docker Desktop can find the source files.
+	if runtime.GOOS == "windows" && len(source) >= 3 && source[0] == '/' && source[2] == '/' {
+		source = strings.ToUpper(string(source[1])) + ":" + source[2:]
+	}
 	return ce.Exec("docker", "cp", "-a", source+"/.", "datadatdat-"+d.identity+"-server:"+target)
 }

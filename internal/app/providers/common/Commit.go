@@ -2,18 +2,24 @@ package common
 
 import (
 	"fmt"
-	client "github.com/datadatdat/datadatdat-client-go"
-	"github.com/google/uuid"
+	"os"
 	"strconv"
 	"strings"
+
+	client "github.com/datadatdat/datadatdat-client-go"
+	"github.com/google/uuid"
 )
 
 func Commit(repo string, message string, tags []string, user string, email string, port int) {
 	cfg.BasePath = "http://localhost:" + strconv.Itoa(port)
 
-	repoProps, _, _ := repositoriesApi.GetRepository(ctx, repo)
+	repoProps, resp, err := repositoriesApi.GetRepository(ctx, repo)
+	if err != nil || (resp != nil && resp.StatusCode >= 400) {
+		fmt.Printf("Error: repository '%s' not found\n", repo)
+		os.Exit(1)
+	}
 	metadata := Metadata{}.Load(repoProps.Properties)
-	repoStatus, _, _ := repositoriesApi.GetRepositoryStatus(ctx, repo) //TODO handle this error
+	repoStatus, _, _ := repositoriesApi.GetRepositoryStatus(ctx, repo)
 	sourceCommit := repoStatus.SourceCommit
 	tagMetadata := make(map[string]string)
 	for _, tag := range tags {
