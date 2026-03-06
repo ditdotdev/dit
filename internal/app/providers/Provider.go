@@ -12,6 +12,7 @@ type Provider interface {
 	Commit(repo string, message string, tags []string)
 	Copy(repo string, driver string, source string, path string)
 	Delete(repo string, commit string, tags []string)
+	Fork(uri string, org string, name string)
 	Install(properties []string, verbose bool)
 	List(context string)
 	Log(repo string, tags []string)
