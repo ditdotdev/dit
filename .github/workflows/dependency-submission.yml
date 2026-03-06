@@ -33,7 +33,7 @@ jobs:
           go env -w GONOSUMDB=github.com/datadatdat/*
 
       - name: Submit dependency graph
-        uses: actions/go-dependency-submission@v1
+        uses: actions/go-dependency-submission@v2
         env:
           GOPRIVATE: github.com/datadatdat/*
           GONOSUMCHECK: github.com/datadatdat/*
