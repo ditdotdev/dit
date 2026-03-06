@@ -82,11 +82,12 @@ func Fork(uri string, org string, name string) {
 		fmt.Printf("Error: fork request failed: %s\n", err)
 		return
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	respBody, _ := io.ReadAll(resp.Body)
 
-	if resp.StatusCode == http.StatusCreated {
+	switch resp.StatusCode {
+	case http.StatusCreated:
 		var result map[string]interface{}
 		if err := json.Unmarshal(respBody, &result); err == nil {
 			fmt.Printf("Forked %s/%s to %s/%s\n", sourceOrg, sourceRepo, result["org"], result["repo"])
@@ -96,11 +97,11 @@ func Fork(uri string, org string, name string) {
 		} else {
 			fmt.Println("Fork completed successfully")
 		}
-	} else if resp.StatusCode == http.StatusConflict {
+	case http.StatusConflict:
 		fmt.Println("Error: repository already exists in target namespace")
-	} else if resp.StatusCode == http.StatusNotFound {
+	case http.StatusNotFound:
 		fmt.Printf("Error: source repository %s/%s not found\n", sourceOrg, sourceRepo)
-	} else {
+	default:
 		fmt.Printf("Error: fork failed (HTTP %d): %s\n", resp.StatusCode, string(respBody))
 	}
 }
