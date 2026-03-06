@@ -469,11 +469,7 @@ teardown_file() {
   assert_output --partial "Bob"
 }
 
-@test "web UI: cleanup - remove test repo" {
-  run "$D3" rm webuitest -f
-  assert_success
-  assert_output --partial "webuitest removed"
-}
+# ===== Clone Tests (before delete tests, since delete destroys the repo) =====
 
 @test "web UI: cleanup - remove previous clone if exists" {
   # Best effort - don't fail if doesn't exist
@@ -513,21 +509,134 @@ teardown_file() {
   assert_output --partial "Added test data"
 }
 
-@test "web UI: test clone with manifest - verify all commits present" {
+@test "web UI: cleanup - remove cloned repo" {
+  run "$D3" rm webuitestclone -f
+  assert_success
+  assert_output --partial "webuitestclone removed"
+}
+
+# ===== Delete Commit & Repo Tests =====
+# Full user experience validation:
+#   1. Verify all 3 commits exist via d3 CLI
+#   2. Delete one commit via browser (web UI proxy at localhost:3000)
+#   3. d3 pull verifies deleted commit is gone
+#   4. Delete entire repo via browser
+#   5. d3 pull verifies repo no longer exists
+#   6. Verify minio storage and postgres database are cleaned up
+
+@test "web UI: d3 remote log shows all 3 commits before delete" {
   WEB_COMMIT_1=$(cat "$BATS_TMPDIR/web_commit_1.txt")
   WEB_COMMIT_2=$(cat "$BATS_TMPDIR/web_commit_2.txt")
   WEB_COMMIT_3=$(cat "$BATS_TMPDIR/web_commit_3.txt")
-  run "$D3" remote log webuitestclone
+  run "$D3" remote log webuitest
   assert_success
   assert_output --partial "${WEB_COMMIT_1}"
   assert_output --partial "${WEB_COMMIT_2}"
   assert_output --partial "${WEB_COMMIT_3}"
 }
 
-@test "web UI: cleanup - remove cloned repo" {
-  run "$D3" rm webuitestclone -f
+@test "web UI: delete second commit via browser" {
+  WEB_COMMIT_2=$(cat "$BATS_TMPDIR/web_commit_2.txt")
+  run curl -X DELETE -sf -H "Authorization: Bearer ${DATADATDAT_API_KEY}" \
+    "http://127.0.0.1:3000/api/v1/repos/webtest/ui-repo/commits/${WEB_COMMIT_2}"
   assert_success
-  assert_output --partial "webuitestclone removed"
+  assert_output --partial '"deleted"'
+}
+
+@test "web UI: d3 remote log confirms deleted commit is gone" {
+  WEB_COMMIT_1=$(cat "$BATS_TMPDIR/web_commit_1.txt")
+  WEB_COMMIT_2=$(cat "$BATS_TMPDIR/web_commit_2.txt")
+  WEB_COMMIT_3=$(cat "$BATS_TMPDIR/web_commit_3.txt")
+  run "$D3" remote log webuitest
+  assert_success
+  # Commit 2 should be gone
+  [[ "$output" != *"${WEB_COMMIT_2}"* ]]
+  # Commits 1 and 3 should still be present
+  assert_output --partial "${WEB_COMMIT_1}"
+  assert_output --partial "${WEB_COMMIT_3}"
+}
+
+@test "web UI: d3 pull after commit delete succeeds with remaining commits" {
+  run "$D3" pull webuitest
+  assert_success
+}
+
+@test "web UI: deleted commit data is gone from minio" {
+  WEB_COMMIT_2=$(cat "$BATS_TMPDIR/web_commit_2.txt")
+  # Check that commit data no longer exists in minio storage
+  # Minio layout: {org}/{repo}/commits/{commitId}/volumes/v0.tar
+  run docker exec datadatdat-minio mc ls --recursive myminio/datadatdat-dev/webtest/ui-repo/commits/${WEB_COMMIT_2}/ 2>&1
+  # Should either fail or return empty (no objects)
+  [[ -z "$output" ]] || [[ "$output" == *"Object does not exist"* ]] || assert_failure
+}
+
+@test "web UI: delete third commit via browser" {
+  WEB_COMMIT_3=$(cat "$BATS_TMPDIR/web_commit_3.txt")
+  run curl -X DELETE -sf -H "Authorization: Bearer ${DATADATDAT_API_KEY}" \
+    "http://127.0.0.1:3000/api/v1/repos/webtest/ui-repo/commits/${WEB_COMMIT_3}"
+  assert_success
+  assert_output --partial '"deleted"'
+}
+
+@test "web UI: d3 remote log confirms only first commit remains" {
+  WEB_COMMIT_1=$(cat "$BATS_TMPDIR/web_commit_1.txt")
+  WEB_COMMIT_2=$(cat "$BATS_TMPDIR/web_commit_2.txt")
+  WEB_COMMIT_3=$(cat "$BATS_TMPDIR/web_commit_3.txt")
+  run "$D3" remote log webuitest
+  assert_success
+  assert_output --partial "${WEB_COMMIT_1}"
+  [[ "$output" != *"${WEB_COMMIT_2}"* ]]
+  [[ "$output" != *"${WEB_COMMIT_3}"* ]]
+}
+
+@test "web UI: delete repo via browser" {
+  run curl -X DELETE -sf -H "Authorization: Bearer ${DATADATDAT_API_KEY}" \
+    "http://127.0.0.1:3000/api/v1/repos/webtest/ui-repo"
+  assert_success
+  assert_output --partial '"deleted"'
+}
+
+@test "web UI: d3 pull fails after repo deleted" {
+  run "$D3" pull webuitest
+  assert_failure
+}
+
+@test "web UI: d3 remote log fails after repo deleted" {
+  run "$D3" remote log webuitest
+  assert_failure
+}
+
+@test "web UI: deleted repo commit data is gone from minio" {
+  # Verify no commit data remains for the deleted repo
+  # Minio layout: {org}/{repo}/commits/
+  run docker exec datadatdat-minio mc ls --recursive myminio/datadatdat-dev/webtest/ui-repo/commits/ 2>&1
+  [[ -z "$output" ]] || [[ "$output" == *"Object does not exist"* ]] || assert_failure
+}
+
+@test "web UI: deleted repo journal data is gone from minio" {
+  run docker exec datadatdat-minio mc ls --recursive myminio/datadatdat-dev/journals/webtest/ui-repo/ 2>&1
+  [[ -z "$output" ]] || [[ "$output" == *"Object does not exist"* ]] || assert_failure
+}
+
+@test "web UI: deleted repo cache is gone from minio" {
+  run docker exec datadatdat-minio mc ls myminio/datadatdat-dev/cache/manifests/webtest/ui-repo.json 2>&1
+  [[ -z "$output" ]] || [[ "$output" == *"Object does not exist"* ]] || assert_failure
+}
+
+@test "web UI: deleted repo is gone from postgres" {
+  # Verify repo record is removed from permissions database
+  run docker exec datadatdat-postgres psql -U datadatdat -d datadatdat -t -c \
+    "SELECT count(*) FROM repositories WHERE namespace='webtest' AND name='ui-repo';"
+  assert_success
+  # Trim whitespace and check count is 0
+  count=$(echo "$output" | tr -d '[:space:]')
+  [[ "$count" == "0" ]]
+}
+
+@test "web UI: cleanup - remove test repo" {
+  run "$D3" rm webuitest -f
+  assert_success
+  assert_output --partial "webuitest removed"
 }
 
 @test "web UI: verify no repositories exist after cleanup" {
