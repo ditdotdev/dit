@@ -5,6 +5,7 @@
 
 # Load shared test helpers
 load '../../test_helper'
+load 'env'
 
 # Admin API key (seeded by Liquibase)
 ADMIN_KEY="***REMOVED***"
@@ -13,22 +14,24 @@ ADMIN_KEY="***REMOVED***"
 ORGUSER_A_KEY="aa11111122223333444455556666777788889999aaaabbbbccccddddeeeeffff"
 ORGUSER_B_KEY="bb11111122223333444455556666777788889999aaaabbbbccccddddeeeeffff"
 
-GATEWAY="http://127.0.0.1:8080"
-AUTH_SERVER="http://127.0.0.1:8085"
-
 # ========================================
 # Setup / Teardown
 # ========================================
 
 setup_file() {
   run curl -s "$GATEWAY/health"
-  [[ "$output" == *"healthy"* ]] || { echo "Gateway not running"; return 1; }
+  [[ "$output" == *"${HEALTH_EXPECT}"* ]] || { echo "Gateway not running"; return 1; }
 
   run curl -s "$AUTH_SERVER/health"
-  [[ "$output" == *"healthy"* ]] || { echo "Auth server not running"; return 1; }
+  [[ "$output" == *"${HEALTH_EXPECT}"* ]] || { echo "Auth server not running"; return 1; }
 
-  run docker exec datadatdat-postgres pg_isready -U datadatdat
-  [[ "$output" == *"accepting connections"* ]] || { echo "Postgres not ready"; return 1; }
+  if is_dev; then
+    run docker exec datadatdat-postgres pg_isready -U datadatdat
+    [[ "$output" == *"accepting connections"* ]] || { echo "Postgres not ready"; return 1; }
+  else
+    run run_sql_raw "SELECT 1;"
+    [[ "$output" == *"1"* ]] || { echo "Postgres not ready"; return 1; }
+  fi
 }
 
 teardown_file() {
@@ -38,7 +41,7 @@ teardown_file() {
   curl -s -X DELETE -H "X-API-Key: $ORGUSER_A_KEY" \
     "$GATEWAY/api/v1/orgs/delete-me-org" 2>/dev/null || true
 
-  docker exec datadatdat-postgres psql -U datadatdat -d datadatdat -c \
+  run_sql_cmd \
     "DELETE FROM org_memberships WHERE org_id IN (SELECT id FROM organizations WHERE name IN ('test-org', 'delete-me-org'));
      DELETE FROM organizations WHERE name IN ('test-org', 'delete-me-org');
      DELETE FROM namespaces WHERE name IN ('test-org', 'delete-me-org');
@@ -54,16 +57,17 @@ teardown_file() {
 @test "org: verify auth server is running" {
   run curl -s "$AUTH_SERVER/health"
   assert_success
-  assert_output --partial "healthy"
+  assert_output --partial "${HEALTH_EXPECT}"
 }
 
 @test "org: verify api-gateway is running" {
   run curl -s "$GATEWAY/health"
   assert_success
-  assert_output --partial "healthy"
+  assert_output --partial "${HEALTH_EXPECT}"
 }
 
 @test "org: verify postgres is ready" {
+  is_dev || skip "Local postgres check only for DEV"
   run docker exec datadatdat-postgres pg_isready -U datadatdat
   assert_success
   assert_output --partial "accepting connections"
@@ -74,7 +78,7 @@ teardown_file() {
 # ========================================
 
 @test "org: cleanup existing test data from previous runs" {
-  run docker exec datadatdat-postgres psql -U datadatdat -d datadatdat -c \
+  run run_sql_cmd \
     "DELETE FROM org_memberships WHERE org_id IN (SELECT id FROM organizations WHERE name IN ('test-org', 'delete-me-org'));
      DELETE FROM organizations WHERE name IN ('test-org', 'delete-me-org');
      DELETE FROM namespaces WHERE name IN ('test-org', 'delete-me-org');
@@ -86,7 +90,7 @@ teardown_file() {
 }
 
 @test "org: create orguser-a (admin, whitelisted)" {
-  run docker exec datadatdat-postgres psql -U datadatdat -d datadatdat -c \
+  run run_sql_cmd \
     "INSERT INTO users (github_id, github_login, github_email, github_name, github_avatar_url, is_whitelisted, is_admin, created_at, updated_at)
      VALUES (200001, 'orguser-a', 'orguser-a@test.com', 'Org User A', '', true, true, NOW(), NOW())
      ON CONFLICT (github_id) DO UPDATE SET is_whitelisted = true, is_admin = true, github_avatar_url = '';
@@ -98,7 +102,7 @@ teardown_file() {
 }
 
 @test "org: create orguser-b (non-admin, whitelisted)" {
-  run docker exec datadatdat-postgres psql -U datadatdat -d datadatdat -c \
+  run run_sql_cmd \
     "INSERT INTO users (github_id, github_login, github_email, github_name, github_avatar_url, is_whitelisted, is_admin, created_at, updated_at)
      VALUES (200002, 'orguser-b', 'orguser-b@test.com', 'Org User B', '', true, false, NOW(), NOW())
      ON CONFLICT (github_id) DO UPDATE SET is_whitelisted = true, is_admin = false, github_avatar_url = '';
@@ -110,7 +114,7 @@ teardown_file() {
 }
 
 @test "org: get orguser-a user ID" {
-  run docker exec datadatdat-postgres psql -U datadatdat -d datadatdat -t -A -c \
+  run run_sql_raw \
     "SELECT id FROM users WHERE github_login = 'orguser-a' LIMIT 1;"
   assert_success
   ORGUSER_A_ID=$(echo "$output" | tr -d '[:space:]')
@@ -119,7 +123,7 @@ teardown_file() {
 }
 
 @test "org: get orguser-b user ID" {
-  run docker exec datadatdat-postgres psql -U datadatdat -d datadatdat -t -A -c \
+  run run_sql_raw \
     "SELECT id FROM users WHERE github_login = 'orguser-b' LIMIT 1;"
   assert_success
   ORGUSER_B_ID=$(echo "$output" | tr -d '[:space:]')
@@ -132,7 +136,7 @@ teardown_file() {
   KEY_HASH=$(echo -n "$ORGUSER_A_KEY" | sha256sum | cut -d' ' -f1)
   KEY_PREFIX="${ORGUSER_A_KEY:0:8}"
 
-  run docker exec datadatdat-postgres psql -U datadatdat -d datadatdat -c \
+  run run_sql_cmd \
     "INSERT INTO api_keys (user_id, key_hash, key_prefix, name, created_at)
      VALUES ('${ORGUSER_A_ID}', '${KEY_HASH}', '${KEY_PREFIX}', 'Org Test Key A', NOW());"
   assert_success
@@ -144,7 +148,7 @@ teardown_file() {
   KEY_HASH=$(echo -n "$ORGUSER_B_KEY" | sha256sum | cut -d' ' -f1)
   KEY_PREFIX="${ORGUSER_B_KEY:0:8}"
 
-  run docker exec datadatdat-postgres psql -U datadatdat -d datadatdat -c \
+  run run_sql_cmd \
     "INSERT INTO api_keys (user_id, key_hash, key_prefix, name, created_at)
      VALUES ('${ORGUSER_B_ID}', '${KEY_HASH}', '${KEY_PREFIX}', 'Org Test Key B', NOW());"
   assert_success
@@ -518,42 +522,42 @@ teardown_file() {
 }
 
 @test "org: cleanup - delete API keys for test users" {
-  run docker exec datadatdat-postgres psql -U datadatdat -d datadatdat -c \
+  run run_sql_cmd \
     "DELETE FROM api_keys WHERE user_id IN (SELECT id FROM users WHERE github_login IN ('orguser-a', 'orguser-b'));"
   assert_success
   assert_output --partial "DELETE"
 }
 
 @test "org: cleanup - delete whitelisted_users entries" {
-  run docker exec datadatdat-postgres psql -U datadatdat -d datadatdat -c \
+  run run_sql_cmd \
     "DELETE FROM whitelisted_users WHERE user_id IN (SELECT id FROM users WHERE github_login IN ('orguser-a', 'orguser-b'));"
   assert_success
   assert_output --partial "DELETE"
 }
 
 @test "org: cleanup - delete namespaces for test users" {
-  run docker exec datadatdat-postgres psql -U datadatdat -d datadatdat -c \
+  run run_sql_cmd \
     "DELETE FROM namespaces WHERE name IN ('orguser-a', 'orguser-b', 'test-org', 'delete-me-org');"
   assert_success
   assert_output --partial "DELETE"
 }
 
 @test "org: cleanup - delete test users" {
-  run docker exec datadatdat-postgres psql -U datadatdat -d datadatdat -c \
+  run run_sql_cmd \
     "DELETE FROM users WHERE github_login IN ('orguser-a', 'orguser-b');"
   assert_success
   assert_output --partial "DELETE"
 }
 
 @test "org: cleanup - verify all test users removed" {
-  run docker exec datadatdat-postgres psql -U datadatdat -d datadatdat -t -A -c \
+  run run_sql_raw \
     "SELECT COUNT(*) FROM users WHERE github_login IN ('orguser-a', 'orguser-b');"
   assert_success
   assert_output "0"
 }
 
 @test "org: cleanup - verify no test orgs remain" {
-  run docker exec datadatdat-postgres psql -U datadatdat -d datadatdat -t -A -c \
+  run run_sql_raw \
     "SELECT COUNT(*) FROM organizations WHERE name IN ('test-org', 'delete-me-org');"
   assert_success
   assert_output "0"

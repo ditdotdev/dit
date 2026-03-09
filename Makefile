@@ -3,6 +3,9 @@ DATADATDAT_BIN := /usr/local/bin/d3
 RELEASE_DIR := release
 OS := "macos-latest"
 
+# Environment: DEV (default) or PROD
+ENV ?= DEV
+
 # Version injection for build-time version setting
 VERSION ?= dev
 LDFLAGS := -ldflags "-X datadatdat/internal/app.DatadatdatVersion=$(VERSION)"
@@ -78,28 +81,22 @@ test-ssh-workflow:
 	bats tests/endtoend/remotes/ssh/ssh-workflow.bats
 
 test-datadatdat-workflow:
-	bats tests/endtoend/remotes/datadatdat/datadatdat-workflow.bats
-
-test-datadatdat-workflow-prod:
-	bats tests/endtoend/remotes/datadatdat/datadatdat-workflow-prod.bats
+	ENV=$(ENV) bats tests/endtoend/remotes/datadatdat/datadatdat-workflow.bats
 
 test-auth-workflow:
-	bats tests/endtoend/remotes/datadatdat/auth-workflow.bats
+	ENV=$(ENV) bats tests/endtoend/remotes/datadatdat/auth-workflow.bats
 
 test-org-workflow:
-	bats tests/endtoend/remotes/datadatdat/org-workflow.bats
+	ENV=$(ENV) bats tests/endtoend/remotes/datadatdat/org-workflow.bats
 
 test-clone-commit-workflow:
-	bats tests/endtoend/remotes/datadatdat/clone-commit-workflow.bats
+	ENV=$(ENV) bats tests/endtoend/remotes/datadatdat/clone-commit-workflow.bats
 
 test-billing-workflow:
-	bats tests/endtoend/remotes/datadatdat/billing-workflow.bats
+	ENV=$(ENV) bats tests/endtoend/remotes/datadatdat/billing-workflow.bats
 
 test-stripe-integration:
-	bats tests/endtoend/remotes/datadatdat/stripe-integration.bats
-
-test-auth-workflow-prod:
-	bats tests/endtoend/remotes/datadatdat/auth-workflow-prod.bats
+	ENV=$(ENV) bats tests/endtoend/remotes/datadatdat/stripe-integration.bats
 
 test-multi-context:
 	bats tests/endtoend/multi-context/multi-context.bats
@@ -126,18 +123,18 @@ test-push-pull-options:
 	bats tests/endtoend/push-pull/push-pull-options.bats
 
 test-abort-workflow:
-	bats tests/endtoend/remotes/datadatdat/abort-workflow.bats
+	ENV=$(ENV) bats tests/endtoend/remotes/datadatdat/abort-workflow.bats
 
 test-auth-status:
-	bats tests/endtoend/remotes/datadatdat/auth-status.bats
+	ENV=$(ENV) bats tests/endtoend/remotes/datadatdat/auth-status.bats
 
 test-push-pull-tags-remote:
-	bats tests/endtoend/remotes/datadatdat/push-pull-tags-remote.bats
+	ENV=$(ENV) bats tests/endtoend/remotes/datadatdat/push-pull-tags-remote.bats
 
 test-fork-workflow:
-	bats tests/endtoend/remotes/datadatdat/fork-workflow.bats
+	ENV=$(ENV) bats tests/endtoend/remotes/datadatdat/fork-workflow.bats
 
 # TODO: diagnose test-multi-context test-db-matrix in gh actions and readd to e2e
 e2e: test-install test-getting-started test-tags test-tag-management test-docker-context test-container-lifecycle test-context-list test-data-import test-error-handling test-s3-workflow test-push-pull-options test-ssh-workflow test-upgrade test-uninstall
 
-e2e-server: test-install test-datadatdat-workflow test-clone-commit-workflow test-auth-workflow test-auth-status test-org-workflow test-billing-workflow test-abort-workflow test-push-pull-tags-remote test-fork-workflow test-uninstall
+e2e-server: test-install test-datadatdat-workflow test-clone-commit-workflow test-auth-workflow test-auth-status test-org-workflow test-billing-workflow test-stripe-integration test-abort-workflow test-push-pull-tags-remote test-fork-workflow test-uninstall

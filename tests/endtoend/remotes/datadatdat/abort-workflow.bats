@@ -5,14 +5,12 @@
 
 # Load shared test helpers
 load '../../test_helper'
-
-# API Key for E2E testing
-export DATADATDAT_API_KEY="***REMOVED***"
+load 'env'
 
 # Setup: Verify server is running
 setup_file() {
-  run curl -s http://127.0.0.1:8080/health
-  [[ "$output" == *"healthy"* ]] || {
+  run curl -s ${GATEWAY}/health
+  [[ "$output" == *"${HEALTH_EXPECT}"* ]] || {
     echo "datadatdat-remote-server is not running"
     return 1
   }
@@ -22,7 +20,7 @@ setup_file() {
 teardown_file() {
   "$D3" rm -f abort-test 2>/dev/null || true
   curl -X DELETE -sf -H "Authorization: Bearer ${DATADATDAT_API_KEY}" \
-    "http://127.0.0.1:8080/api/v1/repos/testorg/abort-test-repo" 2>/dev/null || true
+    "${GATEWAY}/api/v1/repos/${TEST_ORG}/abort-test-repo" 2>/dev/null || true
 }
 
 # ========================================
@@ -30,14 +28,14 @@ teardown_file() {
 # ========================================
 
 @test "abort: verify api-gateway is running" {
-  run curl -s http://127.0.0.1:8080/health
+  run curl -s ${GATEWAY}/health
   assert_success
-  assert_output --partial "healthy"
+  assert_output --partial "${HEALTH_EXPECT}"
 }
 
 @test "abort: create remote repository" {
   run curl -X POST -f -H "Authorization: Bearer ${DATADATDAT_API_KEY}" \
-    "http://127.0.0.1:8080/api/v1/repos/testorg/abort-test-repo"
+    "${GATEWAY}/api/v1/repos/${TEST_ORG}/abort-test-repo"
   assert_success
 }
 
@@ -58,7 +56,7 @@ teardown_file() {
 }
 
 @test "abort: add datadatdat remote" {
-  run "$D3" remote add http://datadatdat-api-gateway:8080/testorg/abort-test-repo abort-test
+  run "$D3" remote add ${REMOTE_URL}/${TEST_ORG}/abort-test-repo abort-test
   assert_success
 }
 
@@ -103,6 +101,6 @@ teardown_file() {
 
 @test "abort: delete remote repository" {
   run curl -X DELETE -f -H "Authorization: Bearer ${DATADATDAT_API_KEY}" \
-    "http://127.0.0.1:8080/api/v1/repos/testorg/abort-test-repo"
+    "${GATEWAY}/api/v1/repos/${TEST_ORG}/abort-test-repo"
   assert_success
 }

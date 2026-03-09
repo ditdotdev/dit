@@ -5,15 +5,12 @@
 
 # Load shared test helpers
 load '../../test_helper'
-
-# API Key for E2E testing
-DATADATDAT_API_KEY="***REMOVED***"
-AUTH_SERVER="http://datadatdat-api-gateway:8080"
+load 'env'
 
 # Setup: Verify services are running
 setup_file() {
-  run curl -s http://127.0.0.1:8080/health
-  [[ "$output" == *"healthy"* ]] || {
+  run curl -s ${GATEWAY}/health
+  [[ "$output" == *"${HEALTH_EXPECT}"* ]] || {
     echo "API gateway is not running"
     return 1
   }
@@ -23,7 +20,7 @@ setup_file() {
 teardown_file() {
   # Ensure we're logged in for any subsequent test suites
   env DATADATDAT_API_KEY="$DATADATDAT_API_KEY" "$D3" auth login \
-    --server "$AUTH_SERVER" \
+    --server "${REMOTE_URL}" \
     --api-key "$DATADATDAT_API_KEY" 2>/dev/null || true
 }
 
@@ -32,7 +29,7 @@ teardown_file() {
 # ========================================
 
 @test "auth-status: logout to start from clean state" {
-  run "$D3" auth logout --server "$AUTH_SERVER"
+  run "$D3" auth logout --server "${REMOTE_URL}"
   # May succeed or fail if not logged in - either is fine
   true
 }
@@ -48,7 +45,7 @@ teardown_file() {
 # ========================================
 
 @test "auth-status: d3 auth login stores credentials" {
-  run "$D3" auth login --server "$AUTH_SERVER" --api-key "$DATADATDAT_API_KEY"
+  run "$D3" auth login --server "${REMOTE_URL}" --api-key "$DATADATDAT_API_KEY"
   assert_success
 }
 
@@ -62,7 +59,7 @@ teardown_file() {
 # ========================================
 
 @test "auth-status: d3 auth logout clears credentials" {
-  run "$D3" auth logout --server "$AUTH_SERVER"
+  run "$D3" auth logout --server "${REMOTE_URL}"
   assert_success
 }
 
@@ -76,7 +73,7 @@ teardown_file() {
 # ========================================
 
 @test "auth-status: d3 auth login with missing --api-key fails" {
-  run "$D3" auth login --server "$AUTH_SERVER"
+  run "$D3" auth login --server "${REMOTE_URL}"
   assert_failure
 }
 
@@ -85,6 +82,6 @@ teardown_file() {
 # ========================================
 
 @test "auth-status: restore auth for subsequent tests" {
-  run "$D3" auth login --server "$AUTH_SERVER" --api-key "$DATADATDAT_API_KEY"
+  run "$D3" auth login --server "${REMOTE_URL}" --api-key "$DATADATDAT_API_KEY"
   assert_success
 }

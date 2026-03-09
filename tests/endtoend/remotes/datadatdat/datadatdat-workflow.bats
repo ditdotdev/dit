@@ -3,16 +3,17 @@
 # Load shared test helpers
 load '../../test_helper'
 
-# Setup: Verify datadatdat-remote-server is running
+# Load environment configuration (DEV by default, ENV=PROD for production)
+load 'env'
+
+# Setup: Verify server is running
 setup_file() {
-  # Set API key for authentication
-  export DATADATDAT_API_KEY=***REMOVED***
-  
   # Verify the server is healthy
-  run curl -s http://127.0.0.1:8080/health
+  run curl -s "${GATEWAY}/health"
   assert_success
-  [[ "$output" == *"healthy"* ]] || {
-    echo "datadatdat-remote-server is not running or not healthy"
+  [[ "$output" == *"${HEALTH_EXPECT}"* ]] || {
+    echo "Server is not running or not healthy"
+    echo "Health check returned: $output"
     return 1
   }
 }
@@ -21,19 +22,19 @@ setup_file() {
 teardown_file() {
   # Best effort cleanup - don't fail if already cleaned
   curl -X DELETE -sf -H "Authorization: Bearer ${DATADATDAT_API_KEY}" \
-    "http://127.0.0.1:8080/api/v1/repos/testorg/datadatdat-test" 2>/dev/null || true
+    "${GATEWAY}/api/v1/repos/${TEST_ORG}/datadatdat-test" 2>/dev/null || true
   curl -X DELETE -sf -H "Authorization: Bearer ${DATADATDAT_API_KEY}" \
-    "http://127.0.0.1:8080/api/v1/repos/webtest/ui-repo" 2>/dev/null || true
-  
+    "${GATEWAY}/api/v1/repos/${WEB_TEST_ORG}/ui-repo" 2>/dev/null || true
+
   # Remove any leftover local repositories
   "$D3" rm -f datadatdattest 2>/dev/null || true
   "$D3" rm -f webuitest 2>/dev/null || true
   "$D3" rm -f webuitestclone 2>/dev/null || true
 }
 
-@test "create test repository in datadatdat-remote-server" {
+@test "create test repository in server" {
   run curl -X POST -f -H "Authorization: Bearer ${DATADATDAT_API_KEY}" \
-    "http://127.0.0.1:8080/api/v1/repos/testorg/datadatdat-test"
+    "${GATEWAY}/api/v1/repos/${TEST_ORG}/datadatdat-test"
   assert_success
   assert_output --partial "datadatdat-test"
 }
@@ -61,21 +62,21 @@ teardown_file() {
   run "$D3" commit -m "datadatdattest Commit" datadatdattest
   assert_success
   assert_output --partial "Commit"
-  
+
   # Extract commit GUID (second word in output)
   COMMIT_GUID=$(echo "$output" | grep -oE 'Commit [a-f0-9-]+' | awk '{print $2}')
   echo "$COMMIT_GUID" > "$BATS_TMPDIR/commit_guid.txt"
 }
 
 @test "add datadatdat remote succeeds" {
-  run "$D3" remote add http://datadatdat-api-gateway:8080/testorg/datadatdat-test datadatdattest
+  run "$D3" remote add "${REMOTE_URL}/${TEST_ORG}/datadatdat-test" datadatdattest
   assert_success
 }
 
 @test "repo has datadatdat remote" {
   run "$D3" remote ls datadatdattest
   assert_success
-  assert_output --partial "http://datadatdat-api-gateway:8080/testorg/datadatdat-test"
+  assert_output --partial "${REMOTE_URL}/${TEST_ORG}/datadatdat-test"
 }
 
 @test "list remote commits returns empty list" {
@@ -126,6 +127,7 @@ teardown_file() {
 }
 
 @test "pull original commit succeeds" {
+
   COMMIT_GUID=$(cat "$BATS_TMPDIR/commit_guid.txt")
   run "$D3" pull datadatdattest
   assert_success
@@ -134,6 +136,7 @@ teardown_file() {
 }
 
 @test "checkout commit succeeds" {
+
   COMMIT_GUID=$(cat "$BATS_TMPDIR/commit_guid.txt")
   run "$D3" checkout -c "$COMMIT_GUID" datadatdattest
   assert_success
@@ -144,6 +147,7 @@ teardown_file() {
 }
 
 @test "d3 status shows commit after checkout" {
+
   COMMIT_GUID=$(cat "$BATS_TMPDIR/commit_guid.txt")
   run "$D3" status datadatdattest
   assert_success
@@ -165,7 +169,7 @@ teardown_file() {
   run "$D3" commit -m "Second datadatdattest Commit" datadatdattest
   assert_success
   assert_output --partial "Commit"
-  
+
   # Extract commit GUID
   COMMIT_GUID2=$(echo "$output" | grep -oE 'Commit [a-f0-9-]+' | awk '{print $2}')
   echo "$COMMIT_GUID2" > "$BATS_TMPDIR/commit_guid2.txt"
@@ -196,16 +200,16 @@ teardown_file() {
   assert_output --partial "Removing repository datadatdattest"
 }
 
-@test "test list repos by org API endpoint - testorg (before cleanup)" {
+@test "test list repos by org API endpoint (before cleanup)" {
   run curl -sf -H "Authorization: Bearer ${DATADATDAT_API_KEY}" \
-    "http://127.0.0.1:8080/api/v1/repos/testorg"
+    "${GATEWAY}/api/v1/repos/${TEST_ORG}"
   assert_success
-  assert_output --partial "testorg/datadatdat-test"
+  assert_output --partial "${TEST_ORG}/datadatdat-test"
 }
 
-@test "cleanup - delete test repository from datadatdat-remote-server" {
+@test "cleanup - delete test repository from server" {
   run curl -X DELETE -f -H "Authorization: Bearer ${DATADATDAT_API_KEY}" \
-    "http://127.0.0.1:8080/api/v1/repos/testorg/datadatdat-test"
+    "${GATEWAY}/api/v1/repos/${TEST_ORG}/datadatdat-test"
   assert_success
 }
 
@@ -213,7 +217,7 @@ teardown_file() {
 
 @test "web UI: create test repo for web UI tests" {
   run curl -X POST -f -H "Authorization: Bearer ${DATADATDAT_API_KEY}" \
-    "http://127.0.0.1:8080/api/v1/repos/webtest/ui-repo"
+    "${GATEWAY}/api/v1/repos/${WEB_TEST_ORG}/ui-repo"
   assert_success
   assert_output --partial "ui-repo"
 }
@@ -234,14 +238,14 @@ teardown_file() {
   run "$D3" commit -m "Initial web UI test commit" webuitest
   assert_success
   assert_output --partial "Commit"
-  
+
   # Extract commit GUID
   WEB_COMMIT_1=$(echo "$output" | grep -oE 'Commit [a-f0-9-]+' | awk '{print $2}')
   echo "$WEB_COMMIT_1" > "$BATS_TMPDIR/web_commit_1.txt"
 }
 
 @test "web UI: add remote" {
-  run "$D3" remote add http://datadatdat-api-gateway:8080/webtest/ui-repo webuitest
+  run "$D3" remote add "${REMOTE_URL}/${WEB_TEST_ORG}/ui-repo" webuitest
   assert_success
 }
 
@@ -254,7 +258,7 @@ teardown_file() {
 @test "web UI: test commits list API returns initial commit" {
   WEB_COMMIT_1=$(cat "$BATS_TMPDIR/web_commit_1.txt")
   run curl -sf -H "Authorization: Bearer ${DATADATDAT_API_KEY}" \
-    "http://127.0.0.1:3000/api/v1/repos/webtest/ui-repo/commits"
+    "${WEB_UI}/api/v1/repos/${WEB_TEST_ORG}/ui-repo/commits"
   assert_success
   assert_output --partial "${WEB_COMMIT_1}"
   assert_output --partial "Initial web UI test commit"
@@ -263,7 +267,7 @@ teardown_file() {
 @test "web UI: test individual commit API" {
   WEB_COMMIT_1=$(cat "$BATS_TMPDIR/web_commit_1.txt")
   run curl -sf -H "Authorization: Bearer ${DATADATDAT_API_KEY}" \
-    "http://127.0.0.1:3000/api/v1/repos/webtest/ui-repo/commits/${WEB_COMMIT_1}"
+    "${WEB_UI}/api/v1/repos/${WEB_TEST_ORG}/ui-repo/commits/${WEB_COMMIT_1}"
   assert_success
   assert_output --partial "Initial web UI test commit"
 }
@@ -271,7 +275,7 @@ teardown_file() {
 @test "web UI: commit details API includes non-zero size" {
   WEB_COMMIT_1=$(cat "$BATS_TMPDIR/web_commit_1.txt")
   run curl -sf -H "Authorization: Bearer ${DATADATDAT_API_KEY}" \
-    "http://127.0.0.1:3000/api/v1/repos/webtest/ui-repo/commits/${WEB_COMMIT_1}"
+    "${WEB_UI}/api/v1/repos/${WEB_TEST_ORG}/ui-repo/commits/${WEB_COMMIT_1}"
   assert_success
   # Size should be present in the response
   [[ "$output" == *'"size":'* ]]
@@ -290,7 +294,7 @@ teardown_file() {
   run "$D3" commit -m "Added test table" webuitest
   assert_success
   assert_output --partial "Commit"
-  
+
   # Extract commit GUID
   WEB_COMMIT_2=$(echo "$output" | grep -oE 'Commit [a-f0-9-]+' | awk '{print $2}')
   echo "$WEB_COMMIT_2" > "$BATS_TMPDIR/web_commit_2.txt"
@@ -306,7 +310,7 @@ teardown_file() {
   WEB_COMMIT_1=$(cat "$BATS_TMPDIR/web_commit_1.txt")
   WEB_COMMIT_2=$(cat "$BATS_TMPDIR/web_commit_2.txt")
   run curl -sf -H "Authorization: Bearer ${DATADATDAT_API_KEY}" \
-    "http://127.0.0.1:3000/api/v1/repos/webtest/ui-repo/commits"
+    "${WEB_UI}/api/v1/repos/${WEB_TEST_ORG}/ui-repo/commits"
   assert_success
   assert_output --partial "${WEB_COMMIT_1}"
   assert_output --partial "${WEB_COMMIT_2}"
@@ -317,7 +321,7 @@ teardown_file() {
 @test "web UI: verify second commit details via API" {
   WEB_COMMIT_2=$(cat "$BATS_TMPDIR/web_commit_2.txt")
   run curl -sf -H "Authorization: Bearer ${DATADATDAT_API_KEY}" \
-    "http://127.0.0.1:3000/api/v1/repos/webtest/ui-repo/commits/${WEB_COMMIT_2}"
+    "${WEB_UI}/api/v1/repos/${WEB_TEST_ORG}/ui-repo/commits/${WEB_COMMIT_2}"
   assert_success
   assert_output --partial "${WEB_COMMIT_2}"
   assert_output --partial "Added test table"
@@ -334,7 +338,7 @@ teardown_file() {
   run "$D3" commit -m "Added test data" webuitest
   assert_success
   assert_output --partial "Commit"
-  
+
   # Extract commit GUID
   WEB_COMMIT_3=$(echo "$output" | grep -oE 'Commit [a-f0-9-]+' | awk '{print $2}')
   echo "$WEB_COMMIT_3" > "$BATS_TMPDIR/web_commit_3.txt"
@@ -347,11 +351,12 @@ teardown_file() {
 }
 
 @test "web UI: test manifest updates on push - verify all 3 commits in manifest" {
+
   WEB_COMMIT_1=$(cat "$BATS_TMPDIR/web_commit_1.txt")
   WEB_COMMIT_2=$(cat "$BATS_TMPDIR/web_commit_2.txt")
   WEB_COMMIT_3=$(cat "$BATS_TMPDIR/web_commit_3.txt")
   run curl -s -H "Authorization: Bearer ${DATADATDAT_API_KEY}" \
-    "http://127.0.0.1:8080/api/v1/repos/webtest/ui-repo/manifest"
+    "${GATEWAY}/api/v1/repos/${WEB_TEST_ORG}/ui-repo/manifest"
   assert_success
   assert_output --partial "${WEB_COMMIT_1}"
   assert_output --partial "${WEB_COMMIT_2}"
@@ -363,7 +368,7 @@ teardown_file() {
   WEB_COMMIT_2=$(cat "$BATS_TMPDIR/web_commit_2.txt")
   WEB_COMMIT_3=$(cat "$BATS_TMPDIR/web_commit_3.txt")
   run curl -sf -H "Authorization: Bearer ${DATADATDAT_API_KEY}" \
-    "http://127.0.0.1:3000/api/v1/repos/webtest/ui-repo/commits"
+    "${WEB_UI}/api/v1/repos/${WEB_TEST_ORG}/ui-repo/commits"
   assert_success
   assert_output --partial "${WEB_COMMIT_1}"
   assert_output --partial "${WEB_COMMIT_2}"
@@ -382,29 +387,31 @@ teardown_file() {
 
 @test "web UI: test API error handling - non-existent repo returns error" {
   run curl -s -H "Authorization: Bearer ${DATADATDAT_API_KEY}" \
-    "http://127.0.0.1:3000/api/v1/repos/fake/nonexistent/commits"
+    "${WEB_UI}/api/v1/repos/fake/nonexistent/commits"
   assert_success
-  assert_output --partial '"error":'
+  # Gateway returns {"code":404,"message":"..."} for non-existent repos
+  [[ "$output" == *'"error"'* ]] || [[ "$output" == *'"message"'* ]]
 }
 
 @test "web UI: test API error handling - invalid commit ID returns error" {
   run curl -s -H "Authorization: Bearer ${DATADATDAT_API_KEY}" \
-    "http://127.0.0.1:3000/api/v1/repos/webtest/ui-repo/commits/invalid-commit-id"
+    "${WEB_UI}/api/v1/repos/${WEB_TEST_ORG}/ui-repo/commits/invalid-commit-id"
   assert_success
-  assert_output --partial "error"
+  [[ "$output" == *'"error"'* ]] || [[ "$output" == *'"message"'* ]]
 }
 
 @test "web UI: test list all repos API endpoint" {
   run curl -sLf -H "Authorization: Bearer ${DATADATDAT_API_KEY}" \
-    "http://127.0.0.1:8080/api/v1/repos"
+    "${GATEWAY}/api/v1/repos"
   assert_success
-  assert_output --partial "webtest/ui-repo"
+  assert_output --partial "${WEB_TEST_ORG}/ui-repo"
 }
 
 @test "web UI: repos list API includes totalSize" {
+
   # Query the specific repo manifest to check totalSize (avoids stale data from other repos)
   run curl -sLf -H "Authorization: Bearer ${DATADATDAT_API_KEY}" \
-    "http://127.0.0.1:8080/api/v1/repos/webtest/ui-repo/manifest"
+    "${GATEWAY}/api/v1/repos/${WEB_TEST_ORG}/ui-repo/manifest"
   assert_success
   # totalSize should be present in the response
   [[ "$output" == *'"totalSize":'* ]]
@@ -416,7 +423,7 @@ teardown_file() {
   # Wait for database
   run bash -c "for i in {1..18}; do docker exec webuitest pg_isready && break || sleep 5; done"
   assert_success
-  
+
   run bash -c "docker exec webuitest psql -U postgres -c '\\dt' 2>&1"
   assert_success
   assert_output --partial "Did not find any"
@@ -433,7 +440,7 @@ teardown_file() {
   # Wait for database
   run bash -c "for i in {1..18}; do docker exec webuitest pg_isready && break || sleep 5; done"
   assert_success
-  
+
   run docker exec webuitest psql -U postgres -c "\\dt"
   assert_success
   assert_output --partial "test_table"
@@ -456,7 +463,7 @@ teardown_file() {
   # Wait for database
   run bash -c "for i in {1..18}; do docker exec webuitest pg_isready && break || sleep 5; done"
   assert_success
-  
+
   run docker exec webuitest psql -U postgres -c "SELECT COUNT(*) FROM test_table;"
   assert_success
   assert_output --partial " 2"
@@ -483,18 +490,21 @@ teardown_file() {
 }
 
 @test "web UI: test clone with manifest - clone from remote" {
-  run "$D3" clone -n webuitestclone http://datadatdat-api-gateway:8080/webtest/ui-repo
+
+  run "$D3" clone -n webuitestclone "${REMOTE_URL}/${WEB_TEST_ORG}/ui-repo"
   assert_success
   assert_output --partial "checked out"
 }
 
 @test "web UI: d3 ls shows cloned repo" {
+
   run "$D3" ls
   assert_success
   assert_output --partial "webuitestclone"
 }
 
 @test "web UI: d3 status on cloned repo shows running" {
+
   run "$D3" status webuitestclone
   assert_success
   assert_output --partial "running"
@@ -502,6 +512,7 @@ teardown_file() {
 }
 
 @test "web UI: d3 remote log on cloned repo shows all commits" {
+
   WEB_COMMIT_1=$(cat "$BATS_TMPDIR/web_commit_1.txt")
   WEB_COMMIT_2=$(cat "$BATS_TMPDIR/web_commit_2.txt")
   WEB_COMMIT_3=$(cat "$BATS_TMPDIR/web_commit_3.txt")
@@ -516,6 +527,7 @@ teardown_file() {
 }
 
 @test "web UI: cleanup - remove cloned repo" {
+
   run "$D3" rm webuitestclone -f
   assert_success
   assert_output --partial "webuitestclone removed"
@@ -529,11 +541,11 @@ teardown_file() {
 # ===== Delete Commit & Repo Tests =====
 # Full user experience validation:
 #   1. Verify all 3 commits exist via d3 CLI
-#   2. Delete one commit via browser (web UI proxy at localhost:3000)
+#   2. Delete one commit via browser (web UI)
 #   3. Verify deleted commit is gone via d3 remote log
 #   4. Delete entire repo via browser
 #   5. Verify repo no longer exists via d3 remote log
-#   6. Verify minio storage and postgres database are cleaned up
+#   6. Verify storage and postgres database are cleaned up
 
 @test "web UI: d3 remote log shows all 3 commits before delete" {
   WEB_COMMIT_1=$(cat "$BATS_TMPDIR/web_commit_1.txt")
@@ -549,7 +561,7 @@ teardown_file() {
 @test "web UI: delete second commit via browser" {
   WEB_COMMIT_2=$(cat "$BATS_TMPDIR/web_commit_2.txt")
   run curl -X DELETE -sf -H "Authorization: Bearer ${DATADATDAT_API_KEY}" \
-    "http://127.0.0.1:3000/api/v1/repos/webtest/ui-repo/commits/${WEB_COMMIT_2}"
+    "${WEB_UI}/api/v1/repos/${WEB_TEST_ORG}/ui-repo/commits/${WEB_COMMIT_2}"
   assert_success
   assert_output --partial '"deleted"'
 }
@@ -568,18 +580,16 @@ teardown_file() {
 }
 
 @test "web UI: deleted commit data is gone from minio" {
+  has_minio || skip "Minio not available in PROD"
   WEB_COMMIT_2=$(cat "$BATS_TMPDIR/web_commit_2.txt")
-  # Check that commit data no longer exists in minio storage
-  # Minio layout: {org}/{repo}/commits/{commitId}/volumes/v0.tar
-  run docker exec datadatdat-minio mc ls --recursive myminio/datadatdat-dev/webtest/ui-repo/commits/${WEB_COMMIT_2}/ 2>&1
-  # Should either fail or return empty (no objects)
+  run docker exec datadatdat-minio mc ls --recursive myminio/datadatdat-dev/${WEB_TEST_ORG}/ui-repo/commits/${WEB_COMMIT_2}/ 2>&1
   [[ -z "$output" ]] || [[ "$output" == *"Object does not exist"* ]] || assert_failure
 }
 
 @test "web UI: delete third commit via browser" {
   WEB_COMMIT_3=$(cat "$BATS_TMPDIR/web_commit_3.txt")
   run curl -X DELETE -sf -H "Authorization: Bearer ${DATADATDAT_API_KEY}" \
-    "http://127.0.0.1:3000/api/v1/repos/webtest/ui-repo/commits/${WEB_COMMIT_3}"
+    "${WEB_UI}/api/v1/repos/${WEB_TEST_ORG}/ui-repo/commits/${WEB_COMMIT_3}"
   assert_success
   assert_output --partial '"deleted"'
 }
@@ -597,7 +607,7 @@ teardown_file() {
 
 @test "web UI: delete repo via browser" {
   run curl -X DELETE -sf -H "Authorization: Bearer ${DATADATDAT_API_KEY}" \
-    "http://127.0.0.1:3000/api/v1/repos/webtest/ui-repo"
+    "${WEB_UI}/api/v1/repos/${WEB_TEST_ORG}/ui-repo"
   assert_success
   assert_output --partial '"deleted"'
 }
@@ -609,34 +619,30 @@ teardown_file() {
 
 @test "web UI: d3 remote log shows no commits after repo deleted" {
   run "$D3" remote log webuitest
-  # d3 remote log may exit 0 with "origin has not been initialized" or exit non-zero
-  # Either way, it should not show any commit data
   [[ "$output" != *"Initial web UI test commit"* ]]
 }
 
 @test "web UI: deleted repo commit data is gone from minio" {
-  # Verify no commit data remains for the deleted repo
-  # Minio layout: {org}/{repo}/commits/
-  run docker exec datadatdat-minio mc ls --recursive myminio/datadatdat-dev/webtest/ui-repo/commits/ 2>&1
+  has_minio || skip "Minio not available in PROD"
+  run docker exec datadatdat-minio mc ls --recursive myminio/datadatdat-dev/${WEB_TEST_ORG}/ui-repo/commits/ 2>&1
   [[ -z "$output" ]] || [[ "$output" == *"Object does not exist"* ]] || assert_failure
 }
 
 @test "web UI: deleted repo journal data is gone from minio" {
-  run docker exec datadatdat-minio mc ls --recursive myminio/datadatdat-dev/journals/webtest/ui-repo/ 2>&1
+  has_minio || skip "Minio not available in PROD"
+  run docker exec datadatdat-minio mc ls --recursive myminio/datadatdat-dev/journals/${WEB_TEST_ORG}/ui-repo/ 2>&1
   [[ -z "$output" ]] || [[ "$output" == *"Object does not exist"* ]] || assert_failure
 }
 
 @test "web UI: deleted repo cache is gone from minio" {
-  run docker exec datadatdat-minio mc ls myminio/datadatdat-dev/cache/manifests/webtest/ui-repo.json 2>&1
+  has_minio || skip "Minio not available in PROD"
+  run docker exec datadatdat-minio mc ls myminio/datadatdat-dev/cache/manifests/${WEB_TEST_ORG}/ui-repo.json 2>&1
   [[ -z "$output" ]] || [[ "$output" == *"Object does not exist"* ]] || assert_failure
 }
 
 @test "web UI: deleted repo is gone from postgres" {
-  # Verify repo record is removed from permissions database
-  run docker exec datadatdat-postgres psql -U datadatdat -d datadatdat -t -c \
-    "SELECT count(*) FROM repositories WHERE namespace='webtest' AND name='ui-repo';"
+  run run_sql_raw "SELECT count(*) FROM repositories WHERE namespace='${WEB_TEST_ORG}' AND name='ui-repo';"
   assert_success
-  # Trim whitespace and check count is 0
   count=$(echo "$output" | tr -d '[:space:]')
   [[ "$count" == "0" ]]
 }
@@ -661,58 +667,64 @@ teardown_file() {
 
 # ===== Download API Tests =====
 
-@test "download API: list versions endpoint returns valid JSON" {
-  run curl -sf -H "Cookie: datadatdat_token=${DATADATDAT_API_KEY}" "http://127.0.0.1:3000/api/downloads/versions"
+@test "download API: unauthenticated access to /download page returns page" {
+  is_prod || skip "Download page test only for PROD"
+  run curl -s -o /dev/null -w "%{http_code}" "${GATEWAY}/download"
   assert_success
-  # Should return JSON with versions array
+  assert_output "200"
+}
+
+@test "download API: list versions endpoint returns valid JSON" {
+  run curl -sf -H "Cookie: datadatdat_token=${DATADATDAT_API_KEY}" "${WEB_UI}/api/downloads/versions"
+  assert_success
   assert_output --partial '"versions"'
 }
 
-@test "download API: list versions returns v1.7.0" {
-  run curl -sf -H "Cookie: datadatdat_token=${DATADATDAT_API_KEY}" "http://127.0.0.1:3000/api/downloads/versions"
+@test "download API: list versions returns test version" {
+  run curl -sf -H "Cookie: datadatdat_token=${DATADATDAT_API_KEY}" "${WEB_UI}/api/downloads/versions"
   assert_success
-  assert_output --partial '"version":"v1.7.0"'
+  assert_output --partial "\"version\":\"${DOWNLOAD_TEST_VERSION}\""
 }
 
 @test "download API: version metadata has required fields" {
-  run curl -sf -H "Cookie: datadatdat_token=${DATADATDAT_API_KEY}" "http://127.0.0.1:3000/api/downloads/versions"
+  run curl -sf -H "Cookie: datadatdat_token=${DATADATDAT_API_KEY}" "${WEB_UI}/api/downloads/versions"
   assert_success
   assert_output --partial '"release_date"'
   assert_output --partial '"platforms"'
   assert_output --partial '"changelog_url"'
 }
 
-@test "download API: version details endpoint returns v1.7.0" {
-  run curl -sf -H "Cookie: datadatdat_token=${DATADATDAT_API_KEY}" "http://127.0.0.1:3000/api/downloads/v1.7.0"
+@test "download API: version details endpoint returns test version" {
+  run curl -sf -H "Cookie: datadatdat_token=${DATADATDAT_API_KEY}" "${WEB_UI}/api/downloads/${DOWNLOAD_TEST_VERSION}"
   assert_success
-  assert_output --partial '"version":"v1.7.0"'
+  assert_output --partial "\"version\":\"${DOWNLOAD_TEST_VERSION}\""
 }
 
-@test "download API: v1.7.0 has linux-amd64 platform" {
-  run curl -sf -H "Cookie: datadatdat_token=${DATADATDAT_API_KEY}" "http://127.0.0.1:3000/api/downloads/v1.7.0"
+@test "download API: test version has linux-amd64 platform" {
+  run curl -sf -H "Cookie: datadatdat_token=${DATADATDAT_API_KEY}" "${WEB_UI}/api/downloads/${DOWNLOAD_TEST_VERSION}"
   assert_success
   assert_output --partial '"platform":"linux-amd64"'
   assert_output --partial '"os":"Linux"'
   assert_output --partial '"arch":"x86_64"'
 }
 
-@test "download API: v1.7.0 has darwin-arm64 platform" {
-  run curl -sf -H "Cookie: datadatdat_token=${DATADATDAT_API_KEY}" "http://127.0.0.1:3000/api/downloads/v1.7.0"
+@test "download API: test version has darwin-arm64 platform" {
+  run curl -sf -H "Cookie: datadatdat_token=${DATADATDAT_API_KEY}" "${WEB_UI}/api/downloads/${DOWNLOAD_TEST_VERSION}"
   assert_success
   assert_output --partial '"platform":"darwin-arm64"'
   assert_output --partial '"os":"macOS"'
   assert_output --partial '"arch":"Apple Silicon"'
 }
 
-@test "download API: v1.7.0 has windows platform" {
-  run curl -sf -H "Cookie: datadatdat_token=${DATADATDAT_API_KEY}" "http://127.0.0.1:3000/api/downloads/v1.7.0"
+@test "download API: test version has windows platform" {
+  run curl -sf -H "Cookie: datadatdat_token=${DATADATDAT_API_KEY}" "${WEB_UI}/api/downloads/${DOWNLOAD_TEST_VERSION}"
   assert_success
   assert_output --partial '"platform":"windows"'
   assert_output --partial '"os":"Windows"'
 }
 
 @test "download API: platform metadata includes filename and size" {
-  run curl -sf -H "Cookie: datadatdat_token=${DATADATDAT_API_KEY}" "http://127.0.0.1:3000/api/downloads/v1.7.0"
+  run curl -sf -H "Cookie: datadatdat_token=${DATADATDAT_API_KEY}" "${WEB_UI}/api/downloads/${DOWNLOAD_TEST_VERSION}"
   assert_success
   assert_output --partial '"filename"'
   assert_output --partial '"size"'
@@ -720,46 +732,38 @@ teardown_file() {
 }
 
 @test "download API: binary download returns file for linux-amd64" {
-  # Download first 1KB to verify it's a binary file (not an error)
-  run bash -c "curl -sf -H 'Cookie: datadatdat_token=${DATADATDAT_API_KEY}' 'http://127.0.0.1:3000/api/downloads/v1.7.0/linux-amd64' | head -c 1024 | wc -c"
+  run bash -c "curl -sf -H 'Cookie: datadatdat_token=${DATADATDAT_API_KEY}' '${WEB_UI}/api/downloads/${DOWNLOAD_TEST_VERSION}/linux-amd64' | head -c 1024 | wc -c"
   assert_success
-  # Should be exactly 1024 bytes (1KB downloaded)
   assert_output "1024"
 }
 
 @test "download API: binary download has correct content-type header" {
-  run curl -sI -H "Cookie: datadatdat_token=${DATADATDAT_API_KEY}" "http://127.0.0.1:3000/api/downloads/v1.7.0/linux-amd64"
+  run curl -sI -H "Cookie: datadatdat_token=${DATADATDAT_API_KEY}" "${WEB_UI}/api/downloads/${DOWNLOAD_TEST_VERSION}/linux-amd64"
   assert_success
-  # Case-insensitive match for content-type header
   assert_output --partial "application/octet-stream"
 }
 
 @test "download API: binary download has content-disposition header" {
-  run curl -sI -H "Cookie: datadatdat_token=${DATADATDAT_API_KEY}" "http://127.0.0.1:3000/api/downloads/v1.7.0/linux-amd64"
+  run curl -sI -H "Cookie: datadatdat_token=${DATADATDAT_API_KEY}" "${WEB_UI}/api/downloads/${DOWNLOAD_TEST_VERSION}/linux-amd64"
   assert_success
-  # Case-insensitive match for content-disposition header
   assert_output --partial "attachment"
   assert_output --partial "filename="
 }
 
 @test "download API: invalid version returns 404" {
-  run curl -s -o /dev/null -w "%{http_code}" -H "Cookie: datadatdat_token=${DATADATDAT_API_KEY}" "http://127.0.0.1:3000/api/downloads/v99.99.99"
+  run curl -s -o /dev/null -w "%{http_code}" -H "Cookie: datadatdat_token=${DATADATDAT_API_KEY}" "${WEB_UI}/api/downloads/v99.99.99"
   assert_success
   assert_output "404"
 }
 
 @test "download API: invalid platform returns 400 or 404" {
-  # Invalid platform may return 400 (bad request) or 404 (not found)
-  run curl -s -o /dev/null -w "%{http_code}" -H "Cookie: datadatdat_token=${DATADATDAT_API_KEY}" "http://127.0.0.1:3000/api/downloads/v1.5.0/invalid-platform"
+  run curl -s -o /dev/null -w "%{http_code}" -H "Cookie: datadatdat_token=${DATADATDAT_API_KEY}" "${WEB_UI}/api/downloads/${DOWNLOAD_TEST_VERSION}/invalid-platform"
   assert_success
-  # Accept either 400 or 404 as valid error responses
   [[ "$output" == "400" || "$output" == "404" ]]
 }
 
 @test "download API: health check - storage is accessible" {
-  # This test verifies the storage backend (S3/MinIO) is working
-  run curl -sf -H "Cookie: datadatdat_token=${DATADATDAT_API_KEY}" "http://127.0.0.1:3000/api/downloads/versions"
+  run curl -sf -H "Cookie: datadatdat_token=${DATADATDAT_API_KEY}" "${WEB_UI}/api/downloads/versions"
   assert_success
-  # Should not return error about storage
   [[ "$output" != *"Failed to list versions"* ]]
 }

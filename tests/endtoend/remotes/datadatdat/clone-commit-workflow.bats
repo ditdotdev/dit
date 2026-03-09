@@ -9,14 +9,13 @@
 
 # Load shared test helpers
 load '../../test_helper'
+load 'env'
 
 setup_file() {
-  export DATADATDAT_API_KEY=***REMOVED***
-
   # Verify the server is healthy
-  run curl -s http://127.0.0.1:8080/health
+  run curl -s ${GATEWAY}/health
   assert_success
-  [[ "$output" == *"healthy"* ]] || {
+  [[ "$output" == *"${HEALTH_EXPECT}"* ]] || {
     echo "datadatdat-remote-server is not running or not healthy"
     return 1
   }
@@ -29,14 +28,14 @@ teardown_file() {
   "$D3" rm -f clonecommittest2 2>/dev/null || true
   "$D3" rm -f cloneauthtest 2>/dev/null || true
   curl -X DELETE -sf -H "Authorization: Bearer ${DATADATDAT_API_KEY}" \
-    "http://127.0.0.1:8080/api/v1/repos/clonetest/clonecommit" 2>/dev/null || true
+    "${GATEWAY}/api/v1/repos/clonetest/clonecommit" 2>/dev/null || true
 }
 
 # ===== Setup: create repo with 3 commits and push to DRS =====
 
 @test "clone-c: create remote repository" {
   run curl -X POST -f -H "Authorization: Bearer ${DATADATDAT_API_KEY}" \
-    "http://127.0.0.1:8080/api/v1/repos/clonetest/clonecommit"
+    "${GATEWAY}/api/v1/repos/clonetest/clonecommit"
   assert_success
   assert_output --partial "clonecommit"
 }
@@ -63,7 +62,7 @@ teardown_file() {
 }
 
 @test "clone-c: add remote" {
-  run "$D3" remote add http://datadatdat-api-gateway:8080/clonetest/clonecommit clonetest
+  run "$D3" remote add ${REMOTE_URL}/clonetest/clonecommit clonetest
   assert_success
 }
 
@@ -135,7 +134,7 @@ teardown_file() {
 
 @test "clone-c: clone latest commit by ID" {
   COMMIT_3=$(cat "$BATS_TMPDIR/clone_commit_3.txt")
-  run "$D3" clone http://datadatdat-api-gateway:8080/clonetest/clonecommit -c "$COMMIT_3" -n clonecommittest
+  run "$D3" clone ${REMOTE_URL}/clonetest/clonecommit -c "$COMMIT_3" -n clonecommittest
   assert_success
   assert_output --partial "checked out"
 }
@@ -161,7 +160,7 @@ teardown_file() {
 
 @test "clone-c: clone middle commit by ID (users table, no data)" {
   COMMIT_2=$(cat "$BATS_TMPDIR/clone_commit_2.txt")
-  run "$D3" clone http://datadatdat-api-gateway:8080/clonetest/clonecommit -c "$COMMIT_2" -n clonecommittest2
+  run "$D3" clone ${REMOTE_URL}/clonetest/clonecommit -c "$COMMIT_2" -n clonecommittest2
   assert_success
   assert_output --partial "checked out"
 }
@@ -187,7 +186,7 @@ teardown_file() {
 # ===== Test: clone without -c still works (latest commit) =====
 
 @test "clone-c: clone without -c gets latest commit" {
-  run "$D3" clone -n clonecommittest http://datadatdat-api-gateway:8080/clonetest/clonecommit
+  run "$D3" clone -n clonecommittest ${REMOTE_URL}/clonetest/clonecommit
   assert_success
   assert_output --partial "checked out"
 }
@@ -208,11 +207,11 @@ teardown_file() {
 # ===== Test: clone without auth shows helpful error =====
 
 @test "clone-c: logout to clear stored credentials" {
-  "$D3" auth logout --server http://datadatdat-api-gateway:8080 2>/dev/null || true
+  "$D3" auth logout --server ${REMOTE_URL} 2>/dev/null || true
 }
 
 @test "clone-c: clone without auth fails" {
-  run env -u DATADATDAT_API_KEY "$D3" clone http://datadatdat-api-gateway:8080/clonetest/clonecommit -n cloneauthtest
+  run env -u DATADATDAT_API_KEY "$D3" clone ${REMOTE_URL}/clonetest/clonecommit -n cloneauthtest
   assert_failure
 }
 
@@ -221,7 +220,7 @@ teardown_file() {
 }
 
 @test "clone-c: re-login for final cleanup" {
-  run "$D3" auth login --server http://datadatdat-api-gateway:8080 --api-key "$DATADATDAT_API_KEY"
+  run "$D3" auth login --server ${REMOTE_URL} --api-key "$DATADATDAT_API_KEY"
   assert_success
 }
 
@@ -230,6 +229,6 @@ teardown_file() {
   assert_success
 
   run curl -X DELETE -f -H "Authorization: Bearer ${DATADATDAT_API_KEY}" \
-    "http://127.0.0.1:8080/api/v1/repos/clonetest/clonecommit"
+    "${GATEWAY}/api/v1/repos/clonetest/clonecommit"
   assert_success
 }
