@@ -50,6 +50,10 @@ func (k kubernetes) Copy(repo string, driver string, source string, path string)
 	os.Exit(0)
 }
 
+func (k kubernetes) Fork(uri string, org string, name string) {
+	cmn.Fork(uri, org, name)
+}
+
 func (k kubernetes) Delete(repo string, commit string, tags []string) {
 	if commit != "" {
 		if len(tags) > 0 {

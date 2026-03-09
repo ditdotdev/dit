@@ -55,6 +55,10 @@ func (l local) Copy(repo string, driver string, source string, path string) {
 	lcl.Copy(repo, driver, source, path, l.portNum, l.contextName)
 }
 
+func (l local) Fork(uri string, org string, name string) {
+	cmn.Fork(uri, org, name)
+}
+
 func (l local) Delete(repo string, commit string, tags []string) {
 	if commit != "" {
 		if len(tags) > 0 {
