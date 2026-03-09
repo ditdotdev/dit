@@ -95,5 +95,23 @@ cleanup_stale_aws_processes() {
   fi
 }
 
+# Fallback implementation of refute_output if not provided by bats-assert
+if ! command -v refute_output &> /dev/null; then
+  refute_output() {
+    if [ "$1" = "--partial" ]; then
+      if echo "$output" | grep -qF "$2"; then
+        echo "Expected output NOT to contain: $2"
+        echo "Actual output: $output"
+        return 1
+      fi
+    else
+      if [ "$output" = "$1" ]; then
+        echo "Expected output to differ from: $1"
+        return 1
+      fi
+    fi
+  }
+fi
+
 # Load helpers on import
 load_bats_helpers_if_available
