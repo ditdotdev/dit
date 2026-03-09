@@ -954,7 +954,89 @@ phase_ecs_deploy() {
         return 0
     fi
 
-    # 1. Get ECR registry
+    # 1. Run Liquibase migrations against production database via EC2
+    log_step "Running Liquibase migrations against production..."
+    local liquibase_dir="$WORKSPACE/datadatdat-remote-server/deploy/liquibase"
+    local ssh_key="$WORKSPACE/datadatdat-remote-server/datadatdat-ecs-host.pem"
+    local ec2_ip
+
+    if [ ! -d "$liquibase_dir" ]; then
+        log_error "Liquibase directory not found at $liquibase_dir"
+        exit 1
+    fi
+    if [ ! -f "$ssh_key" ]; then
+        log_error "SSH key not found at $ssh_key"
+        exit 1
+    fi
+
+    if $DRY_RUN; then
+        log_dry "Look up EC2 Elastic IP"
+        log_dry "SCP $liquibase_dir to ec2-user@<EC2_IP>:/tmp/liquibase"
+        log_dry "SSH: fetch DB credentials from SSM, run Liquibase Docker container"
+        log_dry "SSH: clean up /tmp/liquibase"
+    else
+        # Find the production EC2 instance IP
+        ec2_ip=$(aws ec2 describe-instances \
+            --filters "Name=tag:Name,Values=datadatdat-ecs-host-prod" "Name=instance-state-name,Values=running" \
+            --query 'Reservations[0].Instances[0].PublicIpAddress' \
+            --output text --region "$ECR_REGION" 2>/dev/null || echo "")
+
+        if [ -z "$ec2_ip" ] || [ "$ec2_ip" = "None" ]; then
+            log_error "Could not find running EC2 instance 'datadatdat-ecs-host-prod'"
+            exit 1
+        fi
+        log_info "EC2 instance IP: $ec2_ip"
+
+        local ssh_opts="-i $ssh_key -o StrictHostKeyChecking=no -o ConnectTimeout=10"
+
+        # Copy Liquibase changelogs to EC2
+        log_info "Copying Liquibase changelogs to EC2..."
+        ssh $ssh_opts ec2-user@"$ec2_ip" "rm -rf /tmp/liquibase && mkdir -p /tmp/liquibase/changelogs/v1.0.0"
+        scp $ssh_opts -r "$liquibase_dir"/* ec2-user@"$ec2_ip":/tmp/liquibase/
+
+        # Fetch DB credentials from SSM and run Liquibase on EC2
+        log_info "Running Liquibase on EC2..."
+        ssh $ssh_opts ec2-user@"$ec2_ip" bash -s "$ECR_REGION" <<'REMOTE_SCRIPT'
+            set -euo pipefail
+            REGION="$1"
+
+            # Fetch production DB credentials from SSM Parameter Store
+            DB_URL=$(aws ssm get-parameter \
+                --name "/datadatdat/prod/database/url" \
+                --with-decryption --region "$REGION" \
+                --query 'Parameter.Value' --output text)
+
+            DB_PASSWORD=$(aws ssm get-parameter \
+                --name "/datadatdat/prod/db/password" \
+                --with-decryption --region "$REGION" \
+                --query 'Parameter.Value' --output text)
+
+            if [ -z "$DB_URL" ] || [ -z "$DB_PASSWORD" ]; then
+                echo "ERROR: Failed to fetch production DB credentials from SSM"
+                exit 1
+            fi
+
+            # Extract host from postgres:// URL
+            DB_HOST=$(echo "$DB_URL" | sed -n 's|.*@\(.*\):5432/.*|\1|p')
+
+            # Run Liquibase via Docker
+            docker run --rm \
+                -v /tmp/liquibase:/liquibase/changelog \
+                liquibase/liquibase:4.20 \
+                --changeLogFile=changelog-master.xml \
+                --url="jdbc:postgresql://${DB_HOST}:5432/datadatdat?sslmode=require" \
+                --username="datadatdat" \
+                --password="$DB_PASSWORD" \
+                update
+
+            # Clean up
+            rm -rf /tmp/liquibase
+REMOTE_SCRIPT
+
+        log_success "Liquibase migrations completed"
+    fi
+
+    # 2. Get ECR registry
     log_step "Getting ECR registry..."
     local ecr_registry
     if $DRY_RUN; then
@@ -967,7 +1049,7 @@ phase_ecs_deploy() {
         log_success "ECR registry: $ecr_registry"
     fi
 
-    # 2. Retrieve image digests for all 8 services
+    # 3. Retrieve image digests for all 8 services
     log_step "Retrieving v$VERSION image digests from ECR..."
     declare -A DIGESTS
     for service in "${ECR_SERVICES[@]}"; do
@@ -992,7 +1074,7 @@ phase_ecs_deploy() {
         fi
     done
 
-    # 3. Update task definitions script with new digests
+    # 4. Update task definitions script with new digests
     local task_def_script="$WORKSPACE/datadatdat-remote-server/update-task-definitions-with-digests.sh"
     if [ -f "$task_def_script" ]; then
         log_step "Updating task definition digests..."
@@ -1014,7 +1096,7 @@ phase_ecs_deploy() {
             git push origin master
         fi
 
-        # 4. Run the task definition update script
+        # 5. Run the task definition update script
         log_step "Registering new ECS task definitions..."
         if $DRY_RUN; then
             log_dry "bash $task_def_script"
@@ -1026,13 +1108,13 @@ phase_ecs_deploy() {
         log_warn "You may need to manually update ECS task definitions"
     fi
 
-    # 5. Wait for deployment
+    # 6. Wait for deployment
     log_step "Waiting 120s for ECS deployment to complete..."
     if ! $DRY_RUN; then
         sleep 120
     fi
 
-    # 6. Verify deployment
+    # 7. Verify deployment
     log_step "Verifying ECS deployment status..."
     if ! $DRY_RUN; then
         local all_healthy=true

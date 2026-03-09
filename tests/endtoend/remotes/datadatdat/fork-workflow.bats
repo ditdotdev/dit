@@ -11,14 +11,13 @@
 
 # Load shared test helpers
 load '../../test_helper'
+load 'env'
 
 setup_file() {
-  export DATADATDAT_API_KEY=02b31569a9052bc4b3cf1c3819d4fc048d34c96eca21f2b8e2359b5ecdfec93a
-
   # Verify the server is healthy
-  run curl -s http://127.0.0.1:8080/health
+  run curl -s ${GATEWAY}/health
   assert_success
-  [[ "$output" == *"healthy"* ]] || {
+  [[ "$output" == *"${HEALTH_EXPECT}"* ]] || {
     echo "datadatdat-remote-server is not running or not healthy"
     return 1
   }
@@ -30,18 +29,18 @@ teardown_file() {
   "$D3" rm -f forkclone 2>/dev/null || true
   "$D3" rm -f forkclone2 2>/dev/null || true
   curl -X DELETE -sf -H "Authorization: Bearer ${DATADATDAT_API_KEY}" \
-    "http://127.0.0.1:8080/api/v1/repos/forktest/source-repo" 2>/dev/null || true
+    "${GATEWAY}/api/v1/repos/forktest/source-repo" 2>/dev/null || true
   curl -X DELETE -sf -H "Authorization: Bearer ${DATADATDAT_API_KEY}" \
-    "http://127.0.0.1:8080/api/v1/repos/forkdest/source-repo" 2>/dev/null || true
+    "${GATEWAY}/api/v1/repos/forkdest/source-repo" 2>/dev/null || true
   curl -X DELETE -sf -H "Authorization: Bearer ${DATADATDAT_API_KEY}" \
-    "http://127.0.0.1:8080/api/v1/repos/forkdest/custom-name" 2>/dev/null || true
+    "${GATEWAY}/api/v1/repos/forkdest/custom-name" 2>/dev/null || true
 }
 
 # ===== Setup: create and populate a source repo =====
 
 @test "fork: create source repository" {
   run curl -X POST -f -H "Authorization: Bearer ${DATADATDAT_API_KEY}" \
-    "http://127.0.0.1:8080/api/v1/repos/forktest/source-repo"
+    "${GATEWAY}/api/v1/repos/forktest/source-repo"
   assert_success
   assert_output --partial "source-repo"
 }
@@ -68,7 +67,7 @@ teardown_file() {
 }
 
 @test "fork: add remote to source" {
-  run "$D3" remote add http://datadatdat-api-gateway:8080/forktest/source-repo forksrc
+  run "$D3" remote add ${REMOTE_URL}/forktest/source-repo forksrc
   assert_success
 }
 
@@ -133,7 +132,7 @@ teardown_file() {
     -H "Authorization: Bearer ${DATADATDAT_API_KEY}" \
     -H "Content-Type: application/json" \
     -d '{"targetNamespace": "forkdest"}' \
-    "http://127.0.0.1:8080/api/v1/repos/forktest/source-repo/fork"
+    "${GATEWAY}/api/v1/repos/forktest/source-repo/fork"
   assert_success
   assert_output --partial "forkdest"
   assert_output --partial "source-repo"
@@ -142,7 +141,7 @@ teardown_file() {
 
 @test "fork: verify forked repo has all commits" {
   run curl -sf -H "Authorization: Bearer ${DATADATDAT_API_KEY}" \
-    "http://127.0.0.1:8080/api/v1/repos/forkdest/source-repo/commits"
+    "${GATEWAY}/api/v1/repos/forkdest/source-repo/commits"
   assert_success
 
   COMMIT_1=$(cat "$BATS_TMPDIR/fork_commit_1.txt")
@@ -155,7 +154,7 @@ teardown_file() {
 }
 
 @test "fork: clone forked repo and verify data" {
-  run "$D3" clone http://datadatdat-api-gateway:8080/forkdest/source-repo -n forkclone -P
+  run "$D3" clone ${REMOTE_URL}/forkdest/source-repo -n forkclone -P
   assert_success
   assert_output --partial "checked out"
 }
@@ -186,7 +185,7 @@ teardown_file() {
     -H "Authorization: Bearer ${DATADATDAT_API_KEY}" \
     -H "Content-Type: application/json" \
     -d '{"targetNamespace": "forkdest", "targetName": "custom-name"}' \
-    "http://127.0.0.1:8080/api/v1/repos/forktest/source-repo/fork"
+    "${GATEWAY}/api/v1/repos/forktest/source-repo/fork"
   assert_success
   assert_output --partial "custom-name"
 }
@@ -198,7 +197,7 @@ teardown_file() {
     -H "Authorization: Bearer ${DATADATDAT_API_KEY}" \
     -H "Content-Type: application/json" \
     -d '{"targetNamespace": "forkdest"}' \
-    "http://127.0.0.1:8080/api/v1/repos/forktest/source-repo/fork"
+    "${GATEWAY}/api/v1/repos/forktest/source-repo/fork"
   # Should fail with conflict (target already exists)
   [[ "$output" == *"exists"* ]] || [[ "$output" == *"conflict"* ]] || [[ "$output" == *"Conflict"* ]]
 }
@@ -206,7 +205,7 @@ teardown_file() {
 # ===== Test: fork is independent =====
 
 @test "fork: clone fork for independence test" {
-  run "$D3" clone http://datadatdat-api-gateway:8080/forkdest/source-repo -n forkclone2 -P
+  run "$D3" clone ${REMOTE_URL}/forkdest/source-repo -n forkclone2 -P
   assert_success
 }
 
@@ -227,7 +226,7 @@ teardown_file() {
 @test "fork: verify source repo does not have fork-only data" {
   # Source repo's latest commit should NOT have Fork-Only-Item
   COMMIT_3=$(cat "$BATS_TMPDIR/fork_commit_3.txt")
-  run "$D3" clone http://datadatdat-api-gateway:8080/forktest/source-repo -c "$COMMIT_3" -n forkclone -P
+  run "$D3" clone ${REMOTE_URL}/forktest/source-repo -c "$COMMIT_3" -n forkclone -P
   assert_success
 
   run bash -c "for i in {1..18}; do docker exec forkclone pg_isready && break || sleep 5; done"
@@ -244,7 +243,7 @@ teardown_file() {
   run curl -X POST -s \
     -H "Content-Type: application/json" \
     -d '{"targetNamespace": "forkdest"}' \
-    "http://127.0.0.1:8080/api/v1/repos/forktest/source-repo/fork"
+    "${GATEWAY}/api/v1/repos/forktest/source-repo/fork"
   # Should fail - no auth
   [[ "$output" != *"created"* ]]
 }
@@ -257,12 +256,12 @@ teardown_file() {
   "$D3" rm -f forksrc 2>/dev/null || true
 
   run curl -X DELETE -sf -H "Authorization: Bearer ${DATADATDAT_API_KEY}" \
-    "http://127.0.0.1:8080/api/v1/repos/forktest/source-repo"
+    "${GATEWAY}/api/v1/repos/forktest/source-repo"
   assert_success
 
   curl -X DELETE -sf -H "Authorization: Bearer ${DATADATDAT_API_KEY}" \
-    "http://127.0.0.1:8080/api/v1/repos/forkdest/source-repo" 2>/dev/null || true
+    "${GATEWAY}/api/v1/repos/forkdest/source-repo" 2>/dev/null || true
 
   curl -X DELETE -sf -H "Authorization: Bearer ${DATADATDAT_API_KEY}" \
-    "http://127.0.0.1:8080/api/v1/repos/forkdest/custom-name" 2>/dev/null || true
+    "${GATEWAY}/api/v1/repos/forkdest/custom-name" 2>/dev/null || true
 }

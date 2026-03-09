@@ -5,6 +5,7 @@
 
 # Load shared test helpers
 load '../../test_helper'
+load 'env'
 
 # Admin API key (seeded by Liquibase)
 ADMIN_KEY="02b31569a9052bc4b3cf1c3819d4fc048d34c96eca21f2b8e2359b5ecdfec93a"
@@ -12,28 +13,29 @@ ADMIN_KEY="02b31569a9052bc4b3cf1c3819d4fc048d34c96eca21f2b8e2359b5ecdfec93a"
 # Test API key for billing user (raw hex key)
 BILLING_USER_KEY="cc11111122223333444455556666777788889999aaaabbbbccccddddeeeeffff"
 
-GATEWAY="http://127.0.0.1:8080"
-AUTH_SERVER="http://127.0.0.1:8085"
-
 # ========================================
 # Setup / Teardown
 # ========================================
 
 setup_file() {
   run curl -s "$GATEWAY/health"
-  [[ "$output" == *"healthy"* ]] || { echo "Gateway not running"; return 1; }
+  [[ "$output" == *"${HEALTH_EXPECT}"* ]] || { echo "Gateway not running"; return 1; }
 
   run curl -s "$AUTH_SERVER/health"
-  [[ "$output" == *"healthy"* ]] || { echo "Auth server not running"; return 1; }
+  [[ "$output" == *"${HEALTH_EXPECT}"* ]] || { echo "Auth server not running"; return 1; }
 
-  run docker exec datadatdat-postgres pg_isready -U datadatdat
-  [[ "$output" == *"accepting connections"* ]] || { echo "Postgres not ready"; return 1; }
+  if is_dev; then
+    run docker exec datadatdat-postgres pg_isready -U datadatdat
+    [[ "$output" == *"accepting connections"* ]] || { echo "Postgres not ready"; return 1; }
+  else
+    run run_sql_raw "SELECT 1;"
+    [[ "$output" == *"1"* ]] || { echo "Postgres not ready"; return 1; }
+  fi
 }
 
 teardown_file() {
   # Best-effort cleanup — DB only (billing user is test-only)
-  docker exec datadatdat-postgres psql -U datadatdat -d datadatdat -c \
-    "DELETE FROM storage_snapshots WHERE user_id IN (SELECT id FROM users WHERE github_login = 'billinguser');
+  run_sql_cmd "DELETE FROM storage_snapshots WHERE user_id IN (SELECT id FROM users WHERE github_login = 'billinguser');
      DELETE FROM billing_subscriptions WHERE user_id IN (SELECT id FROM users WHERE github_login = 'billinguser');
      DELETE FROM api_keys WHERE user_id IN (SELECT id FROM users WHERE github_login = 'billinguser');
      DELETE FROM whitelisted_users WHERE user_id IN (SELECT id FROM users WHERE github_login = 'billinguser');
@@ -48,16 +50,17 @@ teardown_file() {
 @test "billing: verify auth server is running" {
   run curl -s "$AUTH_SERVER/health"
   assert_success
-  assert_output --partial "healthy"
+  assert_output --partial "${HEALTH_EXPECT}"
 }
 
 @test "billing: verify api-gateway is running" {
   run curl -s "$GATEWAY/health"
   assert_success
-  assert_output --partial "healthy"
+  assert_output --partial "${HEALTH_EXPECT}"
 }
 
 @test "billing: verify postgres is ready" {
+  is_dev || skip "Local postgres check only for DEV"
   run docker exec datadatdat-postgres pg_isready -U datadatdat
   assert_success
   assert_output --partial "accepting connections"
@@ -68,8 +71,7 @@ teardown_file() {
 # ========================================
 
 @test "billing: cleanup existing test data from previous runs" {
-  run docker exec datadatdat-postgres psql -U datadatdat -d datadatdat -c \
-    "DELETE FROM storage_snapshots WHERE user_id IN (SELECT id FROM users WHERE github_login = 'billinguser');
+  run run_sql_cmd "DELETE FROM storage_snapshots WHERE user_id IN (SELECT id FROM users WHERE github_login = 'billinguser');
      DELETE FROM billing_subscriptions WHERE user_id IN (SELECT id FROM users WHERE github_login = 'billinguser');
      DELETE FROM api_keys WHERE user_id IN (SELECT id FROM users WHERE github_login = 'billinguser');
      DELETE FROM whitelisted_users WHERE user_id IN (SELECT id FROM users WHERE github_login = 'billinguser');
@@ -79,8 +81,7 @@ teardown_file() {
 }
 
 @test "billing: create billinguser (whitelisted)" {
-  run docker exec datadatdat-postgres psql -U datadatdat -d datadatdat -c \
-    "INSERT INTO users (github_id, github_login, github_email, github_name, github_avatar_url, is_whitelisted, is_admin, created_at, updated_at)
+  run run_sql_cmd "INSERT INTO users (github_id, github_login, github_email, github_name, github_avatar_url, is_whitelisted, is_admin, created_at, updated_at)
      VALUES (400001, 'billinguser', 'billing@test.com', 'Billing User', '', true, false, NOW(), NOW())
      ON CONFLICT (github_id) DO UPDATE SET is_whitelisted = true, is_admin = false, github_avatar_url = '';
      INSERT INTO whitelisted_users (user_id, approved_by, approved_at, reason)
@@ -91,8 +92,7 @@ teardown_file() {
 }
 
 @test "billing: get billinguser user ID" {
-  run docker exec datadatdat-postgres psql -U datadatdat -d datadatdat -t -A -c \
-    "SELECT id FROM users WHERE github_login = 'billinguser' LIMIT 1;"
+  run run_sql_raw "SELECT id FROM users WHERE github_login = 'billinguser' LIMIT 1;"
   assert_success
   BILLING_USER_ID=$(echo "$output" | tr -d '[:space:]')
   echo "$BILLING_USER_ID" > "$BATS_TMPDIR/billing_user_id.txt"
@@ -104,8 +104,7 @@ teardown_file() {
   KEY_HASH=$(echo -n "$BILLING_USER_KEY" | sha256sum | cut -d' ' -f1)
   KEY_PREFIX="${BILLING_USER_KEY:0:8}"
 
-  run docker exec datadatdat-postgres psql -U datadatdat -d datadatdat -c \
-    "INSERT INTO api_keys (user_id, key_hash, key_prefix, name, created_at)
+  run run_sql_cmd "INSERT INTO api_keys (user_id, key_hash, key_prefix, name, created_at)
      VALUES ('${BILLING_USER_ID}', '${KEY_HASH}', '${KEY_PREFIX}', 'Billing Test Key', NOW());"
   assert_success
   assert_output --partial "INSERT"
@@ -125,8 +124,7 @@ teardown_file() {
 @test "billing: insert test storage snapshot" {
   BILLING_USER_ID=$(cat "$BATS_TMPDIR/billing_user_id.txt")
 
-  run docker exec datadatdat-postgres psql -U datadatdat -d datadatdat -c \
-    "INSERT INTO storage_snapshots (user_id, recorded_at, total_bytes, repo_details)
+  run run_sql_cmd "INSERT INTO storage_snapshots (user_id, recorded_at, total_bytes, repo_details)
      VALUES ('${BILLING_USER_ID}', NOW() - INTERVAL '2 days', 1048576,
        '[{\"repo\": \"billinguser/test-repo\", \"bytes\": 1048576}]'::jsonb);"
   assert_success
@@ -136,8 +134,7 @@ teardown_file() {
 @test "billing: insert second storage snapshot (higher usage)" {
   BILLING_USER_ID=$(cat "$BATS_TMPDIR/billing_user_id.txt")
 
-  run docker exec datadatdat-postgres psql -U datadatdat -d datadatdat -c \
-    "INSERT INTO storage_snapshots (user_id, recorded_at, total_bytes, repo_details)
+  run run_sql_cmd "INSERT INTO storage_snapshots (user_id, recorded_at, total_bytes, repo_details)
      VALUES ('${BILLING_USER_ID}', NOW() - INTERVAL '1 day', 2097152,
        '[{\"repo\": \"billinguser/test-repo\", \"bytes\": 1572864}, {\"repo\": \"billinguser/test-repo-2\", \"bytes\": 524288}]'::jsonb);"
   assert_success
@@ -147,8 +144,7 @@ teardown_file() {
 @test "billing: insert third storage snapshot (current)" {
   BILLING_USER_ID=$(cat "$BATS_TMPDIR/billing_user_id.txt")
 
-  run docker exec datadatdat-postgres psql -U datadatdat -d datadatdat -c \
-    "INSERT INTO storage_snapshots (user_id, recorded_at, total_bytes, repo_details)
+  run run_sql_cmd "INSERT INTO storage_snapshots (user_id, recorded_at, total_bytes, repo_details)
      VALUES ('${BILLING_USER_ID}', NOW(), 1572864,
        '[{\"repo\": \"billinguser/test-repo\", \"bytes\": 1048576}, {\"repo\": \"billinguser/test-repo-2\", \"bytes\": 524288}]'::jsonb);"
   assert_success
@@ -291,8 +287,7 @@ teardown_file() {
 @test "billing: simulate checkout — insert active subscription" {
   BILLING_USER_ID=$(cat "$BATS_TMPDIR/billing_user_id.txt")
 
-  run docker exec datadatdat-postgres psql -U datadatdat -d datadatdat -c \
-    "INSERT INTO billing_subscriptions (user_id, stripe_subscription_id, stripe_customer_id, status, plan_name, current_period_start, current_period_end, cancel_at_period_end)
+  run run_sql_cmd "INSERT INTO billing_subscriptions (user_id, stripe_subscription_id, stripe_customer_id, status, plan_name, current_period_start, current_period_end, cancel_at_period_end)
      VALUES ('${BILLING_USER_ID}', 'sub_test_billing_e2e', 'cus_test_billing_e2e', 'active', 'storage', NOW(), NOW() + INTERVAL '30 days', false);"
   assert_success
   assert_output --partial "INSERT"
@@ -319,8 +314,7 @@ teardown_file() {
 @test "billing: simulate subscription canceled at period end" {
   BILLING_USER_ID=$(cat "$BATS_TMPDIR/billing_user_id.txt")
 
-  run docker exec datadatdat-postgres psql -U datadatdat -d datadatdat -c \
-    "UPDATE billing_subscriptions SET cancel_at_period_end = true, updated_at = NOW()
+  run run_sql_cmd "UPDATE billing_subscriptions SET cancel_at_period_end = true, updated_at = NOW()
      WHERE user_id = '${BILLING_USER_ID}';"
   assert_success
 }
@@ -336,8 +330,7 @@ teardown_file() {
 @test "billing: simulate subscription fully canceled" {
   BILLING_USER_ID=$(cat "$BATS_TMPDIR/billing_user_id.txt")
 
-  run docker exec datadatdat-postgres psql -U datadatdat -d datadatdat -c \
-    "UPDATE billing_subscriptions SET status = 'canceled', canceled_at = NOW(), updated_at = NOW()
+  run run_sql_cmd "UPDATE billing_subscriptions SET status = 'canceled', canceled_at = NOW(), updated_at = NOW()
      WHERE user_id = '${BILLING_USER_ID}';"
   assert_success
 }
@@ -353,8 +346,7 @@ teardown_file() {
 @test "billing: reset subscription to active for remaining tests" {
   BILLING_USER_ID=$(cat "$BATS_TMPDIR/billing_user_id.txt")
 
-  run docker exec datadatdat-postgres psql -U datadatdat -d datadatdat -c \
-    "UPDATE billing_subscriptions SET status = 'active', cancel_at_period_end = false, canceled_at = NULL, updated_at = NOW()
+  run run_sql_cmd "UPDATE billing_subscriptions SET status = 'active', cancel_at_period_end = false, canceled_at = NULL, updated_at = NOW()
      WHERE user_id = '${BILLING_USER_ID}';"
   assert_success
 }
@@ -366,8 +358,7 @@ teardown_file() {
 @test "billing: verify usage_reported_for_period is null initially" {
   BILLING_USER_ID=$(cat "$BATS_TMPDIR/billing_user_id.txt")
 
-  run docker exec datadatdat-postgres psql -U datadatdat -d datadatdat -t -A -c \
-    "SELECT usage_reported_for_period IS NULL FROM billing_subscriptions WHERE user_id = '${BILLING_USER_ID}';"
+  run run_sql_raw "SELECT usage_reported_for_period IS NULL FROM billing_subscriptions WHERE user_id = '${BILLING_USER_ID}';"
   assert_success
   RESULT=$(echo "$output" | tr -d '[:space:]')
   [[ "$RESULT" == "t" ]]
@@ -376,8 +367,7 @@ teardown_file() {
 @test "billing: simulate usage reported — mark as reported" {
   BILLING_USER_ID=$(cat "$BATS_TMPDIR/billing_user_id.txt")
 
-  run docker exec datadatdat-postgres psql -U datadatdat -d datadatdat -c \
-    "UPDATE billing_subscriptions SET usage_reported_for_period = NOW(), updated_at = NOW()
+  run run_sql_cmd "UPDATE billing_subscriptions SET usage_reported_for_period = NOW(), updated_at = NOW()
      WHERE user_id = '${BILLING_USER_ID}';"
   assert_success
 }
@@ -385,8 +375,7 @@ teardown_file() {
 @test "billing: verify usage_reported_for_period is set" {
   BILLING_USER_ID=$(cat "$BATS_TMPDIR/billing_user_id.txt")
 
-  run docker exec datadatdat-postgres psql -U datadatdat -d datadatdat -t -A -c \
-    "SELECT usage_reported_for_period IS NOT NULL FROM billing_subscriptions WHERE user_id = '${BILLING_USER_ID}';"
+  run run_sql_raw "SELECT usage_reported_for_period IS NOT NULL FROM billing_subscriptions WHERE user_id = '${BILLING_USER_ID}';"
   assert_success
   RESULT=$(echo "$output" | tr -d '[:space:]')
   [[ "$RESULT" == "t" ]]
@@ -422,8 +411,7 @@ teardown_file() {
 @test "billing: verify storage_snapshots table has data" {
   BILLING_USER_ID=$(cat "$BATS_TMPDIR/billing_user_id.txt")
 
-  run docker exec datadatdat-postgres psql -U datadatdat -d datadatdat -t -A -c \
-    "SELECT COUNT(*) FROM storage_snapshots WHERE user_id = '${BILLING_USER_ID}';"
+  run run_sql_raw "SELECT COUNT(*) FROM storage_snapshots WHERE user_id = '${BILLING_USER_ID}';"
   assert_success
   COUNT=$(echo "$output" | tr -d '[:space:]')
   [[ "$COUNT" -ge 3 ]]
@@ -432,8 +420,7 @@ teardown_file() {
 @test "billing: verify snapshot repo_details contains test repo" {
   BILLING_USER_ID=$(cat "$BATS_TMPDIR/billing_user_id.txt")
 
-  run docker exec datadatdat-postgres psql -U datadatdat -d datadatdat -t -A -c \
-    "SELECT repo_details FROM storage_snapshots WHERE user_id = '${BILLING_USER_ID}' ORDER BY recorded_at DESC LIMIT 1;"
+  run run_sql_raw "SELECT repo_details FROM storage_snapshots WHERE user_id = '${BILLING_USER_ID}' ORDER BY recorded_at DESC LIMIT 1;"
   assert_success
   assert_output --partial "billinguser/test-repo"
 }
@@ -441,8 +428,7 @@ teardown_file() {
 @test "billing: verify peak bytes across snapshots" {
   BILLING_USER_ID=$(cat "$BATS_TMPDIR/billing_user_id.txt")
 
-  run docker exec datadatdat-postgres psql -U datadatdat -d datadatdat -t -A -c \
-    "SELECT MAX(total_bytes) FROM storage_snapshots WHERE user_id = '${BILLING_USER_ID}';"
+  run run_sql_raw "SELECT MAX(total_bytes) FROM storage_snapshots WHERE user_id = '${BILLING_USER_ID}';"
   assert_success
   PEAK=$(echo "$output" | tr -d '[:space:]')
   [[ "$PEAK" -eq 2097152 ]]
@@ -455,22 +441,19 @@ teardown_file() {
 @test "billing: cleanup storage snapshots" {
   BILLING_USER_ID=$(cat "$BATS_TMPDIR/billing_user_id.txt")
 
-  run docker exec datadatdat-postgres psql -U datadatdat -d datadatdat -c \
-    "DELETE FROM storage_snapshots WHERE user_id = '${BILLING_USER_ID}';"
+  run run_sql_cmd "DELETE FROM storage_snapshots WHERE user_id = '${BILLING_USER_ID}';"
   assert_success
 }
 
 @test "billing: cleanup billing subscriptions" {
   BILLING_USER_ID=$(cat "$BATS_TMPDIR/billing_user_id.txt")
 
-  run docker exec datadatdat-postgres psql -U datadatdat -d datadatdat -c \
-    "DELETE FROM billing_subscriptions WHERE user_id = '${BILLING_USER_ID}';"
+  run run_sql_cmd "DELETE FROM billing_subscriptions WHERE user_id = '${BILLING_USER_ID}';"
   assert_success
 }
 
 @test "billing: cleanup API keys and test user" {
-  run docker exec datadatdat-postgres psql -U datadatdat -d datadatdat -c \
-    "DELETE FROM api_keys WHERE user_id IN (SELECT id FROM users WHERE github_login = 'billinguser');
+  run run_sql_cmd "DELETE FROM api_keys WHERE user_id IN (SELECT id FROM users WHERE github_login = 'billinguser');
      DELETE FROM whitelisted_users WHERE user_id IN (SELECT id FROM users WHERE github_login = 'billinguser');
      DELETE FROM namespaces WHERE name = 'billinguser';
      DELETE FROM users WHERE github_login = 'billinguser';"

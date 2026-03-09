@@ -5,14 +5,12 @@
 
 # Load shared test helpers
 load '../../test_helper'
-
-# API Key for E2E testing
-export DATADATDAT_API_KEY="02b31569a9052bc4b3cf1c3819d4fc048d34c96eca21f2b8e2359b5ecdfec93a"
+load 'env'
 
 # Setup: Verify server is running
 setup_file() {
-  run curl -s http://127.0.0.1:8080/health
-  [[ "$output" == *"healthy"* ]] || {
+  run curl -s ${GATEWAY}/health
+  [[ "$output" == *"${HEALTH_EXPECT}"* ]] || {
     echo "datadatdat-remote-server is not running"
     return 1
   }
@@ -22,7 +20,7 @@ setup_file() {
 teardown_file() {
   "$D3" rm -f tagremote 2>/dev/null || true
   curl -X DELETE -sf -H "Authorization: Bearer ${DATADATDAT_API_KEY}" \
-    "http://127.0.0.1:8080/api/v1/repos/testorg/tag-remote-test" 2>/dev/null || true
+    "${GATEWAY}/api/v1/repos/${TEST_ORG}/tag-remote-test" 2>/dev/null || true
 }
 
 # ========================================
@@ -31,7 +29,7 @@ teardown_file() {
 
 @test "push-pull-tags: create remote repository" {
   run curl -X POST -f -H "Authorization: Bearer ${DATADATDAT_API_KEY}" \
-    "http://127.0.0.1:8080/api/v1/repos/testorg/tag-remote-test"
+    "${GATEWAY}/api/v1/repos/${TEST_ORG}/tag-remote-test"
   assert_success
 }
 
@@ -65,7 +63,7 @@ teardown_file() {
 }
 
 @test "push-pull-tags: add datadatdat remote" {
-  run "$D3" remote add http://datadatdat-api-gateway:8080/testorg/tag-remote-test tagremote
+  run "$D3" remote add ${REMOTE_URL}/${TEST_ORG}/tag-remote-test tagremote
   assert_success
 }
 
@@ -175,6 +173,6 @@ teardown_file() {
 
 @test "push-pull-tags: delete remote repository" {
   run curl -X DELETE -f -H "Authorization: Bearer ${DATADATDAT_API_KEY}" \
-    "http://127.0.0.1:8080/api/v1/repos/testorg/tag-remote-test"
+    "${GATEWAY}/api/v1/repos/${TEST_ORG}/tag-remote-test"
   assert_success
 }
