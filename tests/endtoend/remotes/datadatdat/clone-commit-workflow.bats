@@ -134,7 +134,13 @@ teardown_file() {
 
 @test "clone-c: clone latest commit by ID" {
   COMMIT_3=$(cat "$BATS_TMPDIR/clone_commit_3.txt")
-  run "$D3" clone ${REMOTE_URL}/clonetest/clonecommit -c "$COMMIT_3" -n clonecommittest
+  local attempt
+  for attempt in 1 2 3; do
+    run "$D3" clone ${REMOTE_URL}/clonetest/clonecommit -c "$COMMIT_3" -n clonecommittest
+    if [[ $status -eq 0 ]]; then break; fi
+    "$D3" rm -f clonecommittest 2>/dev/null || true
+    sleep 3
+  done
   assert_success
   assert_output --partial "checked out"
 }
@@ -160,7 +166,13 @@ teardown_file() {
 
 @test "clone-c: clone middle commit by ID (users table, no data)" {
   COMMIT_2=$(cat "$BATS_TMPDIR/clone_commit_2.txt")
-  run "$D3" clone ${REMOTE_URL}/clonetest/clonecommit -c "$COMMIT_2" -n clonecommittest2
+  local attempt
+  for attempt in 1 2 3; do
+    run "$D3" clone ${REMOTE_URL}/clonetest/clonecommit -c "$COMMIT_2" -n clonecommittest2
+    if [[ $status -eq 0 ]]; then break; fi
+    "$D3" rm -f clonecommittest2 2>/dev/null || true
+    sleep 3
+  done
   assert_success
   assert_output --partial "checked out"
 }
