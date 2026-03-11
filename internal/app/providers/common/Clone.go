@@ -94,7 +94,18 @@ func Clone(uri string, repo string, guid string, params []string, args []string,
 				Properties: c.Properties,
 			}
 		}
-		metadata := Metadata{}.Load(commit.Properties)
+		// Unwrap double-wrapped properties if present. The remote server may return
+		// the full API response {id, properties} as the properties map rather than
+		// just the inner properties sub-map containing v2/metadata.
+		props := commit.Properties
+		if innerProps, ok := props["properties"]; ok {
+			if innerMap, ok := innerProps.(map[string]interface{}); ok {
+				if _, hasV2 := innerMap["v2"]; hasV2 {
+					props = innerMap
+				}
+			}
+		}
+		metadata := Metadata{}.Load(props)
 		// Construct image reference from image name and tag
 		imageRef := metadata.image.Image + ":" + metadata.image.Tag
 		_, err = docker.InspectImage(imageRef)
