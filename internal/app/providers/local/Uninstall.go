@@ -42,8 +42,14 @@ func Uninstall(version string, force bool, removeImages bool, port int, context 
 	}
 
 	fmt.Println("Tearing down Datadatdat servers")
-	if _, err := docker.TeardownDatadatdatServers(); err != nil {
-		fmt.Printf("Warning: Failed to teardown datadatdat servers: %v\n", err)
+	if output, err := docker.TeardownDatadatdatServers(); err != nil {
+		// On WSL2, the teardown container may fail to destroy the ZFS pool due to
+		// hostid mismatch (pool created by WSL host, teardown runs in Docker container).
+		// This is non-fatal — the pool can be cleaned up via cleanslate scripts.
+		fmt.Printf("Warning: Teardown encountered errors (ZFS pool may need manual cleanup via cleanslate): %v\n", err)
+		if output != "" {
+			fmt.Println(output)
+		}
 	}
 
 	fmt.Println("Removing datadatdat-data Docker volume")
