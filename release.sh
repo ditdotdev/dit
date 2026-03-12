@@ -52,6 +52,7 @@ COMMAND_EXECUTOR_DEPENDENTS=(ssh-remote delphix-remote)
 GO_MOD_REPOS=(datadatdat datadatdat-remote-go datadatdat-remote-server nop-remote-go s3-remote-go s3web-remote-go ssh-remote-go)
 
 ECR_SERVICES=(auth-server api-gateway api-repo-manifest api-ingest api-download datadatdat-repo-web worker web)
+PROD_URL="https://datadatdat.com"
 
 # ============================================================================
 # Globals (set by parse_args)
@@ -1211,15 +1212,91 @@ phase_validate() {
         go mod graph | grep datadatdat | grep remote-sdk-go || true
     fi
 
+    # Production smoke test
+    if ! $SKIP_ECS; then
+        log_step "Running production smoke tests against $PROD_URL..."
+        local smoke_failed=false
+
+        if $DRY_RUN; then
+            log_dry "curl -sfSo /dev/null -w '%{http_code}' $PROD_URL/health"
+            log_dry "curl -sfSo /dev/null -w '%{http_code}' $PROD_URL/"
+            log_dry "curl -sfSo /dev/null -w '%{http_code}' $PROD_URL/auth/login"
+            log_dry "openssl s_client -connect datadatdat.com:443 (cert expiry check)"
+        else
+            # 1. Health check - API gateway
+            local http_code
+            http_code=$(curl -sfSo /dev/null -w '%{http_code}' --max-time 10 "$PROD_URL/health" 2>/dev/null || echo "000")
+            if [ "$http_code" = "200" ]; then
+                log_success "Health check: $PROD_URL/health -> $http_code"
+            else
+                log_error "Health check: $PROD_URL/health -> $http_code"
+                smoke_failed=true
+            fi
+
+            # 2. Web UI
+            http_code=$(curl -sfSo /dev/null -w '%{http_code}' --max-time 10 "$PROD_URL/" 2>/dev/null || echo "000")
+            if [ "$http_code" = "200" ]; then
+                log_success "Web UI: $PROD_URL/ -> $http_code"
+            else
+                log_error "Web UI: $PROD_URL/ -> $http_code"
+                smoke_failed=true
+            fi
+
+            # 3. Auth endpoint (expect redirect 302 or 200)
+            http_code=$(curl -so /dev/null -w '%{http_code}' --max-time 10 "$PROD_URL/auth/login" 2>/dev/null || echo "000")
+            if [ "$http_code" = "200" ] || [ "$http_code" = "302" ]; then
+                log_success "Auth flow: $PROD_URL/auth/login -> $http_code"
+            else
+                log_error "Auth flow: $PROD_URL/auth/login -> $http_code"
+                smoke_failed=true
+            fi
+
+            # 4. API version check
+            local api_response
+            api_response=$(curl -sf --max-time 10 "$PROD_URL/health" 2>/dev/null || echo "{}")
+            if echo "$api_response" | grep -q '"healthy"'; then
+                log_success "API response: healthy"
+            else
+                log_warn "API response: could not verify health payload"
+            fi
+
+            # 5. SSL certificate expiry check
+            local cert_expiry
+            cert_expiry=$(echo | openssl s_client -servername datadatdat.com -connect datadatdat.com:443 2>/dev/null | \
+                openssl x509 -noout -enddate 2>/dev/null | sed 's/notAfter=//')
+            if [ -n "$cert_expiry" ]; then
+                local expiry_epoch
+                expiry_epoch=$(date -d "$cert_expiry" +%s 2>/dev/null || date -j -f "%b %d %T %Y %Z" "$cert_expiry" +%s 2>/dev/null || echo "0")
+                local now_epoch
+                now_epoch=$(date +%s)
+                local days_remaining=$(( (expiry_epoch - now_epoch) / 86400 ))
+                if [ "$days_remaining" -gt 7 ]; then
+                    log_success "SSL certificate: valid for $days_remaining days (expires $cert_expiry)"
+                elif [ "$days_remaining" -gt 0 ]; then
+                    log_warn "SSL certificate: expires in $days_remaining days! ($cert_expiry)"
+                    smoke_failed=true
+                else
+                    log_error "SSL certificate: EXPIRED ($cert_expiry)"
+                    smoke_failed=true
+                fi
+            else
+                log_warn "SSL certificate: could not check expiry"
+            fi
+
+            if $smoke_failed; then
+                log_error "Production smoke tests FAILED - investigate before announcing release"
+                exit 1
+            fi
+            log_success "All production smoke tests passed"
+        fi
+    else
+        log_info "Skipping production smoke tests (--skip-ecs)"
+    fi
+
     save_phase_state 9
     log_success "Release v$VERSION validation complete!"
     echo ""
     echo "Release v$VERSION is complete!"
-    echo ""
-    echo "Next steps:"
-    echo "  1. Test production site: https://datadatdat.com"
-    echo "  2. Run full E2E: cd $WORKSPACE/datadatdat && make e2e"
-    echo "  3. Run remote E2E: cd $WORKSPACE/datadatdat && make test-datadatdat-workflow"
 }
 
 # ============================================================================
