@@ -30,11 +30,19 @@ func Push(repoName string, guid string, remoteName string, tags []string, metada
 		fmt.Println("container has no history, run 'commit' to first commit state")
 		os.Exit(1)
 	}
-	remote, _, _ := remotesApi.GetRemote(ctx, repoName, name)
+	remote, _, err := remotesApi.GetRemote(ctx, repoName, name)
+	if err != nil || remote.Provider == "" {
+		fmt.Printf("remote '%s' not found for repository '%s', run 'd3 remote add' first\n", name, repoName)
+		os.Exit(1)
+	}
 	commit := datadatdatclient.Commit{
 		Id: "id",
 	}
 	provider := rm.Get(remote.Provider)
+	if provider == nil {
+		fmt.Printf("unknown remote provider '%s'\n", remote.Provider)
+		os.Exit(1)
+	}
 	p, _ := provider.GetParameters(remote.Properties)
 	params := datadatdatclient.RemoteParameters{
 		Provider:   remote.Provider,
