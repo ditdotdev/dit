@@ -27,6 +27,24 @@ load '../test_helper'
   assert_output --partial "datadatdat:latest"
 }
 
+@test "ZFS pool destroyed after uninstall" {
+  # The datadatdat-docker pool should not exist after uninstall.
+  # On WSL2, this previously failed due to hostid mismatch between
+  # the Docker teardown container and the WSL host that created the pool.
+  run sudo zpool list datadatdat-docker
+  assert_failure
+}
+
+@test "uninstall output has no teardown warning" {
+  # Re-install so we can test uninstall output for warnings
+  run "$D3" install
+  assert_success
+  run "$D3" uninstall
+  assert_success
+  # Should NOT contain the teardown failure warning
+  refute_output --partial "Failed to teardown datadatdat servers"
+}
+
 @test "re-install datadatdat" {
   run "$D3" install
   assert_success
