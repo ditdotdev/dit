@@ -253,17 +253,17 @@ wait_for_pr_checks() {
         local all_passed=true
         local any_pending=false
 
-        while IFS=$'\t' read -r name status conclusion; do
-            if [ "$status" = "completed" ]; then
-                if [ "$conclusion" != "success" ] && [ "$conclusion" != "skipped" ] && [ "$conclusion" != "neutral" ]; then
-                    log_error "Check '$name' failed in PR #$pr_number ($ORG/$repo): $conclusion"
-                    return 1
-                fi
+        while IFS=$'\t' read -r name state; do
+            if [ "$state" = "SUCCESS" ] || [ "$state" = "SKIPPED" ] || [ "$state" = "NEUTRAL" ]; then
+                : # passed
+            elif [ "$state" = "FAILURE" ] || [ "$state" = "ERROR" ]; then
+                log_error "Check '$name' failed in PR #$pr_number ($ORG/$repo): $state"
+                return 1
             else
                 any_pending=true
                 all_passed=false
             fi
-        done < <(gh pr checks "$pr_number" --repo "$ORG/$repo" --json name,state,conclusion --jq '.[] | [.name, .state, .conclusion] | @tsv' 2>/dev/null || echo "")
+        done < <(gh pr checks "$pr_number" --repo "$ORG/$repo" --json name,state --jq '.[] | [.name, .state] | @tsv' 2>/dev/null || echo "")
 
         if $all_passed && ! $any_pending; then
             log_success "All checks passed for PR #$pr_number in $ORG/$repo"
@@ -663,12 +663,14 @@ phase_kotlin_foundation() {
                 files_changed+=("client/build.gradle.kts")
             fi
 
-            # Update command-executor dep for ssh-remote and delphix-remote
-            for ce_dep in "${COMMAND_EXECUTOR_DEPENDENTS[@]}"; do
-                if [ "$provider" = "$ce_dep" ]; then
-                    sed -i "s/command-executor:${PREV_VERSION}/command-executor:${VERSION}/g" "$repo_path/server/build.gradle.kts"
-                fi
-            done
+            # Update command-executor dep for ssh-remote and delphix-remote (only if CE was released)
+            if $ce_has_changes; then
+                for ce_dep in "${COMMAND_EXECUTOR_DEPENDENTS[@]}"; do
+                    if [ "$provider" = "$ce_dep" ]; then
+                        sed -i "s/command-executor:${PREV_VERSION}/command-executor:${VERSION}/g" "$repo_path/server/build.gradle.kts"
+                    fi
+                done
+            fi
 
             if [ ${#files_changed[@]} -gt 0 ]; then
                 commit_and_push "$repo_path" "Update dependencies to $VERSION" "${files_changed[@]}"
@@ -760,7 +762,12 @@ phase_server() {
     # Update all Kotlin dependencies in build.gradle.kts
     log_step "Updating datadatdat-server dependencies..."
     if ! $DRY_RUN; then
-        sed -i "s/command-executor:${PREV_VERSION}/command-executor:${VERSION}/g" "$gradle_file"
+        # Only update command-executor if it was actually released at $VERSION
+        if aws s3 ls "s3://$MAVEN_BUCKET/com/datadatdat/command-executor/$VERSION/" > /dev/null 2>&1; then
+            sed -i "s/command-executor:${PREV_VERSION}/command-executor:${VERSION}/g" "$gradle_file"
+        else
+            log_info "command-executor:$VERSION not in Maven — keeping existing version"
+        fi
         sed -i "s/remote-sdk:${PREV_VERSION}/remote-sdk:${VERSION}/g" "$gradle_file"
         sed -i "s/datadatdat-remote-client:${PREV_VERSION}/datadatdat-remote-client:${VERSION}/g" "$gradle_file"
         sed -i "s/datadatdat-remote-server:${PREV_VERSION}/datadatdat-remote-server:${VERSION}/g" "$gradle_file"
@@ -781,15 +788,15 @@ phase_server() {
         fi
     fi
 
-    # Verify all 8 deps updated
+    # Verify deps updated (at least 7; 8 if command-executor was also released)
     if ! $DRY_RUN; then
         local dep_count
         dep_count=$(grep -c "com.datadatdat:.*:${VERSION}" "$gradle_file" || echo "0")
-        if [ "$dep_count" -lt 8 ]; then
-            log_error "Only $dep_count/8 datadatdat dependencies updated in $gradle_file"
+        if [ "$dep_count" -lt 7 ]; then
+            log_error "Only $dep_count datadatdat dependencies updated in $gradle_file (expected at least 7)"
             exit 1
         fi
-        log_success "Verified all 8 Kotlin dependencies at $VERSION"
+        log_success "Verified $dep_count Kotlin dependencies at $VERSION"
     fi
 
     # Tag and release
@@ -994,30 +1001,34 @@ phase_ecs_deploy() {
         ssh $ssh_opts ec2-user@"$ec2_ip" "rm -rf /tmp/liquibase && mkdir -p /tmp/liquibase/changelogs/v1.0.0"
         scp $ssh_opts -r "$liquibase_dir"/* ec2-user@"$ec2_ip":/tmp/liquibase/
 
-        # Fetch DB credentials from SSM and run Liquibase on EC2
+        # Fetch DB credentials from SSM locally (EC2 doesn't have aws CLI)
+        log_info "Fetching DB credentials from SSM Parameter Store..."
+        local db_url db_password db_host
+        db_url=$(aws ssm get-parameter \
+            --name "/datadatdat/prod/database/url" \
+            --with-decryption --region "$ECR_REGION" \
+            --query 'Parameter.Value' --output text)
+
+        db_password=$(aws ssm get-parameter \
+            --name "/datadatdat/prod/db/password" \
+            --with-decryption --region "$ECR_REGION" \
+            --query 'Parameter.Value' --output text)
+
+        if [ -z "$db_url" ] || [ -z "$db_password" ]; then
+            log_error "Failed to fetch production DB credentials from SSM"
+            exit 1
+        fi
+
+        # Extract host from postgres:// URL
+        db_host=$(echo "$db_url" | sed -n 's|.*@\(.*\):5432/.*|\1|p')
+        log_success "Retrieved DB credentials (host: $db_host)"
+
+        # Run Liquibase on EC2, passing credentials via SSH
         log_info "Running Liquibase on EC2..."
-        ssh $ssh_opts ec2-user@"$ec2_ip" bash -s "$ECR_REGION" <<'REMOTE_SCRIPT'
+        ssh $ssh_opts ec2-user@"$ec2_ip" bash -s "$db_host" "$db_password" <<'REMOTE_SCRIPT'
             set -euo pipefail
-            REGION="$1"
-
-            # Fetch production DB credentials from SSM Parameter Store
-            DB_URL=$(aws ssm get-parameter \
-                --name "/datadatdat/prod/database/url" \
-                --with-decryption --region "$REGION" \
-                --query 'Parameter.Value' --output text)
-
-            DB_PASSWORD=$(aws ssm get-parameter \
-                --name "/datadatdat/prod/db/password" \
-                --with-decryption --region "$REGION" \
-                --query 'Parameter.Value' --output text)
-
-            if [ -z "$DB_URL" ] || [ -z "$DB_PASSWORD" ]; then
-                echo "ERROR: Failed to fetch production DB credentials from SSM"
-                exit 1
-            fi
-
-            # Extract host from postgres:// URL
-            DB_HOST=$(echo "$DB_URL" | sed -n 's|.*@\(.*\):5432/.*|\1|p')
+            DB_HOST="$1"
+            DB_PASSWORD="$2"
 
             # Run Liquibase via Docker
             docker run --rm \
