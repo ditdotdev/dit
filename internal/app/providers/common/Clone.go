@@ -147,9 +147,9 @@ func Clone(uri string, repo string, guid string, params []string, args []string,
 func handleRemoteError(err error, resp *http.Response, uri string) {
 	if resp != nil && resp.StatusCode == http.StatusUnauthorized {
 		if uri != "" {
-			fmt.Printf("authentication required: run 'd3 auth login --server %s' to authenticate\n", uri)
+			fmt.Printf("authentication required: run 'd3 auth login --server %s --api-key <KEY>' to authenticate\n", uri)
 		} else {
-			fmt.Println("authentication required: run 'd3 auth login' to authenticate")
+			fmt.Println("authentication required: run 'd3 auth login --api-key <KEY>' to authenticate")
 		}
 	} else {
 		fmt.Printf("error communicating with remote: %v\n", err)
