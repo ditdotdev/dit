@@ -3,6 +3,7 @@ package common
 import (
 	util "datadatdat/internal/app/utils"
 	"fmt"
+	"net/http"
 	"os"
 	"strconv"
 
@@ -10,6 +11,32 @@ import (
 	datadatdatclient "github.com/datadatdat/datadatdat-client-go"
 	rm "github.com/datadatdat/remote-sdk-go/remote"
 )
+
+func ensureRemoteRepoExists(properties map[string]interface{}) error {
+	apiBaseURL, _ := properties["api_base_url"].(string)
+	org, _ := properties["org"].(string)
+	repo, _ := properties["repo"].(string)
+	if apiBaseURL == "" || org == "" || repo == "" {
+		return fmt.Errorf("missing api_base_url, org, or repo in remote properties")
+	}
+	url := fmt.Sprintf("%s/api/v1/repos/%s/%s", apiBaseURL, org, repo)
+	req, err := http.NewRequest(http.MethodPost, url, nil)
+	if err != nil {
+		return err
+	}
+	if apiKey := os.Getenv("DATADATDAT_API_KEY"); apiKey != "" {
+		req.Header.Set("Authorization", "Bearer "+apiKey)
+	}
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode >= 400 {
+		return fmt.Errorf("server returned %d when creating remote repository %s/%s", resp.StatusCode, org, repo)
+	}
+	return nil
+}
 
 func Push(repoName string, guid string, remoteName string, tags []string, metadataOnly bool, port int) {
 	cfg.BasePath = "http://localhost:" + strconv.Itoa(port)
@@ -37,6 +64,12 @@ func Push(repoName string, guid string, remoteName string, tags []string, metada
 	}
 	commit := datadatdatclient.Commit{
 		Id: "id",
+	}
+	if remote.Provider == "datadatdat" {
+		if err := ensureRemoteRepoExists(remote.Properties); err != nil {
+			fmt.Printf("failed to create remote repository: %s\n", err)
+			os.Exit(1)
+		}
 	}
 	provider := rm.Get(remote.Provider)
 	if provider == nil {
