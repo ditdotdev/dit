@@ -1,0 +1,35 @@
+./d3 rm mydb -f
+
+./d3 run postgres -n mydb -e POSTGRES_PASSWORD=postgres -P (use -P if you have another postgres instance runninng on 5432. )
+
+./d3 commit mydb -m "Initial commit"
+
+docker exec mydb psql -U postgres -c "CREATE TABLE users (id SERIAL PRIMARY KEY, name VARCHAR(100), email VARCHAR(100));"
+
+./d3 commit mydb -m "Added users table"
+
+docker exec mydb psql -U postgres -c "INSERT INTO users (name, email) VALUES ('Alice', 'alice@example.com'), ('Bob', 'bob@example.com');"
+
+./d3 commit mydb -m "Added sample users"
+
+./d3 log mydb
+
+./d3 checkout mydb -c <first commit>
+
+docker exec mydb psql -U postgres -c "\dt"
+
+./d3 checkout mydb -c <second commit>
+
+docker exec mydb psql -U postgres -c "\dt"
+
+./d3 checkout mydb -c <third commit>
+
+docker exec mydb psql -U postgres -c "SELECT * FROM users;"
+
+./d3 auth login --server datadatdat.com --api-key <your-api-key>
+
+./d3 remote add https://datadatdat.com/<your user name>/mydb mydb
+
+./d3 push mydb
+
+#./d3 rm mydb -f

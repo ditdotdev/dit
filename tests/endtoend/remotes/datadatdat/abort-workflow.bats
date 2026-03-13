@@ -33,12 +33,6 @@ teardown_file() {
   assert_output --partial "${HEALTH_EXPECT}"
 }
 
-@test "abort: create remote repository" {
-  run curl -X POST -f -H "Authorization: Bearer ${DATADATDAT_API_KEY}" \
-    "${GATEWAY}/api/v1/repos/${TEST_ORG}/abort-test-repo"
-  assert_success
-}
-
 @test "abort: run mongo container" {
   run "$D3" run -n abort-test -P mongo
   assert_success

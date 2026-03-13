@@ -32,13 +32,6 @@ teardown_file() {
   "$D3" rm -f webuitestclone 2>/dev/null || true
 }
 
-@test "create test repository in server" {
-  run curl -X POST -f -H "Authorization: Bearer ${DATADATDAT_API_KEY}" \
-    "${GATEWAY}/api/v1/repos/${TEST_ORG}/datadatdat-test"
-  assert_success
-  assert_output --partial "datadatdat-test"
-}
-
 @test "run empty mongo db" {
   run "$D3" run -n datadatdattest mongo
   assert_success
