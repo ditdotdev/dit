@@ -19,7 +19,28 @@ func ensureRemoteRepoExists(properties map[string]interface{}) error {
 	if apiBaseURL == "" || org == "" || repo == "" {
 		return fmt.Errorf("missing api_base_url, org, or repo in remote properties")
 	}
+	// Allow overriding the host-visible gateway URL. Needed in environments where
+	// the remote URL uses a Docker-internal hostname (e.g. datadatdat-api-gateway)
+	// that isn't resolvable from the host process running d3.
+	if hostGateway := os.Getenv("DATADATDAT_HOST_GATEWAY"); hostGateway != "" {
+		apiBaseURL = hostGateway
+	}
 	url := fmt.Sprintf("%s/api/v1/repos/%s/%s", apiBaseURL, org, repo)
+
+	// Check if repo already exists before creating. Creating an existing repo
+	// overwrites its manifest with an empty one, destroying commit history.
+	if getReq, err := http.NewRequest(http.MethodGet, url, nil); err == nil {
+		if apiKey := os.Getenv("DATADATDAT_API_KEY"); apiKey != "" {
+			getReq.Header.Set("Authorization", "Bearer "+apiKey)
+		}
+		if getResp, err := http.DefaultClient.Do(getReq); err == nil {
+			_ = getResp.Body.Close()
+			if getResp.StatusCode == http.StatusOK {
+				return nil // Repo already exists
+			}
+		}
+	}
+
 	req, err := http.NewRequest(http.MethodPost, url, nil)
 	if err != nil {
 		return err
@@ -104,6 +125,20 @@ func Push(repoName string, guid string, remoteName string, tags []string, metada
 	if commit.Id == "" {
 		fmt.Println("no matching commits found, unable to push latest")
 		os.Exit(1)
+	}
+	// Check if commit already exists in the remote to prevent duplicate pushes.
+	emptyOpts := &datadatdatclient.ListRemoteCommitsOpts{}
+	remoteCommits, _, listErr := remotesApi.ListRemoteCommits(ctx, repoName, name, datadatdatclient.RemoteParameters{
+		Provider:   remote.Provider,
+		Properties: p,
+	}, emptyOpts)
+	if listErr == nil {
+		for _, rc := range remoteCommits {
+			if rc.Id == commit.Id {
+				fmt.Printf("commit %s exists in remote '%s'\n", commit.Id, name)
+				os.Exit(1)
+			}
+		}
 	}
 	pushOpts := &datadatdatclient.PushOpts{
 		MetadataOnly: optional.NewBool(metadataOnly),
