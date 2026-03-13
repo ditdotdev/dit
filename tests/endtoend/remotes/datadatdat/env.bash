@@ -67,6 +67,7 @@ else
   export WEB_UI="http://127.0.0.1:3000"
   export AUTH_SERVER="http://127.0.0.1:8085"
   export REMOTE_URL="http://datadatdat-api-gateway:8080"
+  export DATADATDAT_HOST_GATEWAY="${DATADATDAT_HOST_GATEWAY:-http://127.0.0.1:8080}"
   export HEALTH_EXPECT="healthy"
 
   # Org/namespace prefixes
@@ -76,7 +77,7 @@ else
   export APIKEY_TEST_ORG="apikeytest"
 
   # Download API test version
-  export DOWNLOAD_TEST_VERSION="${DOWNLOAD_TEST_VERSION:-v1.7.1}"
+  export DOWNLOAD_TEST_VERSION="${DOWNLOAD_TEST_VERSION:-v1.7.2}"
 
   # Helper: execute SQL against local postgres container
   run_sql() {
