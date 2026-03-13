@@ -127,16 +127,19 @@ func Push(repoName string, guid string, remoteName string, tags []string, metada
 		os.Exit(1)
 	}
 	// Check if commit already exists in the remote to prevent duplicate pushes.
-	emptyOpts := &datadatdatclient.ListRemoteCommitsOpts{}
-	remoteCommits, _, listErr := remotesApi.ListRemoteCommits(ctx, repoName, name, datadatdatclient.RemoteParameters{
-		Provider:   remote.Provider,
-		Properties: p,
-	}, emptyOpts)
-	if listErr == nil {
-		for _, rc := range remoteCommits {
-			if rc.Id == commit.Id {
-				fmt.Printf("commit %s exists in remote '%s'\n", commit.Id, name)
-				os.Exit(1)
+	// Skip for metadata-only pushes (--update-only), which re-push to sync tags.
+	if !metadataOnly {
+		emptyOpts := &datadatdatclient.ListRemoteCommitsOpts{}
+		remoteCommits, _, listErr := remotesApi.ListRemoteCommits(ctx, repoName, name, datadatdatclient.RemoteParameters{
+			Provider:   remote.Provider,
+			Properties: p,
+		}, emptyOpts)
+		if listErr == nil {
+			for _, rc := range remoteCommits {
+				if rc.Id == commit.Id {
+					fmt.Printf("commit %s exists in remote '%s'\n", commit.Id, name)
+					os.Exit(1)
+				}
 			}
 		}
 	}
