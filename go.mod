@@ -6,13 +6,13 @@ require (
 	github.com/antihax/optional v1.0.0
 	github.com/briandowns/spinner v1.23.2
 	github.com/buger/jsonparser v1.1.1
-	github.com/datadatdat/datadatdat-client-go v1.7.1
-	github.com/datadatdat/datadatdat-remote-go v1.7.1
-	github.com/datadatdat/nop-remote-go v1.7.1
-	github.com/datadatdat/remote-sdk-go v1.7.1
-	github.com/datadatdat/s3-remote-go v1.7.1
-	github.com/datadatdat/s3web-remote-go v1.7.1
-	github.com/datadatdat/ssh-remote-go v1.7.1
+	github.com/datadatdat/datadatdat-client-go v1.7.2
+	github.com/datadatdat/datadatdat-remote-go v1.7.2
+	github.com/datadatdat/nop-remote-go v1.7.2
+	github.com/datadatdat/remote-sdk-go v1.7.2
+	github.com/datadatdat/s3-remote-go v1.7.2
+	github.com/datadatdat/s3web-remote-go v1.7.2
+	github.com/datadatdat/ssh-remote-go v1.7.2
 	github.com/google/uuid v1.6.0
 	github.com/spf13/cobra v1.10.2
 	github.com/spf13/viper v1.21.0
@@ -35,7 +35,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/internal/checksum v1.9.11 // indirect
 	github.com/aws/aws-sdk-go-v2/service/internal/presigned-url v1.13.19 // indirect
 	github.com/aws/aws-sdk-go-v2/service/internal/s3shared v1.19.19 // indirect
-	github.com/aws/aws-sdk-go-v2/service/s3 v1.96.4 // indirect
+	github.com/aws/aws-sdk-go-v2/service/s3 v1.97.0 // indirect
 	github.com/aws/aws-sdk-go-v2/service/signin v1.0.7 // indirect
 	github.com/aws/aws-sdk-go-v2/service/sso v1.30.12 // indirect
 	github.com/aws/aws-sdk-go-v2/service/ssooidc v1.35.16 // indirect
@@ -80,12 +80,12 @@ require (
 	github.com/subosito/gotenv v1.6.0 // indirect
 	github.com/x448/float16 v0.8.4 // indirect
 	go.yaml.in/yaml/v3 v3.0.4 // indirect
-	golang.org/x/crypto v0.48.0 // indirect
-	golang.org/x/net v0.49.0 // indirect
+	golang.org/x/crypto v0.49.0 // indirect
+	golang.org/x/net v0.51.0 // indirect
 	golang.org/x/oauth2 v0.36.0 // indirect
 	golang.org/x/sys v0.42.0 // indirect
 	golang.org/x/term v0.41.0 // indirect
-	golang.org/x/text v0.34.0 // indirect
+	golang.org/x/text v0.35.0 // indirect
 	golang.org/x/time v0.3.0 // indirect
 	google.golang.org/genproto v0.0.0-20200526211855-cb27e3aa2013 // indirect
 	google.golang.org/grpc v1.79.2 // indirect
