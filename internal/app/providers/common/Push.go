@@ -31,7 +31,7 @@ func ensureRemoteRepoExists(properties map[string]interface{}) error {
 	if err != nil {
 		return err
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 	if resp.StatusCode >= 400 {
 		return fmt.Errorf("server returned %d when creating remote repository %s/%s", resp.StatusCode, org, repo)
 	}
