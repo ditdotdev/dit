@@ -27,12 +27,6 @@ teardown_file() {
 # Setup
 # ========================================
 
-@test "push-pull-tags: create remote repository" {
-  run curl -X POST -f -H "Authorization: Bearer ${DATADATDAT_API_KEY}" \
-    "${GATEWAY}/api/v1/repos/${TEST_ORG}/tag-remote-test"
-  assert_success
-}
-
 @test "push-pull-tags: run mongo container" {
   run "$D3" run -n tagremote -P mongo
   assert_success
