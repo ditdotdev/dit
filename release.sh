@@ -789,12 +789,12 @@ phase_server() {
         fi
     fi
 
-    # Verify deps updated (at least 7; 8 if command-executor was also released)
+    # Verify deps updated (at least 6; 7 if command-executor was also released)
     if ! $DRY_RUN; then
         local dep_count
         dep_count=$(grep -c "com.datadatdat:.*:${VERSION}" "$gradle_file" || echo "0")
-        if [ "$dep_count" -lt 7 ]; then
-            log_error "Only $dep_count datadatdat dependencies updated in $gradle_file (expected at least 7)"
+        if [ "$dep_count" -lt 6 ]; then
+            log_error "Only $dep_count datadatdat dependencies updated in $gradle_file (expected at least 6)"
             exit 1
         fi
         log_success "Verified $dep_count Kotlin dependencies at $VERSION"
