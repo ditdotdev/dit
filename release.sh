@@ -1307,6 +1307,24 @@ phase_validate() {
         log_info "Skipping production smoke tests (--skip-ecs)"
     fi
 
+    # Run full BATS E2E test suite against production
+    if ! $SKIP_ECS; then
+        log_step "Running ENV=PROD E2E test suite against production..."
+        if $DRY_RUN; then
+            log_dry "cd $WORKSPACE/datadatdat && ENV=PROD make e2e-server"
+        else
+            cd "$WORKSPACE/datadatdat"
+            if ENV=PROD make e2e-server; then
+                log_success "Production E2E tests passed"
+            else
+                log_error "Production E2E tests FAILED - investigate before announcing release"
+                exit 1
+            fi
+        fi
+    else
+        log_info "Skipping production E2E tests (--skip-ecs)"
+    fi
+
     save_phase_state 9
     log_success "Release v$VERSION validation complete!"
     echo ""
