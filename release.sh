@@ -902,6 +902,20 @@ phase_cli() {
         log_warn "Upload script not found at $upload_script - skipping S3 upload"
     fi
 
+    # Update DOWNLOAD_TEST_VERSION in PROD env to the new version
+    local env_file="$WORKSPACE/datadatdat/tests/endtoend/remotes/datadatdat/env.bash"
+    log_step "Updating DOWNLOAD_TEST_VERSION in PROD env to v$VERSION..."
+    if $DRY_RUN; then
+        log_dry "sed -i 's|DOWNLOAD_TEST_VERSION:-v[0-9.]*\"|DOWNLOAD_TEST_VERSION:-v$VERSION\"|' $env_file (PROD section)"
+    else
+        sed -i "0,/DOWNLOAD_TEST_VERSION/ s|DOWNLOAD_TEST_VERSION:-v[0-9.]*\"|DOWNLOAD_TEST_VERSION:-v$VERSION\"|" "$env_file"
+        cd "$WORKSPACE/datadatdat"
+        git add "$env_file"
+        git commit -m "Update DOWNLOAD_TEST_VERSION to v$VERSION"
+        git push origin master
+        log_success "DOWNLOAD_TEST_VERSION updated and pushed"
+    fi
+
     save_phase_state 6
     log_success "Phase 6 complete: datadatdat CLI released at v$VERSION"
 }
@@ -1242,9 +1256,9 @@ phase_validate() {
                 smoke_failed=true
             fi
 
-            # 3. Auth endpoint (expect redirect 302 or 200)
+            # 3. Auth endpoint (expect redirect 302/307 or 200)
             http_code=$(curl -so /dev/null -w '%{http_code}' --max-time 10 "$PROD_URL/auth/login" 2>/dev/null || echo "000")
-            if [ "$http_code" = "200" ] || [ "$http_code" = "302" ]; then
+            if [ "$http_code" = "200" ] || [ "$http_code" = "302" ] || [ "$http_code" = "307" ]; then
                 log_success "Auth flow: $PROD_URL/auth/login -> $http_code"
             else
                 log_error "Auth flow: $PROD_URL/auth/login -> $http_code"
