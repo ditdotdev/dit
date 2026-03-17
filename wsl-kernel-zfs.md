@@ -1,6 +1,54 @@
-# Recompiling WSL2 Kernel with OpenZFS Support
+# WSL2 Kernel with ZFS Support
 
-## 1. Prerequisites (in WSL2)
+## Quick Start: Prebuilt Kernel (Recommended)
+
+Prebuilt WSL2 kernels with ZFS statically compiled are available from
+[GitHub Releases](https://github.com/datadatdat/zfs-releases/releases).
+
+### Why a Custom Kernel?
+
+The default WSL2 kernel ships with `CONFIG_MODULES=n`, which means **kernel
+modules cannot be loaded at all**. The standard approach of building `.ko`
+module files does not work for WSL2. The only viable delivery mechanism is a
+complete `bzImage` with ZFS built-in (`CONFIG_ZFS=y`).
+
+### Automated Install (PowerShell)
+
+```powershell
+cd datadatdat\scripts
+.\Install-D3Kernel.ps1
+```
+
+This will:
+1. Detect your current WSL2 kernel version
+2. Download the matching prebuilt kernel from GitHub Releases
+3. Verify the SHA-256 checksum
+4. Back up your existing `.wslconfig` (if any)
+5. Configure `.wslconfig` to use the new kernel
+
+Then run `wsl --shutdown` and restart your WSL2 terminal.
+
+### Manual Install
+
+1. Download `bzImage` from the appropriate
+   [release](https://github.com/datadatdat/zfs-releases/releases)
+2. Save to `%USERPROFILE%\.datadatdat\kernels\bzImage`
+3. Edit `%USERPROFILE%\.wslconfig`:
+   ```ini
+   [wsl2]
+   kernel=C:\\Users\\<username>\\.datadatdat\\kernels\\bzImage
+   ```
+4. Run `wsl --shutdown` then restart your WSL2 terminal
+5. Verify: `grep zfs /proc/filesystems` should show `nodev zfs`
+
+---
+
+## Building from Source
+
+If no prebuilt kernel is available for your WSL2 version, or you need a
+custom configuration, you can build from source.
+
+### 1. Prerequisites (in WSL2)
 
 ```bash
 sudo apt update && sudo apt install -y \
