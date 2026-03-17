@@ -1,0 +1,50 @@
+# -*- mode: ruby -*-
+# vi: set ft=ruby :
+
+# WSL2 Kernel E2E Test VM
+#
+# Spins up a Windows 11 Hyper-V VM with nested virtualization to test
+# prebuilt WSL2 kernels with ZFS support end-to-end.
+#
+# Prerequisites:
+#   - Vagrant installed (winget install Hashicorp.Vagrant)
+#   - Hyper-V enabled (already active for Docker Desktop / WSL2)
+#
+# Usage:
+#   vagrant up
+#   vagrant provision --provision-with wsl2
+#   vagrant provision --provision-with deploy-kernel
+#   vagrant provision --provision-with e2e
+#   vagrant destroy -f
+
+Vagrant.configure("2") do |config|
+  config.vm.box = "gusztavvargadr/windows-11"
+  config.vm.hostname = "wsl2-kernel-test"
+
+  # Hyper-V provider with nested virtualization
+  config.vm.provider "hyperv" do |hv|
+    hv.vmname = "wsl2-kernel-e2e"
+    hv.memory = 8192
+    hv.cpus = 4
+    hv.enable_virtualization_extensions = true
+    hv.linked_clone = true
+  end
+
+  # Sync the bzImage into the VM
+  config.vm.synced_folder ".", "/vagrant", type: "smb"
+
+  # Phase 1: Install WSL2 + Ubuntu
+  config.vm.provision "wsl2", type: "shell", privileged: true, inline: <<-SHELL
+    powershell.exe -ExecutionPolicy Bypass -File C:\\vagrant\\provision-wsl2.ps1
+  SHELL
+
+  # Phase 2: Deploy kernel and configure .wslconfig
+  config.vm.provision "deploy-kernel", type: "shell", privileged: true, run: "never", inline: <<-SHELL
+    powershell.exe -ExecutionPolicy Bypass -File C:\\vagrant\\deploy-kernel.ps1
+  SHELL
+
+  # Phase 3: Run E2E tests inside WSL2
+  config.vm.provision "e2e", type: "shell", privileged: true, run: "never", inline: <<-SHELL
+    wsl -d Ubuntu -- bash /mnt/c/vagrant/run-e2e.sh
+  SHELL
+end

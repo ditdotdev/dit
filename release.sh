@@ -410,6 +410,7 @@ phase_preflight() {
     # Check all repos exist and are on master with clean state
     log_step "Checking repository states..."
     local all_repos=(
+        zfs-builder
         remote-sdk-go "${GO_PROVIDERS[@]}"
         command-executor remote-sdk "${KOTLIN_PROVIDERS[@]}"
         datadatdat-client-go datadatdat-docker-proxy datadatdat-server
@@ -495,6 +496,9 @@ phase_preflight() {
 
 phase_go_foundation() {
     log_phase 1 "Go Foundation (remote-sdk-go + 5 Go providers)"
+
+    # 0. Tag zfs-builder (independent infra, builds Docker image in parallel)
+    tag_and_push "$WORKSPACE/zfs-builder" "v$VERSION"
 
     # 1. Tag remote-sdk-go
     tag_and_push "$WORKSPACE/remote-sdk-go" "v$VERSION"
@@ -1175,7 +1179,7 @@ phase_validate() {
     echo "--------------------------------------------------------"
 
     # Go components
-    local go_repos=(remote-sdk-go "${GO_PROVIDERS[@]}" datadatdat-client-go datadatdat-docker-proxy datadatdat datadatdat-remote-server)
+    local go_repos=(zfs-builder remote-sdk-go "${GO_PROVIDERS[@]}" datadatdat-client-go datadatdat-docker-proxy datadatdat datadatdat-remote-server)
     for repo in "${go_repos[@]}"; do
         local status="..."
         if $DRY_RUN; then
@@ -1211,6 +1215,7 @@ phase_validate() {
     # Docker images
     echo ""
     echo "Docker Images:"
+    echo "  zfs-builder -> datadatdat/zfs-builder:v$VERSION (DockerHub)"
     echo "  datadatdat-server -> datadatdat/datadatdat:v$VERSION (DockerHub)"
     for svc in "${ECR_SERVICES[@]}"; do
         echo "  datadatdat-remote-server -> datadatdat/$svc:v$VERSION (ECR)"
