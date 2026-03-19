@@ -48,7 +48,7 @@ func ensureRemoteRepoExists(properties map[string]interface{}) error {
 	if apiKey := os.Getenv("DATADATDAT_API_KEY"); apiKey != "" {
 		req.Header.Set("Authorization", "Bearer "+apiKey)
 	}
-	resp, err := http.DefaultClient.Do(req)
+	resp, err := http.DefaultClient.Do(req) //nolint:gosec // URL from configured remote properties
 	if err != nil {
 		return err
 	}
