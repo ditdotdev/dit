@@ -25,19 +25,19 @@ jobs:
       - name: Check for version conflicts
         run: |
           echo "Checking remote-sdk-go version alignment..."
-          go mod graph | grep datadatdat | grep remote-sdk-go | tee /tmp/sdk-versions.txt
-          
-          SDK_VERSIONS=$(cat /tmp/sdk-versions.txt | awk '{print $NF}' | sort -u | wc -l)
-          
-          if [ $SDK_VERSIONS -gt 1 ]; then
-            echo "❌ ERROR: Multiple remote-sdk-go versions detected!"
+          go mod graph | grep datadatdat | awk '$NF ~ /remote-sdk-go/ {print}' | tee /tmp/sdk-versions.txt
+
+          SDK_VERSIONS=$(awk '{print $NF}' /tmp/sdk-versions.txt | sort -u | wc -l)
+
+          if [ "$SDK_VERSIONS" -gt 1 ]; then
+            echo "ERROR: Multiple remote-sdk-go versions detected!"
             echo ""
             echo "All providers must use the same remote-sdk-go version:"
             cat /tmp/sdk-versions.txt
             exit 1
           fi
-          
-          echo "✅ All providers use the same remote-sdk-go version"
+
+          echo "All providers use the same remote-sdk-go version"
       
       - name: Check for replace directives
         run: |
