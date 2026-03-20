@@ -5,7 +5,7 @@ go 1.25.1
 require (
 	github.com/antihax/optional v1.0.0
 	github.com/briandowns/spinner v1.23.2
-	github.com/buger/jsonparser v1.1.1
+	github.com/buger/jsonparser v1.1.2
 	github.com/datadatdat/datadatdat-client-go v1.7.2
 	github.com/datadatdat/datadatdat-remote-go v1.7.2
 	github.com/datadatdat/nop-remote-go v1.7.2
