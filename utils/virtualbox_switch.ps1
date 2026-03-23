@@ -9,26 +9,29 @@
  features alone; toggle manually if needed.
 #>
 
-function Ensure-Elevated {
+function Assert-Elevated {
   $currentUser = [Security.Principal.WindowsIdentity]::GetCurrent()
   $principal = New-Object Security.Principal.WindowsPrincipal($currentUser)
   if (-not $principal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) {
-    Write-Host "Re-launching elevated..."
-    $args = "-NoProfile -ExecutionPolicy Bypass -File `"$PSCommandPath`""
-    Start-Process -FilePath "powershell.exe" -ArgumentList $args -Verb RunAs
+    Write-Output "Re-launching elevated..."
+    $elevatedArgs = "-NoProfile -ExecutionPolicy Bypass -File `"$PSCommandPath`""
+    Start-Process -FilePath "powershell.exe" -ArgumentList $elevatedArgs -Verb RunAs
     exit
   }
 }
-Ensure-Elevated
+Assert-Elevated
 
 $needReboot = $false
 
 # 1) Stop Docker Desktop and related services
-Write-Host "Stopping Docker Desktop and related services..."
+Write-Output "Stopping Docker Desktop and related services..."
 Get-Process -Name "Docker Desktop","com.docker.backend","com.docker.proxy","vmmem" -ErrorAction SilentlyContinue | Stop-Process -Force
 Stop-Service -Name "com.docker.service" -Force -ErrorAction SilentlyContinue
 # Stop WSL2 cleanly
-try { wsl --shutdown | Out-Null } catch { }
+try { wsl --shutdown | Out-Null } catch {
+  # wsl may not be installed or may fail if WSL2 is not running; safe to ignore
+  Write-Verbose "wsl --shutdown error (non-fatal): $_"
+}
 # Stop container networking bits
 Stop-Service -Name "vmcompute" -Force -ErrorAction SilentlyContinue
 Stop-Service -Name "hns" -Force -ErrorAction SilentlyContinue
@@ -38,23 +41,26 @@ Stop-Service -Name "LxssManager" -Force -ErrorAction SilentlyContinue
 try {
   $currentCfg = (bcdedit /enum {current}) 2>$null | Out-String
   if ($currentCfg -notmatch "hypervisorlaunchtype\s+Off") {
-    Write-Host "Disabling Windows hypervisor (hypervisorlaunchtype=Off)..."
+    Write-Output "Disabling Windows hypervisor (hypervisorlaunchtype=Off)..."
     bcdedit /set hypervisorlaunchtype Off | Out-Null
     $needReboot = $true
   }
-} catch { }
+} catch {
+  # bcdedit may fail if BCD store is locked; hypervisor state will be checked on next run
+  Write-Verbose "bcdedit error (non-fatal): $_"
+}
 
 # 3) If no reboot needed, launch VirtualBox
 $vbExe = Join-Path $env:ProgramFiles "Oracle\VirtualBox\VirtualBox.exe"
 if (-not $needReboot) {
   if (Test-Path $vbExe) {
-    Write-Host "Launching VirtualBox..."
+    Write-Output "Launching VirtualBox..."
     Start-Process -FilePath $vbExe
-    Write-Host "Switched to VirtualBox mode."
+    Write-Output "Switched to VirtualBox mode."
   } else {
-    Write-Host "VirtualBox not found at: $vbExe"
+    Write-Output "VirtualBox not found at: $vbExe"
   }
 } else {
-  Write-Host "A reboot is required to finish switching to VirtualBox. Rebooting in 5 seconds..."
+  Write-Output "A reboot is required to finish switching to VirtualBox. Rebooting in 5 seconds..."
   Start-Process -FilePath "shutdown.exe" -ArgumentList '/r /t 5 /c "Switching to VirtualBox mode"' | Out-Null
 }

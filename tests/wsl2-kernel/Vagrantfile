@@ -30,8 +30,17 @@ Vagrant.configure("2") do |config|
     hv.linked_clone = true
   end
 
-  # Sync the bzImage into the VM
-  config.vm.synced_folder ".", "/vagrant", type: "smb"
+  # Use Default Switch to avoid interactive prompt
+  config.vm.network "public_network", bridge: "Default Switch"
+
+  # Disable default synced folder (SMB requires password, which Microsoft accounts may not have)
+  config.vm.synced_folder ".", "/vagrant", disabled: true
+
+  # Upload files into the VM via file provisioner (no SMB credentials needed)
+  config.vm.provision "upload-files", type: "file", source: ".", destination: "C:\\vagrant"
+
+  # Upload SSH keys from host for GitHub access inside WSL2
+  config.vm.provision "upload-ssh-keys", type: "file", source: "~/.ssh", destination: "C:\\vagrant\\.ssh"
 
   # Phase 1: Install WSL2 + Ubuntu
   config.vm.provision "wsl2", type: "shell", privileged: true, inline: <<-SHELL
@@ -44,7 +53,8 @@ Vagrant.configure("2") do |config|
   SHELL
 
   # Phase 3: Run E2E tests inside WSL2
+  # Use powershell to run wsl and propagate the exit code properly
   config.vm.provision "e2e", type: "shell", privileged: true, run: "never", inline: <<-SHELL
-    wsl -d Ubuntu -- bash /mnt/c/vagrant/run-e2e.sh
+    powershell.exe -ExecutionPolicy Bypass -Command "wsl -d Ubuntu -- bash /mnt/c/vagrant/run-e2e.sh; exit $LASTEXITCODE"
   SHELL
 end

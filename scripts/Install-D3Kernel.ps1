@@ -37,7 +37,7 @@
     # Install a specific kernel + ZFS version
 #>
 
-[CmdletBinding()]
+[CmdletBinding(SupportsShouldProcess)]
 param(
     [switch]$CheckOnly,
     [string]$ZfsVersion = "2.3.4",
@@ -57,24 +57,25 @@ function Get-CurrentWSL2Kernel {
             return $output.Trim()
         }
     } catch {
-        # WSL not running or not installed
+        # WSL may not be running or installed; safe to ignore and return null below
+        Write-Verbose "WSL detection failed: $_"
     }
     return $null
 }
 
-function Get-AvailableReleases {
+function Get-AvailableRelease {
     param([string]$Filter)
 
-    Write-Host "Querying GitHub for available WSL2 kernel releases..." -ForegroundColor Cyan
+    Write-Output "Querying GitHub for available WSL2 kernel releases..."
 
     try {
-        $releases = gh api "repos/$GithubRepo/releases" --paginate 2>&1 | ConvertFrom-Json
+        $releaseData = gh api "repos/$GithubRepo/releases" --paginate 2>&1 | ConvertFrom-Json
     } catch {
         Write-Error "Failed to query GitHub releases. Ensure 'gh' CLI is installed and authenticated."
         return @()
     }
 
-    $wsl2Releases = $releases | Where-Object {
+    $wsl2Releases = $releaseData | Where-Object {
         $_.tag_name -match "^wsl2-kernel-" -and -not $_.draft
     }
 
@@ -89,16 +90,17 @@ function Get-AvailableReleases {
 
 function Get-ReleaseTag {
     param(
-        [string]$KernelRelease,
-        [string]$ZfsVersion
+        [string]$KernelReleaseVersion,
+        [string]$ZfsVer
     )
-    return "wsl2-kernel-$KernelRelease-zfs-$ZfsVersion"
+    return "wsl2-kernel-$KernelReleaseVersion-zfs-$ZfsVer"
 }
 
 function Install-Kernel {
     param(
         [object]$Release,
-        [string]$DestDir
+        [string]$DestDir,
+        [switch]$ForceOverwrite
     )
 
     # Find bzImage asset
@@ -120,18 +122,18 @@ function Install-Kernel {
     $checksumPath = Join-Path $DestDir "CHECKSUMS.sha256"
 
     # Check if kernel already exists
-    if ((Test-Path $bzImagePath) -and -not $Force) {
+    if ((Test-Path $bzImagePath) -and -not $ForceOverwrite) {
         $existing = Get-Item $bzImagePath
-        Write-Host "Existing kernel found: $bzImagePath ($([math]::Round($existing.Length / 1MB, 1))MB)" -ForegroundColor Yellow
+        Write-Output "Existing kernel found: $bzImagePath ($([math]::Round($existing.Length / 1MB, 1))MB)"
         $confirm = Read-Host "Overwrite? (y/N)"
         if ($confirm -ne "y") {
-            Write-Host "Aborted." -ForegroundColor Yellow
+            Write-Output "Aborted."
             return $false
         }
     }
 
     # Download bzImage
-    Write-Host "Downloading bzImage ($([math]::Round($bzImageAsset.size / 1MB, 1))MB)..." -ForegroundColor Cyan
+    Write-Output "Downloading bzImage ($([math]::Round($bzImageAsset.size / 1MB, 1))MB)..."
     gh api "$($bzImageAsset.url)" -H "Accept: application/octet-stream" > $bzImagePath 2>&1
     if ($LASTEXITCODE -ne 0) {
         Write-Error "Failed to download bzImage"
@@ -140,7 +142,7 @@ function Install-Kernel {
 
     # Download and verify checksum
     if ($checksumAsset) {
-        Write-Host "Verifying checksum..." -ForegroundColor Cyan
+        Write-Output "Verifying checksum..."
         gh api "$($checksumAsset.url)" -H "Accept: application/octet-stream" > $checksumPath 2>&1
 
         $expectedHash = (Get-Content $checksumPath | Where-Object { $_ -match "bzImage$" } | Select-Object -First 1) -split '\s+' | Select-Object -First 1
@@ -151,13 +153,14 @@ function Install-Kernel {
             Write-Error "Checksum verification failed!`nExpected: $expectedHash`nActual:   $actualHash"
             return $false
         }
-        Write-Host "Checksum verified." -ForegroundColor Green
+        Write-Output "Checksum verified."
     }
 
     return $true
 }
 
 function Update-WSLConfig {
+    [CmdletBinding(SupportsShouldProcess)]
     param([string]$KernelPath)
 
     $wslConfigPath = Join-Path $env:USERPROFILE ".wslconfig"
@@ -167,8 +170,10 @@ function Update-WSLConfig {
     if (Test-Path $wslConfigPath) {
         # Back up existing config
         $backupPath = "$wslConfigPath.bak"
-        Copy-Item $wslConfigPath $backupPath -Force
-        Write-Host "Backed up existing .wslconfig to $backupPath" -ForegroundColor Cyan
+        if ($PSCmdlet.ShouldProcess($wslConfigPath, "Back up to $backupPath")) {
+            Copy-Item $wslConfigPath $backupPath -Force
+            Write-Output "Backed up existing .wslconfig to $backupPath"
+        }
 
         $content = Get-Content $wslConfigPath -Raw
 
@@ -183,29 +188,34 @@ function Update-WSLConfig {
             $content = "$content`n[wsl2]`nkernel=$kernelPathEscaped`n"
         }
 
-        Set-Content $wslConfigPath $content -NoNewline
+        if ($PSCmdlet.ShouldProcess($wslConfigPath, "Update kernel path")) {
+            Set-Content $wslConfigPath $content -NoNewline
+        }
     } else {
         # Create new .wslconfig
         $content = "[wsl2]`nkernel=$kernelPathEscaped`n"
-        Set-Content $wslConfigPath $content -NoNewline
+        if ($PSCmdlet.ShouldProcess($wslConfigPath, "Create with kernel path")) {
+            Set-Content $wslConfigPath $content -NoNewline
+        }
     }
 
-    Write-Host "Updated $wslConfigPath with kernel=$kernelPathEscaped" -ForegroundColor Green
+    Write-Output "Updated $wslConfigPath with kernel=$kernelPathEscaped"
 }
 
 # --- Main ---
 
-Write-Host "`n=== Datadatdat WSL2 Kernel Installer ===" -ForegroundColor White
-Write-Host ""
+Write-Output ""
+Write-Output "=== Datadatdat WSL2 Kernel Installer ==="
+Write-Output ""
 
 # Detect current WSL2 kernel
 $currentKernel = Get-CurrentWSL2Kernel
 if ($currentKernel) {
-    Write-Host "Current WSL2 kernel: $currentKernel" -ForegroundColor Cyan
+    Write-Output "Current WSL2 kernel: $currentKernel"
 } else {
-    Write-Host "WSL2 not detected or not running." -ForegroundColor Yellow
+    Write-Output "WSL2 not detected or not running."
     if (-not $KernelRelease) {
-        Write-Host "Use -KernelRelease to specify a kernel version." -ForegroundColor Yellow
+        Write-Output "Use -KernelRelease to specify a kernel version."
         exit 1
     }
 }
@@ -221,60 +231,63 @@ if (-not $KernelRelease) {
     }
 }
 
-Write-Host "Target kernel: $KernelRelease" -ForegroundColor Cyan
-Write-Host "Target ZFS version: $ZfsVersion" -ForegroundColor Cyan
-Write-Host ""
+Write-Output "Target kernel: $KernelRelease"
+Write-Output "Target ZFS version: $ZfsVersion"
+Write-Output ""
 
-$releaseTag = Get-ReleaseTag -KernelRelease $KernelRelease -ZfsVersion $ZfsVersion
+$releaseTag = Get-ReleaseTag -KernelReleaseVersion $KernelRelease -ZfsVer $ZfsVersion
 
 if ($CheckOnly) {
-    Write-Host "Checking for available releases..." -ForegroundColor Cyan
-    $releases = Get-AvailableReleases
-    if ($releases.Count -eq 0) {
-        Write-Host "No published WSL2 kernel releases found." -ForegroundColor Yellow
+    Write-Output "Checking for available releases..."
+    $availableReleases = Get-AvailableRelease
+    if ($availableReleases.Count -eq 0) {
+        Write-Output "No published WSL2 kernel releases found."
     } else {
-        Write-Host "`nAvailable prebuilt WSL2 kernels:" -ForegroundColor Green
-        foreach ($r in $releases) {
-            $assets = ($r.assets | Measure-Object).Count
-            Write-Host "  $($r.tag_name) ($assets assets, published $($r.published_at))"
+        Write-Output ""
+        Write-Output "Available prebuilt WSL2 kernels:"
+        foreach ($r in $availableReleases) {
+            $assetCount = ($r.assets | Measure-Object).Count
+            Write-Output "  $($r.tag_name) ($assetCount assets, published $($r.published_at))"
         }
     }
 
     # Check if our target is available
-    $target = $releases | Where-Object { $_.tag_name -eq $releaseTag }
+    $target = $availableReleases | Where-Object { $_.tag_name -eq $releaseTag }
     if ($target) {
-        Write-Host "`nTarget release $releaseTag is available." -ForegroundColor Green
+        Write-Output ""
+        Write-Output "Target release $releaseTag is available."
     } else {
-        Write-Host "`nTarget release $releaseTag is NOT available." -ForegroundColor Yellow
-        Write-Host "You may need to build the kernel manually. See: wsl-kernel-zfs.md" -ForegroundColor Yellow
+        Write-Output ""
+        Write-Output "Target release $releaseTag is NOT available."
+        Write-Output "You may need to build the kernel manually. See: wsl-kernel-zfs.md"
     }
     exit 0
 }
 
 # Download and install
-Write-Host "Looking for release: $releaseTag" -ForegroundColor Cyan
+Write-Output "Looking for release: $releaseTag"
 
-$releases = Get-AvailableReleases -Filter $KernelRelease
-$targetRelease = $releases | Where-Object { $_.tag_name -eq $releaseTag }
+$availableReleases = Get-AvailableRelease -Filter $KernelRelease
+$targetRelease = $availableReleases | Where-Object { $_.tag_name -eq $releaseTag }
 
 if (-not $targetRelease) {
     Write-Error "Release $releaseTag not found. Run with -CheckOnly to see available releases."
     exit 1
 }
 
-$success = Install-Kernel -Release $targetRelease -DestDir $KernelDir
-if (-not $success) {
+$installSuccess = Install-Kernel -Release $targetRelease -DestDir $KernelDir -ForceOverwrite:$Force
+if (-not $installSuccess) {
     exit 1
 }
 
 $bzImagePath = Join-Path $KernelDir "bzImage"
 Update-WSLConfig -KernelPath $bzImagePath
 
-Write-Host ""
-Write-Host "Installation complete!" -ForegroundColor Green
-Write-Host ""
-Write-Host "Next steps:" -ForegroundColor White
-Write-Host "  1. Run: wsl --shutdown" -ForegroundColor Cyan
-Write-Host "  2. Restart your WSL2 terminal" -ForegroundColor Cyan
-Write-Host "  3. Verify: grep zfs /proc/filesystems" -ForegroundColor Cyan
-Write-Host ""
+Write-Output ""
+Write-Output "Installation complete!"
+Write-Output ""
+Write-Output "Next steps:"
+Write-Output "  1. Run: wsl --shutdown"
+Write-Output "  2. Restart your WSL2 terminal"
+Write-Output "  3. Verify: grep zfs /proc/filesystems"
+Write-Output ""

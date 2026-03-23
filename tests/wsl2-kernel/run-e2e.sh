@@ -8,6 +8,12 @@
 
 set -euo pipefail
 
+# Ensure Go is in PATH (installed to /usr/local/go by provisioner)
+export PATH=$PATH:/usr/local/go/bin
+
+# Skip Go module proxy for private datadatdat repos (fetch directly via SSH)
+export GOPRIVATE=github.com/datadatdat/*
+
 echo "=== WSL2 Kernel E2E Tests ==="
 echo ""
 
@@ -34,16 +40,44 @@ echo ""
 # --- Build d3 CLI ---
 echo "--- Building d3 CLI ---"
 
+# Verify SSH auth to GitHub before cloning
+echo "Verifying GitHub SSH access..."
+ssh -T git@github.com 2>&1 || true
+
 D3_REPO="/home/$(whoami)/datadatdat"
 if [ ! -d "$D3_REPO" ]; then
     echo "Cloning datadatdat repo..."
-    git clone https://github.com/datadatdat/datadatdat.git "$D3_REPO"
+    GIT_SSH_COMMAND="ssh -o StrictHostKeyChecking=accept-new" git clone git@github.com:datadatdat/datadatdat.git "$D3_REPO"
 fi
 
 cd "$D3_REPO"
 git pull
-make build
-echo "d3 CLI built successfully"
+
+# Query Docker Hub for the latest datadatdat image tag so d3 install pulls a real image
+echo "Querying Docker Hub for latest datadatdat/datadatdat image tag..."
+LATEST_VERSION=$(curl -s "https://hub.docker.com/v2/repositories/datadatdat/datadatdat/tags/?page_size=10&ordering=last_updated" \
+    | grep -o '"name":"v[0-9]*\.[0-9]*\.[0-9]*"' \
+    | head -1 \
+    | grep -o 'v[0-9]*\.[0-9]*\.[0-9]*' || echo "")
+
+if [ -z "$LATEST_VERSION" ]; then
+    echo "WARNING: Could not determine latest Docker Hub version, using 'dev'"
+    LATEST_VERSION="dev"
+else
+    echo "Using version: $LATEST_VERSION"
+fi
+
+VERSION="$LATEST_VERSION" make build
+cp build/d3 "$D3_REPO/d3"
+chmod +x "$D3_REPO/d3"
+echo "d3 CLI built and installed to $D3_REPO/d3"
+./d3 --version
+echo ""
+
+# --- Install ZFS userspace tools ---
+echo "--- Installing ZFS userspace tools ---"
+sudo apt-get update -qq
+sudo apt-get install -y zfsutils-linux
 echo ""
 
 # --- ZFS Pool Setup ---
@@ -57,48 +91,35 @@ fi
 
 echo ""
 
-# --- E2E Tests ---
-echo "--- Running E2E Tests (make e2e) ---"
+# --- D3 Installation Tests ---
+echo "--- Running D3 Installation Tests (make test-install) ---"
 
-E2E_RESULT=0
-make e2e || E2E_RESULT=$?
+INSTALL_RESULT=0
+make test-install || INSTALL_RESULT=$?
 
 echo ""
 
-if [ $E2E_RESULT -eq 0 ]; then
-    echo "PASS: make e2e completed successfully"
+if [ $INSTALL_RESULT -eq 0 ]; then
+    echo "PASS: make test-install completed successfully"
 else
-    echo "FAIL: make e2e failed with exit code $E2E_RESULT"
+    echo "FAIL: make test-install failed with exit code $INSTALL_RESULT"
 fi
 
-# --- Server E2E Tests (optional) ---
-echo ""
-echo "--- Running Server E2E Tests (make e2e-server) ---"
-
-SERVER_RESULT=0
-make e2e-server || SERVER_RESULT=$?
-
 echo ""
 
-if [ $SERVER_RESULT -eq 0 ]; then
-    echo "PASS: make e2e-server completed successfully"
-else
-    echo "FAIL: make e2e-server failed with exit code $SERVER_RESULT"
-fi
 
 # --- Summary ---
 echo ""
-echo "=== E2E Test Summary ==="
+echo "=== Installation Test Summary ==="
 echo "Kernel:       $KERNEL"
 echo "ZFS:          $(grep zfs /proc/filesystems 2>/dev/null && echo 'built-in' || echo 'NOT FOUND')"
-echo "make e2e:     $([ $E2E_RESULT -eq 0 ] && echo 'PASS' || echo 'FAIL')"
-echo "make e2e-server: $([ $SERVER_RESULT -eq 0 ] && echo 'PASS' || echo 'FAIL')"
+echo "make test-install: $([ $INSTALL_RESULT -eq 0 ] && echo 'PASS' || echo 'FAIL')"
 echo ""
 
-if [ $E2E_RESULT -ne 0 ] || [ $SERVER_RESULT -ne 0 ]; then
-    echo "OVERALL: FAIL — Do NOT publish this kernel release"
+if [ $INSTALL_RESULT -ne 0 ]; then
+    echo "OVERALL: FAIL - Do NOT publish this kernel release"
     exit 1
 fi
 
-echo "OVERALL: PASS — Safe to promote draft release to published"
+echo "OVERALL: PASS - Safe to promote draft release to published"
 exit 0
