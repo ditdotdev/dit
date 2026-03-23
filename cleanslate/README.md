@@ -48,7 +48,7 @@ Before running these scripts, ensure you have:
 - Docker Desktop installed (scripts will automatically start it if not running)
 - Bash shell (Git Bash, WSL Bash, or similar)
 - Administrative privileges for ZFS operations
-- Custom ZFS-enabled WSL2 kernel — download a [prebuilt kernel](https://github.com/datadatdat/zfs-releases/releases) or run `scripts\Install-D3Kernel.ps1`, or [build from source](../wsl-kernel-zfs.md)
+- Custom ZFS-enabled WSL2 kernel
 - Git repositories: `datadatdat` and `zfs-builder`
 
 > **Note**: The scripts now automatically detect and start Docker Desktop if it's not running, so you don't need to manually start Docker before running the clean slate tests.
