@@ -22,12 +22,12 @@ User runs: d3 install
    +----------+----------+
               v
    +------------------------------------------+
-   | ZFS Module Loading (5-step fallback)      |
+   | ZFS Module Loading (4-step fallback)      |
    |  1. Already loaded? (lsmod + /proc)       |
    |  2. Host system modules? (modprobe)       |
-   |  3. Cached compiled modules?              |
-   |  4. Download prebuilt from S3?            |
-   |  5. Compile from source (~30 min)         |
+   |  3. Install via package manager?          |
+   |     (apt/dnf/pacman)                      |
+   |  4. Download prebuilt + insmod from S3?   |
    +----------+-------------------------------+
               v
    +---------------------+
@@ -184,17 +184,16 @@ fi
 
 Pulls a small (~50MB) image that loads ZFS modules into the Docker Desktop VM.
 
-### ZFS Module Loading (5-step fallback chain)
+### ZFS Module Loading (4-step fallback chain)
 
 **File:** `datadatdat-server/server/src/scripts/zfs.sh`
 
 ```bash
 if ! check_running_zfs &&
-   ! load_zfs $SYSTEM_MODULES system $INSTALL_DIR &&
-   ! load_zfs $COMPILED_MODULES/$KERNEL_RELEASE compiled $INSTALL_DIR &&
-   ! load_precompiled_zfs $COMPILED_MODULES/$KERNEL_RELEASE $INSTALL_DIR &&
-   ! compile_and_load_zfs $COMPILED_MODULES/$KERNEL_RELEASE $INSTALL_DIR; then
-    log_error "Failed to load ZFS modules"
+   ! load_zfs "$SYSTEM_MODULES" system "$INSTALL_DIR" &&
+   ! install_zfs_packages &&
+   ! insmod_prebuilt_zfs "$KERNEL_RELEASE" "$INSTALL_DIR"; then
+    log_error "Failed to load ZFS"
 fi
 ```
 
@@ -202,11 +201,12 @@ fi
 |------|--------|-------------|
 | 1 | `check_running_zfs` | Checks `lsmod` + `/sys/module/zfs/version` for compatible ZFS (>= 2.0.0) |
 | 2 | `load_zfs` (system) | Tries host kernel modules via `modprobe -d /path zfs` |
-| 3 | `load_zfs` (compiled) | Tries previously compiled modules from persistent volume |
-| 4 | `load_precompiled_zfs` | Downloads prebuilt modules from S3 |
-| 5 | `compile_and_load_zfs` | Runs `datadatdat/zfs-builder:latest` to compile ZFS from source (~30 min) |
+| 3 | `install_zfs_packages` | Detects package manager (apt/dnf/pacman) and installs `zfsutils-linux` + `modprobe zfs` |
+| 4 | `insmod_prebuilt_zfs` | Downloads prebuilt `spl.ko` + `zfs.ko` from S3 and loads via `insmod` |
 
 After loading, verifies `/dev/zfs` exists (creates via `mknod` if needed).
+
+**WSL2 note:** On WSL2 with stock Microsoft kernel (>= 6.6.36.3), step 3 installs userland tools but `modprobe` fails (no kernel headers for DKMS). Step 4 provides prebuilt modules compiled against the WSL2 kernel source. Pool creation uses loop devices as a workaround for WSL2's file vdev limitation.
 
 ### Shared Bind Mounts
 
@@ -416,9 +416,8 @@ contexts:
 
 | Image | When Pulled | Size | Purpose |
 |-------|-------------|------|---------|
-| `datadatdat/datadatdat:$VERSION` | Always | ~1GB | Main server + ZFS tools |
+| `datadatdat/datadatdat:$VERSION` | Always | ~1.7GB | Main server + ZFS tools |
 | `datadatdat/docker-desktop-zfs-kernel:$TAG` | Docker Desktop only | ~50MB | ZFS modules for linuxkit |
-| `datadatdat/zfs-builder:latest` | Last resort only | ~500MB | Compile ZFS from source |
 
 ---
 
