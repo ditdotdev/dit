@@ -22,6 +22,10 @@ func Install(latest string, registry string, verbose bool, port int, context str
 	s.HideCursor = true
 
 	fmt.Println("Initializing datadatdat infrastructure")
+
+	// On Windows, check WSL2 kernel compatibility before proceeding
+	utils.CheckWSL2AndAdvise()
+
 	fmt.Println("Checking docker installation")
 
 	// Make sure Docker is running or panic
