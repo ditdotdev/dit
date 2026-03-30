@@ -703,6 +703,29 @@ phase_kotlin_foundation() {
         verify_maven_pom "${provider}" "$VERSION" "remote-sdk" "$VERSION" || true
     done
 
+    # 8. Update and tag plugin-launcher (Kotlin + Go, publishes to Maven)
+    log_step "Updating plugin-launcher remote-sdk-go dependency..."
+    local pl_path="$WORKSPACE/plugin-launcher"
+    if [ -d "$pl_path" ]; then
+        if ! $DRY_RUN; then
+            cd "$pl_path"
+            # Update Go dependency
+            go env -w GOPRIVATE=github.com/datadatdat/*
+            go env -w GOPROXY=direct
+            go get "github.com/datadatdat/remote-sdk-go@v$VERSION"
+            go mod tidy
+            if [ -n "$(git status --porcelain)" ]; then
+                commit_and_push "$pl_path" "Update remote-sdk-go to v$VERSION" go.mod go.sum
+            fi
+        fi
+        tag_and_push "$pl_path" "$VERSION"
+        wait_for_workflow "plugin-launcher" "release.yml"
+        verify_s3_artifact "$MAVEN_BUCKET" "com/datadatdat/plugin-launcher/$VERSION/"
+        log_success "plugin-launcher released at $VERSION"
+    else
+        log_warn "plugin-launcher not found at $pl_path - skipping"
+    fi
+
     save_phase_state 2
     log_success "Phase 2 complete: Kotlin foundation released at $VERSION"
 }
@@ -859,13 +882,26 @@ phase_cli() {
         log_success "Updated datadatdat-workflow.bats versions"
     fi
 
-    # Commit dependency updates
+    # Update DOWNLOAD_TEST_VERSION in both PROD and DEV sections of env.bash
+    # This must happen BEFORE tagging so the tag includes these changes,
+    # since datadatdat-remote-server E2E checks out the CLI at this tag.
+    local env_file="$repo_path/tests/endtoend/remotes/datadatdat/env.bash"
+    log_step "Updating DOWNLOAD_TEST_VERSION (PROD + DEV) to v$VERSION..."
+    if ! $DRY_RUN; then
+        sed -i "s/DOWNLOAD_TEST_VERSION:-v[0-9.]*\"/DOWNLOAD_TEST_VERSION:-v$VERSION\"/g" "$env_file"
+        log_success "DOWNLOAD_TEST_VERSION updated in both PROD and DEV sections"
+    fi
+
+    # Commit dependency updates + env.bash
     if ! $DRY_RUN; then
         cd "$repo_path"
         if [ -n "$(git status --porcelain)" ]; then
             local files_to_add=(go.mod go.sum)
             if [ -f "$bats_file" ] && git diff --name-only | grep -q "datadatdat-workflow.bats"; then
                 files_to_add+=(tests/endtoend/remotes/datadatdat/datadatdat-workflow.bats)
+            fi
+            if git diff --name-only | grep -q "env.bash"; then
+                files_to_add+=(tests/endtoend/remotes/datadatdat/env.bash)
             fi
             commit_and_push "$repo_path" "Release v$VERSION: Update all dependencies" "${files_to_add[@]}"
         fi
@@ -903,20 +939,6 @@ phase_cli() {
         fi
     else
         log_warn "Upload script not found at $upload_script - skipping S3 upload"
-    fi
-
-    # Update DOWNLOAD_TEST_VERSION in PROD env to the new version
-    local env_file="$WORKSPACE/datadatdat/tests/endtoend/remotes/datadatdat/env.bash"
-    log_step "Updating DOWNLOAD_TEST_VERSION in PROD env to v$VERSION..."
-    if $DRY_RUN; then
-        log_dry "sed -i 's|DOWNLOAD_TEST_VERSION:-v[0-9.]*\"|DOWNLOAD_TEST_VERSION:-v$VERSION\"|' $env_file (PROD section)"
-    else
-        sed -i "0,/DOWNLOAD_TEST_VERSION/ s|DOWNLOAD_TEST_VERSION:-v[0-9.]*\"|DOWNLOAD_TEST_VERSION:-v$VERSION\"|" "$env_file"
-        cd "$WORKSPACE/datadatdat"
-        git add "$env_file"
-        git commit -m "Update DOWNLOAD_TEST_VERSION to v$VERSION"
-        git push origin master
-        log_success "DOWNLOAD_TEST_VERSION updated and pushed"
     fi
 
     save_phase_state 6
