@@ -42,6 +42,12 @@ jobs:
         - couchdb:3.5
         - couchdb:3.4
 
+        # Couchbase Enterprise
+        # https://hub.docker.com/_/couchbase
+        - couchbase:enterprise-8.0.0
+        - couchbase:enterprise-7.6.8
+        - couchbase:enterprise-7.2.9
+
         # CockroachDB
         # https://hub.docker.com/r/cockroachdb/cockroach
         # https://hub.docker.com/r/datadatdat/cockroach
