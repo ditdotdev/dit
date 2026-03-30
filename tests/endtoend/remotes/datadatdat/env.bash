@@ -77,7 +77,7 @@ else
   export APIKEY_TEST_ORG="apikeytest"
 
   # Download API test version
-  export DOWNLOAD_TEST_VERSION="${DOWNLOAD_TEST_VERSION:-v1.7.2}"
+  export DOWNLOAD_TEST_VERSION="${DOWNLOAD_TEST_VERSION:-v1.8.0}"
 
   # Helper: execute SQL against local postgres container
   run_sql() {

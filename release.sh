@@ -614,16 +614,19 @@ phase_kotlin_foundation() {
                 if $DRY_RUN; then
                     log_dry "Update command-executor:$PREV_VERSION -> $VERSION in $gradle_file"
                 else
-                    sed -i "s/command-executor:${PREV_VERSION}/command-executor:${VERSION}/g" "$gradle_file"
+                    sed -i "s/command-executor:[0-9][0-9.]*/command-executor:${VERSION}/g" "$gradle_file"
                     local repo_dir
                     repo_dir=$(dirname "$gradle_file")
+                    local relative_file
+                    relative_file=$(basename "$gradle_file")
                     # For remote-sdk, build.gradle.kts is in the root
                     # For others, it's in server/ so go up one level
                     if [[ "$gradle_file" == */server/build.gradle.kts ]]; then
                         repo_dir=$(dirname "$repo_dir")
+                        relative_file="server/build.gradle.kts"
                     fi
                     cd "$repo_dir"
-                    git add "$gradle_file"
+                    git add "$relative_file"
                     git commit -m "Update command-executor to $VERSION" || true
                     git push origin master
                     log_success "Updated command-executor in $(basename "$repo_dir")"
@@ -655,12 +658,12 @@ phase_kotlin_foundation() {
         else
             # Update server/build.gradle.kts
             if [ -f "$repo_path/server/build.gradle.kts" ]; then
-                sed -i "s/remote-sdk:${PREV_VERSION}/remote-sdk:${VERSION}/g" "$repo_path/server/build.gradle.kts"
+                sed -i "s/remote-sdk:[0-9][0-9.]*/remote-sdk:${VERSION}/g" "$repo_path/server/build.gradle.kts"
                 files_changed+=("server/build.gradle.kts")
             fi
             # Update client/build.gradle.kts
             if [ -f "$repo_path/client/build.gradle.kts" ]; then
-                sed -i "s/remote-sdk:${PREV_VERSION}/remote-sdk:${VERSION}/g" "$repo_path/client/build.gradle.kts"
+                sed -i "s/remote-sdk:[0-9][0-9.]*/remote-sdk:${VERSION}/g" "$repo_path/client/build.gradle.kts"
                 files_changed+=("client/build.gradle.kts")
             fi
 
@@ -668,7 +671,7 @@ phase_kotlin_foundation() {
             if $ce_has_changes; then
                 for ce_dep in "${COMMAND_EXECUTOR_DEPENDENTS[@]}"; do
                     if [ "$provider" = "$ce_dep" ]; then
-                        sed -i "s/command-executor:${PREV_VERSION}/command-executor:${VERSION}/g" "$repo_path/server/build.gradle.kts"
+                        sed -i "s/command-executor:[0-9][0-9.]*/command-executor:${VERSION}/g" "$repo_path/server/build.gradle.kts"
                     fi
                 done
             fi
@@ -765,17 +768,17 @@ phase_server() {
     if ! $DRY_RUN; then
         # Only update command-executor if it was actually released at $VERSION
         if aws s3 ls "s3://$MAVEN_BUCKET/com/datadatdat/command-executor/$VERSION/" > /dev/null 2>&1; then
-            sed -i "s/command-executor:${PREV_VERSION}/command-executor:${VERSION}/g" "$gradle_file"
+            sed -i "s/command-executor:[0-9][0-9.]*/command-executor:${VERSION}/g" "$gradle_file"
         else
             log_info "command-executor:$VERSION not in Maven — keeping existing version"
         fi
-        sed -i "s/remote-sdk:${PREV_VERSION}/remote-sdk:${VERSION}/g" "$gradle_file"
-        sed -i "s/datadatdat-remote-client:${PREV_VERSION}/datadatdat-remote-client:${VERSION}/g" "$gradle_file"
-        sed -i "s/datadatdat-remote-server:${PREV_VERSION}/datadatdat-remote-server:${VERSION}/g" "$gradle_file"
-        sed -i "s/nop-remote-server:${PREV_VERSION}/nop-remote-server:${VERSION}/g" "$gradle_file"
-        sed -i "s/ssh-remote-server:${PREV_VERSION}/ssh-remote-server:${VERSION}/g" "$gradle_file"
-        sed -i "s/s3-remote-server:${PREV_VERSION}/s3-remote-server:${VERSION}/g" "$gradle_file"
-        sed -i "s/s3web-remote-server:${PREV_VERSION}/s3web-remote-server:${VERSION}/g" "$gradle_file"
+        sed -i "s/remote-sdk:[0-9][0-9.]*/remote-sdk:${VERSION}/g" "$gradle_file"
+        sed -i "s/datadatdat-remote-client:[0-9][0-9.]*/datadatdat-remote-client:${VERSION}/g" "$gradle_file"
+        sed -i "s/datadatdat-remote-server:[0-9][0-9.]*/datadatdat-remote-server:${VERSION}/g" "$gradle_file"
+        sed -i "s/nop-remote-server:[0-9][0-9.]*/nop-remote-server:${VERSION}/g" "$gradle_file"
+        sed -i "s/ssh-remote-server:[0-9][0-9.]*/ssh-remote-server:${VERSION}/g" "$gradle_file"
+        sed -i "s/s3-remote-server:[0-9][0-9.]*/s3-remote-server:${VERSION}/g" "$gradle_file"
+        sed -i "s/s3web-remote-server:[0-9][0-9.]*/s3web-remote-server:${VERSION}/g" "$gradle_file"
     fi
 
     # Update Go dependency
