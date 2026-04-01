@@ -27,14 +27,11 @@ load '../test_helper'
   assert_output --partial "datadatdat:latest"
 }
 
-# @test "ZFS pool destroyed after uninstall" {
-#   # The datadatdat-docker pool should not exist after uninstall.
-#   # On WSL2, this previously failed due to hostid mismatch between
-#   # the Docker teardown container and the WSL host that created the pool.
-#   # Disabled: flaky in CI - pool not always destroyed depending on runner state.
-#   run sudo zpool list datadatdat-docker
-#   assert_failure
-# }
+@test "ZFS pool destroyed after uninstall" {
+  # The datadatdat-docker pool should not exist after uninstall.
+  run sudo zpool list datadatdat-docker
+  assert_failure
+}
 
 @test "uninstall output has no teardown warning" {
   # Re-install so we can test uninstall output for warnings
