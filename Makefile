@@ -134,10 +134,16 @@ test-push-pull-tags-remote:
 test-fork-workflow:
 	ENV=$(ENV) bats tests/endtoend/remotes/datadatdat/fork-workflow.bats
 
+test-whitelist-approval:
+	ENV=$(ENV) bats tests/endtoend/remotes/datadatdat/whitelist-approval.bats
+
+test-public-repo-permissions:
+	ENV=$(ENV) bats tests/endtoend/remotes/datadatdat/public-repo-permissions.bats
+
 # TODO: diagnose test-multi-context test-db-matrix in gh actions and readd to e2e
 e2e: test-install test-getting-started test-tags test-tag-management test-docker-context test-container-lifecycle test-context-list test-data-import test-error-handling test-s3-workflow test-push-pull-options test-ssh-workflow test-upgrade test-uninstall
 
 test-connect-drs-network:
 	docker network connect datadatdat-docker datadatdat-docker-server 2>/dev/null || true
 
-e2e-server: test-install test-connect-drs-network test-datadatdat-workflow test-clone-commit-workflow test-auth-workflow test-auth-status test-org-workflow test-billing-workflow test-stripe-integration test-abort-workflow test-push-pull-tags-remote test-fork-workflow test-uninstall
+e2e-server: test-install test-connect-drs-network test-datadatdat-workflow test-clone-commit-workflow test-auth-workflow test-whitelist-approval test-public-repo-permissions test-auth-status test-org-workflow test-billing-workflow test-stripe-integration test-abort-workflow test-push-pull-tags-remote test-fork-workflow test-uninstall
