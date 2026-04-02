@@ -84,7 +84,7 @@ func Install(latest string, registry string, verbose bool, port int, context str
 	//TODO messages don't persist once spinner is closed
 
 	s.Prefix = "Starting datadatdat server docker containers "
-	s.FinalMSG = "Datadatdat CLI successfully installed, happy data versioning :)"
+	s.FinalMSG = "Datadatdat CLI successfully installed, happy data versioning :)\n"
 	s.Start()
 	out, err := docker.LaunchDatadatdatServers()
 	if err != nil {
