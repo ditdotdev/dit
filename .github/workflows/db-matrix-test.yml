@@ -42,6 +42,12 @@ jobs:
         - couchdb:3.5
         - couchdb:3.4
 
+        # ClickHouse
+        # https://hub.docker.com/r/clickhouse/clickhouse-server
+        - clickhouse/clickhouse-server:26.3
+        - clickhouse/clickhouse-server:26.2
+        - clickhouse/clickhouse-server:25.12
+
         # Couchbase Enterprise
         # https://hub.docker.com/_/couchbase
         - couchbase:enterprise-8.0.0
@@ -63,6 +69,11 @@ jobs:
 
         # Databricks
         # managed database service; no official DB server image on Docker Hub
+
+        # Dragonfly
+        # https://hub.docker.com/r/dragonflydb/dragonfly
+        # Redis-compatible, multi-threaded in-memory datastore
+        - docker.dragonflydb.io/dragonflydb/dragonfly:v1.27.1
 
         # Elasticsearch
         # https://hub.docker.com/r/datadatdat/elasticsearch
@@ -117,6 +128,7 @@ jobs:
         - mysql:8
 
         # Neo4j
+        # https://hub.docker.com/_/neo4j
         - neo4j:2026
         - neo4j:2025
         - neo4j:5
@@ -177,12 +189,28 @@ jobs:
         #- datadatdat/oracle-free:23.26.0-full
         #- datadatdat/oracle-free:23.26.0-full-faststart
 
+        # OpenSearch
+        # https://hub.docker.com/r/opensearchproject/opensearch
+        # https://hub.docker.com/r/datadatdat/opensearch
+        # Wrapped versions of opensearchproject/opensearch with VOLUME directives
+        # Source Dockerfiles: tests/endtoend/db-matrix/opensearch-*.Dockerfile
+        - datadatdat/opensearch:3.5.0
+        - datadatdat/opensearch:2.19.5
+
         # PostgreSQL
         - postgres:18
         - postgres:17
         - postgres:16
         - postgres:15
         - postgres:14
+
+        # Qdrant
+        # https://hub.docker.com/r/qdrant/qdrant
+        # https://hub.docker.com/r/datadatdat/qdrant
+        # Wrapped versions of qdrant/qdrant with VOLUME directives
+        # Source Dockerfiles: tests/endtoend/db-matrix/qdrant-*.Dockerfile
+        - datadatdat/qdrant:v1.17
+        - datadatdat/qdrant:v1.16
 
         # Redis
         # https://hub.docker.com/r/datadatdat/redis
@@ -199,6 +227,47 @@ jobs:
         - datadatdat/valkey:9
         - datadatdat/valkey:8
         - datadatdat/valkey:7
+
+        # ScyllaDB
+        # https://hub.docker.com/r/scylladb/scylla
+        # Cassandra-compatible high-performance database
+        - scylladb/scylla:2026.1
+        - scylladb/scylla:2025.3
+
+        # SurrealDB
+        # https://hub.docker.com/r/surrealdb/surrealdb
+        # Multi-model database (document, graph, relational)
+        - surrealdb/surrealdb:v3.0.5
+        - surrealdb/surrealdb:v3
+
+        # TiDB
+        # https://hub.docker.com/r/pingcap/tidb
+        # https://hub.docker.com/r/datadatdat/tidb
+        # Wrapped versions of pingcap/tidb with VOLUME directives
+        # Source Dockerfiles: tests/endtoend/db-matrix/tidb-*.Dockerfile
+        - datadatdat/tidb:v8.5.5
+        - datadatdat/tidb:v8.1.2
+
+        # TigerGraph
+        # https://hub.docker.com/r/tigergraph/tigergraph
+        # https://hub.docker.com/r/datadatdat/tigergraph
+        # Wrapped versions of tigergraph/tigergraph with VOLUME directives
+        # Source Dockerfiles: tests/endtoend/db-matrix/tigergraph-*.Dockerfile
+        - datadatdat/tigergraph:latest
+        - datadatdat/tigergraph:4.2.2
+        - datadatdat/tigergraph:4.1.4
+
+        # TimescaleDB
+        # https://hub.docker.com/r/timescale/timescaledb
+        # PostgreSQL extension for time-series data
+        - timescale/timescaledb:2.26.1-pg17
+        - timescale/timescaledb:2.26.1-pg16
+
+        # YugabyteDB
+        # https://hub.docker.com/r/yugabytedb/yugabyte
+        # PostgreSQL-compatible distributed SQL database
+        - yugabytedb/yugabyte:2025.2.2.1-b1
+        - yugabytedb/yugabyte:2025.1.3.2-b1
 
         # Snowflake
         # Snowflake is a managed cloud service; no official DB server image on Docker Hub (only third-party/local solutions and Snowflake’s own OCI registry for app images).
