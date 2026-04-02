@@ -77,8 +77,15 @@ test_database() {
       sleep 1
       ((tg_elapsed++))
     done
-    echo "  Starting TigerGraph services via gadmin..."
-    docker exec "$repo_name" bash -c "su - tigergraph -c 'gadmin start all'" || return 1
+    # Set license and start services. Use login shell to pick up tigergraph's PATH.
+    local tg_license
+    tg_license=$(tr -d '\r\n' < tests/endtoend/db-matrix/tigergraphdb-license-1.txt)
+    echo "  Setting TigerGraph license and starting services..."
+    local tg_gadmin=/home/tigergraph/tigergraph/app/cmd/gadmin
+    echo "  Starting TigerGraph infrastructure..."
+    docker exec -u tigergraph "$repo_name" bash -c "$tg_gadmin start infra" || return 1
+    docker exec -u tigergraph "$repo_name" bash -c "$tg_gadmin license set '$tg_license' && $tg_gadmin config apply -y" || return 1
+    docker exec -u tigergraph "$repo_name" bash -c "$tg_gadmin start all" || return 1
     echo "  TigerGraph services started"
   else
     "$D3" run -n "$repo_name" "$db_version" || return 1
