@@ -60,6 +60,26 @@ test_database() {
       --disable-port-mapping \
       -e "ORACLE_PASSWORD=YourStrong!Passw0rd" \
       "$db_version" || return 1
+  elif [[ "$db_version" == *"tigergraph"* ]]; then
+    # TigerGraph runs sshd on port 22 (conflicts with runner).
+    # Services must be started manually via gadmin after container launch.
+    "$D3" run -n "$repo_name" \
+      --disable-port-mapping \
+      "$db_version" || return 1
+    # Wait for container to be running, then start TigerGraph services
+    local tg_timeout=30
+    local tg_elapsed=0
+    while ! docker ps --filter "name=$repo_name" --format "{{.Status}}" | grep -q "Up"; do
+      if [ $tg_elapsed -ge $tg_timeout ]; then
+        echo "Timeout waiting for container $repo_name to start"
+        return 1
+      fi
+      sleep 1
+      ((tg_elapsed++))
+    done
+    echo "  Starting TigerGraph services via gadmin..."
+    docker exec "$repo_name" bash -c "su - tigergraph -c 'gadmin start all'" || return 1
+    echo "  TigerGraph services started"
   else
     "$D3" run -n "$repo_name" "$db_version" || return 1
   fi
