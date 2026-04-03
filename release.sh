@@ -892,7 +892,7 @@ phase_cli() {
     local env_file="$repo_path/tests/endtoend/remotes/datadatdat/env.bash"
     log_step "Updating DOWNLOAD_TEST_VERSION (PROD + DEV) to v$VERSION..."
     if ! $DRY_RUN; then
-        sed -i "s/DOWNLOAD_TEST_VERSION:-v[0-9.]*\"/DOWNLOAD_TEST_VERSION:-v$VERSION\"/g" "$env_file"
+        sed -i "s/DOWNLOAD_TEST_VERSION:-v[0-9.]*}/DOWNLOAD_TEST_VERSION:-v$VERSION}/g" "$env_file"
         log_success "DOWNLOAD_TEST_VERSION updated in both PROD and DEV sections"
     fi
 
@@ -900,12 +900,9 @@ phase_cli() {
     if ! $DRY_RUN; then
         cd "$repo_path"
         if [ -n "$(git status --porcelain)" ]; then
-            local files_to_add=(go.mod go.sum)
+            local files_to_add=(go.mod go.sum tests/endtoend/remotes/datadatdat/env.bash)
             if [ -f "$bats_file" ] && git diff --name-only | grep -q "datadatdat-workflow.bats"; then
                 files_to_add+=(tests/endtoend/remotes/datadatdat/datadatdat-workflow.bats)
-            fi
-            if git diff --name-only | grep -q "env.bash"; then
-                files_to_add+=(tests/endtoend/remotes/datadatdat/env.bash)
             fi
             commit_and_push "$repo_path" "Release v$VERSION: Update all dependencies" "${files_to_add[@]}"
         fi
