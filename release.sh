@@ -144,6 +144,10 @@ commit_and_push() {
     fi
     cd "$repo_path"
     git add "${files[@]}"
+    if git diff --cached --quiet; then
+        log_step "No changes to commit in $repo_path"
+        return 0
+    fi
     git commit -m "$message"
     git push origin master
 }
