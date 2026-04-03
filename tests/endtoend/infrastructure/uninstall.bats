@@ -28,7 +28,7 @@ load '../test_helper'
 }
 
 @test "ZFS pool destroyed after uninstall" {
-  # TODO: https://github.com/datadatdat/datadatdat/issues/XXX
+  # TODO: https://github.com/datadatdat/datadatdat/issues/90
   # Skipped: uninstall does not destroy ZFS pools that have datasets or
   # were not created by the current install. Needs investigation into
   # whether uninstall should force-destroy or leave pools intact.
