@@ -134,6 +134,9 @@ test-push-pull-tags-remote:
 test-fork-workflow:
 	ENV=$(ENV) bats tests/endtoend/remotes/datadatdat/fork-workflow.bats
 
+test-fork-cross-user:
+	ENV=$(ENV) bats tests/endtoend/remotes/datadatdat/fork-cross-user.bats
+
 test-whitelist-approval:
 	ENV=$(ENV) bats tests/endtoend/remotes/datadatdat/whitelist-approval.bats
 
@@ -146,4 +149,4 @@ e2e: test-install test-getting-started test-tags test-tag-management test-docker
 test-connect-drs-network:
 	docker network connect datadatdat-docker datadatdat-docker-server 2>/dev/null || true
 
-e2e-server: test-install test-connect-drs-network test-datadatdat-workflow test-clone-commit-workflow test-auth-workflow test-whitelist-approval test-public-repo-permissions test-auth-status test-org-workflow test-billing-workflow test-stripe-integration test-abort-workflow test-push-pull-tags-remote test-fork-workflow test-uninstall
+e2e-server: test-install test-connect-drs-network test-datadatdat-workflow test-clone-commit-workflow test-auth-workflow test-whitelist-approval test-public-repo-permissions test-auth-status test-org-workflow test-billing-workflow test-stripe-integration test-abort-workflow test-push-pull-tags-remote test-fork-workflow test-fork-cross-user test-uninstall
