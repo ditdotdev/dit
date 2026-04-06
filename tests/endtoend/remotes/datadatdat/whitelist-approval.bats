@@ -119,6 +119,7 @@ teardown_file() {
 }
 
 @test "whitelist-approval: verify access request status is approved" {
+  is_dev || skip "Admin approve API only available in DEV"
   ACCESS_REQUEST_ID=$(cat "$BATS_TMPDIR/whitelist_approval_request_id.txt")
   run run_sql_raw "SELECT status FROM access_requests WHERE id = '${ACCESS_REQUEST_ID}';"
   assert_success
@@ -130,18 +131,21 @@ teardown_file() {
 # ========================================
 
 @test "whitelist-approval: verify whitelisted_users entry was created" {
+  is_dev || skip "Admin approve API only available in DEV"
   run run_sql_raw "SELECT COUNT(*) FROM whitelisted_users wu JOIN users u ON wu.user_id = u.id WHERE u.github_login = '${APPROVAL_TEST_USER_LOGIN}';"
   assert_success
   assert_output "1"
 }
 
 @test "whitelist-approval: verify users.is_whitelisted was set to true" {
+  is_dev || skip "Admin approve API only available in DEV"
   run run_sql_raw "SELECT is_whitelisted FROM users WHERE github_login = '${APPROVAL_TEST_USER_LOGIN}';"
   assert_success
   assert_output "t"
 }
 
 @test "whitelist-approval: BUG - whitelisted_users.github_login should be set but is NULL" {
+  is_dev || skip "Admin approve API only available in DEV"
   # This is the core bug: CreateWhitelistEntry inserts (user_id, approved_by, reason)
   # but does NOT set github_login. The OAuth callback checks
   # IsGitHubLoginWhitelisted which queries WHERE github_login = $1.
@@ -156,6 +160,7 @@ teardown_file() {
 }
 
 @test "whitelist-approval: BUG - IsGitHubLoginWhitelisted returns false for approved user" {
+  is_dev || skip "Admin approve API only available in DEV"
   # This simulates exactly what HandleCallback does on re-login:
   # SELECT EXISTS(SELECT 1 FROM whitelisted_users WHERE github_login = $1)
   # Because github_login is NULL in the row, this returns false.
