@@ -722,7 +722,7 @@ teardown_file() {
 }
 
 @test "API keys: cleanup - delete test API keys from database" {
-  run run_sql_cmd "DELETE FROM api_keys WHERE name LIKE 'E2E Test Key %[0-9]%';"
+  run run_sql_cmd "DELETE FROM api_keys WHERE name LIKE 'E2E Test Key%';"
   assert_success
 }
 
