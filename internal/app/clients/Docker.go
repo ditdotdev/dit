@@ -210,17 +210,35 @@ func (d docker) DatadatdatLatestIsDownloaded(registry string, latest app.Version
 		registry = "datadatdat"
 	}
 
-	out, _ := ce.Exec("docker", "images", registry+"/datadatdat", "--format", `"{{.Tag}}"`)
+	image := registry + "/datadatdat"
+	out, _ := ce.Exec("docker", "images", image, "--format", `"{{.Tag}}"`)
 	tags := strings.Split(string(out), EOL)
+	hasVersionTag := false
 	for _, item := range tags {
 		tag := strings.Trim(item, "\"")
 		if tag != "latest" && tag != "" {
 			v := app.Version{}.FromString(tag)
 			if v.Compare(latest) == 0 {
-				return true
+				hasVersionTag = true
+				break
 			}
 		}
 	}
+
+	if !hasVersionTag {
+		return false
+	}
+
+	// Image exists locally. Check if it was pulled from a registry (has
+	// RepoDigests) or built locally (no RepoDigests). Locally-built images
+	// are trusted as-is; registry-pulled images may be stale and should be
+	// re-pulled to pick up newer builds under the same tag.
+	repoDigests := d.GetValFromImage(image+":latest", "RepoDigests")
+	if repoDigests == "" || repoDigests == "null" {
+		// No RepoDigests means locally-built image -- trust it
+		return true
+	}
+	// Registry-pulled image -- treat as stale so the caller re-pulls
 	return false
 }
 
