@@ -582,64 +582,43 @@ phase_go_foundation() {
 phase_kotlin_foundation() {
     log_phase 2 "Kotlin Foundation (command-executor + remote-sdk + 6 Kotlin providers)"
 
-    # 1. Check if command-executor has changes
-    log_step "Checking command-executor for changes..."
-    local ce_has_changes=false
-    cd "$WORKSPACE/command-executor"
-    local last_tag
-    last_tag=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
-    if [ -n "$last_tag" ]; then
-        local changes
-        changes=$(git log "$last_tag"..HEAD --oneline 2>/dev/null || echo "")
-        if [ -n "$changes" ]; then
-            ce_has_changes=true
-            log_info "command-executor has changes since $last_tag - releasing"
-        fi
-    else
-        ce_has_changes=true
-        log_info "command-executor has no tags - releasing"
-    fi
+    # 1. Tag and release command-executor
+    tag_and_push "$WORKSPACE/command-executor" "$VERSION"
+    wait_for_workflow "command-executor" "release.yml"
+    verify_s3_artifact "$MAVEN_BUCKET" "com/datadatdat/command-executor/$VERSION/"
 
-    if $ce_has_changes; then
-        tag_and_push "$WORKSPACE/command-executor" "$VERSION"
-        wait_for_workflow "command-executor" "release.yml"
-        verify_s3_artifact "$MAVEN_BUCKET" "com/datadatdat/command-executor/$VERSION/"
-
-        # Update command-executor dependency in all downstream repos BEFORE tagging them
-        log_step "Updating command-executor dependency to $VERSION in downstream repos..."
-        local ce_downstream_files=(
-            "$WORKSPACE/remote-sdk/build.gradle.kts"
-            "$WORKSPACE/datadatdat-server/server/build.gradle.kts"
-            "$WORKSPACE/ssh-remote/server/build.gradle.kts"
-            "$WORKSPACE/delphix-remote/server/build.gradle.kts"
-        )
-        for gradle_file in "${ce_downstream_files[@]}"; do
-            if [ -f "$gradle_file" ]; then
-                if $DRY_RUN; then
-                    log_dry "Update command-executor:$PREV_VERSION -> $VERSION in $gradle_file"
-                else
-                    sed -i "s/command-executor:[0-9][0-9.]*/command-executor:${VERSION}/g" "$gradle_file"
-                    local repo_dir
-                    repo_dir=$(dirname "$gradle_file")
-                    local relative_file
-                    relative_file=$(basename "$gradle_file")
-                    # For remote-sdk, build.gradle.kts is in the root
-                    # For others, it's in server/ so go up one level
-                    if [[ "$gradle_file" == */server/build.gradle.kts ]]; then
-                        repo_dir=$(dirname "$repo_dir")
-                        relative_file="server/build.gradle.kts"
-                    fi
-                    cd "$repo_dir"
-                    git add "$relative_file"
-                    git commit -m "Update command-executor to $VERSION" || true
-                    git push origin master
-                    log_success "Updated command-executor in $(basename "$repo_dir")"
+    # Update command-executor dependency in all downstream repos BEFORE tagging them
+    log_step "Updating command-executor dependency to $VERSION in downstream repos..."
+    local ce_downstream_files=(
+        "$WORKSPACE/remote-sdk/build.gradle.kts"
+        "$WORKSPACE/datadatdat-server/server/build.gradle.kts"
+        "$WORKSPACE/ssh-remote/server/build.gradle.kts"
+        "$WORKSPACE/delphix-remote/server/build.gradle.kts"
+    )
+    for gradle_file in "${ce_downstream_files[@]}"; do
+        if [ -f "$gradle_file" ]; then
+            if $DRY_RUN; then
+                log_dry "Update command-executor -> $VERSION in $gradle_file"
+            else
+                sed -i "s/command-executor:[0-9][0-9.]*/command-executor:${VERSION}/g" "$gradle_file"
+                local repo_dir
+                repo_dir=$(dirname "$gradle_file")
+                local relative_file
+                relative_file=$(basename "$gradle_file")
+                # For remote-sdk, build.gradle.kts is in the root
+                # For others, it's in server/ so go up one level
+                if [[ "$gradle_file" == */server/build.gradle.kts ]]; then
+                    repo_dir=$(dirname "$repo_dir")
+                    relative_file="server/build.gradle.kts"
                 fi
+                cd "$repo_dir"
+                git add "$relative_file"
+                git commit -m "Update command-executor to $VERSION" || true
+                git push origin master
+                log_success "Updated command-executor in $(basename "$repo_dir")"
             fi
-        done
-    else
-        log_info "command-executor unchanged - skipping"
-    fi
+        fi
+    done
 
     # 2. Tag remote-sdk (Kotlin)
     tag_and_push "$WORKSPACE/remote-sdk" "$VERSION"
@@ -647,9 +626,7 @@ phase_kotlin_foundation() {
 
     # 3. Verify remote-sdk published to Maven (existence + POM content)
     verify_s3_artifact "$MAVEN_BUCKET" "com/datadatdat/remote-sdk/$VERSION/"
-    if $ce_has_changes; then
-        verify_maven_pom "remote-sdk" "$VERSION" "command-executor" "$VERSION"
-    fi
+    verify_maven_pom "remote-sdk" "$VERSION" "command-executor" "$VERSION"
 
     # 4. Update build.gradle.kts in all 6 Kotlin providers
     log_step "Updating Kotlin provider dependencies to $VERSION..."
@@ -671,14 +648,12 @@ phase_kotlin_foundation() {
                 files_changed+=("client/build.gradle.kts")
             fi
 
-            # Update command-executor dep for ssh-remote and delphix-remote (only if CE was released)
-            if $ce_has_changes; then
-                for ce_dep in "${COMMAND_EXECUTOR_DEPENDENTS[@]}"; do
-                    if [ "$provider" = "$ce_dep" ]; then
-                        sed -i "s/command-executor:[0-9][0-9.]*/command-executor:${VERSION}/g" "$repo_path/server/build.gradle.kts"
-                    fi
-                done
-            fi
+            # Update command-executor dep for ssh-remote and delphix-remote
+            for ce_dep in "${COMMAND_EXECUTOR_DEPENDENTS[@]}"; do
+                if [ "$provider" = "$ce_dep" ]; then
+                    sed -i "s/command-executor:[0-9][0-9.]*/command-executor:${VERSION}/g" "$repo_path/server/build.gradle.kts"
+                fi
+            done
 
             if [ ${#files_changed[@]} -gt 0 ]; then
                 commit_and_push "$repo_path" "Update dependencies to $VERSION" "${files_changed[@]}"
