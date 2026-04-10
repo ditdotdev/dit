@@ -316,6 +316,19 @@ teardown_file() {
 }
 
 @test "xfork: d3-ghtest3 can read forked repo commits" {
+  # In PROD, orphan tests are skipped and the fork was cleaned up in test 21.
+  # Re-fork if needed so this test has a repo to read.
+  local count
+  count=$(run_sql_raw "SELECT COUNT(*) FROM repositories WHERE full_name = '${FORKER_NS}/${SOURCE_REPO}';" | tr -d '[:space:]')
+  if [[ "$count" != "1" ]]; then
+    run curl -X POST -sf \
+      -H "Authorization: Bearer $GHTEST2_KEY" \
+      -H "Content-Type: application/json" \
+      -d "{\"targetNamespace\": \"${FORKER_NS}\"}" \
+      "$GATEWAY/api/v1/repos/${OWNER_NS}/${SOURCE_REPO}/fork"
+    assert_success
+  fi
+
   # Register the fork as public so d3-ghtest3 can read it
   run run_sql_cmd \
     "UPDATE repositories SET is_private = false
