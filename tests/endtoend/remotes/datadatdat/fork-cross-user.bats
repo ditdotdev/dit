@@ -282,6 +282,7 @@ teardown_file() {
 }
 
 @test "xfork: fork with orphaned data returns 409 (pre-fix behavior)" {
+  is_dev || skip "Depends on MinIO orphan data planted in DEV"
   # Before the fix, orphaned S3 data from a failed fork blocks retries with 409.
   # After the fix lands, this test should be updated: the server will clean up
   # orphaned data automatically and return 201 instead.
@@ -304,6 +305,7 @@ teardown_file() {
 # ===== Test: d3-ghtest3 can read the fork (public) =====
 
 @test "xfork: re-fork after orphan cleanup succeeds" {
+  is_dev || skip "Depends on MinIO orphan cleanup in DEV"
   run curl -X POST -f \
     -H "Authorization: Bearer $GHTEST2_KEY" \
     -H "Content-Type: application/json" \
