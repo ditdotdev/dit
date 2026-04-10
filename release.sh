@@ -66,7 +66,7 @@ DRY_RUN=false
 SKIP_ECS=false
 FROM_PHASE=0
 SINGLE_PHASE=-1
-WORKFLOW_TIMEOUT=900  # 15 minutes
+WORKFLOW_TIMEOUT=1800  # 30 minutes
 POLL_INTERVAL=15      # seconds between polls
 
 # ============================================================================
