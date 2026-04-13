@@ -949,7 +949,7 @@ phase_remote_server() {
     if ! $DRY_RUN; then
         cd "$repo_path"
         if [ -n "$(git status --porcelain)" ]; then
-            commit_and_push "$repo_path" "Update dependencies for v$VERSION release" go.mod go.sum
+            commit_and_push "$repo_path" "Update dependencies for v$VERSION release" go.mod go.sum go.work.sum
         fi
     fi
 
