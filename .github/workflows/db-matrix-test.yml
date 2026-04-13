@@ -275,6 +275,9 @@ jobs:
         # Splunk
         # Not a database server
 
+        # DuckDB
+        # Same as SQLite — embedded/in-process database with no server container to version.
+
         # SQLite
         # SQLite is fundamentally incompatible with datadatdat's model of versioning database servers with persistent storage.
 
