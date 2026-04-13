@@ -33,7 +33,7 @@ func TestOrgListCmd_DisplaysOrgs(t *testing.T) {
 			w.WriteHeader(http.StatusNotFound)
 			return
 		}
-		if r.Header.Get("Authorization") != "Bearer test-key" {
+		if r.Header.Get("Authorization") != testBearerToken {
 			t.Errorf("missing or wrong Authorization header: %s", r.Header.Get("Authorization"))
 			w.WriteHeader(http.StatusUnauthorized)
 			return
@@ -473,7 +473,7 @@ func TestOrgCreateCmd_Success(t *testing.T) {
 		if r.URL.Path != "/api/v1/orgs" {
 			t.Errorf("unexpected path: %s", r.URL.Path)
 		}
-		if r.Header.Get("Authorization") != "Bearer test-key" {
+		if r.Header.Get("Authorization") != testBearerToken {
 			t.Errorf("bad auth header: %s", r.Header.Get("Authorization"))
 		}
 
