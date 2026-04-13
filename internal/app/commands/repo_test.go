@@ -13,6 +13,8 @@ import (
 	"datadatdat/internal/app/providers/common"
 )
 
+const testBearerToken = "Bearer test-key"
+
 // ---------------------------------------------------------------------------
 // helpers
 // ---------------------------------------------------------------------------
@@ -86,7 +88,7 @@ func TestRepoCreateCmd_Success(t *testing.T) {
 		if r.URL.Path != "/api/v1/repos/myorg/myrepo" {
 			t.Errorf("unexpected path: %s", r.URL.Path)
 		}
-		if r.Header.Get("Authorization") != "Bearer test-key" {
+		if r.Header.Get("Authorization") != testBearerToken {
 			t.Errorf("bad auth header: %s", r.Header.Get("Authorization"))
 		}
 		w.WriteHeader(http.StatusCreated)
@@ -201,7 +203,7 @@ func TestRepoDeleteCmd_Success(t *testing.T) {
 		if r.URL.Path != "/api/v1/repos/myorg/myrepo" {
 			t.Errorf("unexpected path: %s", r.URL.Path)
 		}
-		if r.Header.Get("Authorization") != "Bearer test-key" {
+		if r.Header.Get("Authorization") != testBearerToken {
 			t.Errorf("bad auth header: %s", r.Header.Get("Authorization"))
 		}
 		w.WriteHeader(http.StatusNoContent)
@@ -283,7 +285,7 @@ func TestRepoListCmd_Success(t *testing.T) {
 		if r.URL.Path != "/api/v1/repos" {
 			t.Errorf("unexpected path: %s", r.URL.Path)
 		}
-		if r.Header.Get("Authorization") != "Bearer test-key" {
+		if r.Header.Get("Authorization") != testBearerToken {
 			t.Errorf("bad auth header: %s", r.Header.Get("Authorization"))
 		}
 		w.Header().Set("Content-Type", "application/json")
