@@ -20,6 +20,7 @@ func TestFork_MissingOrgRepo(t *testing.T) {
 }
 
 func TestFork_NoCredentials(t *testing.T) {
+	t.Setenv("DATADATDAT_API_KEY", "")
 	// Create a temp credentials file that is empty
 	tmpDir := t.TempDir()
 	credsFile := filepath.Join(tmpDir, "credentials")
@@ -36,6 +37,7 @@ func TestFork_NoCredentials(t *testing.T) {
 }
 
 func TestFork_SuccessfulFork(t *testing.T) {
+	t.Setenv("DATADATDAT_API_KEY", "")
 	// Set up a mock HTTP server that responds to the fork request
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != "POST" {
@@ -91,6 +93,7 @@ func TestFork_SuccessfulFork(t *testing.T) {
 }
 
 func TestFork_WithCustomName(t *testing.T) {
+	t.Setenv("DATADATDAT_API_KEY", "")
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		var body map[string]string
 		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
@@ -130,6 +133,7 @@ func TestFork_WithCustomName(t *testing.T) {
 }
 
 func TestFork_Conflict(t *testing.T) {
+	t.Setenv("DATADATDAT_API_KEY", "")
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusConflict)
 	}))
@@ -154,6 +158,7 @@ func TestFork_Conflict(t *testing.T) {
 }
 
 func TestFork_NotFound(t *testing.T) {
+	t.Setenv("DATADATDAT_API_KEY", "")
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusNotFound)
 	}))
