@@ -27,15 +27,13 @@ teardown_file() {
   "$D3" rm -f clonecommittest 2>/dev/null || true
   "$D3" rm -f clonecommittest2 2>/dev/null || true
   "$D3" rm -f cloneauthtest 2>/dev/null || true
-  curl -X DELETE -sf -H "Authorization: Bearer ${DATADATDAT_API_KEY}" \
-    "${GATEWAY}/api/v1/repos/clonetest/clonecommit" 2>/dev/null || true
+  "$D3" repo delete clonetest clonecommit --server "${GATEWAY}" 2>/dev/null || true
 }
 
 # ===== Setup: create repo with 3 commits and push to DRS =====
 
 @test "clone-c: create remote repository" {
-  run curl -X POST -f -H "Authorization: Bearer ${DATADATDAT_API_KEY}" \
-    "${GATEWAY}/api/v1/repos/clonetest/clonecommit"
+  run "$D3" repo create clonetest clonecommit --server "${GATEWAY}"
   assert_success
   assert_output --partial "clonecommit"
 }
@@ -240,7 +238,6 @@ teardown_file() {
   run "$D3" rm -f clonecommittest
   assert_success
 
-  run curl -X DELETE -f -H "Authorization: Bearer ${DATADATDAT_API_KEY}" \
-    "${GATEWAY}/api/v1/repos/clonetest/clonecommit"
+  run "$D3" repo delete clonetest clonecommit --server "${GATEWAY}"
   assert_success
 }

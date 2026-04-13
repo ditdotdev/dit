@@ -21,10 +21,8 @@ setup_file() {
 # Cleanup after all tests
 teardown_file() {
   # Best effort cleanup - don't fail if already cleaned
-  curl -X DELETE -sf -H "Authorization: Bearer ${DATADATDAT_API_KEY}" \
-    "${GATEWAY}/api/v1/repos/${TEST_ORG}/datadatdat-test" 2>/dev/null || true
-  curl -X DELETE -sf -H "Authorization: Bearer ${DATADATDAT_API_KEY}" \
-    "${GATEWAY}/api/v1/repos/${WEB_TEST_ORG}/ui-repo" 2>/dev/null || true
+  "$D3" repo delete "${TEST_ORG}" datadatdat-test --server "${GATEWAY}" 2>/dev/null || true
+  "$D3" repo delete "${WEB_TEST_ORG}" ui-repo --server "${GATEWAY}" 2>/dev/null || true
 
   # Remove any leftover local repositories
   "$D3" rm -f datadatdattest 2>/dev/null || true
@@ -193,24 +191,21 @@ teardown_file() {
   assert_output --partial "Removing repository datadatdattest"
 }
 
-@test "test list repos by org API endpoint (before cleanup)" {
-  run curl -sf -H "Authorization: Bearer ${DATADATDAT_API_KEY}" \
-    "${GATEWAY}/api/v1/repos/${TEST_ORG}"
+@test "test list repos by org CLI (before cleanup)" {
+  run "$D3" repo ls --org "${TEST_ORG}" --server "${GATEWAY}"
   assert_success
   assert_output --partial "${TEST_ORG}/datadatdat-test"
 }
 
 @test "cleanup - delete test repository from server" {
-  run curl -X DELETE -f -H "Authorization: Bearer ${DATADATDAT_API_KEY}" \
-    "${GATEWAY}/api/v1/repos/${TEST_ORG}/datadatdat-test"
+  run "$D3" repo delete "${TEST_ORG}" datadatdat-test --server "${GATEWAY}"
   assert_success
 }
 
 # ===== Web UI Tests =====
 
 @test "web UI: create test repo for web UI tests" {
-  run curl -X POST -f -H "Authorization: Bearer ${DATADATDAT_API_KEY}" \
-    "${GATEWAY}/api/v1/repos/${WEB_TEST_ORG}/ui-repo"
+  run "$D3" repo create "${WEB_TEST_ORG}" ui-repo --server "${GATEWAY}"
   assert_success
   assert_output --partial "ui-repo"
 }
@@ -393,9 +388,8 @@ teardown_file() {
   [[ "$output" == *'"error"'* ]] || [[ "$output" == *'"message"'* ]]
 }
 
-@test "web UI: test list all repos API endpoint" {
-  run curl -sLf -H "Authorization: Bearer ${DATADATDAT_API_KEY}" \
-    "${GATEWAY}/api/v1/repos"
+@test "web UI: test list all repos via CLI" {
+  run "$D3" repo ls --server "${GATEWAY}"
   assert_success
   assert_output --partial "${WEB_TEST_ORG}/ui-repo"
 }

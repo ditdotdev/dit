@@ -173,28 +173,22 @@ teardown_file() {
 # Organization Creation
 # ========================================
 
-@test "org: create test-org as orguser-a returns 201" {
-  run curl -s -w "\n%{http_code}" -X POST \
-    -H "X-API-Key: $ORGUSER_A_KEY" \
-    -H "Content-Type: application/json" \
-    -d '{"name":"test-org","displayName":"Test Organization"}' \
-    "$GATEWAY/api/v1/orgs"
+@test "org: create test-org as orguser-a via CLI" {
+  run env DATADATDAT_API_KEY="$ORGUSER_A_KEY" "$D3" org create test-org \
+    --display-name "Test Organization" --server "$GATEWAY"
   assert_success
   assert_output --partial "test-org"
-  assert_output --partial "201"
 }
 
-@test "org: get test-org returns org details" {
-  run curl -sf -H "X-API-Key: $ORGUSER_A_KEY" \
-    "$GATEWAY/api/v1/orgs/test-org"
+@test "org: get test-org returns org details via CLI" {
+  run env DATADATDAT_API_KEY="$ORGUSER_A_KEY" "$D3" org info test-org --server "$GATEWAY"
   assert_success
   assert_output --partial "test-org"
   assert_output --partial "Test Organization"
 }
 
-@test "org: test-org members include orguser-a as owner" {
-  run curl -sf -H "X-API-Key: $ORGUSER_A_KEY" \
-    "$GATEWAY/api/v1/orgs/test-org/members"
+@test "org: test-org members include orguser-a as owner via CLI" {
+  run env DATADATDAT_API_KEY="$ORGUSER_A_KEY" "$D3" org members test-org --server "$GATEWAY"
   assert_success
   assert_output --partial "owner"
 }
