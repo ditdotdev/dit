@@ -33,7 +33,7 @@ func TestOrgListCmd_DisplaysOrgs(t *testing.T) {
 			w.WriteHeader(http.StatusNotFound)
 			return
 		}
-		if r.Header.Get("Authorization") != "Bearer test-key" {
+		if r.Header.Get("Authorization") != testBearerToken {
 			t.Errorf("missing or wrong Authorization header: %s", r.Header.Get("Authorization"))
 			w.WriteHeader(http.StatusUnauthorized)
 			return
@@ -395,5 +395,352 @@ func TestOrgListCmd_LsAlias(t *testing.T) {
 	err := rootCmd.Execute()
 	if err != nil {
 		t.Fatalf("org ls alias error = %v", err)
+	}
+}
+
+// ===========================================================================
+// helpers for org create / info / members tests
+// ===========================================================================
+
+func resetOrgCreateFlags() {
+	_ = orgCreateCmd.Flags().Set("server", "")
+	_ = orgCreateCmd.Flags().Set("display-name", "")
+}
+
+func resetOrgInfoFlags() {
+	_ = orgInfoCmd.Flags().Set("server", "")
+}
+
+func resetOrgMembersFlags() {
+	_ = orgMembersCmd.Flags().Set("server", "")
+}
+
+func setupOrgTestCreds(t *testing.T, serverURL, apiKey string) func() {
+	t.Helper()
+	tmpDir := t.TempDir()
+	credsFile := filepath.Join(tmpDir, "credentials")
+	origOverride := credentialsPathOverride
+	credentialsPathOverride = credsFile
+
+	creds := common.Credentials{
+		Servers: map[string]common.ServerCredential{
+			serverURL: {APIKey: apiKey},
+		},
+		DefaultServer: serverURL,
+	}
+	data, _ := json.Marshal(creds)
+	_ = os.WriteFile(credsFile, data, 0600)
+
+	return func() { credentialsPathOverride = origOverride }
+}
+
+func setupOrgEmptyCreds(t *testing.T) func() {
+	t.Helper()
+	tmpDir := t.TempDir()
+	credsFile := filepath.Join(tmpDir, "credentials")
+	origOverride := credentialsPathOverride
+	credentialsPathOverride = credsFile
+
+	creds := common.Credentials{Servers: map[string]common.ServerCredential{}, DefaultServer: ""}
+	data, _ := json.Marshal(creds)
+	_ = os.WriteFile(credsFile, data, 0600)
+
+	return func() { credentialsPathOverride = origOverride }
+}
+
+func execOrgCmd(args ...string) (string, error) {
+	buf := new(bytes.Buffer)
+	rootCmd.SetOut(buf)
+	rootCmd.SetErr(buf)
+	rootCmd.SetArgs(args)
+	err := rootCmd.Execute()
+	return buf.String(), err
+}
+
+// ===========================================================================
+// d3 org create
+// ===========================================================================
+
+func TestOrgCreateCmd_Success(t *testing.T) {
+	resetOrgCreateFlags()
+	t.Setenv("DATADATDAT_API_KEY", "")
+	_ = os.Unsetenv("DATADATDAT_API_KEY")
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost {
+			t.Errorf("expected POST, got %s", r.Method)
+		}
+		if r.URL.Path != "/api/v1/orgs" {
+			t.Errorf("unexpected path: %s", r.URL.Path)
+		}
+		if r.Header.Get("Authorization") != testBearerToken {
+			t.Errorf("bad auth header: %s", r.Header.Get("Authorization"))
+		}
+
+		var body map[string]string
+		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+			t.Errorf("failed to decode request body: %v", err)
+		}
+		if body["name"] != "new-org" {
+			t.Errorf("expected name=new-org, got %s", body["name"])
+		}
+		if body["displayName"] != "New Organization" {
+			t.Errorf("expected displayName=New Organization, got %s", body["displayName"])
+		}
+
+		w.WriteHeader(http.StatusCreated)
+		_ = json.NewEncoder(w).Encode(map[string]string{
+			"name":        "new-org",
+			"displayName": "New Organization",
+		})
+	}))
+	defer server.Close()
+
+	cleanup := setupOrgTestCreds(t, server.URL, "test-key")
+	defer cleanup()
+
+	output, err := execOrgCmd("org", "create", "new-org", "--display-name", "New Organization", "--server", server.URL)
+	if err != nil {
+		t.Fatalf("org create should succeed, got error: %v", err)
+	}
+	if !contains(output, "new-org") {
+		t.Errorf("output should mention created org, got: %s", output)
+	}
+}
+
+func TestOrgCreateCmd_AlreadyExists(t *testing.T) {
+	resetOrgCreateFlags()
+	t.Setenv("DATADATDAT_API_KEY", "test-key")
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusConflict)
+		_, _ = w.Write([]byte(`{"error":"organization already exists"}`))
+	}))
+	defer server.Close()
+
+	cleanup := setupOrgTestCreds(t, server.URL, "test-key")
+	defer cleanup()
+
+	_, err := execOrgCmd("org", "create", "existing-org", "--server", server.URL)
+	if err == nil {
+		t.Fatal("org create with 409 should return error")
+	}
+}
+
+func TestOrgCreateCmd_NoAuth(t *testing.T) {
+	resetOrgCreateFlags()
+	t.Setenv("DATADATDAT_API_KEY", "")
+	_ = os.Unsetenv("DATADATDAT_API_KEY")
+
+	cleanup := setupOrgEmptyCreds(t)
+	defer cleanup()
+
+	_, err := execOrgCmd("org", "create", "new-org", "--server", "http://localhost:9999")
+	if err == nil {
+		t.Fatal("org create without auth should return error")
+	}
+}
+
+func TestOrgCreateCmd_MissingArgs(t *testing.T) {
+	resetOrgCreateFlags()
+
+	_, err := execOrgCmd("org", "create")
+	if err == nil {
+		t.Fatal("org create without name should return error")
+	}
+}
+
+func TestOrgCreateCmd_NoServer(t *testing.T) {
+	resetOrgCreateFlags()
+	t.Setenv("DATADATDAT_API_KEY", "some-key")
+
+	cleanup := setupOrgEmptyCreds(t)
+	defer cleanup()
+
+	_, err := execOrgCmd("org", "create", "new-org")
+	if err == nil {
+		t.Fatal("org create without server should return error")
+	}
+}
+
+// ===========================================================================
+// d3 org info
+// ===========================================================================
+
+func TestOrgInfoCmd_Success(t *testing.T) {
+	resetOrgInfoFlags()
+	t.Setenv("DATADATDAT_API_KEY", "")
+	_ = os.Unsetenv("DATADATDAT_API_KEY")
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodGet {
+			t.Errorf("expected GET, got %s", r.Method)
+		}
+		if r.URL.Path != "/api/v1/orgs/test-org" {
+			t.Errorf("unexpected path: %s", r.URL.Path)
+		}
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(map[string]interface{}{
+			"name":        "test-org",
+			"displayName": "Test Organization",
+		})
+	}))
+	defer server.Close()
+
+	cleanup := setupOrgTestCreds(t, server.URL, "test-key")
+	defer cleanup()
+
+	output, err := execOrgCmd("org", "info", "test-org", "--server", server.URL)
+	if err != nil {
+		t.Fatalf("org info should succeed, got error: %v", err)
+	}
+	if !contains(output, "test-org") {
+		t.Errorf("output should contain org name, got: %s", output)
+	}
+	if !contains(output, "Test Organization") {
+		t.Errorf("output should contain display name, got: %s", output)
+	}
+}
+
+func TestOrgInfoCmd_NotFound(t *testing.T) {
+	resetOrgInfoFlags()
+	t.Setenv("DATADATDAT_API_KEY", "test-key")
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusNotFound)
+	}))
+	defer server.Close()
+
+	cleanup := setupOrgTestCreds(t, server.URL, "test-key")
+	defer cleanup()
+
+	_, err := execOrgCmd("org", "info", "nonexistent", "--server", server.URL)
+	if err == nil {
+		t.Fatal("org info with 404 should return error")
+	}
+}
+
+func TestOrgInfoCmd_NoAuth(t *testing.T) {
+	resetOrgInfoFlags()
+	t.Setenv("DATADATDAT_API_KEY", "")
+	_ = os.Unsetenv("DATADATDAT_API_KEY")
+
+	cleanup := setupOrgEmptyCreds(t)
+	defer cleanup()
+
+	_, err := execOrgCmd("org", "info", "some-org", "--server", "http://localhost:9999")
+	if err == nil {
+		t.Fatal("org info without auth should return error")
+	}
+}
+
+func TestOrgInfoCmd_MissingArgs(t *testing.T) {
+	resetOrgInfoFlags()
+
+	_, err := execOrgCmd("org", "info")
+	if err == nil {
+		t.Fatal("org info without name should return error")
+	}
+}
+
+// ===========================================================================
+// d3 org members
+// ===========================================================================
+
+func TestOrgMembersCmd_Success(t *testing.T) {
+	resetOrgMembersFlags()
+	t.Setenv("DATADATDAT_API_KEY", "")
+	_ = os.Unsetenv("DATADATDAT_API_KEY")
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodGet {
+			t.Errorf("expected GET, got %s", r.Method)
+		}
+		if r.URL.Path != "/api/v1/orgs/test-org/members" {
+			t.Errorf("unexpected path: %s", r.URL.Path)
+		}
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode([]map[string]interface{}{
+			{"username": "alice", "role": "owner"},
+			{"username": "bob", "role": "member"},
+		})
+	}))
+	defer server.Close()
+
+	cleanup := setupOrgTestCreds(t, server.URL, "test-key")
+	defer cleanup()
+
+	output, err := execOrgCmd("org", "members", "test-org", "--server", server.URL)
+	if err != nil {
+		t.Fatalf("org members should succeed, got error: %v", err)
+	}
+	if !contains(output, "alice") {
+		t.Errorf("output should list members, got: %s", output)
+	}
+	if !contains(output, "owner") {
+		t.Errorf("output should show roles, got: %s", output)
+	}
+}
+
+func TestOrgMembersCmd_NotFound(t *testing.T) {
+	resetOrgMembersFlags()
+	t.Setenv("DATADATDAT_API_KEY", "test-key")
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusNotFound)
+	}))
+	defer server.Close()
+
+	cleanup := setupOrgTestCreds(t, server.URL, "test-key")
+	defer cleanup()
+
+	_, err := execOrgCmd("org", "members", "nonexistent", "--server", server.URL)
+	if err == nil {
+		t.Fatal("org members with 404 should return error")
+	}
+}
+
+func TestOrgMembersCmd_NoAuth(t *testing.T) {
+	resetOrgMembersFlags()
+	t.Setenv("DATADATDAT_API_KEY", "")
+	_ = os.Unsetenv("DATADATDAT_API_KEY")
+
+	cleanup := setupOrgEmptyCreds(t)
+	defer cleanup()
+
+	_, err := execOrgCmd("org", "members", "some-org", "--server", "http://localhost:9999")
+	if err == nil {
+		t.Fatal("org members without auth should return error")
+	}
+}
+
+func TestOrgMembersCmd_MissingArgs(t *testing.T) {
+	resetOrgMembersFlags()
+
+	_, err := execOrgCmd("org", "members")
+	if err == nil {
+		t.Fatal("org members without name should return error")
+	}
+}
+
+func TestOrgMembersCmd_EmptyList(t *testing.T) {
+	resetOrgMembersFlags()
+	t.Setenv("DATADATDAT_API_KEY", "test-key")
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte("[]"))
+	}))
+	defer server.Close()
+
+	cleanup := setupOrgTestCreds(t, server.URL, "test-key")
+	defer cleanup()
+
+	output, err := execOrgCmd("org", "members", "empty-org", "--server", server.URL)
+	if err != nil {
+		t.Fatalf("org members empty should succeed, got error: %v", err)
+	}
+	if !contains(output, "No members found") {
+		t.Errorf("empty members list should show message, got: %s", output)
 	}
 }

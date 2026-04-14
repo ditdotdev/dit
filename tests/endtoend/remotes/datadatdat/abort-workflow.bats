@@ -19,8 +19,7 @@ setup_file() {
 # Cleanup after all tests
 teardown_file() {
   "$D3" rm -f abort-test 2>/dev/null || true
-  curl -X DELETE -sf -H "Authorization: Bearer ${DATADATDAT_API_KEY}" \
-    "${GATEWAY}/api/v1/repos/${TEST_ORG}/abort-test-repo" 2>/dev/null || true
+  "$D3" repo delete "${TEST_ORG}" abort-test-repo --server "${GATEWAY}" 2>/dev/null || true
 }
 
 # ========================================
@@ -94,7 +93,6 @@ teardown_file() {
 }
 
 @test "abort: delete remote repository" {
-  run curl -X DELETE -f -H "Authorization: Bearer ${DATADATDAT_API_KEY}" \
-    "${GATEWAY}/api/v1/repos/${TEST_ORG}/abort-test-repo"
+  run "$D3" repo delete "${TEST_ORG}" abort-test-repo --server "${GATEWAY}"
   assert_success
 }

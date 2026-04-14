@@ -28,19 +28,15 @@ teardown_file() {
   "$D3" rm -f forksrc 2>/dev/null || true
   "$D3" rm -f forkclone 2>/dev/null || true
   "$D3" rm -f forkclone2 2>/dev/null || true
-  curl -X DELETE -sf -H "Authorization: Bearer ${DATADATDAT_API_KEY}" \
-    "${GATEWAY}/api/v1/repos/forktest/source-repo" 2>/dev/null || true
-  curl -X DELETE -sf -H "Authorization: Bearer ${DATADATDAT_API_KEY}" \
-    "${GATEWAY}/api/v1/repos/forkdest/source-repo" 2>/dev/null || true
-  curl -X DELETE -sf -H "Authorization: Bearer ${DATADATDAT_API_KEY}" \
-    "${GATEWAY}/api/v1/repos/forkdest/custom-name" 2>/dev/null || true
+  "$D3" repo delete forktest source-repo --server "${GATEWAY}" 2>/dev/null || true
+  "$D3" repo delete forkdest source-repo --server "${GATEWAY}" 2>/dev/null || true
+  "$D3" repo delete forkdest custom-name --server "${GATEWAY}" 2>/dev/null || true
 }
 
 # ===== Setup: create and populate a source repo =====
 
 @test "fork: create source repository" {
-  run curl -X POST -f -H "Authorization: Bearer ${DATADATDAT_API_KEY}" \
-    "${GATEWAY}/api/v1/repos/forktest/source-repo"
+  run "$D3" repo create forktest source-repo --server "${GATEWAY}"
   assert_success
   assert_output --partial "source-repo"
 }
@@ -127,16 +123,12 @@ teardown_file() {
 
 # ===== Test: fork via API =====
 
-@test "fork: fork repo to different namespace via API" {
-  run curl -X POST -f \
-    -H "Authorization: Bearer ${DATADATDAT_API_KEY}" \
-    -H "Content-Type: application/json" \
-    -d '{"targetNamespace": "forkdest"}' \
-    "${GATEWAY}/api/v1/repos/forktest/source-repo/fork"
+@test "fork: fork repo to different namespace via CLI" {
+  run "$D3" fork "${GATEWAY}/forktest/source-repo" --org forkdest
   assert_success
   assert_output --partial "forkdest"
   assert_output --partial "source-repo"
-  assert_output --partial "forkedFrom"
+  assert_output --partial "Forked"
 }
 
 @test "fork: verify forked repo has all commits" {
@@ -181,11 +173,7 @@ teardown_file() {
 # ===== Test: fork with custom name =====
 
 @test "fork: fork with custom target name" {
-  run curl -X POST -f \
-    -H "Authorization: Bearer ${DATADATDAT_API_KEY}" \
-    -H "Content-Type: application/json" \
-    -d '{"targetNamespace": "forkdest", "targetName": "custom-name"}' \
-    "${GATEWAY}/api/v1/repos/forktest/source-repo/fork"
+  run "$D3" fork "${GATEWAY}/forktest/source-repo" --org forkdest --name custom-name
   assert_success
   assert_output --partial "custom-name"
 }
@@ -193,12 +181,8 @@ teardown_file() {
 # ===== Test: duplicate fork fails =====
 
 @test "fork: cannot fork to same name in same namespace" {
-  run curl -X POST -s \
-    -H "Authorization: Bearer ${DATADATDAT_API_KEY}" \
-    -H "Content-Type: application/json" \
-    -d '{"targetNamespace": "forkdest"}' \
-    "${GATEWAY}/api/v1/repos/forktest/source-repo/fork"
-  # Should fail with conflict (target already exists)
+  run "$D3" fork "${GATEWAY}/forktest/source-repo" --org forkdest
+  # Should report conflict (target already exists)
   [[ "$output" == *"exists"* ]] || [[ "$output" == *"conflict"* ]] || [[ "$output" == *"Conflict"* ]]
 }
 
@@ -255,13 +239,9 @@ teardown_file() {
   "$D3" rm -f forkclone2 2>/dev/null || true
   "$D3" rm -f forksrc 2>/dev/null || true
 
-  run curl -X DELETE -sf -H "Authorization: Bearer ${DATADATDAT_API_KEY}" \
-    "${GATEWAY}/api/v1/repos/forktest/source-repo"
+  run "$D3" repo delete forktest source-repo --server "${GATEWAY}"
   assert_success
 
-  curl -X DELETE -sf -H "Authorization: Bearer ${DATADATDAT_API_KEY}" \
-    "${GATEWAY}/api/v1/repos/forkdest/source-repo" 2>/dev/null || true
-
-  curl -X DELETE -sf -H "Authorization: Bearer ${DATADATDAT_API_KEY}" \
-    "${GATEWAY}/api/v1/repos/forkdest/custom-name" 2>/dev/null || true
+  "$D3" repo delete forkdest source-repo --server "${GATEWAY}" 2>/dev/null || true
+  "$D3" repo delete forkdest custom-name --server "${GATEWAY}" 2>/dev/null || true
 }
