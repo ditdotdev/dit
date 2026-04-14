@@ -1,35 +1,83 @@
-./d3 rm mydb -f
-
-./d3 run postgres -n mydb -e POSTGRES_PASSWORD=postgres -P (use -P if you have another postgres instance runninng on 5432. )
+./d3 run postgres -n mydb -e POSTGRES_PASSWORD=postgres
 
 ./d3 commit mydb -m "Initial commit"
+
+### authenticate to datadatdat.com
+
+./d3 auth status
+
+# if needed
+
+./d3 auth login --server https://datadatdat.com --api-key ***REMOVED***
+
+./d3 repo list
+
+# push to remote
+
+./d3 remote add https://datadatdat.com/robertericreeves/mydb mydb
+
+./d3 push mydb
+
+./d3 remote log mydb
+
+./d3 repo list
+
+# second commit
 
 docker exec mydb psql -U postgres -c "CREATE TABLE users (id SERIAL PRIMARY KEY, name VARCHAR(100), email VARCHAR(100));"
 
 ./d3 commit mydb -m "Added users table"
 
+./d3 push mydb
+
+# third commit
+
 docker exec mydb psql -U postgres -c "INSERT INTO users (name, email) VALUES ('Alice', 'alice@example.com'), ('Bob', 'bob@example.com');"
 
-./d3 commit mydb -m "Added sample users"
-
-./d3 log mydb
-
-./d3 checkout mydb -c <first commit>
-
-docker exec mydb psql -U postgres -c "\dt"
-
-./d3 checkout mydb -c <second commit>
-
-docker exec mydb psql -U postgres -c "\dt"
-
-./d3 checkout mydb -c <third commit>
-
-docker exec mydb psql -U postgres -c "SELECT * FROM users;"
-
-./d3 auth login --server datadatdat.com --api-key <your-api-key>
-
-./d3 remote add https://datadatdat.com/<your user name>/mydb mydb
+./d3 commit mydb -m "Added sample users" -t v2.3.4
 
 ./d3 push mydb
 
-#./d3 rm mydb -f
+# checkout and verify
+
+./d3 log mydb
+
+./d3 checkout mydb -c 4180bdff825444b194b25fa7bbf1289f
+
+docker exec mydb psql -U postgres -c "\dt"
+
+./d3 checkout mydb -c 0ae1c1a525604a83a2e62188276a453b
+
+docker exec mydb psql -U postgres -c "\dt"
+
+./d3 checkout mydb -c 4a1b3f3575ed4dbeb79036b49ae7ebc6
+
+docker exec mydb psql -U postgres -c "SELECT * FROM users;"
+
+# reset and clone from remote 
+
+./d3 rm mydb -f
+
+./d3 clone https://datadatdat.com/robertericreeves/mydb
+
+./d3 log mydb
+
+./d3 remote log mydb
+
+./d3 pull mydb -c 4180bdff825444b194b25fa7bbf1289f
+
+./d3 checkout mydb -c 4180bdff825444b194b25fa7bbf1289f
+
+./d3 pull mydb -c 0ae1c1a525604a83a2e62188276a453b 
+
+./d3 checkout mydb -c 0ae1c1a525604a83a2e62188276a453b 
+
+./d3 checkout mydb -t v2.3.4
+
+
+# clean up
+
+./d3 rm mydb -f
+
+./d3 repo delete robertericreeves mydb
+
