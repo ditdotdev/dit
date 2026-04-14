@@ -47,12 +47,9 @@ teardown_file() {
   "$D3" rm -f xfork-clone 2>/dev/null || true
 
   # Best-effort cleanup: remote repos (admin key can delete anything)
-  curl -X DELETE -sf -H "Authorization: Bearer $ADMIN_KEY" \
-    "$GATEWAY/api/v1/repos/${OWNER_NS}/${SOURCE_REPO}" 2>/dev/null || true
-  curl -X DELETE -sf -H "Authorization: Bearer $ADMIN_KEY" \
-    "$GATEWAY/api/v1/repos/${FORKER_NS}/${SOURCE_REPO}" 2>/dev/null || true
-  curl -X DELETE -sf -H "Authorization: Bearer $ADMIN_KEY" \
-    "$GATEWAY/api/v1/repos/${FORKER_NS}/custom-fork-name" 2>/dev/null || true
+  DATADATDAT_API_KEY="$ADMIN_KEY" "$D3" repo delete "${OWNER_NS}" "${SOURCE_REPO}" --server "$GATEWAY" 2>/dev/null || true
+  DATADATDAT_API_KEY="$ADMIN_KEY" "$D3" repo delete "${FORKER_NS}" "${SOURCE_REPO}" --server "$GATEWAY" 2>/dev/null || true
+  DATADATDAT_API_KEY="$ADMIN_KEY" "$D3" repo delete "${FORKER_NS}" custom-fork-name --server "$GATEWAY" 2>/dev/null || true
 
   # Best-effort cleanup: DB repo records
   run_sql_cmd "DELETE FROM repositories WHERE full_name IN (
@@ -67,8 +64,7 @@ teardown_file() {
 @test "xfork: create source repo as d3-ghtest1" {
   # Use admin key to create the repo in d3-ghtest1's namespace.
   # Repo creation requires write permission; the fork (cross-user read) is what we're testing.
-  run curl -X POST -f -H "Authorization: Bearer $ADMIN_KEY" \
-    "$GATEWAY/api/v1/repos/${OWNER_NS}/${SOURCE_REPO}"
+  run env DATADATDAT_API_KEY="$ADMIN_KEY" "$D3" repo create "${OWNER_NS}" "${SOURCE_REPO}" --server "$GATEWAY"
   assert_success
   assert_output --partial "$SOURCE_REPO"
 }
@@ -349,12 +345,9 @@ teardown_file() {
   "$D3" rm -f xfork-clone 2>/dev/null || true
   "$D3" rm -f xfork-src 2>/dev/null || true
 
-  curl -X DELETE -sf -H "Authorization: Bearer $ADMIN_KEY" \
-    "$GATEWAY/api/v1/repos/${FORKER_NS}/custom-fork-name" 2>/dev/null || true
-  curl -X DELETE -sf -H "Authorization: Bearer $ADMIN_KEY" \
-    "$GATEWAY/api/v1/repos/${FORKER_NS}/${SOURCE_REPO}" 2>/dev/null || true
-  run curl -X DELETE -sf -H "Authorization: Bearer $ADMIN_KEY" \
-    "$GATEWAY/api/v1/repos/${OWNER_NS}/${SOURCE_REPO}"
+  DATADATDAT_API_KEY="$ADMIN_KEY" "$D3" repo delete "${FORKER_NS}" custom-fork-name --server "$GATEWAY" 2>/dev/null || true
+  DATADATDAT_API_KEY="$ADMIN_KEY" "$D3" repo delete "${FORKER_NS}" "${SOURCE_REPO}" --server "$GATEWAY" 2>/dev/null || true
+  run env DATADATDAT_API_KEY="$ADMIN_KEY" "$D3" repo delete "${OWNER_NS}" "${SOURCE_REPO}" --server "$GATEWAY"
   assert_success
 
   run_sql_cmd "DELETE FROM repositories WHERE full_name IN (
