@@ -3,6 +3,11 @@
 # Load shared test helpers
 load '../test_helper'
 
+# Unique S3 path per run to avoid collisions between concurrent runs.
+# See issue datadatdat/datadatdat-server#118.
+RUN_SUFFIX="${E2E_RUN_SUFFIX:-local}"
+S3_URI="s3://datadatdat-testdata/e2etest/${RUN_SUFFIX}"
+
 @test "can launch postgres" {
   run "$D3" run postgres
   assert_success
@@ -29,7 +34,7 @@ load '../test_helper'
 }
 
 @test "can add s3 remote" {
-  run "$D3" remote add s3://datadatdat-testdata/e2etest postgres
+  run "$D3" remote add "$S3_URI" postgres
   assert_success
 }
 
@@ -77,7 +82,7 @@ load '../test_helper'
 }
 
 @test "can clone tag=one" {
-  run "$D3" clone -n postgres s3://datadatdat-testdata/e2etest?tag=tag=one
+  run "$D3" clone -n postgres "${S3_URI}?tag=tag=one"
   assert_success
 }
 
@@ -97,11 +102,11 @@ load '../test_helper'
 }
 
 @test "clone of non-existent tag fails" {
-  run "$D3" clone -n postgres2 s3://datadatdat-testdata/e2etest?tag=tag=three
+  run "$D3" clone -n postgres2 "${S3_URI}?tag=tag=three"
   assert_failure
 }
 
 @test "can cleanup S3 assets" {
-  run aws s3 rm s3://datadatdat-testdata/e2etest --recursive
+  run aws s3 rm "$S3_URI" --recursive
   assert_success
 }

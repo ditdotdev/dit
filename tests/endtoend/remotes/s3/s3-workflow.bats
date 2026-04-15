@@ -5,7 +5,10 @@ load '../../test_helper'
 
 # Test parameters
 REMOTE="s3"
-URI="s3://demo-datadatdat/simple-test"
+# Unique S3 path per run to avoid collisions between concurrent runs.
+# See issue datadatdat/datadatdat-server#118.
+RUN_SUFFIX="${E2E_RUN_SUFFIX:-local}"
+URI="s3://demo-datadatdat/simple-test/${RUN_SUFFIX}"
 REPO="hello-world"
 
 # Ensure API is ready (upgrade test may have restarted infrastructure)
