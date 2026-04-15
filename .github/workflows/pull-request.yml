@@ -136,6 +136,12 @@ jobs:
   e2e-test:
     name: End to End Tests
     runs-on: ubuntu-22.04
+    # Serialize E2E across all PRs: the BATS suite uses shared S3 paths
+    # (e.g. s3://demo-datadatdat/simple-test, s3://datadatdat-testdata/e2etest)
+    # so concurrent runs corrupt each other's data. See issue #118.
+    concurrency:
+      group: e2e-test-shared-s3
+      cancel-in-progress: false
     steps:
       - uses: actions/checkout@v6
         with:
