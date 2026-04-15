@@ -136,12 +136,10 @@ jobs:
   e2e-test:
     name: End to End Tests
     runs-on: ubuntu-22.04
-    # Serialize E2E across all PRs: the BATS suite uses shared S3 paths
-    # (e.g. s3://demo-datadatdat/simple-test, s3://datadatdat-testdata/e2etest)
-    # so concurrent runs corrupt each other's data. See issue #118.
-    concurrency:
-      group: e2e-test-shared-s3
-      cancel-in-progress: false
+    # Each run gets a unique S3 namespace via E2E_RUN_SUFFIX so concurrent
+    # PRs don't clobber each other's test data. See issue #118.
+    env:
+      E2E_RUN_SUFFIX: run-${{ github.run_id }}-${{ github.run_attempt }}
     steps:
       - uses: actions/checkout@v6
         with:
@@ -208,6 +206,20 @@ jobs:
         run: |
           export PATH=$GITHUB_WORKSPACE/build:$PATH
           make e2e
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_REGION: ${{ secrets.AWS_REGION }}
+
+      # Belt-and-suspenders: clean up the run-specific S3 prefixes even if
+      # tests failed partway through, so we don't leak objects into the
+      # shared buckets. See issue #118.
+      - name: Cleanup run-specific S3 prefixes
+        if: always()
+        run: |
+          aws s3 rm "s3://demo-datadatdat/simple-test/${E2E_RUN_SUFFIX}" --recursive || true
+          aws s3 rm "s3://datadatdat-testdata/e2etest/${E2E_RUN_SUFFIX}" --recursive || true
+          aws s3 rm "s3://datadatdat-testdata/e2etest-pushpull/${E2E_RUN_SUFFIX}" --recursive || true
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
