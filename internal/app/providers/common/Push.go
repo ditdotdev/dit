@@ -147,12 +147,8 @@ func Push(repoName string, guid string, remoteName string, tags []string, metada
 		MetadataOnly: optional.NewBool(metadataOnly),
 	}
 	op, _, err := operationsApi.Push(ctx, repoName, remote.Name, commit.Id, params, pushOpts)
-	if err != nil {
-		if e, ok := err.(datadatdatclient.GenericOpenAPIError); ok {
-			m := e.Model().(datadatdatclient.ApiError)
-			fmt.Println(m.Message)
-			os.Exit(1)
-		}
+	if handleOperationError(err) {
+		os.Exit(1)
 	}
 	monitor := util.OperationMonitor(repoName, op)
 	if !monitor.Monitor(port) {

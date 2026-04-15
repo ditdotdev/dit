@@ -3,8 +3,10 @@
 # Load shared test helpers
 load '../test_helper'
 
-# S3 URI base for testing
-URI_BASE="s3://datadatdat-testdata/e2etest"
+# S3 URI base for testing — unique per run to avoid collisions between
+# concurrent runs. See issue datadatdat/datadatdat-server#118.
+RUN_SUFFIX="${E2E_RUN_SUFFIX:-local}"
+URI_BASE="s3://datadatdat-testdata/e2etest/${RUN_SUFFIX}"
 
 # Helper to run tests for a specific database version
 test_database() {
