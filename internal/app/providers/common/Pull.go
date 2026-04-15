@@ -80,7 +80,10 @@ func Pull(repoName string, guid string, remoteName string, tags []string, metada
 	pullOpts := &datadatdatclient.PullOpts{
 		MetadataOnly: optional.NewBool(metadataOnly),
 	}
-	op, _, _ := operationsApi.Pull(ctx, repoName, remote.Name, commit.Id, params, pullOpts)
+	op, _, err := operationsApi.Pull(ctx, repoName, remote.Name, commit.Id, params, pullOpts)
+	if handleOperationError(err) {
+		os.Exit(1)
+	}
 
 	monitor := util.OperationMonitor(repoName, op)
 	if !monitor.Monitor(port) {
