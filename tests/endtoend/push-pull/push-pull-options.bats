@@ -6,7 +6,10 @@
 # Load shared test helpers
 load '../test_helper'
 
-S3_BUCKET="s3://datadatdat-testdata/e2etest-pushpull"
+# Unique S3 path per run to avoid collisions between concurrent runs.
+# See issue datadatdat/datadatdat-server#118.
+RUN_SUFFIX="${E2E_RUN_SUFFIX:-local}"
+S3_BUCKET="s3://datadatdat-testdata/e2etest-pushpull/${RUN_SUFFIX}"
 
 # Cleanup after all tests
 teardown_file() {

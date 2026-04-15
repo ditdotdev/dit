@@ -114,7 +114,20 @@ jobs:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           AWS_REGION: ${{ secrets.AWS_REGION }}
-      
+          # Unique S3 namespace per run to avoid collisions. See issue #118.
+          E2E_RUN_SUFFIX: run-${{ github.run_id }}-${{ github.run_attempt }}
+
+      - name: Cleanup run-specific S3 prefixes
+        if: always()
+        run: |
+          aws s3 rm "s3://demo-datadatdat/simple-test/run-${{ github.run_id }}-${{ github.run_attempt }}" --recursive || true
+          aws s3 rm "s3://datadatdat-testdata/e2etest/run-${{ github.run_id }}-${{ github.run_attempt }}" --recursive || true
+          aws s3 rm "s3://datadatdat-testdata/e2etest-pushpull/run-${{ github.run_id }}-${{ github.run_attempt }}" --recursive || true
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_REGION: ${{ secrets.AWS_REGION }}
+
       - name: Cleanup Docker resources
         if: always()
         run: |
