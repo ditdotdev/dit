@@ -41,6 +41,8 @@ WORKSPACE="/c/dev/datadatdat"
 ORG="datadatdat"
 MAVEN_BUCKET="datadatdat-maven"
 PROD_RELEASES_BUCKET="datadatdat-releases-prod"
+DEV_RELEASES_BUCKET="datadatdat-releases"
+DEV_MINIO_ENDPOINT="localhost:9000"
 ECR_REGION="us-west-2"
 ECS_CLUSTER="datadatdat-prod"
 STATE_DIR="$WORKSPACE/datadatdat/.release-state"
@@ -891,10 +893,10 @@ phase_cli() {
     wait_for_workflow "datadatdat" "release.yml"
     verify_gh_release "datadatdat" "v$VERSION"
 
-    # Upload CLI binaries to production S3
-    log_step "Uploading CLI binaries to production S3..."
+    # Upload CLI binaries to production S3 + local dev MinIO
     local upload_script="$WORKSPACE/datadatdat-remote-server/scripts/upload-release-to-minio.sh"
     if [ -f "$upload_script" ]; then
+        log_step "Uploading CLI binaries to production S3..."
         if $DRY_RUN; then
             log_dry "bash $upload_script --version v$VERSION --minio-endpoint s3.us-west-2.amazonaws.com --minio-bucket $PROD_RELEASES_BUCKET --minio-use-ssl true"
         else
@@ -913,8 +915,25 @@ phase_cli() {
             done
             log_success "All 5 platforms verified in S3 — safe to proceed to Phase 7"
         fi
+
+        # Upload to local dev MinIO (only if reachable)
+        log_step "Uploading CLI binaries to local dev MinIO ($DEV_MINIO_ENDPOINT)..."
+        if $DRY_RUN; then
+            log_dry "bash $upload_script --version v$VERSION --minio-endpoint $DEV_MINIO_ENDPOINT --minio-bucket $DEV_RELEASES_BUCKET --minio-use-ssl false"
+        elif curl -sf -o /dev/null --max-time 3 "http://$DEV_MINIO_ENDPOINT/minio/health/live"; then
+            bash "$upload_script" \
+                --version "v$VERSION" \
+                --minio-endpoint "$DEV_MINIO_ENDPOINT" \
+                --minio-bucket "$DEV_RELEASES_BUCKET" \
+                --minio-access-key minioadmin \
+                --minio-secret-key minioadmin \
+                --minio-use-ssl false
+            log_success "CLI binaries uploaded to dev MinIO"
+        else
+            log_warn "Dev MinIO not reachable at $DEV_MINIO_ENDPOINT - skipping dev upload"
+        fi
     else
-        log_warn "Upload script not found at $upload_script - skipping S3 upload"
+        log_warn "Upload script not found at $upload_script - skipping S3/MinIO upload"
     fi
 
     save_phase_state 6
