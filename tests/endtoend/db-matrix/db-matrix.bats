@@ -135,7 +135,26 @@ test_database() {
   
   # Push
   "$D3" push -r s3 -c "$commit_guid" "$repo_name" || return 1
-  
+
+  # Debug: check what remote log returns after push
+  echo "DEBUG: remote log output after push:"
+  local remote_log_output
+  remote_log_output=$("$D3" remote log "$repo_name" 2>&1) || true
+  echo "DEBUG: remote_log_output='$remote_log_output'"
+  echo "DEBUG: looking for 'Commit $commit_guid'"
+  echo "DEBUG: S3 URI=$URI"
+  # Check S3 directly for the metadata file
+  local s3_bucket="${URI#s3://}"
+  s3_bucket="${s3_bucket%%/*}"
+  local s3_key="${URI#s3://$s3_bucket/}"
+  echo "DEBUG: Checking S3 for metadata file at s3://$s3_bucket/$s3_key/datadatdat"
+  aws s3 ls "s3://$s3_bucket/$s3_key/" 2>&1 || echo "DEBUG: aws s3 ls failed"
+  echo "DEBUG: Checking S3 for commit archive"
+  aws s3 ls "s3://$s3_bucket/$s3_key/$commit_guid/" 2>&1 || echo "DEBUG: no commit archive dir"
+  # Check server container logs for errors
+  echo "DEBUG: Recent datadatdat-server logs:"
+  docker logs datadatdat-docker-server --tail 30 2>&1 || echo "DEBUG: failed to get server logs"
+
   # Remote log - has commit
   "$D3" remote log "$repo_name" | grep -q "Commit $commit_guid" || return 1
   
