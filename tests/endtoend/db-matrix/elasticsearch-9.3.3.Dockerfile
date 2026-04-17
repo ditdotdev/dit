@@ -1,6 +1,6 @@
-# Elasticsearch 9.3.2 with VOLUME directive for datadatdat compatibility
+# Elasticsearch 9.3.3 with VOLUME directive for datadatdat compatibility
 # Base image from Docker Hub
-FROM elasticsearch:9.3.2
+FROM elasticsearch:9.3.3
 
 # Declare volume for Elasticsearch data directory
 # This allows datadatdat to detect and manage the data path

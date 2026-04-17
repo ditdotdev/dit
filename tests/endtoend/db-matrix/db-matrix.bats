@@ -62,6 +62,17 @@ test_database() {
       --disable-port-mapping \
       -e "ORACLE_PASSWORD=YourStrong!Passw0rd" \
       "$db_version" || return 1
+  elif [[ "$db_version" == *"minio"* ]]; then
+    # MinIO requires root user credentials
+    "$D3" run -n "$repo_name" \
+      -e "MINIO_ROOT_USER=minioadmin" \
+      -e "MINIO_ROOT_PASSWORD=minioadmin" \
+      "$db_version" || return 1
+  elif [[ "$db_version" == *"arangodb"* ]]; then
+    # ArangoDB requires auth configuration
+    "$D3" run -n "$repo_name" \
+      -e "ARANGO_NO_AUTH=1" \
+      "$db_version" || return 1
   elif [[ "$db_version" == *"tigergraph"* ]]; then
     # TigerGraph runs sshd on port 22 (conflicts with runner).
     # Services must be started manually via gadmin after container launch.

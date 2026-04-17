@@ -46,12 +46,12 @@ jobs:
         # https://hub.docker.com/r/clickhouse/clickhouse-server
         - clickhouse/clickhouse-server:26.3
         - clickhouse/clickhouse-server:26.2
-        - clickhouse/clickhouse-server:25.12
+        - clickhouse/clickhouse-server:26.1
 
         # Couchbase Enterprise
         # https://hub.docker.com/_/couchbase
-        - couchbase:enterprise-8.0.0
-        - couchbase:enterprise-7.6.8
+        - couchbase:enterprise-8.0.1
+        - couchbase:enterprise-7.6.10
         - couchbase:enterprise-7.2.9
 
         # CockroachDB
@@ -59,10 +59,10 @@ jobs:
         # https://hub.docker.com/r/datadatdat/cockroach
         # Wrapped versions of cockroachdb/cockroach with VOLUME directives
         # Source Dockerfiles: tests/endtoend/db-matrix/cockroach-*.Dockerfile
-        - datadatdat/cockroach:v26.1.1
-        - datadatdat/cockroach:v25.4.6
-        - datadatdat/cockroach:v25.2.15
-        - datadatdat/cockroach:v24.3.29
+        - datadatdat/cockroach:v26.1.2
+        - datadatdat/cockroach:v25.4.8
+        - datadatdat/cockroach:v25.2.16
+        - datadatdat/cockroach:v24.3.30
 
         # Apache Hive
         # Not sure if this makes sense. 
@@ -73,15 +73,15 @@ jobs:
         # Dragonfly
         # https://hub.docker.com/r/dragonflydb/dragonfly
         # Redis-compatible, multi-threaded in-memory datastore
-        - docker.dragonflydb.io/dragonflydb/dragonfly:v1.27.1
+        - docker.dragonflydb.io/dragonflydb/dragonfly:v1.38.0
 
         # Elasticsearch
         # https://hub.docker.com/r/datadatdat/elasticsearch
         # Wrapped versions of elasticsearch with VOLUME directives
         # Source Dockerfiles: tests/endtoend/db-matrix/elasticsearch-*.Dockerfile
-        - datadatdat/elasticsearch:9.3.2
-        - datadatdat/elasticsearch:9.2.7
-        - datadatdat/elasticsearch:8.19.13
+        - datadatdat/elasticsearch:9.3.3
+        - datadatdat/elasticsearch:9.2.8
+        - datadatdat/elasticsearch:8.19.14
 
         # Google BigQuery
         # Managed cloud service; no official DB server image on Docker Hub
@@ -129,8 +129,8 @@ jobs:
 
         # Neo4j
         # https://hub.docker.com/_/neo4j
+        # Note: Neo4j skipped from 5.x to 2026.x (year-based versioning); there is no 2025 tag
         - neo4j:2026
-        - neo4j:2025
         - neo4j:5
 
         # Oracle
@@ -194,6 +194,7 @@ jobs:
         # https://hub.docker.com/r/datadatdat/opensearch
         # Wrapped versions of opensearchproject/opensearch with VOLUME directives
         # Source Dockerfiles: tests/endtoend/db-matrix/opensearch-*.Dockerfile
+        - datadatdat/opensearch:3.6.0
         - datadatdat/opensearch:3.5.0
         - datadatdat/opensearch:2.19.5
 
@@ -232,6 +233,7 @@ jobs:
         # https://hub.docker.com/r/scylladb/scylla
         # Cassandra-compatible high-performance database
         - scylladb/scylla:2026.1
+        - scylladb/scylla:2025.4
         - scylladb/scylla:2025.3
 
         # SurrealDB
@@ -245,7 +247,7 @@ jobs:
         # https://hub.docker.com/r/datadatdat/tidb
         # Wrapped versions of pingcap/tidb with VOLUME directives
         # Source Dockerfiles: tests/endtoend/db-matrix/tidb-*.Dockerfile
-        - datadatdat/tidb:v8.5.5
+        - datadatdat/tidb:v8.5.6
         - datadatdat/tidb:v8.1.2
 
         # TigerGraph
@@ -260,14 +262,109 @@ jobs:
         # TimescaleDB
         # https://hub.docker.com/r/timescale/timescaledb
         # PostgreSQL extension for time-series data
-        - timescale/timescaledb:2.26.1-pg17
-        - timescale/timescaledb:2.26.1-pg16
+        - timescale/timescaledb:2.26.3-pg18
+        - timescale/timescaledb:2.26.3-pg17
+        - timescale/timescaledb:2.26.3-pg16
 
         # YugabyteDB
         # https://hub.docker.com/r/yugabytedb/yugabyte
         # PostgreSQL-compatible distributed SQL database
-        - yugabytedb/yugabyte:2025.2.2.1-b1
+        - yugabytedb/yugabyte:2025.2.2.2-b11
         - yugabytedb/yugabyte:2025.1.3.2-b1
+
+        # Apache Kafka (KRaft mode - standalone, no Zookeeper required)
+        # https://hub.docker.com/r/apache/kafka
+        # Event streaming platform for cloud-native microservices
+        - apache/kafka:4.0.2
+
+        # Apache Solr
+        # https://hub.docker.com/_/solr
+        # Enterprise search platform
+        - solr:9.10.1
+
+        # ArangoDB
+        # https://hub.docker.com/_/arangodb
+        # Multi-model database (document, graph, key-value)
+        - arangodb:3.12.9
+
+        # Chroma
+        # https://hub.docker.com/r/chromadb/chroma
+        # https://hub.docker.com/r/datadatdat/chroma
+        # Wrapped version of chromadb/chroma with VOLUME directive
+        # Source Dockerfile: tests/endtoend/db-matrix/chroma-*.Dockerfile
+        # AI-native vector database for embeddings and RAG
+        - datadatdat/chroma:1.5.7
+
+        # CrateDB
+        # https://hub.docker.com/r/crate/crate
+        # Distributed SQL database for IoT and machine data
+        - crate/crate:6.3.1
+
+        # InfluxDB
+        # https://hub.docker.com/_/influxdb
+        # https://hub.docker.com/r/datadatdat/influxdb
+        # Wrapped version of influxdb with VOLUME directive
+        # Source Dockerfile: tests/endtoend/db-matrix/influxdb-*.Dockerfile
+        # Time-series database for monitoring and observability
+        - datadatdat/influxdb:3.9.1-core
+
+        # Meilisearch
+        # https://hub.docker.com/r/getmeili/meilisearch
+        # https://hub.docker.com/r/datadatdat/meilisearch
+        # Wrapped version of getmeili/meilisearch with VOLUME directive
+        # Source Dockerfile: tests/endtoend/db-matrix/meilisearch-*.Dockerfile
+        # Fast, typo-tolerant search engine
+        - datadatdat/meilisearch:v1.42.1
+
+        # MinIO
+        # https://hub.docker.com/r/minio/minio
+        # S3-compatible object storage for cloud-native applications
+        - minio/minio:latest
+
+        # NATS with JetStream
+        # https://hub.docker.com/_/nats
+        # https://hub.docker.com/r/datadatdat/nats
+        # Wrapped version of nats with VOLUME directive
+        # Source Dockerfile: tests/endtoend/db-matrix/nats-*.Dockerfile
+        # Cloud-native messaging system with persistence
+        - datadatdat/nats:2.12.7
+
+        # QuestDB
+        # https://hub.docker.com/r/questdb/questdb
+        # https://hub.docker.com/r/datadatdat/questdb
+        # Wrapped version of questdb/questdb with VOLUME directive
+        # Source Dockerfile: tests/endtoend/db-matrix/questdb-*.Dockerfile
+        # High-performance time-series database
+        - datadatdat/questdb:9.3.5
+
+        # RabbitMQ
+        # https://hub.docker.com/_/rabbitmq
+        # Message broker for distributed systems
+        - rabbitmq:4.0.9
+
+        # StarRocks
+        # https://hub.docker.com/r/starrocks/allin1-ubuntu
+        # https://hub.docker.com/r/datadatdat/starrocks
+        # Wrapped version of starrocks/allin1-ubuntu with VOLUME directive
+        # Source Dockerfile: tests/endtoend/db-matrix/starrocks-*.Dockerfile
+        # High-performance OLAP database
+        - datadatdat/starrocks:4.1.0
+
+        # Typesense
+        # https://hub.docker.com/r/typesense/typesense
+        # https://hub.docker.com/r/datadatdat/typesense
+        # Wrapped version of typesense/typesense with VOLUME directive
+        # Source Dockerfile: tests/endtoend/db-matrix/typesense-*.Dockerfile
+        # Open-source search engine alternative to Elasticsearch
+        - datadatdat/typesense:30.2
+
+        # Weaviate
+        # https://hub.docker.com/r/semitechnologies/weaviate
+        # https://hub.docker.com/r/datadatdat/weaviate
+        # Wrapped version of semitechnologies/weaviate with VOLUME directive
+        # Source Dockerfile: tests/endtoend/db-matrix/weaviate-*.Dockerfile
+        # AI-native vector database for semantic search
+        - datadatdat/weaviate:1.37.0
 
         # Snowflake
         # Snowflake is a managed cloud service; no official DB server image on Docker Hub (only third-party/local solutions and Snowflake’s own OCI registry for app images).
