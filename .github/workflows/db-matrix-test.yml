@@ -508,10 +508,23 @@ jobs:
           # Unique S3 namespace per run to avoid collisions. See issue #118.
           E2E_RUN_SUFFIX: run-${{ github.run_id }}-${{ github.run_attempt }}
 
-      - name: Cleanup run-specific S3 prefix
+      - name: Cleanup database-specific S3 prefix
         if: always()
         run: |
-          aws s3 rm "s3://datadatdat-testdata/e2etest/run-${{ github.run_id }}-${{ github.run_attempt }}" --recursive || true
+          # Compute the same S3 path that db-matrix.bats uses for this database
+          DB_VERSION="${{ matrix.database }}"
+          if [[ "$DB_VERSION" == *"/"* ]]; then
+            DB="${DB_VERSION##*/}"
+            DB="${DB%%:*}"
+          else
+            DB="${DB_VERSION%%:*}"
+          fi
+          VERSION="${DB_VERSION#*:}"
+          SAFE_VERSION="${VERSION//\//-}"
+          SAFE_VERSION="${SAFE_VERSION//:/-}"
+          S3_PATH="s3://datadatdat-testdata/e2etest/run-${{ github.run_id }}-${{ github.run_attempt }}/${DB}-${SAFE_VERSION}"
+          echo "Cleaning up S3 path: $S3_PATH"
+          aws s3 rm "$S3_PATH" --recursive || true
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
