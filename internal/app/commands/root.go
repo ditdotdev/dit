@@ -71,7 +71,7 @@ func initConfig() {
 	u, _ := user.Current()
 	datadatdatConfig := u.HomeDir + "/.datadatdat/config"
 	if _, err := os.Stat(datadatdatConfig); os.IsNotExist(err) {
-		//nolint:gosec // G304: Creating config file in user's home directory, path is controlled
+		// #nosec G304 -- Creating config file in user's home directory, path is controlled
 		if _, err := os.Create(datadatdatConfig); err != nil {
 			fmt.Printf("Error creating config file: %v\n", err)
 		}

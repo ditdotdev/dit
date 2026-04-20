@@ -72,7 +72,7 @@ func init() {
 		// Likely config file does not exists, create one.
 		_ = os.Mkdir(home+"/.datadatdat", 0750)
 		configPath := home + "/.datadatdat/config"
-		//nolint:gosec // G304: Creating config file in user's home directory, path is controlled
+		// #nosec G304 -- Creating config file in user's home directory, path is controlled
 		if _, err := os.Create(configPath); err != nil {
 			panic("failed to create config file: " + err.Error())
 		}
@@ -116,7 +116,7 @@ func List() map[string]Provider {
 func GetAvailablePort() int {
 	// G102: Intentionally binding to all interfaces to find an available port
 	// This is a common pattern for port discovery and is closed immediately
-	//nolint:gosec // G102: Binding to all interfaces for port discovery, closed immediately
+	// #nosec G102 -- Binding to all interfaces for port discovery, closed immediately
 	l, err := net.Listen("tcp", ":0")
 	if err != nil {
 		panic(err)
