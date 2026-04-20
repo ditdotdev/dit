@@ -29,11 +29,11 @@ func ensureRemoteRepoExists(properties map[string]interface{}) error {
 
 	// Check if repo already exists before creating. Creating an existing repo
 	// overwrites its manifest with an empty one, destroying commit history.
-	if getReq, err := http.NewRequest(http.MethodGet, url, nil); err == nil { //nolint:gosec // G704: URL built from configured remote properties, not untrusted input
+	if getReq, err := http.NewRequest(http.MethodGet, url, nil); err == nil { // #nosec G704 -- URL built from configured remote properties, not untrusted input
 		if apiKey := os.Getenv("DATADATDAT_API_KEY"); apiKey != "" {
 			getReq.Header.Set("Authorization", "Bearer "+apiKey)
 		}
-		if getResp, err := http.DefaultClient.Do(getReq); err == nil { //nolint:gosec // G704: request uses validated URL from remote config
+		if getResp, err := http.DefaultClient.Do(getReq); err == nil { // #nosec G704 -- request uses validated URL from remote config
 			_ = getResp.Body.Close()
 			if getResp.StatusCode == http.StatusOK {
 				return nil // Repo already exists
@@ -41,14 +41,14 @@ func ensureRemoteRepoExists(properties map[string]interface{}) error {
 		}
 	}
 
-	req, err := http.NewRequest(http.MethodPost, url, nil) //nolint:gosec // G704: URL built from configured remote properties, not untrusted input
+	req, err := http.NewRequest(http.MethodPost, url, nil) // #nosec G704 -- URL built from configured remote properties, not untrusted input
 	if err != nil {
 		return err
 	}
 	if apiKey := os.Getenv("DATADATDAT_API_KEY"); apiKey != "" {
 		req.Header.Set("Authorization", "Bearer "+apiKey)
 	}
-	resp, err := http.DefaultClient.Do(req) //nolint:gosec // URL from configured remote properties
+	resp, err := http.DefaultClient.Do(req) // #nosec G704 -- URL from configured remote properties
 	if err != nil {
 		return err
 	}
