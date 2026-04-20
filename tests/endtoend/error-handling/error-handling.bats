@@ -10,6 +10,9 @@ load '../test_helper'
 teardown_file() {
   "$D3" rm -f errortest 2>/dev/null || true
   "$D3" rm -f errortest-dup 2>/dev/null || true
+  "$D3" rm -f errortest-s3-dup 2>/dev/null || true
+  "$D3" rm -f errortest-s3web-dup 2>/dev/null || true
+  "$D3" rm -f dup-clone-target 2>/dev/null || true
 }
 
 # ========================================
@@ -93,9 +96,26 @@ teardown_file() {
 # Invalid remote URI
 # ========================================
 
-@test "d3 clone from non-existent remote fails" {
-  run "$D3" clone -n errortest-dup s3://nonexistent-bucket-xyz-9999/notapath
+@test "d3 clone from non-existent s3 remote fails loudly" {
+  run "$D3" clone -n errortest-s3-dup s3://nonexistent-bucket-xyz-9999/notapath
   assert_failure
+  refute_output ""
+}
+
+@test "d3 clone from non-existent s3web remote fails loudly" {
+  run "$D3" clone -n errortest-s3web-dup s3web://nonexistent-bucket-xyz-9999.s3-website-us-west-2.amazonaws.com/notapath
+  assert_failure
+  refute_output ""
+}
+
+@test "d3 clone with duplicate repo name fails loudly (regression #103)" {
+  # 'errortest' was already created by an earlier test in this file; cloning
+  # into the same name forces CreateRepository to fail on the d3 server. Pre-fix,
+  # d3 clone silently exited 0 with no output; post-fix it must exit non-zero
+  # AND print a non-empty error message.
+  run "$D3" clone -n errortest s3web://demo-datadatdat.s3-website-us-west-2.amazonaws.com/hello-world/postgres
+  assert_failure
+  refute_output ""
 }
 
 # ========================================
