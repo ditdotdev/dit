@@ -89,7 +89,6 @@ jobs:
         run: |
           go install github.com/securego/gosec/v2/cmd/gosec@latest
           gosec ./...
-        continue-on-error: true
 
       - name: Nancy Security Scan
         uses: sonatype-nexus-community/nancy-github-action@main

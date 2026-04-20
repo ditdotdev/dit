@@ -81,7 +81,7 @@ func Fork(uri string, org string, name string) {
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Authorization", "Bearer "+apiKey)
 
-	resp, err := http.DefaultClient.Do(req) //nolint:gosec // URL from configured remote properties
+	resp, err := http.DefaultClient.Do(req) // #nosec G704 -- URL from configured remote properties
 	if err != nil {
 		fmt.Printf("Error: fork request failed: %s\n", err)
 		return

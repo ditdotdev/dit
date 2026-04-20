@@ -60,7 +60,7 @@ func (k kubernetes) CreateStatefulSet(repoName string, imageId string, ports []i
 	for _, port := range ports {
 		servicePorts = append(servicePorts, v1.ServicePort{
 			Name: "port-" + strconv.Itoa(port),
-			//nolint:gosec // G115: Port numbers are bounded to 0-65535, safe to convert to int32
+			// #nosec G115 -- Port numbers are bounded to 0-65535, safe to convert to int32
 			Port: int32(port),
 		})
 	}
@@ -87,7 +87,7 @@ func (k kubernetes) CreateStatefulSet(repoName string, imageId string, ports []i
 	for _, port := range ports {
 		containerPorts = append(containerPorts, v1.ContainerPort{
 			Name: "port-" + strconv.Itoa(port),
-			//nolint:gosec // G115: Port numbers are bounded to 0-65535, safe to convert to int32
+			// #nosec G115 -- Port numbers are bounded to 0-65535, safe to convert to int32
 			ContainerPort: int32(port),
 		})
 	}
