@@ -13,6 +13,15 @@ updates:
     schedule:
       interval: "daily"
     open-pull-requests-limit: 10
+    groups:
+      k8s-io:
+        patterns:
+          - "k8s.io/*"
+          - "sigs.k8s.io/*"
+      aws-sdk-go-v2:
+        patterns:
+          - "github.com/aws/aws-sdk-go-v2*"
+          - "github.com/aws/smithy-go"
     ignore:
       - dependency-name: "k8s.io/apimachinery"
         versions: ["0.20.2", "0.20.3", "0.20.4", "0.20.5"]
