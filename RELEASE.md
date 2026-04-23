@@ -1144,7 +1144,7 @@ cd /c/dev/datadatdat-remote-server
 grep "replace" go.mod && echo "❌ ERROR: Replace directives found!" || echo "✅ No replace directives"
 
 # Check Go version compatibility
-go version  # Should be Go 1.24+
+go version  # Should be Go 1.26.2+
 
 # Verify dependencies are from GitHub (not local)
 go list -m all | grep datadatdat

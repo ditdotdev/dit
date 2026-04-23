@@ -112,7 +112,7 @@ jobs:
       
       - uses: actions/setup-go@v5
         with:
-          go-version: '1.25.1'
+          go-version: '1.26.2'
       
       - name: Configure Git for private modules
         run: |
