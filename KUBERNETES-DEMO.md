@@ -1,0 +1,174 @@
+# Running a Container in Kubernetes with d3
+
+A minimal walkthrough that uses `d3` to run a Postgres container as a Kubernetes
+StatefulSet on a local minikube cluster, then verifies the workload end-to-end.
+
+## What this demo does
+
+- Stands up a single-node Kubernetes cluster on your laptop using **minikube**
+  with the Hyper-V driver (genuine VM, upstream kubeadm-installed components).
+- Installs a Kubernetes-backed `d3` context. The `d3` server still runs as a
+  local Docker container on your host; it talks to the cluster via the standard
+  `~/.kube/config`.
+- Runs `postgres:latest` via `d3 run`. Under the hood `d3` creates a
+  PersistentVolumeClaim for the Postgres data directory, a headless Service for
+  the exposed ports, and a one-replica StatefulSet. Ports are forwarded back to
+  `localhost` via a background `kubectl port-forward`.
+- Connects to the forwarded Postgres port to prove the pod is actually serving.
+- Tears everything down.
+
+## Prerequisites
+
+- Windows 10/11 Pro, Enterprise, or Education (Hyper-V requires one of these).
+- Docker Desktop installed and running (needed by `d3` itself).
+- `d3` installed and on `PATH` — see the main [README](README.md).
+- Administrator PowerShell for the one-time Hyper-V enable + vSwitch creation.
+
+## Step 1: Install minikube and kubectl
+
+One-time setup. Run in an **admin PowerShell**:
+
+```powershell
+# Enable Hyper-V (reboot after this command completes)
+Enable-WindowsOptionalFeature -Online -FeatureName Microsoft-Hyper-V -All
+
+# After reboot, install the tooling
+choco install minikube kubernetes-cli -y
+```
+
+## Step 2: Create a cluster
+
+Minikube's Hyper-V driver needs an **external** virtual switch (the default
+internal switch has no internet access, so images can't pull). Create it once:
+
+```powershell
+# Replace "<your-NIC-name>" with the name from `Get-NetAdapter`, e.g. "Wi-Fi" or "Ethernet"
+New-VMSwitch -Name "minikube-ext" -NetAdapterName "<your-NIC-name>" -AllowManagementOS $true
+```
+
+> **Heads-up:** creating the external switch briefly disconnects the NIC it
+> binds to. If you're on a VPN, disconnect first.
+
+Then start the cluster:
+
+```powershell
+minikube start --driver=hyperv --hyperv-virtual-switch="minikube-ext" --cpus=2 --memory=3072
+
+minikube status                  # host, kubelet, apiserver should all be Running
+kubectl config current-context   # should print: minikube
+kubectl get nodes                # one Ready node named "minikube"
+kubectl get storageclass         # "standard (default)" provisioned by k8s.io/minikube-hostpath
+```
+
+The `standard` StorageClass is what `d3` will use for the Postgres PVC. No
+additional CSI setup is required for this demo.
+
+### Fallback: the Docker driver
+
+If the Hyper-V vSwitch is painful (VPN conflicts, Wi-Fi that won't re-bind
+cleanly, corporate NIC policy), skip Hyper-V and run minikube as a container
+inside Docker Desktop instead — less production-like, but zero host-networking
+changes:
+
+```powershell
+minikube delete                            # only if you already created a hyperv cluster
+minikube start --driver=docker --cpus=2 --memory=3072
+```
+
+Everything downstream is identical.
+
+## Step 3: Install a Kubernetes context in d3
+
+```bash
+d3 context install -n k8s-demo -t kubernetes
+```
+
+This boots the `d3` server as a local Docker container (`datadatdat-kubernetes-server`)
+listening on `localhost:5001`. First run pulls the `datadatdat/datadatdat` image
+and may take a few minutes.
+
+## Step 4: Run Postgres in the cluster
+
+```bash
+d3 run postgres:latest -n demo-db \
+    -e POSTGRES_HOST_AUTH_METHOD=trust \
+    --context k8s-demo
+```
+
+`d3`'s own view of the repository:
+
+```bash
+d3 status demo-db --context k8s-demo     # expect: running
+d3 ls --context k8s-demo                 # expect demo-db listed
+```
+
+Kubernetes' view — proof that `d3` created real cluster resources:
+
+```bash
+kubectl get statefulset,svc,pvc,pod -l datadatdatRepository=demo-db
+```
+
+Expected output:
+
+- `statefulset.apps/demo-db` — `READY 1/1`
+- `service/demo-db` — headless (`ClusterIP: None`) with port 5432 mapped
+- `persistentvolumeclaim/v0-<guid>` — bound, 1GiB (backing `/var/lib/postgresql/data`)
+- `pod/demo-db-0` — `Running`
+
+Prove the pod is actually serving — `d3` forwards Postgres's port to
+`localhost:5432` automatically:
+
+```bash
+# If you have psql installed
+psql -h localhost -U postgres -c "select version();"
+
+# Otherwise, exec into the pod
+kubectl exec -it demo-db-0 -- psql -U postgres -c "select version();"
+```
+
+You should see a Postgres version string. That's the workload running inside
+your Kubernetes cluster, exposed back to your laptop, fronted by `d3`.
+
+## Step 5: Cleanup
+
+```bash
+# Remove the repository (deletes StatefulSet, Service, and PVC)
+d3 rm -f demo-db --context k8s-demo
+
+# Remove the d3 server container
+d3 uninstall -f --context k8s-demo
+
+# Stop (or delete) the cluster
+minikube stop       # preserves the cluster; `minikube start` resumes it
+# or
+minikube delete     # destroys the Hyper-V VM entirely
+```
+
+## Known limitations
+
+These are current constraints of `d3`'s Kubernetes provider — they don't
+affect this demo, but know them before extending it:
+
+- **Namespace is hardcoded to `default`.** There's no flag to change it yet.
+- **`~/.kube/config` is hardcoded.** `d3` always uses the standard kubeconfig
+  location and whatever context is currently selected. Don't switch contexts
+  between `d3` commands.
+- **PVC size is fixed at 1 GiB** per image volume. Not configurable.
+- **Port forwarding is fragile.** `d3` spawns `kubectl port-forward` in the
+  background. If it dies (host sleep, process crash), run
+  `d3 stop demo-db && d3 start demo-db` to re-establish.
+- **`d3 commit` on a k8s context expects alpha CSI VolumeSnapshots.** Modern
+  minikube ships GA snapshots (and none at all by default — enable with
+  `minikube addons enable volumesnapshots csi-hostpath-driver`). `d3 commit`
+  against a modern cluster will likely fail; this demo only exercises
+  `run`/`status`/`rm`, which does not touch snapshots.
+
+## Troubleshooting
+
+- `d3 run` hangs on "Waiting for deployment to be ready":
+  run `kubectl describe pod demo-db-0` in another shell. Usually an image pull
+  failure or an unschedulable pod (insufficient CPU/memory on the node).
+- `psql: could not connect`: the background `kubectl port-forward` may have
+  died. `d3 stop demo-db && d3 start demo-db` restarts it.
+- `kubectl` talks to the wrong cluster: check
+  `kubectl config current-context` — it should be `minikube`.
