@@ -13,6 +13,7 @@ import (
 	k8s "k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/client-go/util/homedir"
+	"os/exec"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -235,13 +236,34 @@ func (k kubernetes) WaitForStatefulSet(repoName string) {
  * as: https://github.com/pixel-point/kube-forwarder
  */
 func (k kubernetes) StartPortForwarding(repoName string) {
-	// There can be a race condition where even though the pod is listed as ready port forwarding fails
-	time.Sleep(500)
+	// Small grace period: the pod can report Ready before the service
+	// endpoint is actually routable. (time.Sleep takes a Duration; a bare
+	// literal is nanoseconds, so we explicitly use time.Second here.)
+	time.Sleep(1 * time.Second)
 	service, _ := client.CoreV1().Services(k.namespace).Get(ctx, repoName, metav1.GetOptions{})
 	ports := service.Spec.Ports
 	for _, port := range ports {
-		if _, err := ce.Exec("sh", "-c", "kubectl port-forward svc/"+repoName+" "+fmt.Sprint(port.Port)+" > /dev/null 2>&1 &"); err != nil {
+		// Launch kubectl port-forward as a detached child that outlives the
+		// current `d3` invocation. The earlier approach shelled out to
+		// `sh -c "... &"` via ce.Exec which waits for the shell; once the
+		// shell exits, the `&`-backgrounded grandchild is orphaned and, on
+		// Windows, gets reaped almost immediately, so `psql -h localhost`
+		// would fail with "connection refused".
+		//
+		// exec.Command + Start (without Wait) leaves the child running
+		// and independent of d3. StopPortForwarding finds it by ps|grep,
+		// which still works.
+		cmd := exec.Command("kubectl", "port-forward", "svc/"+repoName, fmt.Sprint(port.Port)) // #nosec G204 -- repoName and port come from the user's own repo and service spec
+		cmd.Stdin = nil
+		cmd.Stdout = nil
+		cmd.Stderr = nil
+		if err := cmd.Start(); err != nil {
 			fmt.Printf("Warning: Failed to setup port forward for port %d: %v\n", port.Port, err)
+			continue
+		}
+		// Release the handle so the child is not waited on by d3's exit.
+		if err := cmd.Process.Release(); err != nil {
+			fmt.Printf("Warning: Failed to detach port-forward for port %d: %v\n", port.Port, err)
 		}
 	}
 }
