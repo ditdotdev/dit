@@ -11,8 +11,8 @@ var rmCmd = &cobra.Command{
 	Short: "Remove a repository",
 	Args:  cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
-		provider, repo := providers.ByName(args[0])
-		provider.Remove(repo, force)
+		p, repo := providers.Resolve(context, args[0])
+		p.Remove(repo, force)
 	},
 }
 
