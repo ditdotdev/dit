@@ -56,7 +56,7 @@ func (k kubernetes) CreateStatefulSet(repoName string, imageId string, ports []i
 		Namespace: k.namespace,
 		Labels:    map[string]string{"datadatdatRepository": repoName},
 	}
-	servicePorts := make([]v1.ServicePort, len(ports))
+	servicePorts := make([]v1.ServicePort, 0, len(ports))
 	for _, port := range ports {
 		servicePorts = append(servicePorts, v1.ServicePort{
 			Name: "port-" + strconv.Itoa(port),
@@ -83,7 +83,7 @@ func (k kubernetes) CreateStatefulSet(repoName string, imageId string, ports []i
 		return err
 	}
 
-	containerPorts := make([]v1.ContainerPort, len(ports))
+	containerPorts := make([]v1.ContainerPort, 0, len(ports))
 	for _, port := range ports {
 		containerPorts = append(containerPorts, v1.ContainerPort{
 			Name: "port-" + strconv.Itoa(port),
@@ -91,7 +91,7 @@ func (k kubernetes) CreateStatefulSet(repoName string, imageId string, ports []i
 			ContainerPort: int32(port),
 		})
 	}
-	envs := make([]v1.EnvVar, len(environment))
+	envs := make([]v1.EnvVar, 0, len(environment))
 	for _, environment := range environment {
 		s := strings.Split(environment, "=")
 		envs = append(envs, v1.EnvVar{
@@ -99,7 +99,7 @@ func (k kubernetes) CreateStatefulSet(repoName string, imageId string, ports []i
 			Value: s[1],
 		})
 	}
-	volumeMounts := make([]v1.VolumeMount, len(volumes))
+	volumeMounts := make([]v1.VolumeMount, 0, len(volumes))
 	for _, volume := range volumes {
 		volumeMounts = append(volumeMounts, v1.VolumeMount{
 			Name:      volume.Name,
@@ -113,10 +113,9 @@ func (k kubernetes) CreateStatefulSet(repoName string, imageId string, ports []i
 		Env:          envs,
 		VolumeMounts: volumeMounts,
 	}
-	containers := make([]v1.Container, 1)
-	containers = append(containers, container)
+	containers := []v1.Container{container}
 
-	vols := make([]v1.Volume, len(volumes))
+	vols := make([]v1.Volume, 0, len(volumes))
 	for _, volume := range volumes {
 		pvc := v1.PersistentVolumeClaimVolumeSource{
 			ClaimName: volume.Properties["pvc"].(string),
