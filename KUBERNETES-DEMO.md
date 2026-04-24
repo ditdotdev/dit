@@ -42,8 +42,7 @@ Minikube's Hyper-V driver needs an **external** virtual switch (the default
 internal switch has no internet access, so images can't pull). Create it once:
 
 ```powershell
-# Replace "<your-NIC-name>" with the name from `Get-NetAdapter`, e.g. "Wi-Fi" or "Ethernet"
-New-VMSwitch -Name "minikube-ext" -NetAdapterName "<your-NIC-name>" -AllowManagementOS $true
+New-VMSwitch -Name "minikube-ext" -NetAdapterName "Ethernet" -AllowManagementOS $true
 ```
 
 > **Heads-up:** creating the external switch briefly disconnects the NIC it
@@ -78,6 +77,11 @@ minikube start --driver=docker --cpus=2 --memory=3072
 Everything downstream is identical.
 
 ## Step 3: Install a Kubernetes context in d3
+
+**Make sure Docker Desktop is running before this step.** The `d3` server
+itself runs as a local Docker container on your host (separate from the
+minikube VM), so `d3` will shell out to `docker pull` here. If Docker Desktop
+isn't up, you'll see an opaque `Error pulling image datadatdat/datadatdat:vX.Y.Z: exit status 1`.
 
 ```bash
 d3 context install -n k8s-demo -t kubernetes
