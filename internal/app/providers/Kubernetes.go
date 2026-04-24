@@ -120,7 +120,7 @@ func (k kubernetes) Start(repo string) {
 }
 
 func (k kubernetes) Status(repo string) {
-	cmn.Status(repo, k.portNum, k.contextName)
+	k8s.Status(repo, k.portNum, k.contextName)
 }
 
 func (k kubernetes) Stop(repo string) {

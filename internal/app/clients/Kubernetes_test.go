@@ -105,6 +105,38 @@ func TestCreateStatefulSetReadsPVCNameFromVolumeConfig(t *testing.T) {
 	}
 }
 
+// TestGetStatefulSetStatusReportsRunning covers the happy path: when the
+// StatefulSet has replicas=ready=1, status must be "running" (not "detached"
+// as the docker-centric common.Status fallback returned on the k8s path).
+func TestGetStatefulSetStatusReportsRunning(t *testing.T) {
+	ns := "default"
+	replicas := int32(1)
+	ss := &v1Apps.StatefulSet{
+		ObjectMeta: metav1.ObjectMeta{Name: "demo-db", Namespace: ns},
+		Spec: v1Apps.StatefulSetSpec{
+			Replicas: &replicas,
+		},
+		Status: v1Apps.StatefulSetStatus{
+			Replicas:        1,
+			ReadyReplicas:   1,
+			UpdateRevision:  "r1",
+			CurrentRevision: "r1",
+		},
+	}
+	fakeClient := fake.NewSimpleClientset(ss)
+	restore := swapClient(t, fakeClient)
+	defer restore()
+
+	k := kubernetes{namespace: ns}
+	status, err := k.GetStatefulSetStatus("demo-db")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if status != "running" {
+		t.Errorf("status = %q, want \"running\"", status)
+	}
+}
+
 // TestDeleteStatefulSpecToleratesMissingService covers the case where the
 // StatefulSet exists but the Service was already deleted (or never created).
 // Service deletion must not panic.
