@@ -80,6 +80,10 @@ func initConfig() {
 
 // initProvider resolves the provider context. Called from rootCmd's PersistentPreRun
 // (overridden by auth/org commands that don't need a provider).
+//
+// Looks up the context by exact name — it MUST NOT mutate the package-level
+// `name` variable, which is bound to the `-n` flag for `run` and belongs to
+// the repository name, not the context.
 func initProvider() {
 	isInstall := false
 	for _, item := range os.Args {
@@ -87,13 +91,23 @@ func initProvider() {
 			isInstall = true
 		}
 	}
-	if context != "" {
-		provider, name = providers.ByName(context)
-	} else if os.Getenv("DATADATDAT_CONTEXT") != "" {
-		provider, name = providers.ByName(os.Getenv("DATADATDAT_CONTEXT"))
-	} else if isInstall {
-		context = "docker" //TODO confirm valid
-	} else {
-		provider = providers.Default()
+	ctx := context
+	if ctx == "" {
+		ctx = os.Getenv("DATADATDAT_CONTEXT")
 	}
+	if ctx != "" {
+		p, ok := providers.List()[ctx]
+		if !ok {
+			fmt.Fprintln(os.Stderr, "Error: no such context '"+ctx+"'")
+			os.Exit(1)
+		}
+		provider = p
+		context = ctx
+		return
+	}
+	if isInstall {
+		context = "docker" //TODO confirm valid
+		return
+	}
+	provider = providers.Default()
 }

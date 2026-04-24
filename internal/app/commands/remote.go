@@ -1,7 +1,6 @@
 package commands
 
 import (
-	"datadatdat/internal/app/providers"
 	"fmt"
 	"github.com/spf13/cobra"
 	"os"
@@ -43,7 +42,6 @@ var remoteListCmd = &cobra.Command{
 	Args:  cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
 		repo := args[0]
-		provider = providers.Default()
 		provider.RemoteList(repo)
 	},
 }
