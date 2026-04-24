@@ -228,6 +228,36 @@ teardown_file() {
 # d3 context uninstall <name>: must target the NAMED context only
 # ---------------------------------------------------------------
 
+@test "context uninstall: output names the target context" {
+  local UCTX="ctxtest-visible"
+  "$D3" context uninstall -f "$UCTX" 2>/dev/null || true
+  run "$D3" context install -n "$UCTX" -t docker
+  assert_success
+
+  run "$D3" context uninstall -f "$UCTX"
+  assert_success
+  # The context name must appear in the output so the user knows what was uninstalled
+  assert_output --partial "$UCTX"
+}
+
+@test "context uninstall: on orphaned state, reports nothing to uninstall (no false success)" {
+  local UCTX="ctxtest-empty-uninstall"
+  "$D3" context uninstall -f "$UCTX" 2>/dev/null || true
+
+  # Install, then externally nuke the containers + volume to simulate the
+  # "already cleaned up" state that previously produced a misleading
+  # "Datadatdat Docker volume removed / Uninstalled datadatdat
+  # infrastructure" output despite nothing actually being removed.
+  run "$D3" context install -n "$UCTX" -t docker
+  assert_success
+  docker rm -f "datadatdat-${UCTX}-server" "datadatdat-${UCTX}-launch" 2>/dev/null || true
+  docker volume rm -f "datadatdat-${UCTX}-data" 2>/dev/null || true
+
+  run "$D3" context uninstall -f "$UCTX"
+  assert_success
+  assert_output --partial "nothing to uninstall"
+}
+
 @test "context uninstall <name>: removes the named context's server, not the default's" {
   local KILL_CTX="ctxtest-kill"
   # Install a sacrificial docker-type context

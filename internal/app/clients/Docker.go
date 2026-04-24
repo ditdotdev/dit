@@ -141,6 +141,15 @@ func (d docker) RemoveVolume(name string, force bool) (string, error) {
 	return ce.Exec("docker", args...)
 }
 
+// VolumeExists returns true if a Docker volume with the given name exists.
+// `docker volume rm -f` exits 0 regardless of whether the volume was actually
+// there, so callers that need to know whether removal was a no-op must check
+// first with this helper.
+func (d docker) VolumeExists(name string) bool {
+	_, err := ce.Exec("docker", "volume", "inspect", name)
+	return err == nil
+}
+
 func (d docker) InspectContainer(container string) (string, error) {
 	return ce.Exec("docker", "inspect", "--type", "container", container)
 }
