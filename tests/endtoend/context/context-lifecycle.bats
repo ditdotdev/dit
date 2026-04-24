@@ -22,6 +22,17 @@ setup_file() {
   "$D3" rm -f "$TEST_REPO" --context docker 2>/dev/null || true
   "$D3" context uninstall -f "$SECOND_CTX" 2>/dev/null || true
 
+  # Ensure the pre-existing 'docker' context's server is running. Some
+  # prior runs may have wiped it. We need it up before installing the
+  # second context so we can assert that installing the second one
+  # leaves the first one's server alone.
+  local docker_server_up
+  docker_server_up=$(docker ps --filter "name=^datadatdat-docker-server\$" --format '{{.Names}}')
+  if [ -z "$docker_server_up" ]; then
+    "$D3" context uninstall -f docker 2>/dev/null || true
+    "$D3" context install -n docker -t docker
+  fi
+
   # nginx-test image needed for `d3 run` tests
   docker pull datadatdat/nginx-test:latest >/dev/null 2>&1 || true
   docker tag datadatdat/nginx-test:latest nginx-test 2>/dev/null || true
@@ -64,6 +75,16 @@ teardown_file() {
   assert_success
   # The default context (docker by convention) should be annotated
   assert_output --partial "docker (*)"
+}
+
+@test "context install: does not wipe other docker-type contexts' running servers" {
+  # The pre-existing 'docker' context's server was alive before setup_file
+  # ran (enforced in setup_file). Installing $SECOND_CTX (also docker-type)
+  # must not remove the 'docker' context's server — only its own predecessor
+  # (if any) or nothing.
+  run docker ps --filter "name=^datadatdat-docker-server\$" --format '{{.Names}}'
+  assert_success
+  assert_output "datadatdat-docker-server"
 }
 
 # ---------------------------------------------------------------
@@ -184,4 +205,43 @@ teardown_file() {
   run "$D3" context uninstall --help
   assert_success
   assert_output --partial "force"
+}
+
+# ---------------------------------------------------------------
+# d3 context uninstall <name>: must target the NAMED context only
+# ---------------------------------------------------------------
+
+@test "context uninstall <name>: removes the named context's server, not the default's" {
+  local KILL_CTX="ctxtest-kill"
+  # Install a sacrificial docker-type context
+  "$D3" context uninstall -f "$KILL_CTX" 2>/dev/null || true
+  run "$D3" context install -n "$KILL_CTX" -t docker
+  assert_success
+
+  # Sanity: both servers are running
+  run docker ps --filter "name=^datadatdat-docker-server\$" --format '{{.Names}}'
+  assert_output "datadatdat-docker-server"
+  run docker ps --filter "name=^datadatdat-${KILL_CTX}-server\$" --format '{{.Names}}'
+  assert_output "datadatdat-${KILL_CTX}-server"
+
+  # Uninstall the NAMED context
+  run "$D3" context uninstall -f "$KILL_CTX"
+  assert_success
+
+  # The named context's server must be gone
+  run docker ps --filter "name=^datadatdat-${KILL_CTX}-server\$" --format '{{.Names}}'
+  assert_success
+  assert_output ""
+
+  # The default (docker) context must STILL be running — previously the
+  # bug in context.go uninstall resolved args[0] via ByName() which fell
+  # back to Default() and nuked the docker context instead.
+  run docker ps --filter "name=^datadatdat-docker-server\$" --format '{{.Names}}'
+  assert_success
+  assert_output "datadatdat-docker-server"
+
+  # And the named context is out of the config
+  run "$D3" context ls
+  assert_success
+  refute_output --partial "$KILL_CTX"
 }
