@@ -85,10 +85,16 @@ func initConfig() {
 // `name` variable, which is bound to the `-n` flag for `run` and belongs to
 // the repository name, not the context.
 func initProvider() {
-	isInstall := false
+	var (
+		isInstall bool
+		isLs      bool
+	)
 	for _, item := range os.Args {
-		if item == "install" || item == "ls" {
+		switch item {
+		case "install":
 			isInstall = true
+		case "ls":
+			isLs = true
 		}
 	}
 	ctx := context
@@ -106,7 +112,16 @@ func initProvider() {
 		return
 	}
 	if isInstall {
+		// First-time install may have no contexts yet; default the name
+		// without resolving a provider (providers.Default() would panic).
 		context = "docker" //TODO confirm valid
+		return
+	}
+	if isLs {
+		// `d3 ls` iterates providers.List() directly and does not need a
+		// resolved provider. Crucially we leave `context` empty here; setting
+		// it (as install does) would make listCmd's --context filter branch
+		// fire and hide repos on non-default contexts.
 		return
 	}
 	provider = providers.Default()

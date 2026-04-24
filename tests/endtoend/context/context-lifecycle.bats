@@ -154,6 +154,23 @@ teardown_file() {
   }
 }
 
+@test "d3 ls (no --context): shows repos from every configured context" {
+  # $TEST_REPO is on $SECOND_CTX (created by the earlier run --context test).
+  # With no --context flag, `d3 ls` must show repos across all contexts,
+  # not silently filter to the default one. Regression guard for a bug
+  # where initProvider's isInstall fallback set context="docker" when
+  # args contained "ls", causing the listCmd's --context filter branch
+  # to fire with "docker" and hide repos on other contexts.
+  run "$D3" ls
+  assert_success
+  assert_output --partial "$TEST_REPO"
+  echo "$output" | grep -E "$SECOND_CTX.*$TEST_REPO" || {
+    echo "Expected $TEST_REPO to show under context $SECOND_CTX in 'd3 ls'"
+    echo "Output: $output"
+    return 1
+  }
+}
+
 # ---------------------------------------------------------------
 # --context flag routing: d3 rm
 # ---------------------------------------------------------------
