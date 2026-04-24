@@ -7,6 +7,7 @@ import (
 	datadatdatclient "github.com/datadatdat/datadatdat-client-go"
 	v1Apps "k8s.io/api/apps/v1"
 	v1 "k8s.io/api/core/v1"
+	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	k8s "k8s.io/client-go/kubernetes"
@@ -117,8 +118,16 @@ func (k kubernetes) CreateStatefulSet(repoName string, imageId string, ports []i
 
 	vols := make([]v1.Volume, 0, len(volumes))
 	for _, volume := range volumes {
+		// The server-generated PVC name lives in `Config`, not `Properties`.
+		// `Properties` carries client-provided metadata (e.g. mount path);
+		// `Config` carries server-generated details (pvc, namespace, size).
+		// See /v1/repositories/<repo>/volumes response from the server.
+		claimName, ok := volume.Config["pvc"].(string)
+		if !ok || claimName == "" {
+			return fmt.Errorf("volume %q has no PVC name in Config; server did not populate Config[\"pvc\"]", volume.Name)
+		}
 		pvc := v1.PersistentVolumeClaimVolumeSource{
-			ClaimName: volume.Properties["pvc"].(string),
+			ClaimName: claimName,
 		}
 		vols = append(vols, v1.Volume{
 			Name: volume.Name,
@@ -276,12 +285,15 @@ func (k kubernetes) UpdateStatefulSetVolumes(repoName string, volumes []datadatd
 }
 
 func (k kubernetes) DeleteStatefulSpec(repoName string) {
-	err := client.AppsV1().StatefulSets(k.namespace).Delete(ctx, repoName, metav1.DeleteOptions{})
-	if err != nil {
+	// Tolerate NotFound for both the StatefulSet and Service. A repository
+	// record can exist on the datadatdat server with no underlying k8s
+	// resources if an earlier `d3 run` failed after CreateRepository but
+	// before CreateStatefulSet succeeded; `d3 rm -f` must still be able to
+	// clean that up without panicking.
+	if err := client.AppsV1().StatefulSets(k.namespace).Delete(ctx, repoName, metav1.DeleteOptions{}); err != nil && !k8serrors.IsNotFound(err) {
 		panic(err)
 	}
-	err = client.CoreV1().Services(k.namespace).Delete(ctx, repoName, metav1.DeleteOptions{})
-	if err != nil {
+	if err := client.CoreV1().Services(k.namespace).Delete(ctx, repoName, metav1.DeleteOptions{}); err != nil && !k8serrors.IsNotFound(err) {
 		panic(err)
 	}
 }

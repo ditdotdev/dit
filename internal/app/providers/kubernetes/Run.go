@@ -154,7 +154,7 @@ func Run(container string, repository string, envVars []string, args []string, d
 
 	var metaPorts []map[string]string
 	dockerPorts := docker.GetSliceFromImage(image+":"+tag, "Config", "ExposedPorts")
-	ports := make([]int, len(dockerPorts))
+	ports := make([]int, 0, len(dockerPorts))
 	for _, rawPort := range dockerPorts {
 		rawPort = strings.ReplaceAll(rawPort, `"`, "")
 		port := strings.Split(rawPort, "/")[0]
