@@ -2,6 +2,7 @@ package clients
 
 import (
 	"datadatdat/internal/app"
+	"fmt"
 	"github.com/buger/jsonparser"
 	"os"
 	"runtime"
@@ -270,25 +271,32 @@ func (d docker) LaunchDatadatdatServers() (string, error) {
 	return d.Run(datadatdatImage, "/bin/bash /datadatdat/launch", args)
 }
 
-func (d docker) getKubernetesLaunchArgs() []string {
+func (d docker) getKubernetesLaunchArgs() ([]string, error) {
 	home, _ := os.UserHomeDir()
-	kube := home + "/.kube"
+	srcKubeconfig := home + "/.kube/config"
+	flatKubeconfig := home + "/.datadatdat/kubeconfig-" + d.identity
+	if err := FlattenKubeconfigToFile(srcKubeconfig, flatKubeconfig); err != nil {
+		return nil, fmt.Errorf("preparing kubeconfig for server container: %w", err)
+	}
 	return []string{
 		"-d",
 		"--restart", "always",
 		"--name=datadatdat-" + d.identity + "-server",
-		"-v", kube + ":/root/.kube",
+		"-v", flatKubeconfig + ":/root/.kube/config:ro",
 		"-v", "datadatdat-" + d.identity + "-data:/var/lib/" + d.identity,
 		"-e", "DATADATDAT_CONTEXT=kubernetes-csi",
 		"-e", "DATADATDAT_IDENTITY=datadatdat-" + d.identity,
 		"-p", strconv.Itoa(d.port) + ":5001",
-	}
+	}, nil
 }
 
 func (d docker) LaunchDatadatdatKubernetesServers() (string, error) {
 	datadatdatImage := d.getImageName("datadatdat:latest")
 	config := os.Getenv("DATADATDAT_CONFIG")
-	args := d.getKubernetesLaunchArgs()
+	args, err := d.getKubernetesLaunchArgs()
+	if err != nil {
+		return "", err
+	}
 	if config != "" {
 		args = append(args, "-e", "DATADATDAT_CONFIG="+config)
 	}
