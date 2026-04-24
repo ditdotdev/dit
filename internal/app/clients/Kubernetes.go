@@ -13,8 +13,10 @@ import (
 	k8s "k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/client-go/util/homedir"
+	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime"
 	"strconv"
 	"strings"
 	"time"
@@ -251,38 +253,166 @@ func (k kubernetes) StartPortForwarding(repoName string) {
 		// would fail with "connection refused".
 		//
 		// exec.Command + Start (without Wait) leaves the child running
-		// and independent of d3. StopPortForwarding finds it by ps|grep,
-		// which still works.
+		// and independent of d3.
 		cmd := exec.Command("kubectl", "port-forward", "svc/"+repoName, fmt.Sprint(port.Port)) // #nosec G204 -- repoName and port come from the user's own repo and service spec
 		cmd.Stdin = nil
 		cmd.Stdout = nil
 		cmd.Stderr = nil
+		cmd.SysProcAttr = detachedSysProcAttr()
 		if err := cmd.Start(); err != nil {
 			fmt.Printf("Warning: Failed to setup port forward for port %d: %v\n", port.Port, err)
 			continue
 		}
+		pid := cmd.Process.Pid
 		// Release the handle so the child is not waited on by d3's exit.
 		if err := cmd.Process.Release(); err != nil {
 			fmt.Printf("Warning: Failed to detach port-forward for port %d: %v\n", port.Port, err)
 		}
+		// Persist the PID so StopPortForwarding can find the process on
+		// any OS without depending on `ps | grep` semantics (which Git
+		// Bash can't use to see native Windows processes).
+		if err := writePortForwardPid(repoName, port.Port, pid); err != nil {
+			fmt.Printf("Warning: Failed to record port-forward pid for port %d: %v\n", port.Port, err)
+		}
 	}
 }
 
-/**
- * This is horribly OS-specific, and should be replaced with a more complete solution as described above.
- */
+// StopPortForwarding kills any kubectl port-forward processes that
+// StartPortForwarding launched for this repo. Matches by PID file rather
+// than by Service spec lookup so it still works after the Service has
+// been deleted (e.g. during `d3 rm`).
+//
+// Note on Windows: when kubectl is installed via Chocolatey, /c/bin/kubectl
+// is a "shim" PE that launches the real kubectl.exe and exits. Go's
+// cmd.Process.Pid captures the shim, which is already gone by the time we
+// try to kill it — the actual kubectl listening on the local port has a
+// different pid. So we also resolve the pid by walking the pid-file's
+// port back to whoever is currently LISTENING on it, and kill that too.
 func (k kubernetes) StopPortForwarding(repoName string) {
-	service, _ := client.CoreV1().Services(k.namespace).Get(ctx, repoName, metav1.GetOptions{})
-	ports := service.Spec.Ports
-	if len(ports) > 0 {
-		for _, port := range ports {
-			out, _ := ce.Exec("sh", "-c", "ps -ef | grep \\\"[k]ubectl port-forward svc/"+repoName+" "+fmt.Sprint(port.Port)+"\\\"")
-			pid := strings.Split(out, " ")
-			if _, err := ce.Exec("kill", pid[2]); err != nil {
-				fmt.Printf("Warning: Failed to kill port-forward process: %v\n", err)
+	for _, pidFile := range portForwardPidFilesFor(repoName) {
+		killPidFromFile(pidFile)
+		if port, ok := portFromPidFilename(pidFile); ok {
+			if pid := findListeningPidOnPort(port); pid != 0 {
+				if proc, err := os.FindProcess(pid); err == nil {
+					_ = proc.Kill()
+				}
 			}
 		}
+		_ = os.Remove(pidFile)
 	}
+}
+
+func killPidFromFile(pidFile string) {
+	data, err := os.ReadFile(pidFile) // #nosec G304 -- path is derived from user's home and a known prefix
+	if err != nil {
+		return
+	}
+	pid, err := strconv.Atoi(strings.TrimSpace(string(data)))
+	if err != nil {
+		return
+	}
+	if proc, err := os.FindProcess(pid); err == nil {
+		_ = proc.Kill()
+	}
+}
+
+// portFromPidFilename parses the port number out of a pid file path with
+// the shape portforward-<repo>-<port>.pid.
+func portFromPidFilename(pidFile string) (int, bool) {
+	base := filepath.Base(pidFile)
+	if !strings.HasSuffix(base, ".pid") {
+		return 0, false
+	}
+	// Strip suffix and leading "portforward-"
+	stem := strings.TrimSuffix(base, ".pid")
+	// Port is after the last "-"
+	lastDash := strings.LastIndex(stem, "-")
+	if lastDash < 0 {
+		return 0, false
+	}
+	port, err := strconv.Atoi(stem[lastDash+1:])
+	if err != nil {
+		return 0, false
+	}
+	return port, true
+}
+
+// findListeningPidOnPort returns the pid of the process currently bound to
+// the given TCP port on the local host, or 0 if nothing is listening.
+// Cross-platform via OS-specific lookup (netstat on Windows, lsof elsewhere).
+func findListeningPidOnPort(port int) int {
+	if runtime.GOOS == "windows" {
+		out, err := exec.Command("cmd", "/c", "netstat -ano | findstr :"+strconv.Itoa(port)).CombinedOutput()
+		if err != nil {
+			return 0
+		}
+		for _, line := range strings.Split(string(out), "\n") {
+			if !strings.Contains(line, "LISTENING") {
+				continue
+			}
+			fields := strings.Fields(line)
+			if len(fields) < 5 {
+				continue
+			}
+			// The local address is fields[1]; only match if its port
+			// segment is exactly our port (avoids matching 54321 etc.)
+			localAddr := fields[1]
+			colon := strings.LastIndex(localAddr, ":")
+			if colon < 0 || localAddr[colon+1:] != strconv.Itoa(port) {
+				continue
+			}
+			if pid, err := strconv.Atoi(fields[len(fields)-1]); err == nil {
+				return pid
+			}
+		}
+		return 0
+	}
+	out, err := exec.Command("lsof", "-t", "-iTCP:"+strconv.Itoa(port), "-sTCP:LISTEN").CombinedOutput()
+	if err != nil {
+		return 0
+	}
+	for _, line := range strings.Split(strings.TrimSpace(string(out)), "\n") {
+		if pid, err := strconv.Atoi(strings.TrimSpace(line)); err == nil {
+			return pid
+		}
+	}
+	return 0
+}
+
+func portForwardPidDir() string {
+	home, _ := os.UserHomeDir()
+	return filepath.Join(home, ".datadatdat")
+}
+
+func portForwardPidFilePath(repoName string, port int32) string {
+	return filepath.Join(portForwardPidDir(), "portforward-"+repoName+"-"+fmt.Sprint(port)+".pid")
+}
+
+func writePortForwardPid(repoName string, port int32, pid int) error {
+	dir := portForwardPidDir()
+	if err := os.MkdirAll(dir, 0750); err != nil {
+		return err
+	}
+	return os.WriteFile(portForwardPidFilePath(repoName, port), []byte(strconv.Itoa(pid)), 0600)
+}
+
+func portForwardPidFilesFor(repoName string) []string {
+	entries, err := os.ReadDir(portForwardPidDir())
+	if err != nil {
+		return nil
+	}
+	prefix := "portforward-" + repoName + "-"
+	var out []string
+	for _, e := range entries {
+		if e.IsDir() {
+			continue
+		}
+		name := e.Name()
+		if strings.HasPrefix(name, prefix) && strings.HasSuffix(name, ".pid") {
+			out = append(out, filepath.Join(portForwardPidDir(), name))
+		}
+	}
+	return out
 }
 
 /**

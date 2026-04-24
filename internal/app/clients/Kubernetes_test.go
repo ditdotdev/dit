@@ -105,6 +105,33 @@ func TestCreateStatefulSetReadsPVCNameFromVolumeConfig(t *testing.T) {
 	}
 }
 
+// TestPortFromPidFilename covers the small parser that recovers the
+// forwarded port from a pid file path. Used by StopPortForwarding's
+// "find listening pid by port" fallback.
+func TestPortFromPidFilename(t *testing.T) {
+	cases := []struct {
+		in        string
+		wantPort  int
+		wantValid bool
+	}{
+		{"portforward-demo-db-5432.pid", 5432, true},
+		{"/c/Users/x/.datadatdat/portforward-my-repo-8080.pid", 8080, true},
+		{"portforward-repo-with-dashes-443.pid", 443, true},
+		{"portforward-demo-db.pid", 0, false}, // missing port
+		{"portforward-demo-db-notanum.pid", 0, false},
+		{"unrelated-file.txt", 0, false},
+	}
+	for _, c := range cases {
+		got, ok := portFromPidFilename(c.in)
+		if ok != c.wantValid {
+			t.Errorf("portFromPidFilename(%q) valid = %v, want %v", c.in, ok, c.wantValid)
+		}
+		if got != c.wantPort {
+			t.Errorf("portFromPidFilename(%q) port = %d, want %d", c.in, got, c.wantPort)
+		}
+	}
+}
+
 // TestGetStatefulSetStatusReportsRunning covers the happy path: when the
 // StatefulSet has replicas=ready=1, status must be "running" (not "detached"
 // as the docker-centric common.Status fallback returned on the k8s path).
