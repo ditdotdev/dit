@@ -356,6 +356,7 @@ func portFromPidFilename(pidFile string) (int, bool) {
 // Cross-platform via OS-specific lookup (netstat on Windows, lsof elsewhere).
 func findListeningPidOnPort(port int) int {
 	if runtime.GOOS == "windows" {
+		// #nosec G204 -- port is an int rendered via strconv.Itoa, only digits, no shell injection surface.
 		out, err := exec.Command("cmd", "/c", "netstat -ano | findstr :"+strconv.Itoa(port)).CombinedOutput()
 		if err != nil {
 			return 0
@@ -381,6 +382,7 @@ func findListeningPidOnPort(port int) int {
 		}
 		return 0
 	}
+	// #nosec G204 -- port is an int rendered via strconv.Itoa, only digits, no shell injection surface.
 	out, err := exec.Command("lsof", "-t", "-iTCP:"+strconv.Itoa(port), "-sTCP:LISTEN").CombinedOutput()
 	if err != nil {
 		return 0

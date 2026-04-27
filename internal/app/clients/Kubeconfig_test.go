@@ -60,7 +60,7 @@ users:
 		t.Fatalf("FlattenKubeconfigToFile: %v", err)
 	}
 
-	out, err := os.ReadFile(dstPath)
+	out, err := os.ReadFile(dstPath) // #nosec G304 -- dstPath is a path under t.TempDir() that this test just wrote
 	if err != nil {
 		t.Fatalf("read dst: %v", err)
 	}
@@ -122,7 +122,7 @@ users:
 		t.Fatalf("FlattenKubeconfigToFile: %v", err)
 	}
 
-	out, err := os.ReadFile(dstPath)
+	out, err := os.ReadFile(dstPath) // #nosec G304 -- dstPath is a path under t.TempDir() that this test just wrote
 	if err != nil {
 		t.Fatalf("read dst: %v", err)
 	}

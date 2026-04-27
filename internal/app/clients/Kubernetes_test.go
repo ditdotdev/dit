@@ -12,6 +12,11 @@ import (
 	"k8s.io/client-go/kubernetes/fake"
 )
 
+const (
+	testNamespace = "default"
+	statusRunning = "running"
+)
+
 // swapClient replaces the package-level k8s client with a fake for the
 // duration of one test. Caller must defer the returned restore func.
 func swapClient(t *testing.T, replacement k8s.Interface) func() {
@@ -29,7 +34,7 @@ func TestDeleteStatefulSpecToleratesMissingStatefulSet(t *testing.T) {
 	restore := swapClient(t, fake.NewSimpleClientset())
 	defer restore()
 
-	k := kubernetes{namespace: "default"}
+	k := kubernetes{namespace: testNamespace}
 
 	defer func() {
 		if r := recover(); r != nil {
@@ -42,7 +47,7 @@ func TestDeleteStatefulSpecToleratesMissingStatefulSet(t *testing.T) {
 // TestDeleteStatefulSpecDeletesExistingResources verifies the happy path —
 // when both the StatefulSet and the Service exist, both are removed.
 func TestDeleteStatefulSpecDeletesExistingResources(t *testing.T) {
-	ns := "default"
+	ns := testNamespace
 	statefulSet := &v1Apps.StatefulSet{
 		ObjectMeta: metav1.ObjectMeta{Name: "my-repo", Namespace: ns},
 	}
@@ -70,7 +75,7 @@ func TestDeleteStatefulSpecDeletesExistingResources(t *testing.T) {
 // `Properties["pvc"]`. The StatefulSet produced must reference the
 // server-provided PVC claim name.
 func TestCreateStatefulSetReadsPVCNameFromVolumeConfig(t *testing.T) {
-	ns := "default"
+	ns := testNamespace
 	fakeClient := fake.NewSimpleClientset()
 	restore := swapClient(t, fakeClient)
 	defer restore()
@@ -97,7 +102,7 @@ func TestCreateStatefulSetReadsPVCNameFromVolumeConfig(t *testing.T) {
 	if len(ss.Spec.Template.Spec.Volumes) != 1 {
 		t.Fatalf("expected 1 pod volume, got %d", len(ss.Spec.Template.Spec.Volumes))
 	}
-	got := ss.Spec.Template.Spec.Volumes[0].VolumeSource.PersistentVolumeClaim
+	got := ss.Spec.Template.Spec.Volumes[0].PersistentVolumeClaim
 	if got == nil {
 		t.Fatal("expected PersistentVolumeClaim volume source, got nil")
 	}
@@ -121,7 +126,7 @@ func TestWaitForStatefulSetReturnsWhenStatefulSetMissing(t *testing.T) {
 	waitForStatefulSetTimeout = 200 * time.Millisecond
 	defer func() { waitForStatefulSetTimeout = originalTimeout }()
 
-	k := kubernetes{namespace: "default"}
+	k := kubernetes{namespace: testNamespace}
 
 	done := make(chan struct{})
 	go func() {
@@ -141,7 +146,7 @@ func TestWaitForStatefulSetReturnsWhenStatefulSetMissing(t *testing.T) {
 // function should return quickly once the StatefulSet's replicas match
 // readyReplicas (status="running").
 func TestWaitForStatefulSetReturnsWhenRunning(t *testing.T) {
-	ns := "default"
+	ns := testNamespace
 	replicas := int32(1)
 	ss := &v1Apps.StatefulSet{
 		ObjectMeta: metav1.ObjectMeta{Name: "demo-db", Namespace: ns},
@@ -204,7 +209,7 @@ func TestPortFromPidFilename(t *testing.T) {
 // StatefulSet has replicas=ready=1, status must be "running" (not "detached"
 // as the docker-centric common.Status fallback returned on the k8s path).
 func TestGetStatefulSetStatusReportsRunning(t *testing.T) {
-	ns := "default"
+	ns := testNamespace
 	replicas := int32(1)
 	ss := &v1Apps.StatefulSet{
 		ObjectMeta: metav1.ObjectMeta{Name: "demo-db", Namespace: ns},
@@ -227,7 +232,7 @@ func TestGetStatefulSetStatusReportsRunning(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	if status != "running" {
+	if status != statusRunning {
 		t.Errorf("status = %q, want \"running\"", status)
 	}
 }
@@ -236,7 +241,7 @@ func TestGetStatefulSetStatusReportsRunning(t *testing.T) {
 // StatefulSet exists but the Service was already deleted (or never created).
 // Service deletion must not panic.
 func TestDeleteStatefulSpecToleratesMissingService(t *testing.T) {
-	ns := "default"
+	ns := testNamespace
 	statefulSet := &v1Apps.StatefulSet{
 		ObjectMeta: metav1.ObjectMeta{Name: "my-repo", Namespace: ns},
 	}
