@@ -143,10 +143,19 @@ test-whitelist-approval:
 test-public-repo-permissions:
 	ENV=$(ENV) bats tests/endtoend/remotes/datadatdat/public-repo-permissions.bats
 
+# Kubernetes provider tests. Both targets self-skip when no k8s cluster is
+# reachable (kubectl cluster-info), so they are safe to include in `e2e` /
+# `e2e-server` on hosts without minikube — they just no-op rather than fail.
+test-kubernetes:
+	bats tests/endtoend/context/kubernetes/kubernetes-tests.bats
+
+test-kubernetes-remote:
+	ENV=$(ENV) bats tests/endtoend/context/kubernetes/kubernetes-remote-tests.bats
+
 # TODO: diagnose test-multi-context test-db-matrix in gh actions and readd to e2e
-e2e: test-install test-getting-started test-tags test-tag-management test-docker-context test-container-lifecycle test-context-list test-data-import test-error-handling test-s3-workflow test-push-pull-options test-ssh-workflow test-upgrade test-uninstall
+e2e: test-install test-getting-started test-tags test-tag-management test-docker-context test-container-lifecycle test-context-list test-data-import test-error-handling test-s3-workflow test-push-pull-options test-ssh-workflow test-kubernetes test-upgrade test-uninstall
 
 test-connect-drs-network:
 	docker network connect datadatdat-docker datadatdat-docker-server 2>/dev/null || true
 
-e2e-server: test-install test-connect-drs-network test-datadatdat-workflow test-clone-commit-workflow test-auth-workflow test-whitelist-approval test-public-repo-permissions test-auth-status test-org-workflow test-billing-workflow test-stripe-integration test-abort-workflow test-push-pull-tags-remote test-fork-workflow test-fork-cross-user test-uninstall
+e2e-server: test-install test-connect-drs-network test-datadatdat-workflow test-clone-commit-workflow test-auth-workflow test-whitelist-approval test-public-repo-permissions test-auth-status test-org-workflow test-billing-workflow test-stripe-integration test-abort-workflow test-push-pull-tags-remote test-fork-workflow test-fork-cross-user test-kubernetes-remote test-uninstall

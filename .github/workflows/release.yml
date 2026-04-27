@@ -104,7 +104,24 @@ jobs:
         with:
           username: ${{ secrets.DOCKER_USER }}
           password: ${{ secrets.DOCKER_PASSWORD }}
-      
+
+      # Local kubernetes cluster for the kubernetes-tests.bats suite that
+      # `make e2e` now includes. The suite auto-skips when the cluster is
+      # absent, but we want the release path to exercise the k8s provider
+      # before publishing artifacts.
+      - name: Setup minikube
+        uses: medyagh/setup-minikube@latest
+        with:
+          driver: docker
+
+      - name: Verify kubernetes cluster
+        run: |
+          kubectl cluster-info
+          kubectl get nodes
+
+      - name: Install postgresql-client
+        run: sudo apt-get install -y postgresql-client
+
       - name: Run E2E tests
         run: |
           export PATH=$PWD/release/linux-amd64:$PATH

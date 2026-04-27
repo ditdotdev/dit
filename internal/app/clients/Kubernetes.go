@@ -212,21 +212,35 @@ func (k kubernetes) GetStatefulSetStatus(repoName string) (string, error) {
 	return "starting", nil
 }
 
+// waitForStatefulSetTimeout caps how long WaitForStatefulSet will busy-poll
+// before giving up. Exposed as a package var (not a const) so tests can shrink
+// it to keep the suite fast.
+var waitForStatefulSetTimeout = 2 * time.Minute
+
+// waitForStatefulSetPollInterval is the gap between status polls. Pre-fix this
+// was `time.Sleep(1000)` which is 1000 nanoseconds — effectively a busy loop.
+var waitForStatefulSetPollInterval = 1 * time.Second
+
 /**
  * Wait for the given statefulset to reach a terminal state (running or stopped), throwing an error if we've
- * reached the failed state.
+ * reached the failed state. Bails after waitForStatefulSetTimeout if the StatefulSet never reaches a terminal
+ * state — a "detached" status (no StatefulSet present) is treated as terminal so callers like d3 stop / d3 rm
+ * don't hang forever waiting for resources that were never created.
  */
 func (k kubernetes) WaitForStatefulSet(repoName string) {
-	check := true
-	for check {
+	deadline := time.Now().Add(waitForStatefulSetTimeout)
+	for {
 		status, err := k.GetStatefulSetStatus(repoName)
-		if status == "failed" {
+		switch status {
+		case "failed":
 			panic(err)
+		case "running", "stopped", "detached":
+			return
 		}
-		if status == "running" || status == "stopped" {
-			check = false
+		if time.Now().After(deadline) {
+			return
 		}
-		time.Sleep(1000)
+		time.Sleep(waitForStatefulSetPollInterval)
 	}
 }
 

@@ -106,6 +106,24 @@ jobs:
           # Generate SSH keys using the project's generateKey.sh script
           cd tests/endtoend/remotes/ssh
           ./generateKey.sh ubuntu-22.04
+
+      # Local kubernetes cluster for the kubernetes-tests.bats suite that
+      # `make e2e` now includes. The suite auto-skips when the cluster is
+      # absent, but we want this workflow to actually exercise the k8s
+      # provider end-to-end.
+      - name: Setup minikube
+        uses: medyagh/setup-minikube@latest
+        with:
+          driver: docker
+
+      - name: Verify kubernetes cluster
+        run: |
+          kubectl cluster-info
+          kubectl get nodes
+
+      - name: Install postgresql-client
+        run: sudo apt-get install -y postgresql-client
+
       - name: Run Test Suite
         run: |
           export PATH=$GITHUB_WORKSPACE/build:$PATH
