@@ -77,6 +77,7 @@ func Uninstall(version string, force bool, removeImages bool, port int, context 
 	}
 
 	if removeImages {
+		fmt.Println("Removing Datadatdat Docker image")
 		if _, err := docker.RemoveDatadatdatImages(version); err != nil { //TODO track this
 			fmt.Printf("Warning: Failed to remove datadatdat images: %v\n", err)
 		} else {

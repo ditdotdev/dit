@@ -97,7 +97,10 @@ func classifyCommand(args []string) (providerOptional bool, defaultContextName s
 	switch args[1] {
 	case "install":
 		return true, "docker"
-	case "ls", "context":
+	case "ls", "context", "uninstall":
+		// uninstall (no flag) iterates every configured context itself,
+		// so it doesn't need a resolved default — and shouldn't panic in
+		// providers.Default() on a fresh machine with zero contexts.
 		return true, ""
 	}
 	return false, ""
