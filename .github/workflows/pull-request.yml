@@ -201,6 +201,23 @@ jobs:
           cd tests/endtoend/remotes/ssh
           ./generateKey.sh ubuntu-22.04
 
+      # Provision a local kubernetes cluster so the kubernetes-tests.bats
+      # suite (wired into `make e2e`) actually exercises the kubernetes
+      # provider. Auto-skips with a clear message if absent, so this step
+      # is the difference between testing the k8s path vs. silently no-op.
+      - name: Setup minikube
+        uses: medyagh/setup-minikube@latest
+        with:
+          driver: docker
+
+      - name: Verify kubernetes cluster
+        run: |
+          kubectl cluster-info
+          kubectl get nodes
+
+      - name: Install postgresql-client (for psql port-forward test)
+        run: sudo apt-get install -y postgresql-client
+
       - name: Run Test Suite
         run: |
           export PATH=$GITHUB_WORKSPACE/build:$PATH

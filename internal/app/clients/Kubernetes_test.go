@@ -2,6 +2,7 @@ package clients
 
 import (
 	"testing"
+	"time"
 
 	datadatdatclient "github.com/datadatdat/datadatdat-client-go"
 	v1Apps "k8s.io/api/apps/v1"
@@ -102,6 +103,73 @@ func TestCreateStatefulSetReadsPVCNameFromVolumeConfig(t *testing.T) {
 	}
 	if got.ClaimName != "5d2810f5-v0" {
 		t.Errorf("ClaimName = %q, want %q (server-provided PVC name from Config)", got.ClaimName, "5d2810f5-v0")
+	}
+}
+
+// TestWaitForStatefulSetReturnsWhenStatefulSetMissing covers the case
+// where d3 stop / d3 start runs against a repository whose StatefulSet
+// was never created (or was deleted out-of-band). Pre-fix, WaitForStatefulSet
+// busy-looped forever — the BATS suite hit the 10-min CI wall on
+// `d3 stop` because GetStatefulSetStatus returned "detached" and that
+// wasn't recognized as terminal.
+func TestWaitForStatefulSetReturnsWhenStatefulSetMissing(t *testing.T) {
+	restore := swapClient(t, fake.NewSimpleClientset())
+	defer restore()
+
+	// Use a tiny timeout so the test exits fast if the bug regresses.
+	originalTimeout := waitForStatefulSetTimeout
+	waitForStatefulSetTimeout = 200 * time.Millisecond
+	defer func() { waitForStatefulSetTimeout = originalTimeout }()
+
+	k := kubernetes{namespace: "default"}
+
+	done := make(chan struct{})
+	go func() {
+		defer close(done)
+		k.WaitForStatefulSet("nonexistent")
+	}()
+
+	select {
+	case <-done:
+		// success — function returned within the deadline
+	case <-time.After(2 * time.Second):
+		t.Fatal("WaitForStatefulSet did not return within 2s for a missing StatefulSet (expected to bail after the deadline)")
+	}
+}
+
+// TestWaitForStatefulSetReturnsWhenRunning covers the happy path: the
+// function should return quickly once the StatefulSet's replicas match
+// readyReplicas (status="running").
+func TestWaitForStatefulSetReturnsWhenRunning(t *testing.T) {
+	ns := "default"
+	replicas := int32(1)
+	ss := &v1Apps.StatefulSet{
+		ObjectMeta: metav1.ObjectMeta{Name: "demo-db", Namespace: ns},
+		Spec: v1Apps.StatefulSetSpec{
+			Replicas: &replicas,
+		},
+		Status: v1Apps.StatefulSetStatus{
+			Replicas:        1,
+			ReadyReplicas:   1,
+			UpdateRevision:  "r1",
+			CurrentRevision: "r1",
+		},
+	}
+	restore := swapClient(t, fake.NewSimpleClientset(ss))
+	defer restore()
+
+	k := kubernetes{namespace: ns}
+
+	done := make(chan struct{})
+	go func() {
+		defer close(done)
+		k.WaitForStatefulSet("demo-db")
+	}()
+
+	select {
+	case <-done:
+	case <-time.After(2 * time.Second):
+		t.Fatal("WaitForStatefulSet did not return within 2s for a running StatefulSet")
 	}
 }
 

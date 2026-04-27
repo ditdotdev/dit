@@ -9,7 +9,7 @@ func Stop(repoName string, port int) {
 	cfg.BasePath = "http://localhost:" + strconv.Itoa(port)
 
 	repo, _, _ := repositoriesApi.GetRepository(ctx, repoName)
-	if !repo.Properties["disablePortMapping"].(bool) {
+	if !disablePortMappingFromRepo(repo) {
 		fmt.Println("Stopping port forwarding")
 		k8s.StopPortForwarding(repoName)
 	}
