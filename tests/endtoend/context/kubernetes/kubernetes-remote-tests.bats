@@ -41,6 +41,24 @@ wait_pod_ready() {
   return 1
 }
 
+# Wait for postgres in the given pod to actually accept psql
+# connections. Pod-Ready (per wait_pod_ready) only means the postgres
+# process started; this fills the postgres-startup-to-listening gap
+# that surfaces as `psql: ... no such file or directory` on the
+# socket. Mirrors the helper in kubernetes-tests.bats.
+wait_postgres_ready() {
+  local pod="$1"
+  local iters="${2:-30}"
+  for _ in $(seq 1 "$iters"); do
+    if kubectl exec "$pod" -- psql -U postgres -c "select 1" >/dev/null 2>&1; then
+      return 0
+    fi
+    sleep 1
+  done
+  echo "$pod postgres did not accept psql connections within $iters seconds"
+  return 1
+}
+
 setup_file() {
   if ! kubectl cluster-info >/dev/null 2>&1; then
     export D3_K8S_SKIP=1
@@ -76,17 +94,30 @@ setup_file() {
 teardown_file() {
   if [ -n "$D3_K8S_SKIP" ]; then return 0; fi
   # Capture k8stest d3 server logs BEFORE uninstall removes the
-  # container. The workflow's later "Show compose and k8s logs" step
-  # globs over `docker ps -a` which excludes removed containers — so by
-  # then the k8stest server is gone and `docker logs` returns "no such
-  # container". Failures in `d3 push` / `d3 commit` from the tests
-  # below return a 500 from inside this server (api-gateway never sees
-  # the request), so without these logs there's no way to diagnose Bug
-  # 2 from CI output. Always-on; ~200 lines of postgres init noise on
-  # green runs is an acceptable tradeoff for the diagnostic on red.
-  echo "=== docker logs datadatdat-${CTX}-server (pre-teardown) ==="
-  docker logs "datadatdat-${CTX}-server" 2>&1 | tail -300 || true
-  echo "=== end of datadatdat-${CTX}-server logs ==="
+  # container. Two routing details:
+  #
+  #  - The workflow's later "Show compose and k8s logs" step globs
+  #    `docker ps -a` which excludes removed containers, so by the
+  #    time it runs the k8stest server is gone and `docker logs`
+  #    returns "no such container". This block has to run inside
+  #    BATS where the container still exists.
+  #
+  #  - BATS captures regular stdout from teardown_file and only shows
+  #    it on certain failure paths (we observed it being entirely
+  #    swallowed in PR #639 run 25077761780 even with failed tests).
+  #    File descriptor 3 is BATS's "always show" channel — output
+  #    written there bypasses BATS's filtering and surfaces in the
+  #    test log unconditionally. Same FD 3 convention used by the
+  #    rest of the BATS ecosystem (`bats-assert`, etc.).
+  #
+  # Failures in `d3 push` / `d3 commit` from the tests above return
+  # a 500 from inside the server (api-gateway never sees the request),
+  # so without these logs there's no way to diagnose Bug 2.
+  {
+    echo "=== docker logs datadatdat-${CTX}-server (pre-teardown) ==="
+    docker logs "datadatdat-${CTX}-server" 2>&1 | tail -300 || true
+    echo "=== end of datadatdat-${CTX}-server logs ==="
+  } >&3
   for r in "$REPO" hello-clone-datadatdat hello-clone-s3 hello-clone-s3web; do
     "$D3" rm -f "$r" --context "$CTX" 2>/dev/null || true
   done
@@ -107,6 +138,10 @@ setup() {
   run "$D3" run postgres:latest -n "$REPO" -e POSTGRES_HOST_AUTH_METHOD=trust --context "$CTX"
   assert_success
   wait_pod_ready "pod/${REPO}-0"
+  # Pod-Ready means postgres process started; the next test does
+  # `kubectl exec ... psql` immediately, so wait until postgres is
+  # actually accepting connections to avoid the unix-socket race.
+  wait_postgres_ready "${REPO}-0"
 }
 
 # ---------------------------------------------------------------
