@@ -25,6 +25,66 @@ load '../../test_helper'
 CTX="k8stest"
 REPO="demo-db"
 
+# ---------------------------------------------------------------
+# Polling helpers
+#
+# All waits in this file follow the same pattern: explicitly check
+# the condition we want, in a bounded loop. The only arbitrary value
+# is the iteration count; sleep is fixed at 5s for cluster-state
+# polls, 1s for local TCP probes (see test 12). Avoids the
+# `kubectl wait --timeout=Ns` pattern where the wall-clock timeout
+# is decoupled from the condition being checked.
+# ---------------------------------------------------------------
+
+# Wait for a Pod's Ready condition. Default 36 iterations × 5s = 180s.
+wait_pod_ready() {
+  local pod="$1"
+  local iters="${2:-36}"
+  for _ in $(seq 1 "$iters"); do
+    if kubectl get "$pod" -o jsonpath='{.status.conditions[?(@.type=="Ready")].status}' 2>/dev/null | grep -q '^True$'; then
+      return 0
+    fi
+    sleep 5
+  done
+  echo "$pod did not reach Ready within $((iters * 5))s"
+  kubectl describe "$pod" 2>/dev/null || true
+  return 1
+}
+
+# Wait for a VolumeSnapshot's status.readyToUse to flip to true.
+# Default 60 iterations × 5s = 300s. csi-hostpath on minikube-on-GHA
+# can take minutes; on a real CSI it's sub-second.
+wait_snapshot_ready() {
+  local snap="$1"
+  local iters="${2:-60}"
+  for _ in $(seq 1 "$iters"); do
+    if [ "$(kubectl get "volumesnapshot/$snap" -o jsonpath='{.status.readyToUse}' 2>/dev/null)" = "true" ]; then
+      return 0
+    fi
+    sleep 5
+  done
+  return 1
+}
+
+# Wait for postgres in the given pod to actually accept psql
+# connections. Pod-Ready (per wait_pod_ready) only means the postgres
+# process started; this fills the postgres-startup-to-listening gap
+# that surfaces as `psql: ... no such file or directory` on the
+# socket or `Connection refused` on the TCP port. Used after every
+# pod recreation that's followed immediately by a psql call.
+wait_postgres_ready() {
+  local pod="$1"
+  local iters="${2:-30}"
+  for _ in $(seq 1 "$iters"); do
+    if kubectl exec "$pod" -- psql -U postgres -c "select 1" >/dev/null 2>&1; then
+      return 0
+    fi
+    sleep 1
+  done
+  echo "$pod postgres did not accept psql connections within $iters seconds"
+  return 1
+}
+
 setup_file() {
   if ! kubectl cluster-info >/dev/null 2>&1; then
     export D3_K8S_SKIP=1
@@ -112,8 +172,7 @@ setup() {
 }
 
 @test "k8s pod ${REPO}-0 reaches Ready" {
-  run kubectl wait --for=condition=ready "pod/${REPO}-0" --timeout=180s
-  assert_success
+  wait_pod_ready "pod/${REPO}-0"
 }
 
 @test "k8s resources: StatefulSet, Service, Pod present with the right labels" {
@@ -173,8 +232,12 @@ setup() {
 # ---------------------------------------------------------------
 
 @test "port-forward: localhost:5432 is reachable (regression for b7d040a)" {
-  # Try for up to 10s; on slow CI the port-forward can take a beat to come up.
-  for _ in $(seq 1 10); do
+  # Try for up to 30s. d3 spawns `kubectl port-forward` in the background;
+  # on a busy CI runner it can race with the StatefulSet pod actually
+  # opening its TCP listener. Observed test 13 (pid file recorded) pass
+  # while this one fails on PR #113 run 25070315289 — the pid was
+  # written but the connection wasn't established yet. 10s was too tight.
+  for _ in $(seq 1 30); do
     if (echo > /dev/tcp/127.0.0.1/5432) 2>/dev/null; then
       return 0
     fi
@@ -193,9 +256,20 @@ setup() {
 
 # ---------------------------------------------------------------
 # Postgres connectivity end-to-end
+#
+# `wait_pod_ready` (test 5) returns when k8s says the pod's Ready
+# condition is True, but the d3 StatefulSet template has no readiness
+# probe configured for postgres — so "Ready" only means "the postgres
+# process started," not "postgres is accepting connections." On a fast
+# runner this race shows up as `psql: ... no such file or directory` on
+# the unix socket (postgres hasn't created it yet) or `connection
+# refused` on the TCP port. Wait for postgres to actually accept
+# connections before each connectivity assertion. ~2 sec on a normal
+# run, up to 30 sec on a slow runner before failing.
 # ---------------------------------------------------------------
 
 @test "postgres responds via kubectl exec" {
+  wait_postgres_ready "${REPO}-0"
   run kubectl exec "${REPO}-0" -- psql -U postgres -c "select version();"
   assert_success
   assert_output --partial "PostgreSQL"
@@ -205,7 +279,19 @@ setup() {
   if ! command -v psql >/dev/null 2>&1; then
     skip "psql client not installed; skipping localhost port-forward test"
   fi
-  run psql -h localhost -U postgres -c "select 1 as ok;"
+  # Pin to 127.0.0.1, NOT localhost. psql resolves `localhost` to IPv6
+  # `::1` first on GHA runners, but `kubectl port-forward` only binds
+  # IPv4 by default — so psql gets `Connection refused (::1)` and
+  # never falls through to v4. Surfaced on PR #113 run 25072827847
+  # where test 12 (`echo > /dev/tcp/127.0.0.1/5432`) passed but this
+  # one failed in the same window.
+  for _ in $(seq 1 30); do
+    if psql -h 127.0.0.1 -U postgres -c "select 1" >/dev/null 2>&1; then
+      break
+    fi
+    sleep 1
+  done
+  run psql -h 127.0.0.1 -U postgres -c "select 1 as ok;"
   assert_success
   assert_output --partial "1"
 }
@@ -235,8 +321,144 @@ setup() {
 @test "d3 start scales it back up and pod becomes Ready" {
   run "$D3" start "$REPO" --context "$CTX"
   assert_success
-  run kubectl wait --for=condition=ready "pod/${REPO}-0" --timeout=180s
+  wait_pod_ready "pod/${REPO}-0"
+}
+
+# ---------------------------------------------------------------
+# d3 commit / d3 checkout: snapshot-backed time travel
+#
+# Each commit becomes a CSI VolumeSnapshot. These tests exercise the
+# whole arc — write data, commit, destructive change, checkout, verify
+# data is back. Requires the volumesnapshots + csi-hostpath-driver
+# minikube addons; tests skip with a clear message when the
+# VolumeSnapshot CRD isn't installed (so `make e2e` on a developer's
+# laptop without those addons no-ops these instead of failing).
+#
+# State is shared between the commit test and the checkout test via a
+# tempfile because BATS @test bodies run in subshells — env vars don't
+# persist across @tests, but writes to /tmp do.
+# ---------------------------------------------------------------
+
+COMMIT_STATE="/tmp/d3-k8s-bats-commit-${REPO}"
+
+@test "d3 commit: produces a VolumeSnapshot that becomes ReadyToUse" {
+  if ! kubectl get crd volumesnapshots.snapshot.storage.k8s.io >/dev/null 2>&1; then
+    skip "VolumeSnapshot CRD not installed (enable minikube addons: volumesnapshots, csi-hostpath-driver)"
+  fi
+
+  # Plant a known table so the checkout test has something to verify.
+  run kubectl exec "${REPO}-0" -- psql -U postgres -c \
+    "CREATE TABLE bats_baseline (id INT PRIMARY KEY); INSERT INTO bats_baseline VALUES (42);"
   assert_success
+
+  run "$D3" commit "$REPO" -m "bats baseline" --context "$CTX"
+  assert_success
+  assert_output --partial "Commit "
+
+  COMMIT_ID=$(echo "$output" | awk '/^Commit / {print $2; exit}')
+  [ -n "$COMMIT_ID" ] || {
+    echo "could not parse commit id from d3 commit output"
+    return 1
+  }
+  echo "$COMMIT_ID" > "$COMMIT_STATE"
+
+  # The server names snapshots <volumeSet>-<volume>-<commitId> and labels
+  # them with datadatdatCommit; pick by label so we don't have to know
+  # the volumeSet UUID.
+  for _ in $(seq 1 60); do
+    snap=$(kubectl get volumesnapshot -l "datadatdatCommit=$COMMIT_ID" \
+      -o jsonpath='{.items[0].metadata.name}' 2>/dev/null)
+    if [ -n "$snap" ]; then break; fi
+    sleep 1
+  done
+  [ -n "$snap" ] || {
+    echo "no VolumeSnapshot with datadatdatCommit=$COMMIT_ID after 60s"
+    kubectl get volumesnapshot
+    return 1
+  }
+
+  # csi-hostpath on minikube-on-GHA-runners can take several minutes
+  # to flush a snapshot to ReadyToUse; on a real CSI backend (GKE pd,
+  # EBS, etc.) it's sub-second. Default helper iters = 60 × 5s = 300s.
+  if ! wait_snapshot_ready "$snap"; then
+    echo "VolumeSnapshot $snap did not become ReadyToUse"
+    echo "--- kubectl describe volumesnapshot/$snap ---"
+    kubectl describe "volumesnapshot/$snap" || true
+    echo "--- kubectl describe volumesnapshotcontent (linked from snap) ---"
+    vsc=$(kubectl get "volumesnapshot/$snap" -o jsonpath='{.status.boundVolumeSnapshotContentName}' 2>/dev/null || true)
+    [ -n "$vsc" ] && kubectl describe "volumesnapshotcontent/$vsc" || echo "no boundVolumeSnapshotContentName"
+    echo "--- csi-hostpathplugin logs (tail 100, all containers) ---"
+    kubectl -n kube-system logs ds/csi-hostpathplugin --all-containers --tail=100 2>&1 || true
+    echo "--- snapshot-controller logs (tail 100) ---"
+    kubectl -n kube-system logs -l app=snapshot-controller --tail=100 2>&1 || \
+      kubectl -n kube-system logs -l app.kubernetes.io/name=snapshot-controller --tail=100 2>&1 || \
+      echo "no snapshot-controller pod found"
+    return 1
+  fi
+}
+
+@test "d3 checkout: restores prior database state from snapshot" {
+  if ! kubectl get crd volumesnapshots.snapshot.storage.k8s.io >/dev/null 2>&1; then
+    skip "VolumeSnapshot CRD not installed (enable minikube addons: volumesnapshots, csi-hostpath-driver)"
+  fi
+  [ -f "$COMMIT_STATE" ] || skip "no commit captured by previous test"
+  COMMIT_ID=$(cat "$COMMIT_STATE")
+
+  # Destructive change so checkout has something to undo.
+  run kubectl exec "${REPO}-0" -- psql -U postgres -c "DROP TABLE bats_baseline;"
+  assert_success
+  # Confirm the table really is gone before the checkout.
+  run kubectl exec "${REPO}-0" -- psql -U postgres -c "SELECT 1 FROM bats_baseline LIMIT 1;"
+  assert_failure
+
+  # Capture the pod's UID so we can assert checkout actually recreated
+  # it. d3 checkout has to swap the StatefulSet's PVC reference AND
+  # force pod recreation — patching volumes alone doesn't roll a
+  # StatefulSet. If the pod stays the same (same UID), the new PVC is
+  # never mounted and postgres serves the stale state.
+  old_uid=$(kubectl get "pod/${REPO}-0" -o jsonpath='{.metadata.uid}' 2>/dev/null || true)
+  [ -n "$old_uid" ] || { echo "could not capture pre-checkout pod UID"; return 1; }
+
+  run "$D3" checkout "$REPO" -c "$COMMIT_ID" --context "$CTX"
+  assert_success
+  # Print captured output so we can see what d3 checkout actually did
+  # (assert_success swallows stdout on success otherwise).
+  echo "--- d3 checkout output ---"
+  echo "$output"
+  echo "--- end d3 checkout output ---"
+
+  # Wait for the StatefulSet controller to recreate the pod. Same name,
+  # different UID. If UID never changes, d3 checkout didn't trigger
+  # pod recreation and the new PVC is unused — fail loudly with the
+  # StatefulSet description so we can see what state d3 left it in.
+  for _ in $(seq 1 36); do
+    new_uid=$(kubectl get "pod/${REPO}-0" -o jsonpath='{.metadata.uid}' 2>/dev/null || true)
+    if [ -n "$new_uid" ] && [ "$new_uid" != "$old_uid" ]; then
+      break
+    fi
+    sleep 5
+  done
+  if [ -z "$new_uid" ] || [ "$new_uid" = "$old_uid" ]; then
+    echo "pod UID did not change after d3 checkout"
+    echo "  old: $old_uid"
+    echo "  new: ${new_uid:-(no pod)}"
+    echo "--- kubectl describe statefulset/${REPO} ---"
+    kubectl describe "statefulset/${REPO}" || true
+    echo "--- kubectl get pvc ---"
+    kubectl get pvc || true
+    return 1
+  fi
+
+  # New pod is up — wait for postgres inside it to accept connections.
+  wait_pod_ready "pod/${REPO}-0"
+  wait_postgres_ready "${REPO}-0"
+
+  run kubectl exec "${REPO}-0" -- psql -U postgres -c \
+    "SELECT id FROM bats_baseline;"
+  assert_success
+  assert_output --partial "42"
+
+  rm -f "$COMMIT_STATE"
 }
 
 # ---------------------------------------------------------------

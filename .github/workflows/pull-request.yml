@@ -215,6 +215,36 @@ jobs:
           kubectl cluster-info
           kubectl get nodes
 
+      # Enable CSI snapshot support so kubernetes-tests.bats can exercise
+      # `d3 commit` (each commit becomes a VolumeSnapshot via the CSI
+      # snapshotter). Minikube ships these addons disabled by default;
+      # without enabling them, the snapshot CRDs aren't installed and any
+      # `d3 commit` against the kubernetes context fails with "no matches
+      # for kind VolumeSnapshot in version snapshot.storage.k8s.io/v1".
+      - name: Enable CSI volume snapshots in minikube
+        run: |
+          minikube addons enable volumesnapshots
+          minikube addons enable csi-hostpath-driver
+          # Default storage class needs to point at the CSI driver so PVCs
+          # created by d3 are snapshot-capable. Hostpath CSI registers as
+          # `csi-hostpath-sc`; promote it and demote `standard`.
+          kubectl patch storageclass standard -p '{"metadata": {"annotations":{"storageclass.kubernetes.io/is-default-class":"false"}}}'
+          kubectl patch storageclass csi-hostpath-sc -p '{"metadata": {"annotations":{"storageclass.kubernetes.io/is-default-class":"true"}}}'
+          # Same dance for VolumeSnapshotClass: d3's commitVolume YAML
+          # omits `volumeSnapshotClassName` (it relies on the cluster
+          # default), but the csi-hostpath-driver addon installs
+          # `csi-hostpath-snapclass` without the default annotation. Without
+          # this patch, every snapshot stays in error state with "Failed
+          # to set default snapshot class" and never becomes ReadyToUse.
+          # `--type=merge` because VolumeSnapshotClass doesn't support
+          # the default strategic-merge-patch (StorageClass does, which
+          # is why the patches above don't need it). Without --type=merge
+          # kubectl errors with "application/strategic-merge-patch+json
+          # is not supported by snapshot.storage.k8s.io/v1".
+          kubectl patch volumesnapshotclass csi-hostpath-snapclass --type=merge -p '{"metadata":{"annotations":{"snapshot.storage.kubernetes.io/is-default-class":"true"}}}'
+          kubectl get storageclass
+          kubectl get volumesnapshotclass
+
       - name: Install postgresql-client (for psql port-forward test)
         run: sudo apt-get install -y postgresql-client
 
