@@ -138,6 +138,10 @@ jobs:
           minikube addons enable csi-hostpath-driver
           kubectl patch storageclass standard -p '{"metadata": {"annotations":{"storageclass.kubernetes.io/is-default-class":"false"}}}'
           kubectl patch storageclass csi-hostpath-sc -p '{"metadata": {"annotations":{"storageclass.kubernetes.io/is-default-class":"true"}}}'
+          # csi-hostpath-snapclass also needs the default-class annotation
+          # for d3's commitVolume to find a snapshot class. See
+          # pull-request.yml for the longer rationale.
+          kubectl patch volumesnapshotclass csi-hostpath-snapclass -p '{"metadata": {"annotations":{"snapshot.storage.kubernetes.io/is-default-class":"true"}}}'
 
       - name: Install postgresql-client
         run: sudo apt-get install -y postgresql-client
