@@ -62,11 +62,25 @@ func Checkout(repoName string, guid string, tags []string, port int) {
 	fmt.Println("Stopping port forwarding")
 	k8s.StopPortForwarding(repoName)
 
+	// Scale to 0 before swapping the StatefulSet's PVC reference.
+	// Patching spec.template.spec.volumes[*].persistentVolumeClaim.claimName
+	// alone does NOT trigger pod recreation on a StatefulSet — k8s only
+	// rolls pods on changes to spec.template.spec.containers (image, env,
+	// etc.), not on volume claim name updates. Without the stop/start
+	// dance the running pod keeps the OLD PVC mounted, postgres serves
+	// the pre-checkout state, and `d3 checkout` returns success without
+	// actually restoring data. Surfaced by kubernetes-tests.bats test 19
+	// on PR #113 — checkout returned in 2s, table still missing.
+	fmt.Println("Stopping deployment to release old PVC")
+	k8s.StopStatefulSet(repoName)
+	k8s.WaitForStatefulSet(repoName)
+
 	fmt.Println("Updating deployment")
 	vols, _, _ := volumesApi.ListVolumes(ctx, repoName)
 	k8s.UpdateStatefulSetVolumes(repoName, vols)
 
-	fmt.Println("Waiting for deployment to be ready")
+	fmt.Println("Restarting deployment with new PVC")
+	k8s.StartStatefulSet(repoName)
 	k8s.WaitForStatefulSet(repoName)
 
 	fmt.Println("Starting port forwarding")
