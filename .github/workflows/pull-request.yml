@@ -227,12 +227,15 @@ jobs:
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           AWS_REGION: ${{ secrets.AWS_REGION }}
 
-      # Show logs on failure: surface server-side errors that BATS can't see
-      # (e.g. the kubernetes-csi server's response to CreateVolume, the
-      # docker-zfs server's PostgreSQL/ZFS errors). Without this we just see
-      # the CLI's "panic: 500 Internal Server Error" with no upstream cause.
-      - name: Show logs on failure
-        if: failure()
+      # Show container and k8s logs on every run: surfaces server-side
+      # errors that BATS can't see (kubernetes-csi server's response to
+      # CreateVolume, docker-zfs server's PostgreSQL/ZFS errors) when
+      # tests fail, and gives a known-good baseline to compare against
+      # when they pass. Without this on success runs, regressions that
+      # show up as "everything green but server logged a warning" stay
+      # invisible until the warning becomes a failure later.
+      - name: Show container and k8s logs
+        if: always()
         run: |
           for c in $(docker ps -a --filter "name=datadatdat" --format '{{.Names}}'); do
             echo "=== docker logs $c ==="

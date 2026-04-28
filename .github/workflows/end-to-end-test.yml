@@ -143,6 +143,30 @@ jobs:
           # Unique S3 namespace per run to avoid collisions. See issue #118.
           E2E_RUN_SUFFIX: run-${{ github.run_id }}-${{ github.run_attempt }}
 
+      # Show container and k8s logs on every run: matches the dump in
+      # pull-request.yml so the scheduled E2E leaves behind the same
+      # triage baseline. Always-on (not failure-only) so passing runs
+      # produce a known-good reference for diffing against the next
+      # failure — silent regressions in server logs surface here.
+      - name: Show container and k8s logs
+        if: always()
+        run: |
+          for c in $(docker ps -a --filter "name=datadatdat" --format '{{.Names}}'); do
+            echo "=== docker logs $c ==="
+            docker logs "$c" 2>&1 | tail -200 || true
+          done
+          if kubectl cluster-info >/dev/null 2>&1; then
+            echo "=== kubectl get all -A ==="
+            kubectl get all -A || true
+            echo "=== kubectl get pvc -A ==="
+            kubectl get pvc -A || true
+            echo "=== kubectl get storageclass ==="
+            kubectl get storageclass || true
+            echo "=== kubectl get events -A --sort-by=.lastTimestamp (last 50) ==="
+            kubectl get events -A --sort-by=.lastTimestamp 2>/dev/null | tail -50 || true
+          fi
+        shell: bash
+
       - name: Cleanup run-specific S3 prefixes
         if: always()
         run: |
