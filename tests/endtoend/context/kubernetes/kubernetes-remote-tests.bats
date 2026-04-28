@@ -57,6 +57,18 @@ setup_file() {
 
 teardown_file() {
   if [ -n "$D3_K8S_SKIP" ]; then return 0; fi
+  # Capture k8stest d3 server logs BEFORE uninstall removes the
+  # container. The workflow's later "Show compose and k8s logs" step
+  # globs over `docker ps -a` which excludes removed containers — so by
+  # then the k8stest server is gone and `docker logs` returns "no such
+  # container". Failures in `d3 push` / `d3 commit` from the tests
+  # below return a 500 from inside this server (api-gateway never sees
+  # the request), so without these logs there's no way to diagnose Bug
+  # 2 from CI output. Always-on; ~200 lines of postgres init noise on
+  # green runs is an acceptable tradeoff for the diagnostic on red.
+  echo "=== docker logs datadatdat-${CTX}-server (pre-teardown) ==="
+  docker logs "datadatdat-${CTX}-server" 2>&1 | tail -300 || true
+  echo "=== end of datadatdat-${CTX}-server logs ==="
   for r in "$REPO" hello-clone-datadatdat hello-clone-s3 hello-clone-s3web; do
     "$D3" rm -f "$r" --context "$CTX" 2>/dev/null || true
   done
