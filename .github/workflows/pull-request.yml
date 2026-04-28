@@ -230,6 +230,13 @@ jobs:
           # `csi-hostpath-sc`; promote it and demote `standard`.
           kubectl patch storageclass standard -p '{"metadata": {"annotations":{"storageclass.kubernetes.io/is-default-class":"false"}}}'
           kubectl patch storageclass csi-hostpath-sc -p '{"metadata": {"annotations":{"storageclass.kubernetes.io/is-default-class":"true"}}}'
+          # Same dance for VolumeSnapshotClass: d3's commitVolume YAML
+          # omits `volumeSnapshotClassName` (it relies on the cluster
+          # default), but the csi-hostpath-driver addon installs
+          # `csi-hostpath-snapclass` without the default annotation. Without
+          # this patch, every snapshot stays in error state with "Failed
+          # to set default snapshot class" and never becomes ReadyToUse.
+          kubectl patch volumesnapshotclass csi-hostpath-snapclass -p '{"metadata": {"annotations":{"snapshot.storage.kubernetes.io/is-default-class":"true"}}}'
           kubectl get storageclass
           kubectl get volumesnapshotclass
 

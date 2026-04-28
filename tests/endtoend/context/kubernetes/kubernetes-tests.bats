@@ -265,13 +265,19 @@ setup() {
   if ! command -v psql >/dev/null 2>&1; then
     skip "psql client not installed; skipping localhost port-forward test"
   fi
+  # Pin to 127.0.0.1, NOT localhost. psql resolves `localhost` to IPv6
+  # `::1` first on GHA runners, but `kubectl port-forward` only binds
+  # IPv4 by default — so psql gets `Connection refused (::1)` and
+  # never falls through to v4. Surfaced on PR #113 run 25072827847
+  # where test 12 (`echo > /dev/tcp/127.0.0.1/5432`) passed but this
+  # one failed in the same window.
   for _ in $(seq 1 30); do
-    if psql -h localhost -U postgres -c "select 1" >/dev/null 2>&1; then
+    if psql -h 127.0.0.1 -U postgres -c "select 1" >/dev/null 2>&1; then
       break
     fi
     sleep 1
   done
-  run psql -h localhost -U postgres -c "select 1 as ok;"
+  run psql -h 127.0.0.1 -U postgres -c "select 1 as ok;"
   assert_success
   assert_output --partial "1"
 }
