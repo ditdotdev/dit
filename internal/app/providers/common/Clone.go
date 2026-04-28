@@ -2,7 +2,6 @@ package common
 
 import (
 	"datadatdat/internal/app/clients"
-	"datadatdat/internal/app/providers/local"
 	"fmt"
 	"net/url"
 	"os"
@@ -15,7 +14,31 @@ import (
 	"net/http"
 )
 
-func Clone(uri string, repo string, guid string, params []string, args []string, disablePortMap bool, tags []string, port int, context string) {
+// CloneCallbacks lets callers in providers/{local,kubernetes} hand
+// Clone the right Run/Checkout/Remove implementation for their context.
+//
+// Pre-fix the package directly imported and called local.Run / local.Checkout /
+// local.Remove regardless of which provider's Clone() invoked common.Clone —
+// so `d3 clone --context k8s ...` was silently routed through the docker code
+// path, surfacing as "Creating docker volume hello-clone-s3web_v0" mid-run on
+// kubernetes contexts and failing immediately. Surfaced by
+// kubernetes-remote-tests.bats tests 9-10. Routing through caller-supplied
+// callbacks keeps Clone's metadata/remote-fetch logic provider-agnostic
+// while letting each provider plug in its own runtime.
+type CloneCallbacks struct {
+	// Run brings up a container/pod for `repoName` from `image`, returning a
+	// human-readable status string (printed to stdout on success). Error
+	// triggers Remove + os.Exit via removeRepo.
+	Run func(image, repoName string, envs, args []string, disablePortMap, privileged bool) (string, error)
+	// Checkout switches `repoName` to the given commit. Errors here are
+	// already printed by the underlying call; this fn doesn't propagate.
+	Checkout func(repoName, commitId string)
+	// Remove tears down `repoName` (used both at end of a failed Clone and
+	// when Clone bails early after a remote error).
+	Remove func(repoName string, force bool)
+}
+
+func Clone(uri string, repo string, guid string, params []string, args []string, disablePortMap bool, tags []string, port int, context string, cb CloneCallbacks) {
 	cfg.BasePath = "http://localhost:" + strconv.Itoa(port)
 	docker := clients.Docker(context, port)
 
@@ -66,12 +89,12 @@ func Clone(uri string, repo string, guid string, params []string, args []string,
 		remoteCommits, resp, err := remotesApi.ListRemoteCommits(ctx, repoName, rm.Name, p, commitsOpts)
 		if err != nil {
 			handleRemoteError(err, resp, serverUrl)
-			removeRepo(repoName, port, context)
+			removeRepo(repoName, cb)
 			return
 		}
 		if len(remoteCommits) == 0 {
 			fmt.Println("unable to find any matching commits in remote repository")
-			removeRepo(repoName, port, context)
+			removeRepo(repoName, cb)
 			return
 		}
 		commit = client.Commit{
@@ -85,7 +108,7 @@ func Clone(uri string, repo string, guid string, params []string, args []string,
 		c, resp, err := remotesApi.GetRemoteCommit(ctx, repoName, rm.Name, commitId, p)
 		if err != nil {
 			handleRemoteError(err, resp, serverUrl)
-			removeRepo(repoName, port, context)
+			removeRepo(repoName, cb)
 			return
 		}
 		commit = client.Commit{
@@ -128,15 +151,19 @@ func Clone(uri string, repo string, guid string, params []string, args []string,
 	// Use disablePortMap from metadata if available, otherwise use the command-line flag
 	metadataDisablePortMap := metadata.GetDisablePortMap()
 	finalDisablePortMap := disablePortMap || metadataDisablePortMap
-	m, err := local.Run(imageRef, repoName, envs, args, finalDisablePortMap, privileged, false, port, context)
+	m, err := cb.Run(imageRef, repoName, envs, args, finalDisablePortMap, privileged)
 	if err != nil {
 		fmt.Printf("failed to run container: %v\n", err)
-		removeRepo(repoName, port, context)
+		removeRepo(repoName, cb)
 		return
 	}
-	fmt.Println(m)
+	if m != "" {
+		// kubernetes Run prints its own progress to stdout and returns ""
+		// here; only print non-empty status from the callback.
+		fmt.Println(m)
+	}
 	Pull(repoName, commit.Id, "", make([]string, 0), false, port)
-	local.Checkout(repoName, commit.Id, nil, port, context)
+	cb.Checkout(repoName, commit.Id)
 }
 
 func handleRemoteError(err error, resp *http.Response, uri string) {
@@ -151,7 +178,7 @@ func handleRemoteError(err error, resp *http.Response, uri string) {
 	}
 }
 
-func removeRepo(repoName string, port int, context string) {
-	local.Remove(repoName, true, port, context)
+func removeRepo(repoName string, cb CloneCallbacks) {
+	cb.Remove(repoName, true)
 	os.Exit(1)
 }
