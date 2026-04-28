@@ -139,7 +139,7 @@ jobs:
           # csi-hostpath-snapclass also needs the default-class annotation
           # for d3's commitVolume to find a snapshot class. See
           # pull-request.yml for the longer rationale.
-          kubectl patch volumesnapshotclass csi-hostpath-snapclass -p '{"metadata": {"annotations":{"snapshot.storage.kubernetes.io/is-default-class":"true"}}}'
+          kubectl patch volumesnapshotclass csi-hostpath-snapclass --type=merge -p '{"metadata":{"annotations":{"snapshot.storage.kubernetes.io/is-default-class":"true"}}}'
 
       - name: Install postgresql-client
         run: sudo apt-get install -y postgresql-client
