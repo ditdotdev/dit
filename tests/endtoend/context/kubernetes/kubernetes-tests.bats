@@ -25,6 +25,47 @@ load '../../test_helper'
 CTX="k8stest"
 REPO="demo-db"
 
+# ---------------------------------------------------------------
+# Polling helpers
+#
+# All waits in this file follow the same pattern: explicitly check
+# the condition we want, in a bounded loop. The only arbitrary value
+# is the iteration count; sleep is fixed at 5s for cluster-state
+# polls, 1s for local TCP probes (see test 12). Avoids the
+# `kubectl wait --timeout=Ns` pattern where the wall-clock timeout
+# is decoupled from the condition being checked.
+# ---------------------------------------------------------------
+
+# Wait for a Pod's Ready condition. Default 36 iterations × 5s = 180s.
+wait_pod_ready() {
+  local pod="$1"
+  local iters="${2:-36}"
+  for _ in $(seq 1 "$iters"); do
+    if kubectl get "$pod" -o jsonpath='{.status.conditions[?(@.type=="Ready")].status}' 2>/dev/null | grep -q '^True$'; then
+      return 0
+    fi
+    sleep 5
+  done
+  echo "$pod did not reach Ready within $((iters * 5))s"
+  kubectl describe "$pod" 2>/dev/null || true
+  return 1
+}
+
+# Wait for a VolumeSnapshot's status.readyToUse to flip to true.
+# Default 60 iterations × 5s = 300s. csi-hostpath on minikube-on-GHA
+# can take minutes; on a real CSI it's sub-second.
+wait_snapshot_ready() {
+  local snap="$1"
+  local iters="${2:-60}"
+  for _ in $(seq 1 "$iters"); do
+    if [ "$(kubectl get "volumesnapshot/$snap" -o jsonpath='{.status.readyToUse}' 2>/dev/null)" = "true" ]; then
+      return 0
+    fi
+    sleep 5
+  done
+  return 1
+}
+
 setup_file() {
   if ! kubectl cluster-info >/dev/null 2>&1; then
     export D3_K8S_SKIP=1
@@ -112,8 +153,7 @@ setup() {
 }
 
 @test "k8s pod ${REPO}-0 reaches Ready" {
-  run kubectl wait --for=condition=ready "pod/${REPO}-0" --timeout=180s
-  assert_success
+  wait_pod_ready "pod/${REPO}-0"
 }
 
 @test "k8s resources: StatefulSet, Service, Pod present with the right labels" {
@@ -198,8 +238,8 @@ setup() {
 # ---------------------------------------------------------------
 # Postgres connectivity end-to-end
 #
-# `kubectl wait --for=condition=ready` (test 5) returns when k8s says
-# the pod is Ready, but the d3 StatefulSet template has no readiness
+# `wait_pod_ready` (test 5) returns when k8s says the pod's Ready
+# condition is True, but the d3 StatefulSet template has no readiness
 # probe configured for postgres — so "Ready" only means "the postgres
 # process started," not "postgres is accepting connections." On a fast
 # runner this race shows up as `psql: ... no such file or directory` on
@@ -261,8 +301,7 @@ setup() {
 @test "d3 start scales it back up and pod becomes Ready" {
   run "$D3" start "$REPO" --context "$CTX"
   assert_success
-  run kubectl wait --for=condition=ready "pod/${REPO}-0" --timeout=180s
-  assert_success
+  wait_pod_ready "pod/${REPO}-0"
 }
 
 # ---------------------------------------------------------------
@@ -318,15 +357,11 @@ COMMIT_STATE="/tmp/d3-k8s-bats-commit-${REPO}"
     return 1
   }
 
-  # 300s, not 120s: csi-hostpath on minikube-on-GHA-runners can take
-  # several minutes to actually flush a snapshot to ReadyToUse; observed
-  # on PR #113 run 25070315289 timing out at 120s with the snapshot
-  # object created but readyToUse never flipping. On a real CSI backend
-  # (GKE pd, EBS, etc.) this is sub-second.
-  run kubectl wait --for=jsonpath='{.status.readyToUse}'=true \
-    "volumesnapshot/$snap" --timeout=300s
-  if [ "$status" -ne 0 ]; then
-    echo "VolumeSnapshot $snap did not become ReadyToUse within 300s"
+  # csi-hostpath on minikube-on-GHA-runners can take several minutes
+  # to flush a snapshot to ReadyToUse; on a real CSI backend (GKE pd,
+  # EBS, etc.) it's sub-second. Default helper iters = 60 × 5s = 300s.
+  if ! wait_snapshot_ready "$snap"; then
+    echo "VolumeSnapshot $snap did not become ReadyToUse"
     echo "--- kubectl describe volumesnapshot/$snap ---"
     kubectl describe "volumesnapshot/$snap" || true
     echo "--- kubectl describe volumesnapshotcontent (linked from snap) ---"
@@ -361,8 +396,7 @@ COMMIT_STATE="/tmp/d3-k8s-bats-commit-${REPO}"
 
   # checkout tears the pod down and recreates it from the snapshot's
   # PVC clone — wait for the new pod to come back ready.
-  run kubectl wait --for=condition=ready "pod/${REPO}-0" --timeout=180s
-  assert_success
+  wait_pod_ready "pod/${REPO}-0"
 
   run kubectl exec "${REPO}-0" -- psql -U postgres -c \
     "SELECT id FROM bats_baseline;"
