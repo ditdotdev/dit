@@ -66,6 +66,25 @@ wait_snapshot_ready() {
   return 1
 }
 
+# Wait for postgres in the given pod to actually accept psql
+# connections. Pod-Ready (per wait_pod_ready) only means the postgres
+# process started; this fills the postgres-startup-to-listening gap
+# that surfaces as `psql: ... no such file or directory` on the
+# socket or `Connection refused` on the TCP port. Used after every
+# pod recreation that's followed immediately by a psql call.
+wait_postgres_ready() {
+  local pod="$1"
+  local iters="${2:-30}"
+  for _ in $(seq 1 "$iters"); do
+    if kubectl exec "$pod" -- psql -U postgres -c "select 1" >/dev/null 2>&1; then
+      return 0
+    fi
+    sleep 1
+  done
+  echo "$pod postgres did not accept psql connections within $iters seconds"
+  return 1
+}
+
 setup_file() {
   if ! kubectl cluster-info >/dev/null 2>&1; then
     export D3_K8S_SKIP=1
@@ -250,12 +269,7 @@ setup() {
 # ---------------------------------------------------------------
 
 @test "postgres responds via kubectl exec" {
-  for _ in $(seq 1 30); do
-    if kubectl exec "${REPO}-0" -- psql -U postgres -c "select 1" >/dev/null 2>&1; then
-      break
-    fi
-    sleep 1
-  done
+  wait_postgres_ready "${REPO}-0"
   run kubectl exec "${REPO}-0" -- psql -U postgres -c "select version();"
   assert_success
   assert_output --partial "PostgreSQL"
@@ -400,9 +414,12 @@ COMMIT_STATE="/tmp/d3-k8s-bats-commit-${REPO}"
   run "$D3" checkout "$REPO" -c "$COMMIT_ID" --context "$CTX"
   assert_success
 
-  # checkout tears the pod down and recreates it from the snapshot's
-  # PVC clone — wait for the new pod to come back ready.
+  # checkout scales the StatefulSet down, swaps the PVC reference to
+  # the cloned-from-snapshot PVC, and scales back up. Wait for the
+  # new pod to be Ready, then for postgres inside it to actually
+  # accept connections (Ready alone doesn't imply postgres listening).
   wait_pod_ready "pod/${REPO}-0"
+  wait_postgres_ready "${REPO}-0"
 
   run kubectl exec "${REPO}-0" -- psql -U postgres -c \
     "SELECT id FROM bats_baseline;"
