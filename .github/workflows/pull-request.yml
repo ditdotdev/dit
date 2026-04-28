@@ -208,7 +208,7 @@ jobs:
       - name: Setup minikube
         uses: medyagh/setup-minikube@latest
         with:
-          driver: none
+          driver: docker
 
       - name: Verify kubernetes cluster
         run: |
