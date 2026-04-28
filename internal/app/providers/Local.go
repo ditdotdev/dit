@@ -44,7 +44,18 @@ func (l local) Checkout(repo string, guid string, tags []string) {
 }
 
 func (l local) Clone(uri string, repo string, commit string, params []string, arguments []string, disablePortMap bool, tags []string) {
-	cmn.Clone(uri, repo, commit, params, arguments, disablePortMap, tags, l.portNum, l.contextName)
+	cb := cmn.CloneCallbacks{
+		Run: func(image, repoName string, envs, args []string, disablePortMap, privileged bool) (string, error) {
+			return lcl.Run(image, repoName, envs, args, disablePortMap, privileged, false, l.portNum, l.contextName)
+		},
+		Checkout: func(repoName, commitId string) {
+			lcl.Checkout(repoName, commitId, nil, l.portNum, l.contextName)
+		},
+		Remove: func(repoName string, force bool) {
+			lcl.Remove(repoName, force, l.portNum, l.contextName)
+		},
+	}
+	cmn.Clone(uri, repo, commit, params, arguments, disablePortMap, tags, l.portNum, l.contextName, cb)
 }
 
 func (l local) Commit(repo string, message string, tags []string) {
