@@ -173,8 +173,12 @@ setup() {
 # ---------------------------------------------------------------
 
 @test "port-forward: localhost:5432 is reachable (regression for b7d040a)" {
-  # Try for up to 10s; on slow CI the port-forward can take a beat to come up.
-  for _ in $(seq 1 10); do
+  # Try for up to 30s. d3 spawns `kubectl port-forward` in the background;
+  # on a busy CI runner it can race with the StatefulSet pod actually
+  # opening its TCP listener. Observed test 13 (pid file recorded) pass
+  # while this one fails on PR #113 run 25070315289 — the pid was
+  # written but the connection wasn't established yet. 10s was too tight.
+  for _ in $(seq 1 30); do
     if (echo > /dev/tcp/127.0.0.1/5432) 2>/dev/null; then
       return 0
     fi
@@ -314,9 +318,28 @@ COMMIT_STATE="/tmp/d3-k8s-bats-commit-${REPO}"
     return 1
   }
 
+  # 300s, not 120s: csi-hostpath on minikube-on-GHA-runners can take
+  # several minutes to actually flush a snapshot to ReadyToUse; observed
+  # on PR #113 run 25070315289 timing out at 120s with the snapshot
+  # object created but readyToUse never flipping. On a real CSI backend
+  # (GKE pd, EBS, etc.) this is sub-second.
   run kubectl wait --for=jsonpath='{.status.readyToUse}'=true \
-    "volumesnapshot/$snap" --timeout=120s
-  assert_success
+    "volumesnapshot/$snap" --timeout=300s
+  if [ "$status" -ne 0 ]; then
+    echo "VolumeSnapshot $snap did not become ReadyToUse within 300s"
+    echo "--- kubectl describe volumesnapshot/$snap ---"
+    kubectl describe "volumesnapshot/$snap" || true
+    echo "--- kubectl describe volumesnapshotcontent (linked from snap) ---"
+    vsc=$(kubectl get "volumesnapshot/$snap" -o jsonpath='{.status.boundVolumeSnapshotContentName}' 2>/dev/null || true)
+    [ -n "$vsc" ] && kubectl describe "volumesnapshotcontent/$vsc" || echo "no boundVolumeSnapshotContentName"
+    echo "--- csi-hostpathplugin logs (tail 100, all containers) ---"
+    kubectl -n kube-system logs ds/csi-hostpathplugin --all-containers --tail=100 2>&1 || true
+    echo "--- snapshot-controller logs (tail 100) ---"
+    kubectl -n kube-system logs -l app=snapshot-controller --tail=100 2>&1 || \
+      kubectl -n kube-system logs -l app.kubernetes.io/name=snapshot-controller --tail=100 2>&1 || \
+      echo "no snapshot-controller pod found"
+    return 1
+  fi
 }
 
 @test "d3 checkout: restores prior database state from snapshot" {
