@@ -1,0 +1,137 @@
+# d3 demo: local development on minikube
+#
+# Companion to d3-demo.txt (which uses the docker context). This runs
+# the same lifecycle on a kubernetes context — the use case is a
+# developer iterating on an app that runs in k8s and depends on a
+# database schema. They add a column / table to support a new feature,
+# commit the database state alongside the code change, and share both
+# with the team via `d3 push`. Teammates `d3 pull` and `d3 checkout`
+# the matching commit so dev environments stay in sync.
+#
+# Prereqs:
+#   - minikube running (driver=hyperv on Windows, driver=docker
+#     elsewhere; driver=none on a CI runner). `kubectl cluster-info`
+#     must succeed before starting.
+#   - For `d3 commit` to work: `minikube addons enable volumesnapshots
+#     csi-hostpath-driver` (commits become VolumeSnapshot objects).
+
+### install kubernetes context
+
+./d3 context install -n k8s-demo -t kubernetes
+
+./d3 context ls
+
+### feature branch starts here — bring up postgres in k8s
+
+./d3 run postgres -n mydb -e POSTGRES_HOST_AUTH_METHOD=trust --context k8s-demo
+
+# d3 created a StatefulSet, a headless Service, and a PVC. Pod is
+# named <repo>-0 by k8s convention.
+
+kubectl get statefulset,svc,pvc,pod -l datadatdatRepository=mydb
+
+./d3 status mydb --context k8s-demo
+
+./d3 commit mydb -m "Initial commit"
+
+# Each commit is a CSI VolumeSnapshot — proof:
+
+kubectl get volumesnapshot
+
+### authenticate to datadatdat.com
+
+./d3 auth status
+
+# if needed
+
+./d3 auth login --server https://datadatdat.com --api-key 02b31569a9052bc4b3cf1c3819d4fc048d34c96eca21f2b8e2359b5ecdfec93a
+
+./d3 repo list
+
+# push to remote so teammates can pull
+
+./d3 remote add https://datadatdat.com/robertericreeves/mydb mydb
+
+./d3 push mydb
+
+./d3 remote log mydb
+
+./d3 repo list
+
+### feature work: app needs a users table — add it, commit, push
+
+kubectl exec mydb-0 -- psql -U postgres -c "CREATE TABLE users (id SERIAL PRIMARY KEY, name VARCHAR(100), email VARCHAR(100));"
+
+./d3 commit mydb -m "Added users table"
+
+kubectl get volumesnapshot
+
+./d3 push mydb
+
+### feature work: seed sample data, commit, push, tag the release
+
+kubectl exec mydb-0 -- psql -U postgres -c "INSERT INTO users (name, email) VALUES ('Alice', 'alice@example.com'), ('Bob', 'bob@example.com');"
+
+./d3 commit mydb -m "Added sample users" -t v2.3.4
+
+./d3 push mydb
+
+### checkout history — verify the schema at each commit
+
+./d3 log mydb
+
+# initial commit: no users table
+
+./d3 checkout mydb -c b3f5abec76da479cb6525c7de8765076
+
+kubectl exec mydb-0 -- psql -U postgres -c "\dt"
+
+# after CREATE TABLE: users table exists, no rows
+
+./d3 checkout mydb -c 03c0319b36e746369b5e79d284a1519b
+
+kubectl exec mydb-0 -- psql -U postgres -c "\dt"
+
+# after INSERT: rows are back
+
+./d3 checkout mydb -c e6187071fb4e430285d812d4a62d49f7
+
+kubectl exec mydb-0 -- psql -U postgres -c "SELECT * FROM users;"
+
+### teammate flow: wipe local, clone from remote, pull specific commits
+
+./d3 stop mydb --context k8s-demo
+
+./d3 rm mydb --context k8s-demo
+
+./d3 clone https://datadatdat.com/robertericreeves/mydb --context k8s-demo
+
+./d3 log mydb
+
+./d3 remote log mydb
+
+# pull initial commit only — bring up postgres at the empty-schema state
+
+./d3 pull mydb -c b3f5abec76da479cb6525c7de8765076
+
+./d3 checkout mydb -c b3f5abec76da479cb6525c7de8765076
+
+# pull the schema commit, switch to it
+
+./d3 pull mydb -c 03c0319b36e746369b5e79d284a1519b
+
+./d3 checkout mydb -c 03c0319b36e746369b5e79d284a1519b
+
+# checkout the tagged release directly
+
+./d3 checkout mydb -t v2.3.4
+
+kubectl exec mydb-0 -- psql -U postgres -c "SELECT * FROM users;"
+
+### clean up
+
+./d3 rm mydb -f --context k8s-demo
+
+./d3 repo delete robertericreeves mydb
+
+./d3 context uninstall -f k8s-demo

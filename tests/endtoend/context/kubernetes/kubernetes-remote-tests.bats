@@ -23,6 +23,24 @@ REPO="commit-test"
 S3WEB_URL="s3web://demo-datadatdat.s3-website-us-west-2.amazonaws.com/hello-world/postgres"
 S3_URL="s3://demo-datadatdat/hello-world/postgres"
 
+# Wait for a Pod's Ready condition. Default 36 iterations × 5s = 180s.
+# Mirrors the helper in kubernetes-tests.bats — bounded poll on the
+# explicit condition we want, rather than `kubectl wait --timeout=Ns`
+# where the wall clock is decoupled from the predicate.
+wait_pod_ready() {
+  local pod="$1"
+  local iters="${2:-36}"
+  for _ in $(seq 1 "$iters"); do
+    if kubectl get "$pod" -o jsonpath='{.status.conditions[?(@.type=="Ready")].status}' 2>/dev/null | grep -q '^True$'; then
+      return 0
+    fi
+    sleep 5
+  done
+  echo "$pod did not reach Ready within $((iters * 5))s"
+  kubectl describe "$pod" 2>/dev/null || true
+  return 1
+}
+
 setup_file() {
   if ! kubectl cluster-info >/dev/null 2>&1; then
     export D3_K8S_SKIP=1
@@ -57,6 +75,18 @@ setup_file() {
 
 teardown_file() {
   if [ -n "$D3_K8S_SKIP" ]; then return 0; fi
+  # Capture k8stest d3 server logs BEFORE uninstall removes the
+  # container. The workflow's later "Show compose and k8s logs" step
+  # globs over `docker ps -a` which excludes removed containers — so by
+  # then the k8stest server is gone and `docker logs` returns "no such
+  # container". Failures in `d3 push` / `d3 commit` from the tests
+  # below return a 500 from inside this server (api-gateway never sees
+  # the request), so without these logs there's no way to diagnose Bug
+  # 2 from CI output. Always-on; ~200 lines of postgres init noise on
+  # green runs is an acceptable tradeoff for the diagnostic on red.
+  echo "=== docker logs datadatdat-${CTX}-server (pre-teardown) ==="
+  docker logs "datadatdat-${CTX}-server" 2>&1 | tail -300 || true
+  echo "=== end of datadatdat-${CTX}-server logs ==="
   for r in "$REPO" hello-clone-datadatdat hello-clone-s3 hello-clone-s3web; do
     "$D3" rm -f "$r" --context "$CTX" 2>/dev/null || true
   done
@@ -76,8 +106,7 @@ setup() {
 @test "k8s + remote: postgres comes up" {
   run "$D3" run postgres:latest -n "$REPO" -e POSTGRES_HOST_AUTH_METHOD=trust --context "$CTX"
   assert_success
-  run kubectl wait --for=condition=ready "pod/${REPO}-0" --timeout=180s
-  assert_success
+  wait_pod_ready "pod/${REPO}-0"
 }
 
 # ---------------------------------------------------------------
@@ -131,8 +160,7 @@ setup() {
 @test "clone (datadatdat): pull the pushed repo back, pod comes up, t3 exists" {
   run "$D3" clone -n hello-clone-datadatdat --context "$CTX" "${REMOTE_URL}/${TEST_ORG}/k8stest-repo"
   assert_success
-  run kubectl wait --for=condition=ready pod/hello-clone-datadatdat-0 --timeout=180s
-  assert_success
+  wait_pod_ready pod/hello-clone-datadatdat-0
   run kubectl exec hello-clone-datadatdat-0 -- psql -U postgres -c "select count(*) from t3"
   assert_success
   assert_output --partial "1"
@@ -145,8 +173,10 @@ setup() {
 @test "clone (s3web): hello-world/postgres from public website endpoint" {
   run "$D3" clone -n hello-clone-s3web --context "$CTX" "$S3WEB_URL"
   assert_success
-  run kubectl wait --for=condition=ready pod/hello-clone-s3web-0 --timeout=300s
-  assert_success
+  # 60 iters × 5s = 300s. Pulling postgres + cloning the snapshot back
+  # takes longer than a fresh `d3 run` because the dataset has actual
+  # data in it.
+  wait_pod_ready pod/hello-clone-s3web-0 60
 }
 
 @test "clone (s3): hello-world/postgres from S3 bucket" {
@@ -155,6 +185,5 @@ setup() {
   fi
   run "$D3" clone -n hello-clone-s3 --context "$CTX" "$S3_URL"
   assert_success
-  run kubectl wait --for=condition=ready pod/hello-clone-s3-0 --timeout=300s
-  assert_success
+  wait_pod_ready pod/hello-clone-s3-0 60
 }

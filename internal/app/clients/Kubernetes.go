@@ -435,19 +435,49 @@ func portForwardPidFilesFor(repoName string) []string {
  * Update the volumes within a given StatefulSet.
  */
 func (k kubernetes) UpdateStatefulSetVolumes(repoName string, volumes []datadatdatclient.Volume) {
+	// Build a JSONPatch document. Two pre-existing bugs:
+	//
+	//  1. The previous string-concat used `\\\"` (which evaluates to `\"`,
+	//     an escaped backslash + quote) where it should have used `\"`
+	//     (which evaluates to `"`). The k8s apiserver rejected the patch
+	//     with "error decoding patch: invalid character '\\' looking for
+	//     beginning of object key string", and the warning was ignored
+	//     by the caller — so the volumes were never updated.
+	//
+	//  2. JSONPatchType requires an array of operations: `[{...},{...}]`.
+	//     The previous code emitted bare `{...}{...}` with no wrapping
+	//     brackets and no comma separator, which would have failed to
+	//     parse even if the quotes were right.
+	//
+	// Surfaced by kubernetes-tests.bats test 19 — d3 checkout returned
+	// success without actually swapping PVCs because the patch silently
+	// failed. See StopStatefulSet/StartStatefulSet patches for the
+	// correct shape (array, single-escaped quotes).
 	set, _ := client.AppsV1().StatefulSets(k.namespace).Get(ctx, repoName, metav1.GetOptions{})
-	var p string
 	specVolumes := set.Spec.Template.Spec.Volumes
-	if len(specVolumes) > 0 {
-		for volumeIdx, volumeDef := range specVolumes {
-			for _, vol := range volumes {
-				if vol.Name == volumeDef.Name {
-					p = p + "{\\\"op\\\":\\\"replace\\\",\\\"path\\\":\\\"/spec/template/spec/volumes/" + strconv.Itoa(volumeIdx) + "/persistentVolumeClaim/claimName\\\",\\\"value\\\":\\\"" + vol.Config["pvc"].(string) + "\\\"}"
+	if len(specVolumes) == 0 {
+		return
+	}
+	var ops []string
+	for volumeIdx, volumeDef := range specVolumes {
+		for _, vol := range volumes {
+			if vol.Name == volumeDef.Name {
+				pvc, ok := vol.Config["pvc"].(string)
+				if !ok || pvc == "" {
+					continue
 				}
+				ops = append(ops, fmt.Sprintf(
+					`{"op":"replace","path":"/spec/template/spec/volumes/%d/persistentVolumeClaim/claimName","value":%q}`,
+					volumeIdx, pvc,
+				))
 			}
 		}
 	}
-	if _, err := client.AppsV1().StatefulSets(k.namespace).Patch(ctx, repoName, types.JSONPatchType, []byte(p), metav1.PatchOptions{}); err != nil {
+	if len(ops) == 0 {
+		return
+	}
+	patch := []byte("[" + strings.Join(ops, ",") + "]")
+	if _, err := client.AppsV1().StatefulSets(k.namespace).Patch(ctx, repoName, types.JSONPatchType, patch, metav1.PatchOptions{}); err != nil {
 		fmt.Printf("Warning: Failed to patch stateful set volumes: %v\n", err)
 	}
 }
