@@ -411,13 +411,45 @@ COMMIT_STATE="/tmp/d3-k8s-bats-commit-${REPO}"
   run kubectl exec "${REPO}-0" -- psql -U postgres -c "SELECT 1 FROM bats_baseline LIMIT 1;"
   assert_failure
 
+  # Capture the pod's UID so we can assert checkout actually recreated
+  # it. d3 checkout has to swap the StatefulSet's PVC reference AND
+  # force pod recreation — patching volumes alone doesn't roll a
+  # StatefulSet. If the pod stays the same (same UID), the new PVC is
+  # never mounted and postgres serves the stale state.
+  old_uid=$(kubectl get "pod/${REPO}-0" -o jsonpath='{.metadata.uid}' 2>/dev/null || true)
+  [ -n "$old_uid" ] || { echo "could not capture pre-checkout pod UID"; return 1; }
+
   run "$D3" checkout "$REPO" -c "$COMMIT_ID" --context "$CTX"
   assert_success
+  # Print captured output so we can see what d3 checkout actually did
+  # (assert_success swallows stdout on success otherwise).
+  echo "--- d3 checkout output ---"
+  echo "$output"
+  echo "--- end d3 checkout output ---"
 
-  # checkout scales the StatefulSet down, swaps the PVC reference to
-  # the cloned-from-snapshot PVC, and scales back up. Wait for the
-  # new pod to be Ready, then for postgres inside it to actually
-  # accept connections (Ready alone doesn't imply postgres listening).
+  # Wait for the StatefulSet controller to recreate the pod. Same name,
+  # different UID. If UID never changes, d3 checkout didn't trigger
+  # pod recreation and the new PVC is unused — fail loudly with the
+  # StatefulSet description so we can see what state d3 left it in.
+  for _ in $(seq 1 36); do
+    new_uid=$(kubectl get "pod/${REPO}-0" -o jsonpath='{.metadata.uid}' 2>/dev/null || true)
+    if [ -n "$new_uid" ] && [ "$new_uid" != "$old_uid" ]; then
+      break
+    fi
+    sleep 5
+  done
+  if [ -z "$new_uid" ] || [ "$new_uid" = "$old_uid" ]; then
+    echo "pod UID did not change after d3 checkout"
+    echo "  old: $old_uid"
+    echo "  new: ${new_uid:-(no pod)}"
+    echo "--- kubectl describe statefulset/${REPO} ---"
+    kubectl describe "statefulset/${REPO}" || true
+    echo "--- kubectl get pvc ---"
+    kubectl get pvc || true
+    return 1
+  fi
+
+  # New pod is up — wait for postgres inside it to accept connections.
   wait_pod_ready "pod/${REPO}-0"
   wait_postgres_ready "${REPO}-0"
 
