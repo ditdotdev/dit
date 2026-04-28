@@ -51,16 +51,6 @@ setup_file() {
     fi
     sleep 2
   done
-
-  # Workaround for datadatdat-server#139: the first POST /v1/repositories
-  # after server startup returns EOF on the client side. Subsequent POSTs
-  # succeed. Do a throw-away POST/DELETE here so the next test's `d3 run`
-  # gets a warmed-up server. Remove this block once #139 is fixed.
-  curl -s -o /dev/null -X POST -H "Content-Type: application/json" \
-    -d '{"name":"warmup-noop","properties":{}}' \
-    "http://localhost:${server_port}/v1/repositories" || true
-  curl -s -o /dev/null -X DELETE \
-    "http://localhost:${server_port}/v1/repositories/warmup-noop" || true
 }
 
 teardown_file() {

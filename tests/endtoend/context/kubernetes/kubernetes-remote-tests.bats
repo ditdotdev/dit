@@ -44,9 +44,7 @@ setup_file() {
 
   "$D3" context install -n "$CTX" -t kubernetes
 
-  # Wait for /v1/ to respond, then warm up the first POST route. See
-  # datadatdat-server#139 — the very first POST after server startup
-  # returns EOF on the client. Removing this block once that's fixed.
+  # Wait for the embedded Ktor app to start serving /v1/.
   local server_port
   server_port=$(awk -v ctx="$CTX:" '$0 ~ ctx{f=1} f && /port:/{print $2; exit}' "$HOME/.datadatdat/config")
   for _ in $(seq 1 60); do
@@ -55,11 +53,6 @@ setup_file() {
     fi
     sleep 2
   done
-  curl -s -o /dev/null -X POST -H "Content-Type: application/json" \
-    -d '{"name":"warmup-noop","properties":{}}' \
-    "http://localhost:${server_port}/v1/repositories" || true
-  curl -s -o /dev/null -X DELETE \
-    "http://localhost:${server_port}/v1/repositories/warmup-noop" || true
 }
 
 teardown_file() {
