@@ -23,6 +23,24 @@ REPO="commit-test"
 S3WEB_URL="s3web://demo-datadatdat.s3-website-us-west-2.amazonaws.com/hello-world/postgres"
 S3_URL="s3://demo-datadatdat/hello-world/postgres"
 
+# Wait for a Pod's Ready condition. Default 36 iterations × 5s = 180s.
+# Mirrors the helper in kubernetes-tests.bats — bounded poll on the
+# explicit condition we want, rather than `kubectl wait --timeout=Ns`
+# where the wall clock is decoupled from the predicate.
+wait_pod_ready() {
+  local pod="$1"
+  local iters="${2:-36}"
+  for _ in $(seq 1 "$iters"); do
+    if kubectl get "$pod" -o jsonpath='{.status.conditions[?(@.type=="Ready")].status}' 2>/dev/null | grep -q '^True$'; then
+      return 0
+    fi
+    sleep 5
+  done
+  echo "$pod did not reach Ready within $((iters * 5))s"
+  kubectl describe "$pod" 2>/dev/null || true
+  return 1
+}
+
 setup_file() {
   if ! kubectl cluster-info >/dev/null 2>&1; then
     export D3_K8S_SKIP=1
@@ -88,8 +106,7 @@ setup() {
 @test "k8s + remote: postgres comes up" {
   run "$D3" run postgres:latest -n "$REPO" -e POSTGRES_HOST_AUTH_METHOD=trust --context "$CTX"
   assert_success
-  run kubectl wait --for=condition=ready "pod/${REPO}-0" --timeout=180s
-  assert_success
+  wait_pod_ready "pod/${REPO}-0"
 }
 
 # ---------------------------------------------------------------
@@ -143,8 +160,7 @@ setup() {
 @test "clone (datadatdat): pull the pushed repo back, pod comes up, t3 exists" {
   run "$D3" clone -n hello-clone-datadatdat --context "$CTX" "${REMOTE_URL}/${TEST_ORG}/k8stest-repo"
   assert_success
-  run kubectl wait --for=condition=ready pod/hello-clone-datadatdat-0 --timeout=180s
-  assert_success
+  wait_pod_ready pod/hello-clone-datadatdat-0
   run kubectl exec hello-clone-datadatdat-0 -- psql -U postgres -c "select count(*) from t3"
   assert_success
   assert_output --partial "1"
@@ -157,8 +173,10 @@ setup() {
 @test "clone (s3web): hello-world/postgres from public website endpoint" {
   run "$D3" clone -n hello-clone-s3web --context "$CTX" "$S3WEB_URL"
   assert_success
-  run kubectl wait --for=condition=ready pod/hello-clone-s3web-0 --timeout=300s
-  assert_success
+  # 60 iters × 5s = 300s. Pulling postgres + cloning the snapshot back
+  # takes longer than a fresh `d3 run` because the dataset has actual
+  # data in it.
+  wait_pod_ready pod/hello-clone-s3web-0 60
 }
 
 @test "clone (s3): hello-world/postgres from S3 bucket" {
@@ -167,6 +185,5 @@ setup() {
   fi
   run "$D3" clone -n hello-clone-s3 --context "$CTX" "$S3_URL"
   assert_success
-  run kubectl wait --for=condition=ready pod/hello-clone-s3-0 --timeout=300s
-  assert_success
+  wait_pod_ready pod/hello-clone-s3-0 60
 }
