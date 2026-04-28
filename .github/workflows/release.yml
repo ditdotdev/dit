@@ -109,10 +109,18 @@ jobs:
       # `make e2e` now includes. The suite auto-skips when the cluster is
       # absent, but we want the release path to exercise the k8s provider
       # before publishing artifacts.
+      #
+      # driver=none (kubeadm directly on the runner host) instead of the
+      # docker driver: the docker driver runs the apiserver inside a
+      # container on minikube's private network (192.168.49.2:8443),
+      # which the d3 server container — running on its own docker bridge
+      # — has no route to. CreateVolume / CreatePVC then fails with a
+      # 500 from inside the d3 server. driver=none puts the apiserver on
+      # the host network where every container can reach it.
       - name: Setup minikube
         uses: medyagh/setup-minikube@latest
         with:
-          driver: docker
+          driver: none
 
       - name: Verify kubernetes cluster
         run: |
