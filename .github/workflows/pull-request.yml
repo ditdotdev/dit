@@ -201,6 +201,23 @@ jobs:
           cd tests/endtoend/remotes/ssh
           ./generateKey.sh ubuntu-22.04
 
+      # Provision a local kubernetes cluster so the kubernetes-tests.bats
+      # suite (wired into `make e2e`) actually exercises the kubernetes
+      # provider. Auto-skips with a clear message if absent, so this step
+      # is the difference between testing the k8s path vs. silently no-op.
+      - name: Setup minikube
+        uses: medyagh/setup-minikube@latest
+        with:
+          driver: none
+
+      - name: Verify kubernetes cluster
+        run: |
+          kubectl cluster-info
+          kubectl get nodes
+
+      - name: Install postgresql-client (for psql port-forward test)
+        run: sudo apt-get install -y postgresql-client
+
       - name: Run Test Suite
         run: |
           export PATH=$GITHUB_WORKSPACE/build:$PATH
@@ -209,6 +226,32 @@ jobs:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           AWS_REGION: ${{ secrets.AWS_REGION }}
+
+      # Show container and k8s logs on every run: surfaces server-side
+      # errors that BATS can't see (kubernetes-csi server's response to
+      # CreateVolume, docker-zfs server's PostgreSQL/ZFS errors) when
+      # tests fail, and gives a known-good baseline to compare against
+      # when they pass. Without this on success runs, regressions that
+      # show up as "everything green but server logged a warning" stay
+      # invisible until the warning becomes a failure later.
+      - name: Show container and k8s logs
+        if: always()
+        run: |
+          for c in $(docker ps -a --filter "name=datadatdat" --format '{{.Names}}'); do
+            echo "=== docker logs $c ==="
+            docker logs "$c" 2>&1 | tail -200 || true
+          done
+          if kubectl cluster-info >/dev/null 2>&1; then
+            echo "=== kubectl get all -A ==="
+            kubectl get all -A || true
+            echo "=== kubectl get pvc -A ==="
+            kubectl get pvc -A || true
+            echo "=== kubectl get storageclass ==="
+            kubectl get storageclass || true
+            echo "=== kubectl get events -A --sort-by=.lastTimestamp (last 50) ==="
+            kubectl get events -A --sort-by=.lastTimestamp 2>/dev/null | tail -50 || true
+          fi
+        shell: bash
 
       # Belt-and-suspenders: clean up the run-specific S3 prefixes even if
       # tests failed partway through, so we don't leak objects into the

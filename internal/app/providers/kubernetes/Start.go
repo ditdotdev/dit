@@ -15,7 +15,7 @@ func Start(repoName string, port int) {
 	fmt.Println("Waiting for deployment to be ready")
 	k8s.WaitForStatefulSet(repoName)
 
-	if !repo.Properties["disablePortMapping"].(bool) {
+	if !disablePortMappingFromRepo(repo) {
 		fmt.Println("Starting port forwarding")
 		k8s.StartPortForwarding(repoName)
 	}

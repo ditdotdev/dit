@@ -3,6 +3,8 @@ package commands
 import (
 	"datadatdat/internal/app/providers"
 	"fmt"
+	"os"
+
 	"github.com/spf13/cobra"
 )
 
@@ -14,8 +16,17 @@ var listCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		h := fmt.Sprintf("%-12s  %-20s  %s", "CONTEXT", "REPOSITORY", "STATUS")
 		fmt.Println(h)
-		for key, provider := range providers.List() {
-			provider.List(key)
+		if context != "" {
+			p, ok := providers.List()[context]
+			if !ok {
+				fmt.Fprintln(os.Stderr, "Error: no such context '"+context+"'")
+				os.Exit(1)
+			}
+			p.List(context)
+			return
+		}
+		for key, p := range providers.List() {
+			p.List(key)
 		}
 	},
 }

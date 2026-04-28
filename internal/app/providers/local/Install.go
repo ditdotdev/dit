@@ -64,7 +64,7 @@ func Install(latest string, registry string, verbose bool, port int, context str
 		s.Prefix = "Removing datadatdat server "
 		s.FinalMSG = "Old datadatdat server removed"
 		s.Start()
-		if _, err := docker.Remove("datadatdat-docker-server", true); err != nil {
+		if _, err := docker.Remove("datadatdat-"+context+"-server", true); err != nil {
 			fmt.Printf("Warning: Failed to remove datadatdat server: %v\n", err)
 		}
 		s.Stop()
@@ -75,7 +75,7 @@ func Install(latest string, registry string, verbose bool, port int, context str
 		s.Prefix = "Removing stale datadatdat-launch container "
 		s.FinalMSG = "Stale datadatdat-launch container removed"
 		s.Start()
-		if _, err := docker.Remove("datadatdat-docker-launch", true); err != nil {
+		if _, err := docker.Remove("datadatdat-"+context+"-launch", true); err != nil {
 			fmt.Printf("Warning: Failed to remove datadatdat launch container: %v\n", err)
 		}
 		s.Stop()

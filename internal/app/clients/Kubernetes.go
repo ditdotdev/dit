@@ -7,12 +7,16 @@ import (
 	datadatdatclient "github.com/datadatdat/datadatdat-client-go"
 	v1Apps "k8s.io/api/apps/v1"
 	v1 "k8s.io/api/core/v1"
+	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	k8s "k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/client-go/util/homedir"
+	"os"
+	"os/exec"
 	"path/filepath"
+	"runtime"
 	"strconv"
 	"strings"
 	"time"
@@ -56,7 +60,7 @@ func (k kubernetes) CreateStatefulSet(repoName string, imageId string, ports []i
 		Namespace: k.namespace,
 		Labels:    map[string]string{"datadatdatRepository": repoName},
 	}
-	servicePorts := make([]v1.ServicePort, len(ports))
+	servicePorts := make([]v1.ServicePort, 0, len(ports))
 	for _, port := range ports {
 		servicePorts = append(servicePorts, v1.ServicePort{
 			Name: "port-" + strconv.Itoa(port),
@@ -83,7 +87,7 @@ func (k kubernetes) CreateStatefulSet(repoName string, imageId string, ports []i
 		return err
 	}
 
-	containerPorts := make([]v1.ContainerPort, len(ports))
+	containerPorts := make([]v1.ContainerPort, 0, len(ports))
 	for _, port := range ports {
 		containerPorts = append(containerPorts, v1.ContainerPort{
 			Name: "port-" + strconv.Itoa(port),
@@ -91,7 +95,7 @@ func (k kubernetes) CreateStatefulSet(repoName string, imageId string, ports []i
 			ContainerPort: int32(port),
 		})
 	}
-	envs := make([]v1.EnvVar, len(environment))
+	envs := make([]v1.EnvVar, 0, len(environment))
 	for _, environment := range environment {
 		s := strings.Split(environment, "=")
 		envs = append(envs, v1.EnvVar{
@@ -99,7 +103,7 @@ func (k kubernetes) CreateStatefulSet(repoName string, imageId string, ports []i
 			Value: s[1],
 		})
 	}
-	volumeMounts := make([]v1.VolumeMount, len(volumes))
+	volumeMounts := make([]v1.VolumeMount, 0, len(volumes))
 	for _, volume := range volumes {
 		volumeMounts = append(volumeMounts, v1.VolumeMount{
 			Name:      volume.Name,
@@ -113,13 +117,20 @@ func (k kubernetes) CreateStatefulSet(repoName string, imageId string, ports []i
 		Env:          envs,
 		VolumeMounts: volumeMounts,
 	}
-	containers := make([]v1.Container, 1)
-	containers = append(containers, container)
+	containers := []v1.Container{container}
 
-	vols := make([]v1.Volume, len(volumes))
+	vols := make([]v1.Volume, 0, len(volumes))
 	for _, volume := range volumes {
+		// The server-generated PVC name lives in `Config`, not `Properties`.
+		// `Properties` carries client-provided metadata (e.g. mount path);
+		// `Config` carries server-generated details (pvc, namespace, size).
+		// See /v1/repositories/<repo>/volumes response from the server.
+		claimName, ok := volume.Config["pvc"].(string)
+		if !ok || claimName == "" {
+			return fmt.Errorf("volume %q has no PVC name in Config; server did not populate Config[\"pvc\"]", volume.Name)
+		}
 		pvc := v1.PersistentVolumeClaimVolumeSource{
-			ClaimName: volume.Properties["pvc"].(string),
+			ClaimName: claimName,
 		}
 		vols = append(vols, v1.Volume{
 			Name: volume.Name,
@@ -201,21 +212,35 @@ func (k kubernetes) GetStatefulSetStatus(repoName string) (string, error) {
 	return "starting", nil
 }
 
+// waitForStatefulSetTimeout caps how long WaitForStatefulSet will busy-poll
+// before giving up. Exposed as a package var (not a const) so tests can shrink
+// it to keep the suite fast.
+var waitForStatefulSetTimeout = 2 * time.Minute
+
+// waitForStatefulSetPollInterval is the gap between status polls. Pre-fix this
+// was `time.Sleep(1000)` which is 1000 nanoseconds — effectively a busy loop.
+var waitForStatefulSetPollInterval = 1 * time.Second
+
 /**
  * Wait for the given statefulset to reach a terminal state (running or stopped), throwing an error if we've
- * reached the failed state.
+ * reached the failed state. Bails after waitForStatefulSetTimeout if the StatefulSet never reaches a terminal
+ * state — a "detached" status (no StatefulSet present) is treated as terminal so callers like d3 stop / d3 rm
+ * don't hang forever waiting for resources that were never created.
  */
 func (k kubernetes) WaitForStatefulSet(repoName string) {
-	check := true
-	for check {
+	deadline := time.Now().Add(waitForStatefulSetTimeout)
+	for {
 		status, err := k.GetStatefulSetStatus(repoName)
-		if status == "failed" {
+		switch status {
+		case "failed":
 			panic(err)
+		case "running", "stopped", "detached":
+			return
 		}
-		if status == "running" || status == "stopped" {
-			check = false
+		if time.Now().After(deadline) {
+			return
 		}
-		time.Sleep(1000)
+		time.Sleep(waitForStatefulSetPollInterval)
 	}
 }
 
@@ -227,32 +252,183 @@ func (k kubernetes) WaitForStatefulSet(repoName string) {
  * as: https://github.com/pixel-point/kube-forwarder
  */
 func (k kubernetes) StartPortForwarding(repoName string) {
-	// There can be a race condition where even though the pod is listed as ready port forwarding fails
-	time.Sleep(500)
+	// Small grace period: the pod can report Ready before the service
+	// endpoint is actually routable. (time.Sleep takes a Duration; a bare
+	// literal is nanoseconds, so we explicitly use time.Second here.)
+	time.Sleep(1 * time.Second)
 	service, _ := client.CoreV1().Services(k.namespace).Get(ctx, repoName, metav1.GetOptions{})
 	ports := service.Spec.Ports
 	for _, port := range ports {
-		if _, err := ce.Exec("sh", "-c", "kubectl port-forward svc/"+repoName+" "+fmt.Sprint(port.Port)+" > /dev/null 2>&1 &"); err != nil {
+		// Launch kubectl port-forward as a detached child that outlives the
+		// current `d3` invocation. The earlier approach shelled out to
+		// `sh -c "... &"` via ce.Exec which waits for the shell; once the
+		// shell exits, the `&`-backgrounded grandchild is orphaned and, on
+		// Windows, gets reaped almost immediately, so `psql -h localhost`
+		// would fail with "connection refused".
+		//
+		// exec.Command + Start (without Wait) leaves the child running
+		// and independent of d3.
+		cmd := exec.Command("kubectl", "port-forward", "svc/"+repoName, fmt.Sprint(port.Port)) // #nosec G204 -- repoName and port come from the user's own repo and service spec
+		cmd.Stdin = nil
+		cmd.Stdout = nil
+		cmd.Stderr = nil
+		cmd.SysProcAttr = detachedSysProcAttr()
+		if err := cmd.Start(); err != nil {
 			fmt.Printf("Warning: Failed to setup port forward for port %d: %v\n", port.Port, err)
+			continue
+		}
+		pid := cmd.Process.Pid
+		// Release the handle so the child is not waited on by d3's exit.
+		if err := cmd.Process.Release(); err != nil {
+			fmt.Printf("Warning: Failed to detach port-forward for port %d: %v\n", port.Port, err)
+		}
+		// Persist the PID so StopPortForwarding can find the process on
+		// any OS without depending on `ps | grep` semantics (which Git
+		// Bash can't use to see native Windows processes).
+		if err := writePortForwardPid(repoName, port.Port, pid); err != nil {
+			fmt.Printf("Warning: Failed to record port-forward pid for port %d: %v\n", port.Port, err)
 		}
 	}
 }
 
-/**
- * This is horribly OS-specific, and should be replaced with a more complete solution as described above.
- */
+// StopPortForwarding kills any kubectl port-forward processes that
+// StartPortForwarding launched for this repo. Matches by PID file rather
+// than by Service spec lookup so it still works after the Service has
+// been deleted (e.g. during `d3 rm`).
+//
+// Note on Windows: when kubectl is installed via Chocolatey, /c/bin/kubectl
+// is a "shim" PE that launches the real kubectl.exe and exits. Go's
+// cmd.Process.Pid captures the shim, which is already gone by the time we
+// try to kill it — the actual kubectl listening on the local port has a
+// different pid. So we also resolve the pid by walking the pid-file's
+// port back to whoever is currently LISTENING on it, and kill that too.
 func (k kubernetes) StopPortForwarding(repoName string) {
-	service, _ := client.CoreV1().Services(k.namespace).Get(ctx, repoName, metav1.GetOptions{})
-	ports := service.Spec.Ports
-	if len(ports) > 0 {
-		for _, port := range ports {
-			out, _ := ce.Exec("sh", "-c", "ps -ef | grep \\\"[k]ubectl port-forward svc/"+repoName+" "+fmt.Sprint(port.Port)+"\\\"")
-			pid := strings.Split(out, " ")
-			if _, err := ce.Exec("kill", pid[2]); err != nil {
-				fmt.Printf("Warning: Failed to kill port-forward process: %v\n", err)
+	for _, pidFile := range portForwardPidFilesFor(repoName) {
+		killPidFromFile(pidFile)
+		if port, ok := portFromPidFilename(pidFile); ok {
+			if pid := findListeningPidOnPort(port); pid != 0 {
+				if proc, err := os.FindProcess(pid); err == nil {
+					_ = proc.Kill()
+				}
 			}
 		}
+		_ = os.Remove(pidFile)
 	}
+}
+
+func killPidFromFile(pidFile string) {
+	data, err := os.ReadFile(pidFile) // #nosec G304 -- path is derived from user's home and a known prefix
+	if err != nil {
+		return
+	}
+	pid, err := strconv.Atoi(strings.TrimSpace(string(data)))
+	if err != nil {
+		return
+	}
+	if proc, err := os.FindProcess(pid); err == nil {
+		_ = proc.Kill()
+	}
+}
+
+// portFromPidFilename parses the port number out of a pid file path with
+// the shape portforward-<repo>-<port>.pid.
+func portFromPidFilename(pidFile string) (int, bool) {
+	base := filepath.Base(pidFile)
+	if !strings.HasSuffix(base, ".pid") {
+		return 0, false
+	}
+	// Strip suffix and leading "portforward-"
+	stem := strings.TrimSuffix(base, ".pid")
+	// Port is after the last "-"
+	lastDash := strings.LastIndex(stem, "-")
+	if lastDash < 0 {
+		return 0, false
+	}
+	port, err := strconv.Atoi(stem[lastDash+1:])
+	if err != nil {
+		return 0, false
+	}
+	return port, true
+}
+
+// findListeningPidOnPort returns the pid of the process currently bound to
+// the given TCP port on the local host, or 0 if nothing is listening.
+// Cross-platform via OS-specific lookup (netstat on Windows, lsof elsewhere).
+func findListeningPidOnPort(port int) int {
+	if runtime.GOOS == "windows" {
+		// #nosec G204 -- port is an int rendered via strconv.Itoa, only digits, no shell injection surface.
+		out, err := exec.Command("cmd", "/c", "netstat -ano | findstr :"+strconv.Itoa(port)).CombinedOutput()
+		if err != nil {
+			return 0
+		}
+		for _, line := range strings.Split(string(out), "\n") {
+			if !strings.Contains(line, "LISTENING") {
+				continue
+			}
+			fields := strings.Fields(line)
+			if len(fields) < 5 {
+				continue
+			}
+			// The local address is fields[1]; only match if its port
+			// segment is exactly our port (avoids matching 54321 etc.)
+			localAddr := fields[1]
+			colon := strings.LastIndex(localAddr, ":")
+			if colon < 0 || localAddr[colon+1:] != strconv.Itoa(port) {
+				continue
+			}
+			if pid, err := strconv.Atoi(fields[len(fields)-1]); err == nil {
+				return pid
+			}
+		}
+		return 0
+	}
+	// #nosec G204 -- port is an int rendered via strconv.Itoa, only digits, no shell injection surface.
+	out, err := exec.Command("lsof", "-t", "-iTCP:"+strconv.Itoa(port), "-sTCP:LISTEN").CombinedOutput()
+	if err != nil {
+		return 0
+	}
+	for _, line := range strings.Split(strings.TrimSpace(string(out)), "\n") {
+		if pid, err := strconv.Atoi(strings.TrimSpace(line)); err == nil {
+			return pid
+		}
+	}
+	return 0
+}
+
+func portForwardPidDir() string {
+	home, _ := os.UserHomeDir()
+	return filepath.Join(home, ".datadatdat")
+}
+
+func portForwardPidFilePath(repoName string, port int32) string {
+	return filepath.Join(portForwardPidDir(), "portforward-"+repoName+"-"+fmt.Sprint(port)+".pid")
+}
+
+func writePortForwardPid(repoName string, port int32, pid int) error {
+	dir := portForwardPidDir()
+	if err := os.MkdirAll(dir, 0750); err != nil {
+		return err
+	}
+	return os.WriteFile(portForwardPidFilePath(repoName, port), []byte(strconv.Itoa(pid)), 0600)
+}
+
+func portForwardPidFilesFor(repoName string) []string {
+	entries, err := os.ReadDir(portForwardPidDir())
+	if err != nil {
+		return nil
+	}
+	prefix := "portforward-" + repoName + "-"
+	var out []string
+	for _, e := range entries {
+		if e.IsDir() {
+			continue
+		}
+		name := e.Name()
+		if strings.HasPrefix(name, prefix) && strings.HasSuffix(name, ".pid") {
+			out = append(out, filepath.Join(portForwardPidDir(), name))
+		}
+	}
+	return out
 }
 
 /**
@@ -277,12 +453,15 @@ func (k kubernetes) UpdateStatefulSetVolumes(repoName string, volumes []datadatd
 }
 
 func (k kubernetes) DeleteStatefulSpec(repoName string) {
-	err := client.AppsV1().StatefulSets(k.namespace).Delete(ctx, repoName, metav1.DeleteOptions{})
-	if err != nil {
+	// Tolerate NotFound for both the StatefulSet and Service. A repository
+	// record can exist on the datadatdat server with no underlying k8s
+	// resources if an earlier `d3 run` failed after CreateRepository but
+	// before CreateStatefulSet succeeded; `d3 rm -f` must still be able to
+	// clean that up without panicking.
+	if err := client.AppsV1().StatefulSets(k.namespace).Delete(ctx, repoName, metav1.DeleteOptions{}); err != nil && !k8serrors.IsNotFound(err) {
 		panic(err)
 	}
-	err = client.CoreV1().Services(k.namespace).Delete(ctx, repoName, metav1.DeleteOptions{})
-	if err != nil {
+	if err := client.CoreV1().Services(k.namespace).Delete(ctx, repoName, metav1.DeleteOptions{}); err != nil && !k8serrors.IsNotFound(err) {
 		panic(err)
 	}
 }
