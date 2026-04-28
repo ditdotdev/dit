@@ -127,6 +127,16 @@ jobs:
           kubectl cluster-info
           kubectl get nodes
 
+      # Enable CSI snapshot support so kubernetes-tests.bats can exercise
+      # `d3 commit` against the release artifacts. See pull-request.yml
+      # for the longer rationale.
+      - name: Enable CSI volume snapshots in minikube
+        run: |
+          minikube addons enable volumesnapshots
+          minikube addons enable csi-hostpath-driver
+          kubectl patch storageclass standard -p '{"metadata": {"annotations":{"storageclass.kubernetes.io/is-default-class":"false"}}}'
+          kubectl patch storageclass csi-hostpath-sc -p '{"metadata": {"annotations":{"storageclass.kubernetes.io/is-default-class":"true"}}}'
+
       - name: Install postgresql-client
         run: sudo apt-get install -y postgresql-client
 

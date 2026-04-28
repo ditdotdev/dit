@@ -240,6 +240,94 @@ setup() {
 }
 
 # ---------------------------------------------------------------
+# d3 commit / d3 checkout: snapshot-backed time travel
+#
+# Each commit becomes a CSI VolumeSnapshot. These tests exercise the
+# whole arc — write data, commit, destructive change, checkout, verify
+# data is back. Requires the volumesnapshots + csi-hostpath-driver
+# minikube addons; tests skip with a clear message when the
+# VolumeSnapshot CRD isn't installed (so `make e2e` on a developer's
+# laptop without those addons no-ops these instead of failing).
+#
+# State is shared between the commit test and the checkout test via a
+# tempfile because BATS @test bodies run in subshells — env vars don't
+# persist across @tests, but writes to /tmp do.
+# ---------------------------------------------------------------
+
+COMMIT_STATE="/tmp/d3-k8s-bats-commit-${REPO}"
+
+@test "d3 commit: produces a VolumeSnapshot that becomes ReadyToUse" {
+  if ! kubectl get crd volumesnapshots.snapshot.storage.k8s.io >/dev/null 2>&1; then
+    skip "VolumeSnapshot CRD not installed (enable minikube addons: volumesnapshots, csi-hostpath-driver)"
+  fi
+
+  # Plant a known table so the checkout test has something to verify.
+  run kubectl exec "${REPO}-0" -- psql -U postgres -c \
+    "CREATE TABLE bats_baseline (id INT PRIMARY KEY); INSERT INTO bats_baseline VALUES (42);"
+  assert_success
+
+  run "$D3" commit "$REPO" -m "bats baseline" --context "$CTX"
+  assert_success
+  assert_output --partial "Commit "
+
+  COMMIT_ID=$(echo "$output" | awk '/^Commit / {print $2; exit}')
+  [ -n "$COMMIT_ID" ] || {
+    echo "could not parse commit id from d3 commit output"
+    return 1
+  }
+  echo "$COMMIT_ID" > "$COMMIT_STATE"
+
+  # The server names snapshots <volumeSet>-<volume>-<commitId> and labels
+  # them with datadatdatCommit; pick by label so we don't have to know
+  # the volumeSet UUID.
+  for _ in $(seq 1 60); do
+    snap=$(kubectl get volumesnapshot -l "datadatdatCommit=$COMMIT_ID" \
+      -o jsonpath='{.items[0].metadata.name}' 2>/dev/null)
+    if [ -n "$snap" ]; then break; fi
+    sleep 1
+  done
+  [ -n "$snap" ] || {
+    echo "no VolumeSnapshot with datadatdatCommit=$COMMIT_ID after 60s"
+    kubectl get volumesnapshot
+    return 1
+  }
+
+  run kubectl wait --for=jsonpath='{.status.readyToUse}'=true \
+    "volumesnapshot/$snap" --timeout=120s
+  assert_success
+}
+
+@test "d3 checkout: restores prior database state from snapshot" {
+  if ! kubectl get crd volumesnapshots.snapshot.storage.k8s.io >/dev/null 2>&1; then
+    skip "VolumeSnapshot CRD not installed (enable minikube addons: volumesnapshots, csi-hostpath-driver)"
+  fi
+  [ -f "$COMMIT_STATE" ] || skip "no commit captured by previous test"
+  COMMIT_ID=$(cat "$COMMIT_STATE")
+
+  # Destructive change so checkout has something to undo.
+  run kubectl exec "${REPO}-0" -- psql -U postgres -c "DROP TABLE bats_baseline;"
+  assert_success
+  # Confirm the table really is gone before the checkout.
+  run kubectl exec "${REPO}-0" -- psql -U postgres -c "SELECT 1 FROM bats_baseline LIMIT 1;"
+  assert_failure
+
+  run "$D3" checkout "$REPO" -c "$COMMIT_ID" --context "$CTX"
+  assert_success
+
+  # checkout tears the pod down and recreates it from the snapshot's
+  # PVC clone — wait for the new pod to come back ready.
+  run kubectl wait --for=condition=ready "pod/${REPO}-0" --timeout=180s
+  assert_success
+
+  run kubectl exec "${REPO}-0" -- psql -U postgres -c \
+    "SELECT id FROM bats_baseline;"
+  assert_success
+  assert_output --partial "42"
+
+  rm -f "$COMMIT_STATE"
+}
+
+# ---------------------------------------------------------------
 # d3 rm: cleans up cluster resources AND the port-forward
 # ---------------------------------------------------------------
 
