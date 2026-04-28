@@ -1,0 +1,15 @@
+//go:build !windows
+
+package clients
+
+import "syscall"
+
+// detachedSysProcAttr returns SysProcAttr values that make a spawned child
+// process survive the parent's exit on Unix-like systems. Starting a new
+// session detaches the child from the parent's controlling terminal so a
+// SIGHUP when d3 exits doesn't terminate it.
+func detachedSysProcAttr() *syscall.SysProcAttr {
+	return &syscall.SysProcAttr{
+		Setsid: true,
+	}
+}

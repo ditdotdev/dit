@@ -109,6 +109,37 @@ func ByName(n string) (Provider, string) {
 	return p, n
 }
 
+// Resolve returns the provider and repository name for a command that accepts
+// a repository argument. Two ways to specify which context the argument lives
+// in are honored, in this order:
+//
+//  1. context/repo notation embedded in arg (e.g. "prod/my-repo"). This wins
+//     even when contextFlag is also set, since it's explicitly scoped.
+//  2. contextFlag, populated from the global --context flag.
+//
+// When neither is provided, the default context is used. Exits with a clear
+// error message if a named context does not exist.
+func Resolve(contextFlag, arg string) (Provider, string) {
+	if strings.Contains(arg, "/") {
+		s := strings.SplitN(arg, "/", 2)
+		p, ok := Providers[s[0]]
+		if !ok {
+			fmt.Fprintln(os.Stderr, "Error: no such context '"+s[0]+"'")
+			os.Exit(1)
+		}
+		return p, s[1]
+	}
+	if contextFlag != "" {
+		p, ok := Providers[contextFlag]
+		if !ok {
+			fmt.Fprintln(os.Stderr, "Error: no such context '"+contextFlag+"'")
+			os.Exit(1)
+		}
+		return p, arg
+	}
+	return Default(), arg
+}
+
 func List() map[string]Provider {
 	return Providers
 }

@@ -33,9 +33,14 @@ var contextUninstallCmd = &cobra.Command{
 	Short: "Uninstall a context",
 	Args:  cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
-		provider, context := providers.ByName(args[0])
-		provider.Uninstall(force, false)
-		providers.Remove(context)
+		contextName := args[0]
+		p, ok := providers.List()[contextName]
+		if !ok {
+			fmt.Fprintln(os.Stderr, "Error: no such context '"+contextName+"'")
+			os.Exit(1)
+		}
+		p.Uninstall(force, false)
+		providers.Remove(contextName)
 	},
 }
 

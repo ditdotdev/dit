@@ -19,8 +19,8 @@ Privileged example: 'd3 run --privileged icr.io/db2_community/db2:latest'`,
 	Args: cobra.MinimumNArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
 		image := args[0]
-		provider, name := providers.ByName(name)
-		provider.Run(image, name, envVars, args[1:], disablePortMap, privileged)
+		p, repoName := providers.Resolve(context, name)
+		p.Run(image, repoName, envVars, args[1:], disablePortMap, privileged)
 	},
 }
 

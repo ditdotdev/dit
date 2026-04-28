@@ -78,22 +78,66 @@ func initConfig() {
 	}
 }
 
+// classifyCommand inspects os.Args for the d3 invocation and returns
+// whether the command can run without a resolved provider, plus the
+// default context name to use when one is needed (only `d3 install`
+// uses this — it creates the first context).
+//
+// Pre-fix this logic scanned os.Args for "ls" or "install" anywhere in
+// the slice, which made `d3 remote ls <repo>` falsely qualify as
+// "provider-optional" and panic with SIGSEGV when remote.go tried to
+// dereference the nil provider. The fix: only consider the position
+// directly after the binary name (the top-level subcommand), and
+// recognize `context` as a parent verb whose subcommands manage the
+// providers map / config directly.
+func classifyCommand(args []string) (providerOptional bool, defaultContextName string) {
+	if len(args) < 2 {
+		return false, ""
+	}
+	switch args[1] {
+	case "install":
+		return true, "docker"
+	case "ls", "context", "uninstall":
+		// uninstall (no flag) iterates every configured context itself,
+		// so it doesn't need a resolved default — and shouldn't panic in
+		// providers.Default() on a fresh machine with zero contexts.
+		return true, ""
+	}
+	return false, ""
+}
+
 // initProvider resolves the provider context. Called from rootCmd's PersistentPreRun
 // (overridden by auth/org commands that don't need a provider).
+//
+// Looks up the context by exact name — it MUST NOT mutate the package-level
+// `name` variable, which is bound to the `-n` flag for `run` and belongs to
+// the repository name, not the context.
 func initProvider() {
-	isInstall := false
-	for _, item := range os.Args {
-		if item == "install" || item == "ls" {
-			isInstall = true
+	ctx := context
+	if ctx == "" {
+		ctx = os.Getenv("DATADATDAT_CONTEXT")
+	}
+	if ctx != "" {
+		p, ok := providers.List()[ctx]
+		if !ok {
+			fmt.Fprintln(os.Stderr, "Error: no such context '"+ctx+"'")
+			os.Exit(1)
 		}
+		provider = p
+		context = ctx
+		return
 	}
-	if context != "" {
-		provider, name = providers.ByName(context)
-	} else if os.Getenv("DATADATDAT_CONTEXT") != "" {
-		provider, name = providers.ByName(os.Getenv("DATADATDAT_CONTEXT"))
-	} else if isInstall {
-		context = "docker" //TODO confirm valid
-	} else {
-		provider = providers.Default()
+	if optional, defaultCtx := classifyCommand(os.Args); optional {
+		// First-time install may have no contexts yet; default the
+		// context name without resolving a provider (providers.Default()
+		// would panic). For `d3 ls` and `d3 context ...`, leave both
+		// `context` and `provider` empty — the relevant command handlers
+		// iterate providers.List() or otherwise don't need a resolved
+		// provider.
+		if defaultCtx != "" {
+			context = defaultCtx
+		}
+		return
 	}
+	provider = providers.Default()
 }
