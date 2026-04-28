@@ -193,9 +193,25 @@ setup() {
 
 # ---------------------------------------------------------------
 # Postgres connectivity end-to-end
+#
+# `kubectl wait --for=condition=ready` (test 5) returns when k8s says
+# the pod is Ready, but the d3 StatefulSet template has no readiness
+# probe configured for postgres — so "Ready" only means "the postgres
+# process started," not "postgres is accepting connections." On a fast
+# runner this race shows up as `psql: ... no such file or directory` on
+# the unix socket (postgres hasn't created it yet) or `connection
+# refused` on the TCP port. Wait for postgres to actually accept
+# connections before each connectivity assertion. ~2 sec on a normal
+# run, up to 30 sec on a slow runner before failing.
 # ---------------------------------------------------------------
 
 @test "postgres responds via kubectl exec" {
+  for _ in $(seq 1 30); do
+    if kubectl exec "${REPO}-0" -- psql -U postgres -c "select 1" >/dev/null 2>&1; then
+      break
+    fi
+    sleep 1
+  done
   run kubectl exec "${REPO}-0" -- psql -U postgres -c "select version();"
   assert_success
   assert_output --partial "PostgreSQL"
@@ -205,6 +221,12 @@ setup() {
   if ! command -v psql >/dev/null 2>&1; then
     skip "psql client not installed; skipping localhost port-forward test"
   fi
+  for _ in $(seq 1 30); do
+    if psql -h localhost -U postgres -c "select 1" >/dev/null 2>&1; then
+      break
+    fi
+    sleep 1
+  done
   run psql -h localhost -U postgres -c "select 1 as ok;"
   assert_success
   assert_output --partial "1"
