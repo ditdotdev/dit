@@ -139,20 +139,34 @@ jobs:
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           AWS_REGION: ${{ secrets.AWS_REGION }}
       
-      - name: Dump server container logs
-        if: failure()
+      # Show container and k8s logs on every run: matches the same dump
+      # pattern as pull-request.yml so release runs have the same baseline
+      # for triage. Always-on (not failure-only) so passing runs leave
+      # behind a known-good reference to diff against the next failure.
+      - name: Show container and k8s logs
+        if: always()
         run: |
-          echo "=== datadatdat-docker-server logs ==="
-          docker logs datadatdat-docker-server 2>&1 || echo "No server container found"
-          echo ""
-          echo "=== datadatdat-docker-launch logs ==="
-          docker logs datadatdat-docker-launch 2>&1 || echo "No launch container found"
+          for c in $(docker ps -a --filter "name=datadatdat" --format '{{.Names}}'); do
+            echo "=== docker logs $c ==="
+            docker logs "$c" 2>&1 | tail -200 || true
+          done
           echo ""
           echo "=== Docker containers ==="
-          docker ps -a
+          docker ps -a || true
           echo ""
           echo "=== d3 config ==="
           cat ~/.datadatdat/config 2>/dev/null || echo "No config found"
+          if kubectl cluster-info >/dev/null 2>&1; then
+            echo "=== kubectl get all -A ==="
+            kubectl get all -A || true
+            echo "=== kubectl get pvc -A ==="
+            kubectl get pvc -A || true
+            echo "=== kubectl get storageclass ==="
+            kubectl get storageclass || true
+            echo "=== kubectl get events -A --sort-by=.lastTimestamp (last 50) ==="
+            kubectl get events -A --sort-by=.lastTimestamp 2>/dev/null | tail -50 || true
+          fi
+        shell: bash
 
       - name: Cleanup Docker resources
         if: always()
