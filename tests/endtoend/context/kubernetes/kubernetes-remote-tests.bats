@@ -78,6 +78,23 @@ setup_file() {
   "$D3" context uninstall -f "$CTX" 2>/dev/null || true
   rm -f "$HOME/.datadatdat/portforward-${REPO}-"*.pid 2>/dev/null || true
 
+  # The d3 server itself talks to the remote API by hostname (the
+  # `datadatdat-api-gateway` compose hostname), so the server has to
+  # be on the compose network — that's done by the network connect
+  # below. But the server then spawns operation jobs as k8s pods, and
+  # those pods run in the cluster's CNI network where docker DNS isn't
+  # available, so the in-pod upload would still fail with `Name or
+  # service not known`. Plumb the api-gateway IP into the d3 server's
+  # env (server reads DATADATDAT_K8S_POD_HOST_ALIASES and applies it
+  # as hostAliases on every job pod) BEFORE installing the context so
+  # the server picks it up at startup. Resolve the IP from the running
+  # container; no-op when the container doesn't exist (non-CI).
+  local gw_ip
+  gw_ip=$(docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}} {{end}}' datadatdat-api-gateway 2>/dev/null | awk '{print $1}')
+  if [ -n "$gw_ip" ]; then
+    export DATADATDAT_K8S_POD_HOST_ALIASES="datadatdat-api-gateway=${gw_ip}"
+  fi
+
   "$D3" context install -n "$CTX" -t kubernetes
 
   # The kubernetes-context d3 server runs in the default docker bridge

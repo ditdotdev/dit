@@ -301,13 +301,32 @@ func (d docker) getKubernetesLaunchArgs() ([]string, error) {
 
 func (d docker) LaunchDatadatdatKubernetesServers() (string, error) {
 	datadatdatImage := d.getImageName("datadatdat:latest")
-	config := os.Getenv("DATADATDAT_CONFIG")
 	args, err := d.getKubernetesLaunchArgs()
 	if err != nil {
 		return "", err
 	}
-	if config != "" {
-		args = append(args, "-e", "DATADATDAT_CONFIG="+config)
+	// Forward DATADATDAT_* env vars from the CLI process to the server
+	// container so operators can plumb server-side configuration (e.g.
+	// DATADATDAT_K8S_POD_HOST_ALIASES for clusters where the remote
+	// hostname isn't resolvable from inside pods) without needing a
+	// dedicated CLI flag for every knob. Skip server-internal vars that
+	// the launch args already set explicitly to avoid clobbering them.
+	skip := map[string]bool{
+		"DATADATDAT_PORT":     true,
+		"DATADATDAT_IMAGE":    true,
+		"DATADATDAT_IDENTITY": true,
+		"DATADATDAT_CONTEXT":  true,
+	}
+	for _, kv := range os.Environ() {
+		eq := strings.Index(kv, "=")
+		if eq <= 0 {
+			continue
+		}
+		k := kv[:eq]
+		if !strings.HasPrefix(k, "DATADATDAT_") || skip[k] {
+			continue
+		}
+		args = append(args, "-e", kv)
 	}
 	return d.Run(datadatdatImage, "/bin/bash /datadatdat/run", args)
 }
