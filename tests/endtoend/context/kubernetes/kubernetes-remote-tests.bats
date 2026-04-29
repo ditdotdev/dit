@@ -80,6 +80,15 @@ setup_file() {
 
   "$D3" context install -n "$CTX" -t kubernetes
 
+  # The kubernetes-context d3 server runs in the default docker bridge
+  # network, so it can't resolve `datadatdat-api-gateway` when the
+  # bats remote URL is a compose-internal hostname. The local-context
+  # d3 server is wired up by the workflow's "Connect Docker networks"
+  # step; the kubernetes-context server is created later (here) so we
+  # have to wire it up the same way ourselves. Idempotent / no-op
+  # outside the CI compose env.
+  docker network connect datadatdat-docker "datadatdat-${CTX}-server" 2>/dev/null || true
+
   # Wait for the embedded Ktor app to start serving /v1/.
   local server_port
   server_port=$(awk -v ctx="$CTX:" '$0 ~ ctx{f=1} f && /port:/{print $2; exit}' "$HOME/.datadatdat/config")
