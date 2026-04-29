@@ -115,7 +115,10 @@ teardown_file() {
   # so without these logs there's no way to diagnose Bug 2.
   {
     echo "=== docker logs datadatdat-${CTX}-server (pre-teardown) ==="
-    docker logs "datadatdat-${CTX}-server" 2>&1 | tail -300 || true
+    # Dump the full log. Earlier `tail -300` was too small: tests 9/10
+    # are chatty with /v1/.../status polls that pushed the test-7 push
+    # 500 (the thing we actually need to diagnose) out of the window.
+    docker logs "datadatdat-${CTX}-server" 2>&1 || true
     echo "=== end of datadatdat-${CTX}-server logs ==="
   } >&3
   for r in "$REPO" hello-clone-datadatdat hello-clone-s3 hello-clone-s3web; do
