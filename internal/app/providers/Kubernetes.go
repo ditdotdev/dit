@@ -103,7 +103,7 @@ func (k kubernetes) Pull(repo string, commit string, remoteName string, tags []s
 }
 
 func (k kubernetes) Push(repo string, commit string, remoteName string, tags []string, metadataOnly bool) {
-	cmn.Pull(repo, commit, remoteName, tags, metadataOnly, k.portNum)
+	cmn.Push(repo, commit, remoteName, tags, metadataOnly, k.portNum)
 }
 
 func (k kubernetes) RemoteAdd(repo string, uri string, remoteName string, params map[string]string) {
