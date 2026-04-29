@@ -83,16 +83,23 @@ setup_file() {
   # be on the compose network — that's done by the network connect
   # below. But the server then spawns operation jobs as k8s pods, and
   # those pods run in the cluster's CNI network where docker DNS isn't
-  # available, so the in-pod upload would still fail with `Name or
-  # service not known`. Plumb the api-gateway IP into the d3 server's
-  # env (server reads DATADATDAT_K8S_POD_HOST_ALIASES and applies it
-  # as hostAliases on every job pod) BEFORE installing the context so
-  # the server picks it up at startup. Resolve the IP from the running
-  # container; no-op when the container doesn't exist (non-CI).
-  local gw_ip
-  gw_ip=$(docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}} {{end}}' datadatdat-api-gateway 2>/dev/null | awk '{print $1}')
-  if [ -n "$gw_ip" ]; then
-    export DATADATDAT_K8S_POD_HOST_ALIASES="datadatdat-api-gateway=${gw_ip}"
+  # available, so the in-pod upload would otherwise fail with `Name
+  # or service not known`. Plumb a hostAlias into the d3 server's env
+  # (server reads DATADATDAT_K8S_POD_HOST_ALIASES and applies it as
+  # hostAliases on every job pod) BEFORE installing the context.
+  #
+  # IP choice: the api-gateway container's docker-bridge IP isn't
+  # routable from k8s pods (CNI subnet ≠ docker-bridge subnet, no
+  # routes between them in CI). Use the kubernetes node's InternalIP
+  # instead — with `minikube --driver=none` the node IS the host, and
+  # the host has port 8080 mapped to api-gateway by compose, so a pod
+  # talking to `datadatdat-api-gateway` resolves to the node IP and
+  # reaches api-gateway via the host's port mapping. Falls back to a
+  # silent no-op when not running against a real cluster.
+  local node_ip
+  node_ip=$(kubectl get nodes -o jsonpath='{.items[0].status.addresses[?(@.type=="InternalIP")].address}' 2>/dev/null)
+  if [ -n "$node_ip" ]; then
+    export DATADATDAT_K8S_POD_HOST_ALIASES="datadatdat-api-gateway=${node_ip}"
   fi
 
   "$D3" context install -n "$CTX" -t kubernetes
