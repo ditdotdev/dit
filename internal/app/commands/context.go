@@ -12,13 +12,13 @@ var contextName string
 
 // contextCmd represents the context command
 var contextCmd = &cobra.Command{
-	Use:   "context",
+	Use:   subcmdContext,
 	Short: "Manage datadatdat contexts",
 }
 
 // contextInstallCmd represents the contextInstall command
 var contextInstallCmd = &cobra.Command{
-	Use:   "install",
+	Use:   subcmdInstall,
 	Short: "Install a new context",
 	Run: func(cmd *cobra.Command, args []string) {
 		provider = providers.Create(contextName, contextType, providers.GetAvailablePort())
@@ -88,7 +88,7 @@ func init() {
 	contextCmd.AddCommand(contextListCmd)
 
 	contextInstallCmd.Flags().StringVarP(&contextType, "type", "t", "docker", "context type (docker or kubernetes)")
-	contextInstallCmd.Flags().StringVarP(&contextName, "name", "n", "docker", "context name, defaults to context type")
+	contextInstallCmd.Flags().StringVarP(&contextName, nameKey, "n", "docker", "context name, defaults to context type")
 	contextInstallCmd.Flags().StringSliceVarP(&params, "parameters", "p", nil, "context specific parameters. key=value format")
 	contextInstallCmd.Flags().BoolVarP(&verbose, "verbose", "v", false, "verbose logging")
 	contextInstallCmd.Flags().SortFlags = false //TODO review flag sorting

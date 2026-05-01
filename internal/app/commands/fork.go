@@ -29,5 +29,5 @@ var forkCmd = &cobra.Command{
 func init() {
 	rootCmd.AddCommand(forkCmd)
 	forkCmd.Flags().StringVar(&forkOrg, "org", "", "Target organization/namespace for the fork")
-	forkCmd.Flags().StringVar(&forkName, "name", "", "Custom name for the forked repository")
+	forkCmd.Flags().StringVar(&forkName, nameKey, "", "Custom name for the forked repository")
 }

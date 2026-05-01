@@ -14,7 +14,7 @@ import (
 )
 
 var orgCmd = &cobra.Command{
-	Use:   "org",
+	Use:   subcmdOrg,
 	Short: "Manage organizations",
 	Long:  `Manage organizations on a datadatdat remote server.`,
 	PersistentPreRun: func(cmd *cobra.Command, args []string) {
@@ -24,7 +24,7 @@ var orgCmd = &cobra.Command{
 }
 
 var orgListCmd = &cobra.Command{
-	Use:     "list",
+	Use:     subcmdList,
 	Aliases: []string{"ls"},
 	Short:   "List organizations you belong to",
 	Long:    `List all organizations that the authenticated user is a member of.`,
@@ -69,7 +69,7 @@ var orgListCmd = &cobra.Command{
 		}
 
 		for _, org := range orgs {
-			orgName, _ := org["name"].(string)
+			orgName, _ := org[nameKey].(string)
 			cmd.Println(orgName)
 		}
 
@@ -92,7 +92,7 @@ var orgCreateCmd = &cobra.Command{
 			return err
 		}
 
-		reqBody := map[string]string{"name": orgName}
+		reqBody := map[string]string{nameKey: orgName}
 		if displayName != "" {
 			reqBody["displayName"] = displayName
 		}
@@ -176,7 +176,7 @@ var orgInfoCmd = &cobra.Command{
 			return fmt.Errorf("failed to parse response: %w", err)
 		}
 
-		name, _ := org["name"].(string)
+		name, _ := org[nameKey].(string)
 		display, _ := org["displayName"].(string)
 		cmd.Printf("Name:         %s\n", name)
 		if display != "" {

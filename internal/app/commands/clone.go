@@ -21,7 +21,7 @@ var cloneCmd = &cobra.Command{
 
 func init() {
 	rootCmd.AddCommand(cloneCmd)
-	cloneCmd.Flags().StringVarP(&name, "name", "n", "", "optional new name for repository")
+	cloneCmd.Flags().StringVarP(&name, nameKey, "n", "", "optional new name for repository")
 	cloneCmd.Flags().StringVarP(&guid, "commit", "c", "", "commit to checkout")
 	cloneCmd.Flags().StringSliceVarP(&params, "parameters", "p", nil, "provider specific parameters. key=value format")
 	cloneCmd.Flags().BoolVarP(&disablePortMap, "disable-port-mapping", "P", false, "disable default port mapping from container to localhost")

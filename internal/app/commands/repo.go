@@ -13,7 +13,7 @@ import (
 )
 
 var repoCmd = &cobra.Command{
-	Use:   "repo",
+	Use:   subcmdRepo,
 	Short: "Manage server-side repositories",
 	Long:  `Create, delete, and list repositories on a datadatdat remote server.`,
 	PersistentPreRun: func(cmd *cobra.Command, args []string) {
@@ -113,7 +113,7 @@ var repoDeleteCmd = &cobra.Command{
 }
 
 var repoListCmd = &cobra.Command{
-	Use:     "list",
+	Use:     subcmdList,
 	Aliases: []string{"ls"},
 	Short:   "List repositories on the server",
 	Long:    `List all repositories on a datadatdat remote server. Use --org to filter by organization.`,
