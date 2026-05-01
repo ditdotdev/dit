@@ -12,6 +12,11 @@ import (
 
 const EOL = "\n"
 
+// defaultDockerHubRegistry is the upstream Docker Hub namespace where the
+// official datadatdat images live. Used as the fallback when no registry
+// is configured and as the literal "datadatdat" image-name lookup target.
+const defaultDockerHubRegistry = "datadatdat"
+
 type docker struct {
 	identity string
 	port     int
@@ -31,7 +36,7 @@ func Docker(i string, p int) docker {
 	if p == 0 {
 		p = 5001
 	}
-	return docker{i, p, "datadatdat"}
+	return docker{i, p, defaultDockerHubRegistry}
 }
 
 func DockerWithRegistry(i string, p int, r string) docker {
@@ -42,7 +47,7 @@ func DockerWithRegistry(i string, p int, r string) docker {
 		p = 5001
 	}
 	if r == "" {
-		r = "datadatdat"
+		r = defaultDockerHubRegistry
 	}
 	return docker{i, p, r}
 }
@@ -212,12 +217,12 @@ func (d docker) FetchLogs(container string) []string {
 func (d docker) DatadatdatLatestIsDownloaded(registry string, latest app.Version) bool {
 	// If registry is "local", check for local datadatdat:latest first
 	if registry == "local" {
-		localOut, _ := ce.Exec("docker", "images", "datadatdat", "--format", `"{{.Repository}}:{{.Tag}}"`)
+		localOut, _ := ce.Exec("docker", "images", defaultDockerHubRegistry, "--format", `"{{.Repository}}:{{.Tag}}"`)
 		if strings.Contains(localOut, "datadatdat:latest") {
 			return true // Use local datadatdat:latest image
 		}
 		// If no local image found, fall back to checking datadatdat registry
-		registry = "datadatdat"
+		registry = defaultDockerHubRegistry
 	}
 
 	image := registry + "/datadatdat"

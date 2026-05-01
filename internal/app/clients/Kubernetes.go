@@ -23,6 +23,11 @@ import (
 )
 
 var ctx = context.Background()
+
+// labelDatadatdatRepository is the kubernetes label key used to associate
+// resources (StatefulSets, Services, etc.) with their owning d3 repository.
+const labelDatadatdatRepository = "datadatdatRepository"
+
 var client k8s.Interface
 
 type kubernetes struct {
@@ -58,7 +63,7 @@ func (k kubernetes) CreateStatefulSet(repoName string, imageId string, ports []i
 	objectMeta := metav1.ObjectMeta{
 		Name:      repoName,
 		Namespace: k.namespace,
-		Labels:    map[string]string{"datadatdatRepository": repoName},
+		Labels:    map[string]string{labelDatadatdatRepository: repoName},
 	}
 	servicePorts := make([]v1.ServicePort, 0, len(ports))
 	for _, port := range ports {
@@ -70,7 +75,7 @@ func (k kubernetes) CreateStatefulSet(repoName string, imageId string, ports []i
 	}
 	serviceSpec := v1.ServiceSpec{
 		Ports:     servicePorts,
-		Selector:  map[string]string{"datadatdatRepository": repoName},
+		Selector:  map[string]string{labelDatadatdatRepository: repoName},
 		ClusterIP: "None",
 	}
 	service := v1.Service{
@@ -149,7 +154,7 @@ func (k kubernetes) CreateStatefulSet(repoName string, imageId string, ports []i
 	}
 	replica := int32(1)
 	selector := metav1.LabelSelector{
-		MatchLabels: map[string]string{"datadatdatRepository": repoName},
+		MatchLabels: map[string]string{labelDatadatdatRepository: repoName},
 	}
 	statefulSpecs := v1Apps.StatefulSetSpec{
 		Replicas:    &replica,

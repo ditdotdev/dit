@@ -9,7 +9,7 @@ import (
 
 // remoteCmd represents the remote command
 var remoteCmd = &cobra.Command{
-	Use:   "remote",
+	Use:   subcmdRemote,
 	Short: "Add, log, ls and rm remotes",
 }
 
