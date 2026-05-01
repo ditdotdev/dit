@@ -18,3 +18,12 @@ linters:
     - gocyclo
     - goconst
     - whitespace
+  exclusions:
+    rules:
+      # Test files routinely repeat fixture strings ("alice", "email",
+      # "/var/lib/postgresql/data" etc.) for readability. Forcing them
+      # into shared constants makes tests harder to read in isolation
+      # and couples unrelated test cases. Skip goconst there.
+      - path: _test\.go
+        linters:
+          - goconst
