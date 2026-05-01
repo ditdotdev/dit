@@ -88,18 +88,16 @@ setup_file() {
   # (server reads DATADATDAT_K8S_POD_HOST_ALIASES and applies it as
   # hostAliases on every job pod) BEFORE installing the context.
   #
-  # IP choice: the api-gateway container's docker-bridge IP isn't
-  # routable from k8s pods (CNI subnet ≠ docker-bridge subnet, no
-  # routes between them in CI). Use the kubernetes node's InternalIP
-  # instead — with `minikube --driver=none` the node IS the host, and
-  # the host has port 8080 mapped to api-gateway by compose, so a pod
-  # talking to `datadatdat-api-gateway` resolves to the node IP and
-  # reaches api-gateway via the host's port mapping. Falls back to a
-  # silent no-op when not running against a real cluster.
-  local node_ip
-  node_ip=$(kubectl get nodes -o jsonpath='{.items[0].status.addresses[?(@.type=="InternalIP")].address}' 2>/dev/null)
-  if [ -n "$node_ip" ]; then
-    export DATADATDAT_K8S_POD_HOST_ALIASES="datadatdat-api-gateway=${node_ip}"
+  # `=auto` tells the server to discover the right IP at job-creation
+  # time (datadatdat-server PR #157). The server probes a busybox pod
+  # for `host.minikube.internal` (works on docker/hyperv/hyperkit/kvm2/
+  # qemu drivers) and falls back to the node InternalIP for
+  # --driver=none on Linux CI (where node = host = where api-gateway
+  # is bound). This replaces the prior hard-coded `kubectl get nodes`
+  # heuristic, which only worked on --driver=none and broke local Mac
+  # / Windows minikube setups.
+  if [ -z "$DATADATDAT_K8S_POD_HOST_ALIASES" ]; then
+    export DATADATDAT_K8S_POD_HOST_ALIASES="datadatdat-api-gateway=auto"
   fi
 
   "$D3" context install -n "$CTX" -t kubernetes
