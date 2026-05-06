@@ -59,6 +59,13 @@ func init() {
  * existing PVCs) mapped in.
  */
 func (k kubernetes) CreateStatefulSet(repoName string, imageId string, ports []int, volumes []datadatdatclient.Volume, environment []string) error {
+	// Fail fast on resources left behind by an interrupted prior session.
+	// Without this check the user gets the raw k8s `services "<repo>"
+	// already exists` surface with no recovery hint. See issue #126.
+	if err := k.checkForOrphanedResources(repoName); err != nil {
+		return err
+	}
+
 	var err error
 	objectMeta := metav1.ObjectMeta{
 		Name:      repoName,
@@ -171,6 +178,51 @@ func (k kubernetes) CreateStatefulSet(repoName string, imageId string, ports []i
 		return err
 	}
 	return nil
+}
+
+// checkForOrphanedResources looks for a Service or StatefulSet of the same
+// name, plus any PVCs labelled with this repo, and returns a recovery-hint
+// error if any are found. Empty return means the namespace is clean for a
+// fresh `d3 run`. NotFound on Get is the expected happy case — only real
+// API errors propagate.
+func (k kubernetes) checkForOrphanedResources(repoName string) error {
+	var found []string
+
+	if _, err := client.CoreV1().Services(k.namespace).Get(ctx, repoName, metav1.GetOptions{}); err == nil {
+		found = append(found, "service/"+repoName)
+	} else if !k8serrors.IsNotFound(err) {
+		return fmt.Errorf("checking for existing service %q: %w", repoName, err)
+	}
+
+	if _, err := client.AppsV1().StatefulSets(k.namespace).Get(ctx, repoName, metav1.GetOptions{}); err == nil {
+		found = append(found, "statefulset/"+repoName)
+	} else if !k8serrors.IsNotFound(err) {
+		return fmt.Errorf("checking for existing statefulset %q: %w", repoName, err)
+	}
+
+	selector := labelDatadatdatRepository + "=" + repoName
+	pvcs, err := client.CoreV1().PersistentVolumeClaims(k.namespace).List(ctx, metav1.ListOptions{LabelSelector: selector})
+	if err != nil {
+		return fmt.Errorf("listing PVCs labelled %s: %w", selector, err)
+	}
+	for _, pvc := range pvcs.Items {
+		found = append(found, "persistentvolumeclaim/"+pvc.Name)
+	}
+
+	if len(found) == 0 {
+		return nil
+	}
+
+	var b strings.Builder
+	fmt.Fprintf(&b, "kubernetes resources for repo %q already exist in namespace %q:\n", repoName, k.namespace)
+	for _, r := range found {
+		fmt.Fprintf(&b, "  - %s\n", r)
+	}
+	b.WriteString("\nThese were likely left behind by a prior d3 session. To clean up:\n")
+	fmt.Fprintf(&b, "  d3 rm %s -f --context <context>\n", repoName)
+	b.WriteString("or, if d3 has no record of the repo:\n")
+	fmt.Fprintf(&b, "  kubectl delete statefulset,svc,pvc,pod,volumesnapshot -l %s=%s", labelDatadatdatRepository, repoName)
+	return errors.New(b.String())
 }
 
 // StatefulSet status values returned by GetStatefulSetStatus. Callers

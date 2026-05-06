@@ -198,7 +198,11 @@ func Run(container string, repository string, envVars []string, args []string, d
 
 	fmt.Println("Creating " + repoName + " deployment")
 	if err := k8s.CreateStatefulSet(repoName, imageId, ports, datadatdatVolumes, envVars); err != nil {
-		fmt.Printf("Error creating stateful set: %v\n", err)
+		// Errors from CreateStatefulSet are self-describing (e.g. the
+		// orphaned-resources recovery hint from issue #126 is multi-line
+		// and starts with its own header). Print as-is so the formatting
+		// survives.
+		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}
 
