@@ -7,7 +7,7 @@ import (
 
 // installCmd represents the install command
 var installCmd = &cobra.Command{
-	Use:   "install",
+	Use:   subcmdInstall,
 	Short: "Install datadatdat infrastructure",
 
 	Run: func(cmd *cobra.Command, args []string) {

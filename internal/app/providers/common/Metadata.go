@@ -12,6 +12,20 @@ const (
 	V1 Version = "v1"
 )
 
+// JSON map keys used both in the v2 metadata blob and as struct tags.
+// Centralized to silence goconst (each appears 8-15 times across this
+// file's marshal / unmarshal paths) and to keep the on-the-wire schema
+// in one place.
+const (
+	keyImage       = "image"
+	keyEnvironment = "environment"
+	keyPorts       = "ports"
+	keyVolumes     = "volumes"
+	keyPrivileged  = "privileged"
+
+	protocolTCP = "tcp"
+)
+
 type image struct {
 	Image  string `json:"image"`
 	Tag    string `json:"tag"`
@@ -92,17 +106,17 @@ func (m Metadata) ToMap() map[string]interface{} {
 	}
 	if m.version == V2 {
 		returnMap["v2"] = map[string]interface{}{
-			"image":          m.image,
-			"environment":    m.environment,
-			"ports":          m.ports,
-			"volumes":        m.volumes,
-			"privileged":     m.privileged,
+			keyImage:         m.image,
+			keyEnvironment:   m.environment,
+			keyPorts:         m.ports,
+			keyVolumes:       m.volumes,
+			keyPrivileged:    m.privileged,
 			"disablePortMap": m.disablePortMap,
 		}
 	}
 	if m.version == V1 {
 		returnMap["container"] = m.image.Digest
-		returnMap["image"] = m.image.Image
+		returnMap[keyImage] = m.image.Image
 		returnMap["tag"] = m.image.Tag
 		returnMap["digest"] = m.image.Digest
 	}
@@ -148,25 +162,25 @@ func (m Metadata) MapV2(metaMap map[string]interface{}) Metadata {
 	}
 
 	meta := metaMap["v2"].(map[string]interface{})
-	imageMap := meta["image"].(map[string]interface{})
+	imageMap := meta[keyImage].(map[string]interface{})
 	image := image{
-		Image:  fmt.Sprintf("%v", imageMap["image"]),
+		Image:  fmt.Sprintf("%v", imageMap[keyImage]),
 		Tag:    fmt.Sprintf("%v", imageMap["tag"]),
 		Digest: fmt.Sprintf("%v", imageMap["digest"]),
 	}
 
-	envCheck := meta["environment"] //TODO this can be empty
+	envCheck := meta[keyEnvironment] //TODO this can be empty
 	var environment []interface{}
 	if envCheck != nil {
-		environment = meta["environment"].([]interface{})
+		environment = meta[keyEnvironment].([]interface{})
 	} else {
 		environment = nil
 	}
 
-	portsCheck := meta["ports"]
+	portsCheck := meta[keyPorts]
 	var ports []port
 	if portsCheck != nil {
-		metaPorts := meta["ports"].([]interface{})
+		metaPorts := meta[keyPorts].([]interface{})
 		for _, v := range metaPorts {
 			mapPort := v.(map[string]interface{})
 			ports = append(ports, port{
@@ -177,7 +191,7 @@ func (m Metadata) MapV2(metaMap map[string]interface{}) Metadata {
 	}
 
 	var volumes []volume
-	metaVols := meta["volumes"].([]interface{})
+	metaVols := meta[keyVolumes].([]interface{})
 	for _, v := range metaVols {
 		metaVol := v.(map[string]interface{})
 		volumes = append(volumes, volume{
@@ -187,7 +201,7 @@ func (m Metadata) MapV2(metaMap map[string]interface{}) Metadata {
 	}
 
 	var privileged bool
-	privilegedCheck := meta["privileged"]
+	privilegedCheck := meta[keyPrivileged]
 	if privilegedCheck != nil {
 		privileged = privilegedCheck.(bool)
 	} else {
@@ -313,7 +327,7 @@ func (m Metadata) MapV1(metaMap map[string]interface{}) Metadata {
 				p = runtime[i+1]
 			}
 			ports = append(ports, port{
-				Protocol: "tcp",
+				Protocol: protocolTCP,
 				Port:     p,
 			})
 		}

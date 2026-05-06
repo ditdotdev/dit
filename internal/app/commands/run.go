@@ -26,7 +26,7 @@ Privileged example: 'd3 run --privileged icr.io/db2_community/db2:latest'`,
 
 func init() {
 	rootCmd.AddCommand(runCmd)
-	runCmd.Flags().StringVarP(&name, "name", "n", "", "optional new name for repository")
+	runCmd.Flags().StringVarP(&name, nameKey, "n", "", "optional new name for repository")
 	runCmd.Flags().StringSliceVarP(&envVars, "env", "e", nil, "container specific environment variables")
 	runCmd.Flags().BoolVarP(&disablePortMap, "disable-port-mapping", "P", false, "disable default port mapping from container to localhost")
 	runCmd.Flags().BoolVar(&privileged, "privileged", false, "run container in privileged mode with extended permissions")

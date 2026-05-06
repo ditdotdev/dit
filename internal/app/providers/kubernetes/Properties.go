@@ -16,6 +16,6 @@ func disablePortMappingFromRepo(repo client.Repository) bool {
 	if !ok {
 		return false
 	}
-	flag, _ := v2["disablePortMapping"].(bool)
+	flag, _ := v2[keyDisablePortMapping].(bool)
 	return flag
 }

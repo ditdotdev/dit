@@ -19,7 +19,7 @@ func getCredentialsPath() string {
 }
 
 var authCmd = &cobra.Command{
-	Use:   "auth",
+	Use:   subcmdAuth,
 	Short: "Manage authentication credentials",
 	Long:  `Manage authentication credentials for datadatdat remote servers.`,
 	PersistentPreRun: func(cmd *cobra.Command, args []string) {
@@ -29,7 +29,7 @@ var authCmd = &cobra.Command{
 }
 
 var authLoginCmd = &cobra.Command{
-	Use:   "login",
+	Use:   subcmdLogin,
 	Short: "Store API key for a remote server",
 	Long:  `Store an API key for authenticating with a datadatdat remote server.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
@@ -59,7 +59,7 @@ var authLoginCmd = &cobra.Command{
 }
 
 var authStatusCmd = &cobra.Command{
-	Use:   "status",
+	Use:   subcmdStatus,
 	Short: "Show authentication status",
 	Long:  `Show whether you are authenticated and which server is configured.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
@@ -86,7 +86,7 @@ var authStatusCmd = &cobra.Command{
 }
 
 var authLogoutCmd = &cobra.Command{
-	Use:   "logout",
+	Use:   subcmdLogout,
 	Short: "Remove stored credentials for a server",
 	Long:  `Remove stored API key credentials for a datadatdat remote server.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
