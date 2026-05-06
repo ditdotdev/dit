@@ -173,6 +173,21 @@ func (k kubernetes) CreateStatefulSet(repoName string, imageId string, ports []i
 	return nil
 }
 
+// StatefulSet status values returned by GetStatefulSetStatus. Callers
+// (WaitForStatefulSet, d3 stop/start) treat detached/stopped/running as
+// terminal; anything else means "keep polling". Kept as untyped string
+// constants because the surrounding code already passes the result as a
+// plain string.
+const (
+	statusDetached = "detached"
+	statusUnknown  = "unknown"
+	statusStarting = "starting"
+	statusUpdate   = "update"
+	statusStopped  = "stopped"
+	statusRunning  = "running"
+	statusFailed   = "failed"
+)
+
 /**
  * Gets the status of a stateful set. We use the following:
  *
@@ -189,32 +204,43 @@ func (k kubernetes) GetStatefulSetStatus(repoName string) (string, error) {
 	set, err := client.AppsV1().StatefulSets(k.namespace).Get(ctx, repoName, metav1.GetOptions{})
 	if err != nil {
 		// Return "detached" for 404 errors, or propagate other errors
-		return "detached", err
+		return statusDetached, err
 	}
 	if set == nil {
-		return "unknown", nil
+		return statusUnknown, nil
+	}
+	// Reject status fields that pre-date the latest spec change. After a
+	// patch (e.g. replicas 0→1 in StartStatefulSet), the controller takes
+	// a moment to observe the new generation; until then Status.Replicas
+	// and Status.ReadyReplicas still reflect the prior spec. Trusting
+	// those values made WaitForStatefulSet return immediately on a 0==0
+	// match — so `d3 checkout` returned before the new pod was scheduled
+	// and a follow-up `kubectl exec` failed with "pod does not have a
+	// host assigned".
+	if set.Status.ObservedGeneration < set.Generation {
+		return statusStarting, nil
 	}
 	if set.Status.UpdateRevision != set.Status.CurrentRevision {
-		return "update", nil
+		return statusUpdate, nil
 	}
 	if set.Status.Replicas == 0 {
-		return "stopped", nil
+		return statusStopped, nil
 	}
 	if set.Status.Replicas == set.Status.ReadyReplicas {
-		return "running", nil
+		return statusRunning, nil
 	}
 	pod, err := client.CoreV1().Pods(k.namespace).Get(ctx, repoName, metav1.GetOptions{})
 	if err != nil {
 		// If pod doesn't exist, return starting state
-		return "starting", nil
+		return statusStarting, nil
 	}
 	conditions := pod.Status.Conditions
 	for _, condition := range conditions {
 		if condition.Reason == "Unschedulable" {
-			return "failed", errors.New("Pod failed to be scheduled: " + condition.Message)
+			return statusFailed, errors.New("Pod failed to be scheduled: " + condition.Message)
 		}
 	}
-	return "starting", nil
+	return statusStarting, nil
 }
 
 // waitForStatefulSetTimeout caps how long WaitForStatefulSet will busy-poll
@@ -237,9 +263,9 @@ func (k kubernetes) WaitForStatefulSet(repoName string) {
 	for {
 		status, err := k.GetStatefulSetStatus(repoName)
 		switch status {
-		case "failed":
+		case statusFailed:
 			panic(err)
-		case "running", "stopped", "detached":
+		case statusRunning, statusStopped, statusDetached:
 			return
 		}
 		if time.Now().After(deadline) {
