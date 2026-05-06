@@ -42,23 +42,23 @@ docker exec mydb psql -U postgres -c "INSERT INTO users (name, email) VALUES ('A
 
 ./d3 log mydb
 
-./d3 checkout mydb -c b3f5abec76da479cb6525c7de8765076
+./d3 checkout mydb -c 66a3bbea87934dbfa7f35fb6df12c21c
 
 docker exec mydb psql -U postgres -c "\dt"
 
-./d3 checkout mydb -c 03c0319b36e746369b5e79d284a1519b
+./d3 checkout mydb -c c84b493973a740eb993ca16a3f6664b3
 
 docker exec mydb psql -U postgres -c "\dt"
 
-./d3 checkout mydb -c e6187071fb4e430285d812d4a62d49f7
+./d3 checkout mydb -c 9fc9513dca734118b0ef451e65979b1d
 
 docker exec mydb psql -U postgres -c "SELECT * FROM users;"
 
 # reset and clone from remote 
 
-./d3 stop mydb 
+./d3 uninstall -f 
 
-./d3 rm mydb 
+./d3 install
 
 ./d3 clone https://datadatdat.com/robertericreeves/mydb
 
@@ -66,16 +66,15 @@ docker exec mydb psql -U postgres -c "SELECT * FROM users;"
 
 ./d3 remote log mydb
 
-./d3 pull mydb -c b3f5abec76da479cb6525c7de8765076
+./d3 pull mydb -c 66a3bbea87934dbfa7f35fb6df12c21c
 
-./d3 checkout mydb -c b3f5abec76da479cb6525c7de8765076
+./d3 checkout mydb -c 66a3bbea87934dbfa7f35fb6df12c21c
 
-./d3 pull mydb -c 03c0319b36e746369b5e79d284a1519b 
+./d3 pull mydb -c c84b493973a740eb993ca16a3f6664b3 
 
-./d3 checkout mydb -c 03c0319b36e746369b5e79d284a1519b 
+./d3 checkout mydb -c c84b493973a740eb993ca16a3f6664b3 
 
 ./d3 checkout mydb -t v2.3.4
-
 
 # clean up
 

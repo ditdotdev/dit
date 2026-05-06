@@ -255,9 +255,12 @@ jobs:
         # https://hub.docker.com/r/datadatdat/tigergraph
         # Wrapped versions of tigergraph/tigergraph with VOLUME directives
         # Source Dockerfiles: tests/endtoend/db-matrix/tigergraph-*.Dockerfile
-        - datadatdat/tigergraph:latest
-        - datadatdat/tigergraph:4.2.2
-        - datadatdat/tigergraph:4.1.4
+        # Note: previously we were using TigerGraph Enterprise Edition. The need to get updated license keys was causing problems.
+        # Moving to CE because it has the same functionality needed for datadatdat. Keeping the old Enterprise images around for now in case we need to revert.
+        # - datadatdat/tigergraph:latest
+        # - datadatdat/tigergraph:4.2.2
+        - datadatdat/tigergraph-ce:4.2.2
+        # - datadatdat/tigergraph:4.1.4
 
         # TimescaleDB
         # https://hub.docker.com/r/timescale/timescaledb
