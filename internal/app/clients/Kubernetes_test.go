@@ -1,6 +1,7 @@
 package clients
 
 import (
+	"strings"
 	"testing"
 	"time"
 
@@ -277,6 +278,142 @@ func TestGetStatefulSetStatusWaitsForObservedGeneration(t *testing.T) {
 	// WaitForStatefulSet would return before the rollout starts.
 	if status == statusRunning || status == statusStopped || status == statusDetached {
 		t.Errorf("status = %q for stale (unobserved) generation; expected a non-terminal state like %q", status, statusStarting)
+	}
+}
+
+// TestCreateStatefulSetDetectsOrphanedService covers the case where a
+// previous d3 session left a Service of the same name behind (e.g. user
+// Ctrl-C'd before `d3 rm`). The next `d3 run -n <repo>` must not surface
+// the raw k8s `services "<repo>" already exists` error; it must fail fast
+// with a recovery hint that tells the user how to clean up. See issue #126.
+func TestCreateStatefulSetDetectsOrphanedService(t *testing.T) {
+	ns := testNamespace
+	existingService := &v1.Service{
+		ObjectMeta: metav1.ObjectMeta{Name: "mydb", Namespace: ns},
+	}
+	fakeClient := fake.NewSimpleClientset(existingService)
+	restore := swapClient(t, fakeClient)
+	defer restore()
+
+	k := kubernetes{namespace: ns}
+	vol := datadatdatclient.Volume{
+		Name:       "v0",
+		Properties: map[string]interface{}{"path": "/var/lib/postgresql"},
+		Config:     map[string]interface{}{"pvc": "pvc-v0"},
+	}
+
+	err := k.CreateStatefulSet("mydb", "postgres:latest", []int{5432}, []datadatdatclient.Volume{vol}, nil)
+	if err == nil {
+		t.Fatal("expected CreateStatefulSet to fail when a Service of the same name already exists, got nil")
+	}
+	msg := err.Error()
+	// Recovery-hint shape from issue #126.
+	for _, substr := range []string{
+		"mydb",
+		ns,
+		"service/mydb",
+		"d3 rm",
+		"datadatdatRepository=mydb",
+	} {
+		if !strings.Contains(msg, substr) {
+			t.Errorf("error message missing %q; got:\n%s", substr, msg)
+		}
+	}
+	// Must NOT be the raw k8s "already exists" surface — that's the bug.
+	if strings.Contains(msg, "services \"mydb\" already exists") {
+		t.Errorf("error leaks raw k8s AlreadyExists surface; got:\n%s", msg)
+	}
+}
+
+// TestCreateStatefulSetDetectsOrphanedStatefulSet covers the symmetric
+// case where the StatefulSet survived but the Service did not. Issue #126.
+func TestCreateStatefulSetDetectsOrphanedStatefulSet(t *testing.T) {
+	ns := testNamespace
+	existing := &v1Apps.StatefulSet{
+		ObjectMeta: metav1.ObjectMeta{Name: "mydb", Namespace: ns},
+	}
+	fakeClient := fake.NewSimpleClientset(existing)
+	restore := swapClient(t, fakeClient)
+	defer restore()
+
+	k := kubernetes{namespace: ns}
+	vol := datadatdatclient.Volume{
+		Name:       "v0",
+		Properties: map[string]interface{}{"path": "/var/lib/postgresql"},
+		Config:     map[string]interface{}{"pvc": "pvc-v0"},
+	}
+
+	err := k.CreateStatefulSet("mydb", "postgres:latest", []int{5432}, []datadatdatclient.Volume{vol}, nil)
+	if err == nil {
+		t.Fatal("expected CreateStatefulSet to fail when a StatefulSet of the same name already exists, got nil")
+	}
+	if !strings.Contains(err.Error(), "statefulset/mydb") {
+		t.Errorf("error message missing \"statefulset/mydb\"; got:\n%s", err.Error())
+	}
+}
+
+// TestCreateStatefulSetDetectsOrphanedPVC covers the case where the
+// StatefulSet/Service were cleaned up but PVCs labelled with the d3
+// repository remain. Issue #126.
+func TestCreateStatefulSetDetectsOrphanedPVC(t *testing.T) {
+	ns := testNamespace
+	existingPVC := &v1.PersistentVolumeClaim{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "v0-mydb-0",
+			Namespace: ns,
+			Labels:    map[string]string{labelDatadatdatRepository: "mydb"},
+		},
+	}
+	fakeClient := fake.NewSimpleClientset(existingPVC)
+	restore := swapClient(t, fakeClient)
+	defer restore()
+
+	k := kubernetes{namespace: ns}
+	vol := datadatdatclient.Volume{
+		Name:       "v0",
+		Properties: map[string]interface{}{"path": "/var/lib/postgresql"},
+		Config:     map[string]interface{}{"pvc": "pvc-v0"},
+	}
+
+	err := k.CreateStatefulSet("mydb", "postgres:latest", []int{5432}, []datadatdatclient.Volume{vol}, nil)
+	if err == nil {
+		t.Fatal("expected CreateStatefulSet to fail when a labelled PVC for the repo already exists, got nil")
+	}
+	msg := err.Error()
+	if !strings.Contains(msg, "persistentvolumeclaim/v0-mydb-0") {
+		t.Errorf("error message missing \"persistentvolumeclaim/v0-mydb-0\"; got:\n%s", msg)
+	}
+	if !strings.Contains(msg, "kubectl delete") {
+		t.Errorf("error message missing \"kubectl delete\" recovery hint; got:\n%s", msg)
+	}
+}
+
+// TestCreateStatefulSetIgnoresPVCWithoutLabel covers a non-d3 PVC happening
+// to share the namespace. We must NOT block on PVCs that don't carry the
+// datadatdatRepository=<repo> label; otherwise random user PVCs would fail
+// d3 runs. Happy path with no orphans should succeed.
+func TestCreateStatefulSetIgnoresPVCWithoutLabel(t *testing.T) {
+	ns := testNamespace
+	unrelatedPVC := &v1.PersistentVolumeClaim{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "some-other-pvc",
+			Namespace: ns,
+		},
+	}
+	fakeClient := fake.NewSimpleClientset(unrelatedPVC)
+	restore := swapClient(t, fakeClient)
+	defer restore()
+
+	k := kubernetes{namespace: ns}
+	vol := datadatdatclient.Volume{
+		Name:       "v0",
+		Properties: map[string]interface{}{"path": "/var/lib/postgresql"},
+		Config:     map[string]interface{}{"pvc": "pvc-v0"},
+	}
+
+	err := k.CreateStatefulSet("mydb", "postgres:latest", []int{5432}, []datadatdatclient.Volume{vol}, nil)
+	if err != nil {
+		t.Fatalf("CreateStatefulSet should succeed when no d3-labelled resources exist; got: %v", err)
 	}
 }
 
