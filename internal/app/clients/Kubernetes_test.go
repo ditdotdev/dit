@@ -12,10 +12,7 @@ import (
 	"k8s.io/client-go/kubernetes/fake"
 )
 
-const (
-	testNamespace = "default"
-	statusRunning = "running"
-)
+const testNamespace = "default"
 
 // swapClient replaces the package-level k8s client with a fake for the
 // duration of one test. Caller must defer the returned restore func.
@@ -234,6 +231,52 @@ func TestGetStatefulSetStatusReportsRunning(t *testing.T) {
 	}
 	if status != statusRunning {
 		t.Errorf("status = %q, want \"running\"", status)
+	}
+}
+
+// TestGetStatefulSetStatusWaitsForObservedGeneration covers the race that
+// caused `kubectl exec mydb-0` to fail with "pod does not have a host
+// assigned" right after `d3 checkout`. The flow:
+//
+//  1. Checkout scales the StatefulSet to 0 (Stop), waits.
+//  2. Checkout patches the PVC, then scales back to 1 (Start), waits.
+//  3. Wait/StartPortForwarding return; user runs kubectl exec.
+//
+// At step 2, `Status.Replicas` and `Status.ReadyReplicas` are still the
+// pre-patch values (0/0) for a brief window because the StatefulSet
+// controller hasn't observed the new generation yet. Pre-fix,
+// GetStatefulSetStatus saw Replicas==0 and returned "stopped" (terminal),
+// so WaitForStatefulSet exited immediately — before the pod was
+// scheduled. The fix is to require Status.ObservedGeneration >=
+// metadata.Generation before trusting any replicas-derived status.
+func TestGetStatefulSetStatusWaitsForObservedGeneration(t *testing.T) {
+	ns := testNamespace
+	replicas := int32(1)
+	ss := &v1Apps.StatefulSet{
+		ObjectMeta: metav1.ObjectMeta{Name: "demo-db", Namespace: ns, Generation: 2},
+		Spec: v1Apps.StatefulSetSpec{
+			Replicas: &replicas,
+		},
+		Status: v1Apps.StatefulSetStatus{
+			ObservedGeneration: 1,
+			Replicas:           0,
+			ReadyReplicas:      0,
+			UpdateRevision:     "r1",
+			CurrentRevision:    "r1",
+		},
+	}
+	restore := swapClient(t, fake.NewSimpleClientset(ss))
+	defer restore()
+
+	k := kubernetes{namespace: ns}
+	status, err := k.GetStatefulSetStatus("demo-db")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	// Anything terminal (running, stopped, detached) is wrong here —
+	// WaitForStatefulSet would return before the rollout starts.
+	if status == statusRunning || status == statusStopped || status == statusDetached {
+		t.Errorf("status = %q for stale (unobserved) generation; expected a non-terminal state like %q", status, statusStarting)
 	}
 }
 
