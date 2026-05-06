@@ -10,6 +10,13 @@ import (
 	client "github.com/datadatdat/datadatdat-client-go"
 )
 
+// Metadata JSON keys used both here and in [Properties.go]; kept as
+// constants so goconst doesn't flag the repeated string literals.
+const (
+	keyImage              = "image"
+	keyDisablePortMapping = "disablePortMapping"
+)
+
 func Run(container string, repository string, envVars []string, args []string, disablePortMap bool, privileged bool, createRepo bool, port int, context string) {
 	cfg.BasePath = "http://localhost:" + strconv.Itoa(port)
 	docker := clients.Docker(context, port)
@@ -139,7 +146,7 @@ func Run(container string, repository string, envVars []string, args []string, d
 
 	metadata := map[string]interface{}{
 		"container": imageId,
-		"image":     image,
+		keyImage:    image,
 		"tag":       tag,
 		"digest":    repoDigest,
 		"runtime":   map[string]interface{}{},
@@ -169,15 +176,15 @@ func Run(container string, repository string, envVars []string, args []string, d
 
 	metadata = map[string]interface{}{
 		"v2": map[string]interface{}{
-			"image": map[string]interface{}{
-				"image":  image,
+			keyImage: map[string]interface{}{
+				keyImage: image,
 				"tag":    tag,
 				"digest": repoDigest,
 			},
-			"environment":        envVars,
-			"ports":              metaPorts,
-			"volumes":            metaVolumes,
-			"disablePortMapping": disablePortMap,
+			"environment":         envVars,
+			"ports":               metaPorts,
+			"volumes":             metaVolumes,
+			keyDisablePortMapping: disablePortMap,
 		},
 	}
 

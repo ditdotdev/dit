@@ -8,7 +8,7 @@ import (
 
 // uninstallCmd represents the uninstall command
 var uninstallCmd = &cobra.Command{
-	Use:   "uninstall",
+	Use:   subcmdUninstall,
 	Short: "Uninstall datadatdat infrastructure",
 
 	Run: func(cmd *cobra.Command, args []string) {
