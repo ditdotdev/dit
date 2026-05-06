@@ -82,19 +82,19 @@ kubectl exec mydb-0 -- psql -U postgres -c "INSERT INTO users (name, email) VALU
 
 # initial commit: no users table
 
-./d3 checkout mydb -c b3f5abec76da479cb6525c7de8765076
+./d3 checkout mydb -c aad3f57903be45978ae402c79f80fbca
 
 kubectl exec mydb-0 -- psql -U postgres -c "\dt"
 
 # after CREATE TABLE: users table exists, no rows
 
-./d3 checkout mydb -c 03c0319b36e746369b5e79d284a1519b
+./d3 checkout mydb -c 38672f0fc7dd455ebc73a1f5c66694ee
 
 kubectl exec mydb-0 -- psql -U postgres -c "\dt"
 
 # after INSERT: rows are back
 
-./d3 checkout mydb -c e6187071fb4e430285d812d4a62d49f7
+./d3 checkout mydb -c d8b43b33634147888ce395d65677d106
 
 kubectl exec mydb-0 -- psql -U postgres -c "SELECT * FROM users;"
 
@@ -112,15 +112,15 @@ kubectl exec mydb-0 -- psql -U postgres -c "SELECT * FROM users;"
 
 # pull initial commit only — bring up postgres at the empty-schema state
 
-./d3 pull mydb -c b3f5abec76da479cb6525c7de8765076
+./d3 pull mydb -c ee73d1c2200b426fb5ca0259dbc474ca
 
-./d3 checkout mydb -c b3f5abec76da479cb6525c7de8765076
+./d3 checkout mydb -c ee73d1c2200b426fb5ca0259dbc474ca
 
 # pull the schema commit, switch to it
 
-./d3 pull mydb -c 03c0319b36e746369b5e79d284a1519b
+./d3 pull mydb -c 8d54c70df78f46ab8a88b65c7228feb7
 
-./d3 checkout mydb -c 03c0319b36e746369b5e79d284a1519b
+./d3 checkout mydb -c 8d54c70df78f46ab8a88b65c7228feb7
 
 # checkout the tagged release directly
 
