@@ -1370,9 +1370,8 @@ go clean -modcache  # If persistent issues
 ### Issue: Docker container won't start after datadatdat-server release
 **Solution**:
 ```bash
-# Check ZFS pools are properly set up
-cd cleanslate
-.\setup-zfs-pools.ps1 -Clean -VerifyDocker
+# Reset ZFS pools
+bash scripts/setup-zfs-pools.sh --clean
 
 # Restart Docker and retry
 ./d3.exe uninstall -f

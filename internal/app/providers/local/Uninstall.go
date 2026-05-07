@@ -59,8 +59,8 @@ func Uninstall(version string, force bool, removeImages bool, port int, context 
 		if output, err := docker.TeardownDatadatdatServers(); err != nil {
 			// On WSL2, the teardown container may fail to destroy the ZFS pool due to
 			// hostid mismatch (pool created by WSL host, teardown runs in Docker container).
-			// This is non-fatal — the pool can be cleaned up via cleanslate scripts.
-			fmt.Printf("Warning: Teardown encountered errors (ZFS pool may need manual cleanup via cleanslate): %v\n", err)
+			// This is non-fatal — the pool can be cleaned up via scripts/setup-zfs-pools.sh --clean.
+			fmt.Printf("Warning: Teardown encountered errors (ZFS pool may need manual cleanup via 'bash scripts/setup-zfs-pools.sh --clean'): %v\n", err)
 			if output != "" {
 				fmt.Println(output)
 			}

@@ -1,14 +1,24 @@
 #!/bin/bash
-# ZFS Pool Setup Script for Datadatdat Clean Slate Testing
-# Run this script before installing Datadatdat to ensure ZFS pools are ready
-# Use --clean parameter to destroy existing pools first for true clean slate
+# ZFS Pool Setup for Datadatdat Linux Development
+#
+# Provisions the loop-backed ZFS pools that the d3 server expects
+# (datadatdat-docker, datadatdat, datadatdat-one, datadatdat-two) on
+# a fresh native-Linux or WSL2 development box.
+#
+# Moved from cleanslate/ to scripts/ as part of datadatdat#129. The
+# "clean slate testing" workflow it was part of has been retired; this
+# script remains the canonical way to provision host ZFS pools for d3
+# development.
+#
+# Usage:
+#   bash setup-zfs-pools.sh           # create any missing pools
+#   bash setup-zfs-pools.sh --clean   # destroy and recreate all pools
 
 # Prevent Git Bash from converting Unix paths to Windows paths
 export MSYS_NO_PATHCONV=1
 
 # Parse command line arguments
 CLEAN=false
-VERIFY_DOCKER=false
 
 while [[ $# -gt 0 ]]; do
     case $1 in
@@ -16,13 +26,9 @@ while [[ $# -gt 0 ]]; do
             CLEAN=true
             shift
             ;;
-        --verify-docker)
-            VERIFY_DOCKER=true
-            shift
-            ;;
         *)
             echo "Unknown option: $1"
-            echo "Usage: $0 [--clean] [--verify-docker]"
+            echo "Usage: $0 [--clean]"
             exit 1
             ;;
     esac
@@ -33,116 +39,13 @@ RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 CYAN='\033[0;36m'
-GRAY='\033[0;37m'
+WHITE='\033[1;37m'
 NC='\033[0m' # No Color
-
-# Function to ensure Docker is running
-ensure_docker_running() {
-    echo -e "${CYAN}Checking Docker status...${NC}"
-    
-    # First, try to connect to Docker
-    if docker_version=$(docker version --format json 2>/dev/null); then
-        if echo "$docker_version" | grep -q '"Server"'; then
-            client_version=$(echo "$docker_version" | grep -o '"Version":"[^"]*"' | head -1 | cut -d'"' -f4)
-            echo -e "${GREEN}✓ Docker is running - Version: $client_version${NC}"
-            return 0
-        fi
-    fi
-    
-    echo -e "${YELLOW}Docker is not running. Attempting to start Docker Desktop...${NC}"
-    
-    # Check if Docker Desktop process is running
-    if ! pgrep -f "Docker Desktop" > /dev/null; then
-        # Start Docker Desktop
-        echo -e "${YELLOW}Starting Docker Desktop...${NC}"
-        docker_path="/c/Program Files/Docker/Docker/Docker Desktop.exe"
-        if [ -f "$docker_path" ]; then
-            "$docker_path" &
-            echo -e "${YELLOW}Docker Desktop started. Waiting for initialization...${NC}"
-        else
-            echo -e "${RED}Docker Desktop not found at expected location: $docker_path${NC}"
-            echo -e "${RED}Please install Docker Desktop or start it manually.${NC}"
-            return 1
-        fi
-    else
-        echo -e "${YELLOW}Docker Desktop process is running but daemon is not ready. Waiting...${NC}"
-    fi
-    
-    # Wait for Docker daemon to be ready (up to 60 seconds)
-    timeout=60
-    elapsed=0
-    interval=5
-    
-    echo -e "${YELLOW}Waiting for Docker daemon to be ready...${NC}"
-    while [ $elapsed -lt $timeout ]; do
-        sleep $interval
-        elapsed=$((elapsed + interval))
-        
-        if docker_version=$(docker version --format json 2>/dev/null); then
-            if echo "$docker_version" | grep -q '"Server"'; then
-                client_version=$(echo "$docker_version" | grep -o '"Version":"[^"]*"' | head -1 | cut -d'"' -f4)
-                echo -e "${GREEN}✓ Docker is now ready - Version: $client_version${NC}"
-                return 0
-            fi
-        fi
-        
-        echo -e "${GRAY}Still waiting... ($elapsed/$timeout seconds)${NC}"
-    done
-    
-    echo -e "${RED}Docker failed to start within $timeout seconds. Please check Docker Desktop manually.${NC}"
-    return 1
-}
 
 echo -e "${GREEN}Setting up ZFS pools for Datadatdat...${NC}"
 
-# Always ensure Docker is running
-if ! ensure_docker_running; then
-    echo -e "${RED}Cannot proceed without Docker. Please ensure Docker Desktop is installed and can start.${NC}"
-    exit 1
-fi
-
-# Optional additional Docker verification
-if [ "$VERIFY_DOCKER" = true ]; then
-    echo -e "${CYAN}Performing additional Docker environment verification...${NC}"
-    existing_containers=$(docker ps -a --format "{{.Names}}" || true)
-    potential_conflicts=("testpostgres" "testredis" "testhello" "cleanslatetest" "pgtest")
-    for name in "${potential_conflicts[@]}"; do
-        if echo "$existing_containers" | grep -q "^${name}$"; then
-            echo -e "${YELLOW}⚠ Found existing container: $name${NC}"
-            echo -e "${YELLOW}  Consider running: docker rm -f $name${NC}"
-        fi
-    done
-fi
-
-if [ "$CLEAN" = true ]; then
-    echo -e "${YELLOW}Clean slate requested - removing existing ZFS pools...${NC}"
-    
-    # Remove existing pools (ignore errors if pools don't exist)
-    echo "Destroying existing ZFS pools..."
-    $ZFS_CMD zpool destroy datadatdat-docker 2>/dev/null || true
-    $ZFS_CMD zpool destroy datadatdat 2>/dev/null || true
-    $ZFS_CMD zpool destroy datadatdat-one 2>/dev/null || true
-    $ZFS_CMD zpool destroy datadatdat-two 2>/dev/null || true
-    
-    # Remove pool image files
-    echo "Removing pool image files..."
-    $ZFS_CMD rm -rf /datadatdat-pools
-    
-    # Remove loop devices
-    echo "Removing loop devices..."
-    $ZFS_CMD losetup -D
-    
-    # Verify cleanup
-    pool_check=$($ZFS_CMD zpool list 2>/dev/null || echo "no pools available")
-    if [[ "$pool_check" =~ no\ pools\ available ]]; then
-        echo -e "${GREEN}OK All ZFS pools successfully removed${NC}"
-    else
-        echo -e "${YELLOW}Some pools may still exist:${NC}"
-        $ZFS_CMD zpool list
-    fi
-fi
-
-# Detect environment (GitHub Actions, WSL, or native Linux)
+# Detect environment (GitHub Actions, WSL, or native Linux). Must run
+# before any block that uses $ZFS_CMD.
 if [ -n "$GITHUB_ACTIONS" ]; then
     echo -e "${CYAN}Detected GitHub Actions environment (native Linux)${NC}"
     ENVIRONMENT="github-actions"
@@ -156,6 +59,34 @@ else
     echo -e "${CYAN}Detected native Linux environment${NC}"
     ENVIRONMENT="native-linux"
     ZFS_CMD="sudo"  # Direct sudo commands
+fi
+
+if [ "$CLEAN" = true ]; then
+    echo -e "${YELLOW}Clean requested - removing existing ZFS pools...${NC}"
+
+    # Remove existing pools (ignore errors if pools don't exist)
+    echo "Destroying existing ZFS pools..."
+    $ZFS_CMD zpool destroy datadatdat-docker 2>/dev/null || true
+    $ZFS_CMD zpool destroy datadatdat 2>/dev/null || true
+    $ZFS_CMD zpool destroy datadatdat-one 2>/dev/null || true
+    $ZFS_CMD zpool destroy datadatdat-two 2>/dev/null || true
+
+    # Remove pool image files
+    echo "Removing pool image files..."
+    $ZFS_CMD rm -rf /datadatdat-pools
+
+    # Remove loop devices
+    echo "Removing loop devices..."
+    $ZFS_CMD losetup -D
+
+    # Verify cleanup
+    pool_check=$($ZFS_CMD zpool list 2>/dev/null || echo "no pools available")
+    if [[ "$pool_check" =~ no\ pools\ available ]]; then
+        echo -e "${GREEN}OK All ZFS pools successfully removed${NC}"
+    else
+        echo -e "${YELLOW}Some pools may still exist:${NC}"
+        $ZFS_CMD zpool list
+    fi
 fi
 
 # Check ZFS kernel support
@@ -186,7 +117,7 @@ existing_pools=$($ZFS_CMD zpool list 2>/dev/null || true)
 if [ -n "$existing_pools" ] && ! [[ "$existing_pools" =~ no\ pools\ available ]]; then
     echo -e "${YELLOW}Existing pools found:${NC}"
     $ZFS_CMD zpool list
-    
+
     # Handle hostid mismatches
     echo "Fixing any hostid mismatches..."
     $ZFS_CMD zpool export datadatdat 2>/dev/null || true
@@ -209,13 +140,13 @@ echo "Checking for datadatdat-docker pool..."
 datadatdat_docker_exists=$($ZFS_CMD zpool list datadatdat-docker 2>/dev/null || true)
 if [ -z "$datadatdat_docker_exists" ]; then
     echo -e "${YELLOW}Creating datadatdat-docker pool (2GB)...${NC}"
-    
+
     # Create image file (2GB = 2048MB)
     $ZFS_CMD dd if=/dev/zero of=/datadatdat-pools/datadatdat-docker.img bs=1M count=2048 2>/dev/null
-    
+
     # Create loop device and get its path
     loop_device=$($ZFS_CMD losetup --show -f /datadatdat-pools/datadatdat-docker.img)
-    
+
     if [ -n "$loop_device" ]; then
         # Create the pool
         $ZFS_CMD zpool create datadatdat-docker "$loop_device"
@@ -233,13 +164,13 @@ echo "Checking for datadatdat pool..."
 datadatdat_exists=$($ZFS_CMD zpool list datadatdat 2>/dev/null || true)
 if [ -z "$datadatdat_exists" ]; then
     echo -e "${YELLOW}Creating datadatdat pool (2GB)...${NC}"
-    
+
     # Create image file (2GB = 2048MB)
     $ZFS_CMD dd if=/dev/zero of=/datadatdat-pools/datadatdat.img bs=1M count=2048 2>/dev/null
-    
+
     # Create loop device and get its path
     loop_device=$($ZFS_CMD losetup --show -f /datadatdat-pools/datadatdat.img)
-    
+
     if [ -n "$loop_device" ]; then
         # Create the pool
         $ZFS_CMD zpool create datadatdat "$loop_device"
@@ -257,13 +188,13 @@ echo "Checking for datadatdat-one pool..."
 datadatdat_one_exists=$($ZFS_CMD zpool list datadatdat-one 2>/dev/null || true)
 if [ -z "$datadatdat_one_exists" ]; then
     echo -e "${YELLOW}Creating datadatdat-one pool (2GB for multi-context tests)...${NC}"
-    
+
     # Create image file (2GB = 2048MB)
     $ZFS_CMD dd if=/dev/zero of=/datadatdat-pools/datadatdat-one.img bs=1M count=2048 2>/dev/null
-    
+
     # Create loop device and get its path
     loop_device=$($ZFS_CMD losetup --show -f /datadatdat-pools/datadatdat-one.img)
-    
+
     if [ -n "$loop_device" ]; then
         # Create the pool
         $ZFS_CMD zpool create datadatdat-one "$loop_device"
@@ -281,13 +212,13 @@ echo "Checking for datadatdat-two pool..."
 datadatdat_two_exists=$($ZFS_CMD zpool list datadatdat-two 2>/dev/null || true)
 if [ -z "$datadatdat_two_exists" ]; then
     echo -e "${YELLOW}Creating datadatdat-two pool (2GB for multi-context tests)...${NC}"
-    
+
     # Create image file (2GB = 2048MB)
     $ZFS_CMD dd if=/dev/zero of=/datadatdat-pools/datadatdat-two.img bs=1M count=2048 2>/dev/null
-    
+
     # Create loop device and get its path
     loop_device=$($ZFS_CMD losetup --show -f /datadatdat-pools/datadatdat-two.img)
-    
+
     if [ -n "$loop_device" ]; then
         # Create the pool
         $ZFS_CMD zpool create datadatdat-two "$loop_device"
@@ -310,16 +241,9 @@ echo -e "${GREEN}Pool health check:${NC}"
 $ZFS_CMD zpool status
 
 echo ""
-echo -e "${GREEN}✓ ZFS pools are ready for Datadatdat!${NC}"
+echo -e "${GREEN}ZFS pools are ready for Datadatdat${NC}"
 echo -e "${CYAN}Standard pools: datadatdat, datadatdat-docker${NC}"
 echo -e "${CYAN}Multi-context test pools: datadatdat-one, datadatdat-two${NC}"
-echo -e "${CYAN}You can now run: ../d3.exe install${NC}"
-
+echo -e "${CYAN}You can now run: d3 install${NC}"
 echo ""
-echo -e "${YELLOW}Troubleshooting Tips:${NC}"
-echo -e "${WHITE}- If container creation fails with 'exit status 127':${NC}"
-echo -e "${WHITE}  Run: ./troubleshoot-docker.sh --fix${NC}"
-echo -e "${WHITE}- To verify Docker integration:${NC}"
-echo -e "${WHITE}  Run: ./setup-zfs-pools.sh --verify-docker${NC}"
-echo -e "${WHITE}- For complete reset:${NC}"
-echo -e "${WHITE}  Run: ./setup-zfs-pools.sh --clean${NC}"
+echo -e "${WHITE}For a full reset, run: bash setup-zfs-pools.sh --clean${NC}"
