@@ -1,8 +1,38 @@
 name: Release
+#
+# Triggers:
+#
+#   push of a v* tag
+#       Full release: build cross-platform binaries, run E2E, and publish a
+#       GitHub Release. This is the normal release path.
+#
+#   workflow_dispatch
+#       Dry run: build + E2E only. The create-release job is gated on
+#       github.event_name == 'push', so manually-dispatched runs never
+#       publish a release regardless of inputs. Use this to validate
+#       workflow or build changes against master without shipping
+#       anything externally.
+#
+#       Run from CLI:
+#           gh workflow run release.yml --ref master
+#
+#       With a custom synthetic version label for the build artifacts:
+#           gh workflow run release.yml --ref master -f version=v0.0.0-myvalidation
+#
+#       Built binaries appear in the workflow run's artifacts panel
+#       (1-day retention) for inspection. No Release entry is created
+#       and no release notifications fire to followers.
+#
 on:
   push:
     tags:
       - 'v*'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Synthetic version label for dry-run build artifacts (no release published)'
+        type: string
+        default: 'v0.0.0-dryrun'
 
 permissions:
   contents: write
@@ -33,7 +63,14 @@ jobs:
       
       - name: Build cross-platform releases
         run: |
-          VERSION=${GITHUB_REF#refs/tags/}
+          # On tag push, derive VERSION from the tag. On workflow_dispatch
+          # (dry run), use the version input. See top-of-file header for
+          # the dry-run trigger model.
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            VERSION="${{ inputs.version }}"
+          else
+            VERSION=${GITHUB_REF#refs/tags/}
+          fi
           make clean
           VERSION=$VERSION make release
       
@@ -59,7 +96,13 @@ jobs:
       
       - name: Extract Linux binary
         run: |
-          VERSION=${GITHUB_REF#refs/tags/}
+          # Mirror the build job's VERSION derivation so the tarball name
+          # matches whether this run is a tag push or a dry-run dispatch.
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            VERSION="${{ inputs.version }}"
+          else
+            VERSION=${GITHUB_REF#refs/tags/}
+          fi
           cd release/linux-amd64
           tar -xf datadatdat-cli-$VERSION-linux_amd64.tar
           chmod +x d3
@@ -191,6 +234,9 @@ jobs:
   create-release:
     name: Create GitHub Release
     needs: e2e-test
+    # Only publish on real tag pushes. workflow_dispatch runs are dry-run
+    # only and stop after e2e-test. See top-of-file header for rationale.
+    if: github.event_name == 'push'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
