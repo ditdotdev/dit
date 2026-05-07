@@ -132,10 +132,6 @@ jobs:
           sudo apt-get install -y zfsutils-linux
           sudo modprobe zfs
       
-      - name: Setup ZFS pools
-        run: |
-          sudo bash scripts/setup-zfs-pools.sh
-      
       - name: Generate SSH test keys
         run: |
           cd tests/endtoend/remotes/ssh
