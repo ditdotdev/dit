@@ -16,8 +16,15 @@ name: Release
 #       Run from CLI:
 #           gh workflow run release.yml --ref master
 #
-#       With a custom synthetic version label for the build artifacts:
-#           gh workflow run release.yml --ref master -f version=v0.0.0-myvalidation
+#       The dry run defaults VERSION to the latest reachable tag
+#       (`git describe --tags --abbrev=0`) so the CLI binary's image
+#       pulls (`datadatdat/datadatdat:$VERSION`) hit a tag that's
+#       actually published on Docker Hub. Override only when you need
+#       to test a specific published version:
+#           gh workflow run release.yml --ref master -f version=v1.9.0
+#
+#       (Picking a version that is NOT published will fail E2E at
+#       `d3 install` time when it tries to pull the missing image.)
 #
 #       Built binaries appear in the workflow run's artifacts panel
 #       (1-day retention) for inspection. No Release entry is created
@@ -30,9 +37,9 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description: 'Synthetic version label for dry-run build artifacts (no release published)'
+        description: 'Override version for dry-run (defaults to latest reachable tag, which must be a published Docker image).'
         type: string
-        default: 'v0.0.0-dryrun'
+        default: ''
 
 permissions:
   contents: write
@@ -42,8 +49,12 @@ jobs:
     name: Build Release Artifacts
     runs-on: ubuntu-22.04
     steps:
+      # fetch-depth: 0 makes tags available so the dry-run path can
+      # `git describe --tags --abbrev=0` to find a published version.
       - uses: actions/checkout@v6
-      
+        with:
+          fetch-depth: 0
+
       - uses: actions/setup-go@v6
         with:
           go-version: '1.26.2'
@@ -64,10 +75,16 @@ jobs:
       - name: Build cross-platform releases
         run: |
           # On tag push, derive VERSION from the tag. On workflow_dispatch
-          # (dry run), use the version input. See top-of-file header for
-          # the dry-run trigger model.
+          # (dry run), use the version input or fall back to the latest
+          # reachable tag — the latter ensures `datadatdat/datadatdat:$VERSION`
+          # is a real Docker Hub tag that the E2E `d3 install` step can pull.
+          # See top-of-file header for the dry-run trigger model.
           if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
             VERSION="${{ inputs.version }}"
+            if [ -z "$VERSION" ]; then
+              VERSION=$(git describe --tags --abbrev=0)
+              echo "Dry run defaulting to latest tag: $VERSION"
+            fi
           else
             VERSION=${GITHUB_REF#refs/tags/}
           fi
@@ -86,8 +103,12 @@ jobs:
     needs: build
     runs-on: ubuntu-22.04
     steps:
+      # fetch-depth: 0 mirrors the build job: tags need to be available
+      # so the dry-run version derivation can resolve `git describe`.
       - uses: actions/checkout@v6
-      
+        with:
+          fetch-depth: 0
+
       - name: Download artifacts
         uses: actions/download-artifact@v8
         with:
@@ -100,6 +121,9 @@ jobs:
           # matches whether this run is a tag push or a dry-run dispatch.
           if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
             VERSION="${{ inputs.version }}"
+            if [ -z "$VERSION" ]; then
+              VERSION=$(git describe --tags --abbrev=0)
+            fi
           else
             VERSION=${GITHUB_REF#refs/tags/}
           fi
