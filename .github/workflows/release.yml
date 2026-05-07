@@ -91,8 +91,7 @@ jobs:
       
       - name: Setup ZFS pools
         run: |
-          cd cleanslate
-          sudo bash setup-zfs-pools.sh
+          sudo bash scripts/setup-zfs-pools.sh
       
       - name: Generate SSH test keys
         run: |
