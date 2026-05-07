@@ -32,15 +32,14 @@ The CLI supports a `--registry` flag during installation to specify alternative 
 *  GoLang 1.13.5
 *  Make
 
-### Windows/WSL2 Additional Requirements
-If you are developing on Windows using Docker Desktop with WSL2, you must set up ZFS pools before running end-to-end tests:
+### Host ZFS Pool Setup
+On a fresh native-Linux or WSL2 development box, provision the host ZFS pools that the d3 server expects:
 
-```powershell
-cd cleanslate
-powershell -ExecutionPolicy Bypass -File setup-zfs-pools.ps1
+```bash
+bash scripts/setup-zfs-pools.sh
 ```
 
-This script creates the necessary ZFS infrastructure in WSL2 that the Datadatdat containers require. This step is only needed once per WSL2 environment (or after running the clean slate script).
+This step is only needed once per environment. Pass `--clean` to destroy and recreate the pools.
 
 ###Setting up Documentation Building
 Please read the details in /docs/README.md. As a prerequisite, you must:
@@ -60,14 +59,10 @@ make build
 ## Testing
 Datadatdat testing is handled by a simple e2e framework. Full test suite requires that an SSH Key and AWS CLI are configured.
 
-**Important**: Windows/WSL2 users must run the ZFS pool setup script before running tests:
-
-```powershell
-cd cleanslate
-powershell -ExecutionPolicy Bypass -File setup-zfs-pools.ps1
-```
+**Important**: On a fresh dev box, run the ZFS pool setup script once before running tests:
 
 ```bash
+bash scripts/setup-zfs-pools.sh
 make e2e
 ```
 

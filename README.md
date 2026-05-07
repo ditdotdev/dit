@@ -35,20 +35,15 @@ docker context use colima
 
 ## <a id="development"></a> Development and Testing
 
-### Clean Slate Testing
+### Host ZFS Pool Setup
 
-For comprehensive testing of the Datadatdat system, including automated environment setup and troubleshooting tools, see the [`cleanslate`](cleanslate/) folder which contains:
+On a fresh native-Linux or WSL2 dev box, provision the loop-backed ZFS pools that d3 expects:
 
-- Complete automation scripts for clean slate testing
-- Docker troubleshooting and diagnostic tools  
-- ZFS pool management utilities
-- Detailed testing documentation
-
-Quick start for developers:
-```powershell
-cd cleanslate
-.\clean-slate-automation.ps1 -Verbose
+```bash
+bash scripts/setup-zfs-pools.sh
 ```
+
+Pass `--clean` to destroy and recreate the pools. See [`DEVELOPING.md`](DEVELOPING.md) for full development setup.
 
 ## <a id="contribute"></a>Contributing
 

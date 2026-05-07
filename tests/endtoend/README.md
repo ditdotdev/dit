@@ -2,14 +2,13 @@
 
 ### Prerequisites
 
-**Windows/WSL2 users**: Before running end-to-end tests, you must set up ZFS pools:
+On a fresh dev box (native Linux or WSL2), provision the host ZFS pools once:
 
-```powershell
-cd cleanslate
-powershell -ExecutionPolicy Bypass -File setup-zfs-pools.ps1
+```bash
+bash scripts/setup-zfs-pools.sh
 ```
 
-This creates the necessary ZFS infrastructure in WSL2 that Datadatdat containers require. This step is only needed once per WSL2 environment.
+This creates the loop-backed ZFS pools that the Datadatdat containers require. Pass `--clean` to destroy and recreate them.
 
 ### Running Tests
 
