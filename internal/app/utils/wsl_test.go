@@ -27,13 +27,6 @@ func TestDetectWSL2_WithNonWSL2Kernel(t *testing.T) {
 	}
 }
 
-func TestDetectWSL2_WithLinuxKitKernel(t *testing.T) {
-	info := DetectWSL2("6.6.71-linuxkit")
-	if info.IsWSL2 {
-		t.Error("Expected IsWSL2 to be false for linuxkit kernel")
-	}
-}
-
 func TestSupportsModules_ModernKernel(t *testing.T) {
 	info := DetectWSL2("6.6.87.2-microsoft-standard-WSL2")
 	if !info.SupportsModules() {

@@ -174,16 +174,6 @@ Both containers use the **same image** but different entry points:
 
 **File:** `datadatdat-server/server/src/scripts/launch` (sources `zfs.sh`, `datadatdat.sh`, `util.sh`)
 
-### Docker Desktop Special Case
-
-```bash
-if [[ $(uname -r) == *"linuxkit"* ]]; then
-    docker run --rm --privileged datadatdat/docker-desktop-zfs-kernel:$tag
-fi
-```
-
-Pulls a small (~50MB) image that loads ZFS modules into the Docker Desktop VM.
-
 ### ZFS Module Loading (4-step fallback chain)
 
 **File:** `datadatdat-server/server/src/scripts/zfs.sh`
@@ -417,7 +407,6 @@ contexts:
 | Image | When Pulled | Size | Purpose |
 |-------|-------------|------|---------|
 | `datadatdat/datadatdat:$VERSION` | Always | ~1.7GB | Main server + ZFS tools |
-| `datadatdat/docker-desktop-zfs-kernel:$TAG` | Docker Desktop only | ~50MB | ZFS modules for linuxkit |
 
 ---
 
