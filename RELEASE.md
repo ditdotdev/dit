@@ -1554,7 +1554,6 @@ jobs:
 
 #### Manual Docker Builds (No Automation)
 - ��� **zfs-builder**: Has Dockerfile, no GitHub Actions
-- ��� **zfs-linuxkit**: Has Dockerfile, no GitHub Actions  
 - ��� **ssh-test-server**: Has Dockerfile, no GitHub Actions
 - ��� **dynamodb-local**: Has Dockerfile, no GitHub Actions
 - ��� **datadatdat** (CLI): Has Dockerfile for docs, uses GitHub Actions for docs only
