@@ -104,7 +104,11 @@ kubectl exec mydb-0 -- psql -U postgres -c "SELECT * FROM users;"
 
 ./d3 rm mydb --context k8s-demo
 
+kubectl get statefulset,svc,pvc,pod -l datadatdatRepository=mydb
+
 ./d3 clone https://datadatdat.com/robertericreeves/mydb --context k8s-demo
+
+kubectl get statefulset,svc,pvc,pod -l datadatdatRepository=mydb
 
 ./d3 log mydb
 
@@ -112,15 +116,15 @@ kubectl exec mydb-0 -- psql -U postgres -c "SELECT * FROM users;"
 
 # pull initial commit only — bring up postgres at the empty-schema state
 
-./d3 pull mydb -c ee73d1c2200b426fb5ca0259dbc474ca
+./d3 pull mydb -c 9db5809c529c43a8b50c3b3524054f54
 
-./d3 checkout mydb -c ee73d1c2200b426fb5ca0259dbc474ca
+./d3 checkout mydb -c 9db5809c529c43a8b50c3b3524054f54
 
 # pull the schema commit, switch to it
 
-./d3 pull mydb -c 8d54c70df78f46ab8a88b65c7228feb7
+./d3 pull mydb -c 0957907fe9514ed9aafb0bc7193634fe
 
-./d3 checkout mydb -c 8d54c70df78f46ab8a88b65c7228feb7
+./d3 checkout mydb -c 0957907fe9514ed9aafb0bc7193634fe
 
 # checkout the tagged release directly
 
@@ -135,3 +139,9 @@ kubectl exec mydb-0 -- psql -U postgres -c "SELECT * FROM users;"
 ./d3 repo delete robertericreeves mydb
 
 ./d3 context uninstall -f k8s-demo
+
+kubectl get statefulset,svc,pvc,pod -l datadatdatRepository=mydb
+
+kubectl delete volumesnapshot --all
+
+
