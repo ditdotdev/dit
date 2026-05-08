@@ -52,7 +52,7 @@ kubectl get volumesnapshot
 
 ./d3 remote add https://datadatdat.com/robertericreeves/mydb mydb
 
-./d3 push mydb
+./d3 push mydb 
 
 ./d3 remote log mydb
 
@@ -116,17 +116,19 @@ kubectl get statefulset,svc,pvc,pod -l datadatdatRepository=mydb
 
 # pull initial commit only — bring up postgres at the empty-schema state
 
-./d3 pull mydb -c 9db5809c529c43a8b50c3b3524054f54
+./d3 pull mydb -c 35cd1a66956e4e3e8004a7e3af615b80
 
-./d3 checkout mydb -c 9db5809c529c43a8b50c3b3524054f54
+./d3 checkout mydb -c 35cd1a66956e4e3e8004a7e3af615b80
 
 # pull the schema commit, switch to it
 
-./d3 pull mydb -c 0957907fe9514ed9aafb0bc7193634fe
+./d3 pull mydb -c b484916cb1da4494a3f83dbd11860961
 
-./d3 checkout mydb -c 0957907fe9514ed9aafb0bc7193634fe
+./d3 checkout mydb -c b484916cb1da4494a3f83dbd11860961
 
 # checkout the tagged release directly
+
+kubectl exec mydb-0 -- psql -U postgres -c "SELECT * FROM users;"
 
 ./d3 checkout mydb -t v2.3.4
 
