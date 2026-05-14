@@ -78,6 +78,8 @@ kubectl exec mydb-0 -- psql -U postgres -c "INSERT INTO users (name, email) VALU
 
 ### checkout history — verify the schema at each commit
 
+kubectl get volumesnapshot
+
 ./d3 log mydb
 
 # initial commit: no users table
@@ -116,15 +118,15 @@ kubectl get statefulset,svc,pvc,pod -l datadatdatRepository=mydb
 
 # pull initial commit only — bring up postgres at the empty-schema state
 
-./d3 pull mydb -c 35cd1a66956e4e3e8004a7e3af615b80
+./d3 pull mydb -c f09374af32df49e792192b2bd8046a0d
 
-./d3 checkout mydb -c 35cd1a66956e4e3e8004a7e3af615b80
+./d3 checkout mydb -c f09374af32df49e792192b2bd8046a0d
 
 # pull the schema commit, switch to it
 
-./d3 pull mydb -c b484916cb1da4494a3f83dbd11860961
+./d3 pull mydb -c 74452746c2a64535b962363e501e1976
 
-./d3 checkout mydb -c b484916cb1da4494a3f83dbd11860961
+./d3 checkout mydb -c 74452746c2a64535b962363e501e1976
 
 # checkout the tagged release directly
 
