@@ -100,7 +100,22 @@ setup_file() {
     export DATADATDAT_K8S_POD_HOST_ALIASES="datadatdat-api-gateway=auto"
   fi
 
-  "$D3" context install -n "$CTX" -t kubernetes
+  # Pin storage + snapshot classes for d3-provisioned PVCs. Relying on the
+  # cluster default is fragile: minikube's `default-storageclass` addon
+  # re-asserts `standard` (k8s.io/minikube-hostpath, no snapshot support)
+  # as the default on every `minikube start`, so any new PVCs land on a
+  # class whose driver can't fulfill VolumeSnapshots. The symptom is
+  # `d3 commit` succeeding but capturing a 0-byte volume — see the bug
+  # diagnosed in PR-... (May 2026).
+  #
+  # csi-hostpath-sc + csi-hostpath-snapclass come from minikube's
+  # csi-hostpath-driver addon. Override via env if your cluster names
+  # them differently.
+  local sc="${D3_K8S_STORAGE_CLASS:-csi-hostpath-sc}"
+  local snapclass="${D3_K8S_SNAPSHOT_CLASS:-csi-hostpath-snapclass}"
+  "$D3" context install -n "$CTX" -t kubernetes \
+    -p "storageClass=${sc}" \
+    -p "snapshotClass=${snapclass}"
 
   # The kubernetes-context d3 server runs in the default docker bridge
   # network, so it can't resolve `datadatdat-api-gateway` when the
@@ -151,6 +166,42 @@ teardown_file() {
     # 500 (the thing we actually need to diagnose) out of the window.
     docker logs "datadatdat-${CTX}-server" 2>&1 || true
     echo "=== end of datadatdat-${CTX}-server logs ==="
+
+    # ----------------------------------------------------------------
+    # Diagnose empty-snapshot bug: dump PVC / VolumeSnapshot / CSI state
+    # BEFORE `d3 rm -f` below tears the k8s objects down. This is the
+    # only window where we can see whether the commit-time snapshots
+    # actually captured data (readyToUse + restoreSize), what storage
+    # class the postgres PVC ended up on, and what the CSI hostpath
+    # driver itself logged. Failures here are non-fatal — informational
+    # only. Output is written to a directory the user can grep after
+    # the run AND summarized inline on FD 3.
+    # ----------------------------------------------------------------
+    local debug_dir="/tmp/d3-k8s-debug-${BATS_TEST_NAME:-teardown}-$(date +%s)"
+    mkdir -p "$debug_dir"
+    kubectl get pvc -A -o yaml                  >"$debug_dir/pvcs.yaml"                  2>&1 || true
+    kubectl get volumesnapshot -A -o yaml       >"$debug_dir/volumesnapshots.yaml"       2>&1 || true
+    kubectl get volumesnapshotcontent -o yaml   >"$debug_dir/volumesnapshotcontents.yaml" 2>&1 || true
+    kubectl get storageclass -o yaml            >"$debug_dir/storageclasses.yaml"        2>&1 || true
+    kubectl get volumesnapshotclass -o yaml     >"$debug_dir/volumesnapshotclasses.yaml" 2>&1 || true
+    kubectl describe volumesnapshot -A          >"$debug_dir/volumesnapshots.describe"   2>&1 || true
+    kubectl describe pvc -A                     >"$debug_dir/pvcs.describe"              2>&1 || true
+    kubectl -n kube-system logs -l app=csi-hostpathplugin --all-containers --tail=500  >"$debug_dir/csi-hostpathplugin.log" 2>&1 || true
+    kubectl -n kube-system logs -l app.kubernetes.io/instance=csi-hostpath-snapshotter --all-containers --tail=500 >"$debug_dir/csi-snapshotter.log" 2>&1 || true
+
+    echo ""
+    echo "=== d3 k8s snapshot diagnostics ==="
+    echo "Full dump: $debug_dir"
+    echo ""
+    echo "--- PVC storage classes (postgres + commit scratch should be on a snapshot-capable SC) ---"
+    kubectl get pvc -A -o 'custom-columns=NS:.metadata.namespace,NAME:.metadata.name,SC:.spec.storageClassName,STATUS:.status.phase,VOL:.spec.volumeName' 2>&1 || true
+    echo ""
+    echo "--- VolumeSnapshot status (readyToUse + restoreSize is the smoking gun) ---"
+    kubectl get volumesnapshot -A -o 'custom-columns=NS:.metadata.namespace,NAME:.metadata.name,READY:.status.readyToUse,SOURCEPVC:.spec.source.persistentVolumeClaimName,SIZE:.status.restoreSize,CLASS:.spec.volumeSnapshotClassName,CREATED:.metadata.creationTimestamp' 2>&1 || true
+    echo ""
+    echo "--- VolumeSnapshotContent ---"
+    kubectl get volumesnapshotcontent -o 'custom-columns=NAME:.metadata.name,READY:.status.readyToUse,SIZE:.status.restoreSize,SNAPSHOT:.spec.volumeSnapshotRef.name' 2>&1 || true
+    echo "=== end of d3 k8s snapshot diagnostics ==="
   } >&3
   for r in "$REPO" hello-clone-datadatdat hello-clone-s3 hello-clone-s3web; do
     "$D3" rm -f "$r" --context "$CTX" 2>/dev/null || true
