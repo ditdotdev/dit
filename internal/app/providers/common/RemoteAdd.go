@@ -30,15 +30,15 @@ func RemoteAdd(repo string, uri string, remoteName string, params map[string]str
 		fmt.Println("remote " + name + " already exists for " + repo)
 		os.Exit(1)
 	}
-	provider, props, _, _, err := remote.ParseURL(uri, params)
+	parsed, err := remote.ParseURL(uri, params)
 	if err != nil {
 		fmt.Printf("Error parsing URI '%s': %v\n", uri, err)
 		os.Exit(1)
 	}
 	r := client.Remote{
-		Provider:   provider,
+		Provider:   parsed.Provider,
 		Name:       name,
-		Properties: props,
+		Properties: parsed.Properties,
 	}
 	_, _, err = remotesApi.CreateRemote(ctx, repo, r)
 	if err != nil {
