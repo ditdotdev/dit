@@ -9,7 +9,7 @@ require (
 	github.com/datadatdat/datadatdat-client-go v1.9.0
 	github.com/datadatdat/datadatdat-remote-go v1.10.0
 	github.com/datadatdat/nop-remote-go v1.10.0
-	github.com/datadatdat/remote-sdk-go v1.10.0
+	github.com/datadatdat/remote-sdk-go v1.11.0
 	github.com/datadatdat/s3-remote-go v1.10.0
 	github.com/datadatdat/s3web-remote-go v1.10.0
 	github.com/datadatdat/ssh-remote-go v1.10.0

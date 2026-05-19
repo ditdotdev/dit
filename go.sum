@@ -56,8 +56,8 @@ github.com/datadatdat/datadatdat-remote-go v1.10.0 h1:VkUoXlTCnAs9Z5lhx8kNJeydLJ
 github.com/datadatdat/datadatdat-remote-go v1.10.0/go.mod h1:35wZeNBUzGrgO885Pre8EkhP4WZ9yM0C6jN8f+F9FSU=
 github.com/datadatdat/nop-remote-go v1.10.0 h1:lCKeK80Cjr9xWo/a5m++eC4+mkwuxPGP6vJyi38nyUc=
 github.com/datadatdat/nop-remote-go v1.10.0/go.mod h1:mUsEKmn8ev3jEq2KxSz1rTnSqkSQehEHkgkBJ8EWY3U=
-github.com/datadatdat/remote-sdk-go v1.10.0 h1:txlhLYjHKdrea4/AOCV9UowC3JIoU05BuHtRHgRv18s=
-github.com/datadatdat/remote-sdk-go v1.10.0/go.mod h1:dWq96uP2wfHTsBLAVvUsVQ9zyCPTahoP6ept3QtbjPc=
+github.com/datadatdat/remote-sdk-go v1.11.0 h1:dQBqFTyXoLwEX8ARmn/3zK3yPST+VY3FTGvw+Pxo+5w=
+github.com/datadatdat/remote-sdk-go v1.11.0/go.mod h1:dWq96uP2wfHTsBLAVvUsVQ9zyCPTahoP6ept3QtbjPc=
 github.com/datadatdat/s3-remote-go v1.10.0 h1:zNJvPmdcEV8zJxOgliuebAmx4EMlaKtprQVo6UVN2hY=
 github.com/datadatdat/s3-remote-go v1.10.0/go.mod h1:mjx/YJ2LJUiS1XhhV9eKI+XNVa+lXb3fdL/1D9nK0Gw=
 github.com/datadatdat/s3web-remote-go v1.10.0 h1:jqIuupJqtxaILuZUkGnyLluvP5kezYphOQKy+SokwL0=
