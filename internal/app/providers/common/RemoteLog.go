@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"github.com/antihax/optional"
 	client "github.com/datadatdat/datadatdat-client-go"
-	"github.com/datadatdat/remote-sdk-go/remote"
 	"os"
 	"strconv"
 )
@@ -19,7 +18,12 @@ func RemoteLog(repo string, remoteName string, tags []string, port int) {
 	}
 	first := true
 	for _, r := range remotes {
-		gp, _ := remote.Get(r.Provider).GetParameters(r.Properties)
+		provider, err := ResolveProvider(r.Provider)
+		if err != nil {
+			fmt.Println(err)
+			os.Exit(1)
+		}
+		gp, _ := provider.GetParameters(r.Properties)
 		p := client.RemoteParameters{
 			Provider:   r.Provider,
 			Properties: gp,

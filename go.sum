@@ -58,6 +58,8 @@ github.com/datadatdat/nop-remote-go v1.9.0 h1:eyPjc1Tg9s5NLEjNNrRgo3wqJxEDdXowQk
 github.com/datadatdat/nop-remote-go v1.9.0/go.mod h1:XDke6yQyXMqBZZOZi1c0McGloOW+ZNpjJwAekVpHvBE=
 github.com/datadatdat/remote-sdk-go v1.9.0 h1:iVSdtwpgWvm7uE8X9LEd9acI6ydcqVUL1fnjSNjGq5c=
 github.com/datadatdat/remote-sdk-go v1.9.0/go.mod h1:p8AKiAhctJj3EyLmZf2zi61/wJvV5SSFCmpfYVEkQ0M=
+github.com/datadatdat/remote-sdk-go v1.9.1-0.20260518183518-25a38bddee06 h1:iLwzIIgRqZ1UU3hsJB1CkyttaH9VCjtlecCv5akUdS4=
+github.com/datadatdat/remote-sdk-go v1.9.1-0.20260518183518-25a38bddee06/go.mod h1:dWq96uP2wfHTsBLAVvUsVQ9zyCPTahoP6ept3QtbjPc=
 github.com/datadatdat/s3-remote-go v1.9.0 h1:ymZCd7y/az5ITN/ClPH6YQOdDtxtPwL4yTXgDUesBtc=
 github.com/datadatdat/s3-remote-go v1.9.0/go.mod h1:dLD9pV2PCBZT67l9NAeSvQbJNj142hvfYkapKVytrrE=
 github.com/datadatdat/s3web-remote-go v1.9.0 h1:emMX08+a9CkBIkc74bAH7Ev8pV/Z/b2PhbPcwgp0Cpo=
@@ -312,6 +314,8 @@ google.golang.org/grpc v1.23.0/go.mod h1:Y5yQAOtifL1yxbo5wqy6BxZv8vAUGQwXBOALyac
 google.golang.org/grpc v1.27.0/go.mod h1:qbnxyOmOxrQa7FizSgH+ReBfzJrCY1pSN7KXBS8abTk=
 google.golang.org/grpc v1.81.0 h1:W3G9N3KQf3BU+YuCtGKJk0CmxQNbAISICD/9AORxLIw=
 google.golang.org/grpc v1.81.0/go.mod h1:xGH9GfzOyMTGIOXBJmXt+BX/V0kcdQbdcuwQ/zNw42I=
+google.golang.org/grpc v1.81.1 h1:VnnIIZ88UzOOKLukQi+ImGz8O1Wdp8nAGGnvOfEIWQQ=
+google.golang.org/grpc v1.81.1/go.mod h1:xGH9GfzOyMTGIOXBJmXt+BX/V0kcdQbdcuwQ/zNw42I=
 google.golang.org/protobuf v0.0.0-20200109180630-ec00e32a8dfd/go.mod h1:DFci5gLYBciE7Vtevhsrf46CRTquxDuWsQurQQe4oz8=
 google.golang.org/protobuf v0.0.0-20200221191635-4d8936d0db64/go.mod h1:kwYJMbMJ01Woi6D6+Kah6886xMZcty6N08ah7+eCXa0=
 google.golang.org/protobuf v0.0.0-20200228230310-ab0ca4ff8a60/go.mod h1:cfTl7dwQJ+fmap5saPgwCLgHXTUD7jkjRqWcaiX5VyM=

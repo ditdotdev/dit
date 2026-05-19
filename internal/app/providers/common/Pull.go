@@ -9,7 +9,6 @@ import (
 
 	"github.com/antihax/optional"
 	datadatdatclient "github.com/datadatdat/datadatdat-client-go"
-	rm "github.com/datadatdat/remote-sdk-go/remote"
 )
 
 const (
@@ -38,9 +37,9 @@ func Pull(repoName string, guid string, remoteName string, tags []string, metada
 	commit := datadatdatclient.Commit{
 		Id: "id",
 	}
-	provider := rm.Get(remote.Provider)
-	if provider == nil {
-		fmt.Printf("unknown remote provider '%s'\n", remote.Provider)
+	provider, err := ResolveProvider(remote.Provider)
+	if err != nil {
+		fmt.Println(err)
 		os.Exit(1)
 	}
 	p, _ := provider.GetParameters(remote.Properties)

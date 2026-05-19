@@ -9,7 +9,6 @@ import (
 
 	"github.com/antihax/optional"
 	datadatdatclient "github.com/datadatdat/datadatdat-client-go"
-	rm "github.com/datadatdat/remote-sdk-go/remote"
 )
 
 func ensureRemoteRepoExists(properties map[string]interface{}) error {
@@ -92,9 +91,9 @@ func Push(repoName string, guid string, remoteName string, tags []string, metada
 			os.Exit(1)
 		}
 	}
-	provider := rm.Get(remote.Provider)
-	if provider == nil {
-		fmt.Printf("unknown remote provider '%s'\n", remote.Provider)
+	provider, err := ResolveProvider(remote.Provider)
+	if err != nil {
+		fmt.Println(err)
 		os.Exit(1)
 	}
 	p, _ := provider.GetParameters(remote.Properties)

@@ -10,7 +10,6 @@ import (
 
 	"github.com/antihax/optional"
 	client "github.com/datadatdat/datadatdat-client-go"
-	"github.com/datadatdat/remote-sdk-go/remote"
 	"net/http"
 )
 
@@ -74,7 +73,12 @@ func Clone(uri string, repo string, guid string, params []string, args []string,
 
 	RemoteAdd(repoName, plainUri, "", nil, port) //TODO fix params
 	rm, _, _ := remotesApi.GetRemote(ctx, repoName, "origin")
-	gp, _ := remote.Get(rm.Provider).GetParameters(rm.Properties)
+	provider, err := ResolveProvider(rm.Provider)
+	if err != nil {
+		fmt.Println(err)
+		os.Exit(1)
+	}
+	gp, _ := provider.GetParameters(rm.Properties)
 	p := client.RemoteParameters{
 		Provider:   rm.Provider,
 		Properties: gp,

@@ -9,13 +9,14 @@ require (
 	github.com/datadatdat/datadatdat-client-go v1.9.0
 	github.com/datadatdat/datadatdat-remote-go v1.9.0
 	github.com/datadatdat/nop-remote-go v1.9.0
-	github.com/datadatdat/remote-sdk-go v1.9.0
+	github.com/datadatdat/remote-sdk-go v1.9.1-0.20260518183518-25a38bddee06
 	github.com/datadatdat/s3-remote-go v1.9.0
 	github.com/datadatdat/s3web-remote-go v1.9.0
 	github.com/datadatdat/ssh-remote-go v1.9.0
 	github.com/google/uuid v1.6.0
 	github.com/spf13/cobra v1.10.2
 	github.com/spf13/viper v1.21.0
+	github.com/stretchr/testify v1.11.1
 	k8s.io/api v0.31.13
 	k8s.io/apimachinery v0.31.13
 	k8s.io/client-go v0.31.13
@@ -72,6 +73,7 @@ require (
 	github.com/oklog/run v1.1.0 // indirect
 	github.com/pelletier/go-toml/v2 v2.2.4 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
+	github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2 // indirect
 	github.com/sagikazarmark/locafero v0.11.0 // indirect
 	github.com/sourcegraph/conc v0.3.1-0.20240121214520-5f936abd7ae8 // indirect
 	github.com/spf13/afero v1.15.0 // indirect
@@ -88,7 +90,7 @@ require (
 	golang.org/x/text v0.36.0 // indirect
 	golang.org/x/time v0.3.0 // indirect
 	google.golang.org/genproto v0.0.0-20200526211855-cb27e3aa2013 // indirect
-	google.golang.org/grpc v1.81.0 // indirect
+	google.golang.org/grpc v1.81.1 // indirect
 	google.golang.org/protobuf v1.36.11 // indirect
 	gopkg.in/evanphx/json-patch.v4 v4.12.0 // indirect
 	gopkg.in/inf.v0 v0.9.1 // indirect
