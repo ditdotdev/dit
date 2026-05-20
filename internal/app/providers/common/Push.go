@@ -7,7 +7,6 @@ import (
 	"os"
 	"strconv"
 
-	"github.com/antihax/optional"
 	datadatdatclient "github.com/datadatdat/datadatdat-client-go"
 )
 
@@ -111,8 +110,7 @@ func Push(repoName string, guid string, remoteName string, tags []string, metada
 		if len(tags) == 0 {
 			commit, _, _ = commitsApi.GetCommit(ctx, repoName, repoStatus.LastCommit)
 		} else {
-			optTags := optional.NewInterface(tags)
-			commitsOpts := &datadatdatclient.ListCommitsOpts{Tag: optTags}
+			commitsOpts := &datadatdatclient.ListCommitsOpts{Tag: &tags}
 			commits, _, _ := commitsApi.ListCommits(ctx, repoName, commitsOpts)
 			if len(commits) == 0 {
 				fmt.Println("no matching commits found, unable to push latest")
@@ -143,7 +141,7 @@ func Push(repoName string, guid string, remoteName string, tags []string, metada
 		}
 	}
 	pushOpts := &datadatdatclient.PushOpts{
-		MetadataOnly: optional.NewBool(metadataOnly),
+		MetadataOnly: &metadataOnly,
 	}
 	op, _, err := operationsApi.Push(ctx, repoName, remote.Name, commit.Id, params, pushOpts)
 	if handleOperationError(err) {

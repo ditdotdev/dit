@@ -7,7 +7,6 @@ import (
 	"os"
 	"strconv"
 
-	"github.com/antihax/optional"
 	datadatdatclient "github.com/datadatdat/datadatdat-client-go"
 )
 
@@ -59,8 +58,7 @@ func Pull(repoName string, guid string, remoteName string, tags []string, metada
 			os.Exit(1)
 		}
 	} else {
-		o := optional.NewInterface(tags)
-		opts := datadatdatclient.ListRemoteCommitsOpts{Tag: o}
+		opts := datadatdatclient.ListRemoteCommitsOpts{Tag: &tags}
 		remoteCommits, resp, err := remotesApi.ListRemoteCommits(ctx, repoName, remote.Name, params, &opts)
 		if err != nil {
 			handleRemoteError(err, resp, "")
@@ -77,7 +75,7 @@ func Pull(repoName string, guid string, remoteName string, tags []string, metada
 		os.Exit(1)
 	}
 	pullOpts := &datadatdatclient.PullOpts{
-		MetadataOnly: optional.NewBool(metadataOnly),
+		MetadataOnly: &metadataOnly,
 	}
 	op, _, err := operationsApi.Pull(ctx, repoName, remote.Name, commit.Id, params, pullOpts)
 	if handleOperationError(err) {

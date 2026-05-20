@@ -3,7 +3,6 @@ package utils
 import (
 	"context"
 	"fmt"
-	"github.com/antihax/optional"
 	datadatdatclient "github.com/datadatdat/datadatdat-client-go"
 	"strconv"
 	"time"
@@ -46,7 +45,7 @@ func (om operationMonitor) Monitor(port int) bool {
 	var lastId int32 = 0
 
 	for !om.IsTerminal(state) {
-		p := &datadatdatclient.GetOperationProgressOpts{LastId: optional.NewInt32(lastId)}
+		p := &datadatdatclient.GetOperationProgressOpts{LastId: &lastId}
 		entries, _, err := operationsApi.GetOperationProgress(ctx, om.operation.Id, p)
 		if err == nil {
 			if len(entries) > 0 {

@@ -2,7 +2,6 @@ package common
 
 import (
 	"fmt"
-	"github.com/antihax/optional"
 	client "github.com/datadatdat/datadatdat-client-go"
 	"os"
 	"strconv"
@@ -28,8 +27,7 @@ func RemoteLog(repo string, remoteName string, tags []string, port int) {
 			Provider:   r.Provider,
 			Properties: gp,
 		}
-		o := optional.NewInterface(tags)
-		opts := client.ListRemoteCommitsOpts{Tag: o}
+		opts := client.ListRemoteCommitsOpts{Tag: &tags}
 		commits, _, err := remotesApi.ListRemoteCommits(ctx, repo, r.Name, p, &opts)
 		if err == nil {
 			for _, c := range commits {
