@@ -5,7 +5,6 @@ import (
 	"os"
 	"strconv"
 
-	"github.com/antihax/optional"
 	client "github.com/datadatdat/datadatdat-client-go"
 )
 
@@ -13,8 +12,7 @@ func Log(repo string, tags []string, port int) {
 	cfg.BasePath = "http://localhost:" + strconv.Itoa(port)
 
 	first := true
-	o := optional.NewInterface(tags)
-	opts := client.ListCommitsOpts{Tag: o}
+	opts := client.ListCommitsOpts{Tag: &tags}
 	commits, resp, err := commitsApi.ListCommits(ctx, repo, &opts)
 	if err != nil {
 		fmt.Printf("Error listing commits for %s: %v\n", repo, err)

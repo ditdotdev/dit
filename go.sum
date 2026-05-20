@@ -1,7 +1,5 @@
 cloud.google.com/go v0.26.0/go.mod h1:aQUYkXzVsufM+DwF1aE+0xfcU+56JwCaLick0ClmMTw=
 github.com/BurntSushi/toml v0.3.1/go.mod h1:xHWCNGjB5oqiDr8zfno3MHue2Ht5sIBksp03qcyfWMU=
-github.com/antihax/optional v1.0.0 h1:xK2lYat7ZLaVVcIuj82J8kIro4V6kDe0AUDFboUCwcg=
-github.com/antihax/optional v1.0.0/go.mod h1:uupD/76wgC+ih3iEmQUL+0Ugr19nfwCT1kdvxnR2qWY=
 github.com/aws/aws-sdk-go-v2 v1.41.7 h1:DWpAJt66FmnnaRIOT/8ASTucrvuDPZASqhhLey6tLY8=
 github.com/aws/aws-sdk-go-v2 v1.41.7/go.mod h1:4LAfZOPHNVNQEckOACQx60Y8pSRjIkNZQz1w92xpMJc=
 github.com/aws/aws-sdk-go-v2/aws/protocol/eventstream v1.7.10 h1:gx1AwW1Iyk9Z9dD9F4akX5gnN3QZwUB20GGKH/I+Rho=
@@ -50,8 +48,8 @@ github.com/cespare/xxhash/v2 v2.3.0/go.mod h1:VGX0DQ3Q6kWi7AoAeZDth3/j3BFtOZR5XL
 github.com/client9/misspell v0.3.4/go.mod h1:qj6jICC3Q7zFZvVWo7KLAzC3yx5G7kyvSDkc90ppPyw=
 github.com/cpuguy83/go-md2man/v2 v2.0.6/go.mod h1:oOW0eioCTA6cOiMLiUPZOpcVxMig6NIQQ7OS05n1F4g=
 github.com/creack/pty v1.1.9/go.mod h1:oKZEueFk5CKHvIhNR5MUki03XCEU+Q6VDXinZuGJ33E=
-github.com/datadatdat/datadatdat-client-go v1.9.0 h1:EE5cLdz/bc2+SygSaPdnOksmbaLmkCBGX1W1XRm0U6Y=
-github.com/datadatdat/datadatdat-client-go v1.9.0/go.mod h1:sHtFYARgQcydrsNAxuWixPJa4dOVl+wsaOpGd1BriKQ=
+github.com/datadatdat/datadatdat-client-go v1.10.0 h1:6HXZmEeeLTmUQlBs0TooM5Q0iVuI1wKxiR/YF069CXg=
+github.com/datadatdat/datadatdat-client-go v1.10.0/go.mod h1:CNCOTS+C/YGuDdxpyM6MEQ/REEekRGbPoep9Y1zu/Pc=
 github.com/datadatdat/datadatdat-remote-go v1.10.0 h1:VkUoXlTCnAs9Z5lhx8kNJeydLJ/l0nJ+PrR/NKmQPv4=
 github.com/datadatdat/datadatdat-remote-go v1.10.0/go.mod h1:35wZeNBUzGrgO885Pre8EkhP4WZ9yM0C6jN8f+F9FSU=
 github.com/datadatdat/nop-remote-go v1.10.0 h1:lCKeK80Cjr9xWo/a5m++eC4+mkwuxPGP6vJyi38nyUc=

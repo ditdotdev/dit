@@ -8,7 +8,6 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/antihax/optional"
 	client "github.com/datadatdat/datadatdat-client-go"
 	"net/http"
 )
@@ -88,8 +87,7 @@ func Clone(uri string, repo string, guid string, params []string, args []string,
 		Properties: map[string]interface{}{"foo": "bar"},
 	}
 	if commitId == "" {
-		optTags := optional.NewInterface(tags)
-		commitsOpts := &client.ListRemoteCommitsOpts{Tag: optTags}
+		commitsOpts := &client.ListRemoteCommitsOpts{Tag: &tags}
 		remoteCommits, resp, err := remotesApi.ListRemoteCommits(ctx, repoName, rm.Name, p, commitsOpts)
 		if err != nil {
 			handleRemoteError(err, resp, serverUrl)
