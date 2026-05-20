@@ -3,7 +3,6 @@ package local
 import (
 	"datadatdat/internal/app/clients"
 	"fmt"
-	"github.com/antihax/optional"
 	datadatdatclient "github.com/datadatdat/datadatdat-client-go"
 	"os"
 	"strconv"
@@ -16,8 +15,7 @@ func Checkout(repo string, guid string, tags []string, port int, context string)
 	var sourceCommit string
 	if guid == "" {
 		if len(tags) > 0 {
-			o := optional.NewInterface(tags)
-			opts := datadatdatclient.ListCommitsOpts{Tag: o}
+			opts := datadatdatclient.ListCommitsOpts{Tag: &tags}
 			commits, _, _ := commitsApi.ListCommits(ctx, repo, &opts)
 			if len(commits) == 0 {
 				fmt.Println("no matching commits found")
