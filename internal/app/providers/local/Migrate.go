@@ -24,7 +24,7 @@ func getLocalSrcFromPath(path string, mounts []mount) string {
 type Commit func(string, string, []string, string, string, int)
 
 func Migrate(container string, name string, user string, email string, commit Commit, port int, context string) {
-	cfg.BasePath = "http://localhost:" + strconv.Itoa(port)
+	cfg.Servers[0].URL = "http://localhost:" + strconv.Itoa(port)
 	docker := clients.Docker(context, port)
 
 	_, err := docker.InspectContainer(container)
@@ -62,7 +62,7 @@ func Migrate(container string, name string, user string, email string, commit Co
 		Name:       name,
 		Properties: make(map[string]interface{}),
 	}
-	if _, _, err := repositoriesApi.CreateRepository(ctx, repo); err != nil {
+	if _, _, err := repositoriesApi.CreateRepository(ctx).Repository(repo).Execute(); err != nil {
 		fmt.Printf("Error creating repository: %v\n", err)
 		return
 	}
@@ -85,16 +85,16 @@ func Migrate(container string, name string, user string, email string, commit Co
 		localSrc := getLocalSrcFromPath(path, mounts)
 		if localSrc != "" {
 			fmt.Println("Copying data to " + volName)
-			if _, err := volumesApi.ActivateVolume(ctx, name, v); err != nil {
+			if _, err := volumesApi.ActivateVolume(ctx, name, v).Execute(); err != nil {
 				fmt.Printf("Warning: Failed to activate volume %s: %v\n", v, err)
 				continue
 			}
-			vol, _, _ := volumesApi.GetVolume(ctx, name, v)
+			vol, _, _ := volumesApi.GetVolume(ctx, name, v).Execute()
 			target := fmt.Sprintf("%v", vol.Config["mountpoint"])
 			if _, err := docker.Cp(localSrc, target); err != nil {
 				fmt.Printf("Warning: Failed to copy data to volume: %v\n", err)
 			}
-			if _, err := volumesApi.DeactivateVolume(ctx, name, v); err != nil {
+			if _, err := volumesApi.DeactivateVolume(ctx, name, v).Execute(); err != nil {
 				fmt.Printf("Warning: Failed to deactivate volume %s: %v\n", v, err)
 			}
 		}
@@ -136,7 +136,7 @@ func Migrate(container string, name string, user string, email string, commit Co
 		Name:       name,
 		Properties: metadata,
 	}
-	if _, _, err := repositoriesApi.UpdateRepository(ctx, name, updateRepo); err != nil {
+	if _, _, err := repositoriesApi.UpdateRepository(ctx, name).Repository(updateRepo).Execute(); err != nil {
 		fmt.Printf("Warning: Failed to update repository metadata: %v\n", err)
 	}
 	_, err = docker.Run(image, "", args)

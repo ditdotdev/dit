@@ -9,14 +9,14 @@ import (
 )
 
 func Uninstall(version string, force bool, removeImages bool, port int, context string) {
-	cfg.BasePath = "http://localhost:" + strconv.Itoa(port)
+	cfg.Servers[0].URL = "http://localhost:" + strconv.Itoa(port)
 	docker := clients.Docker(context, port)
 
 	fmt.Printf("Uninstalling context '%s' (docker)\n", context)
 
 	serverAvailable, _ := docker.DatadatdatServerIsAvailable()
 	if serverAvailable {
-		var repos, _, _ = repositoriesApi.ListRepositories(ctx)
+		var repos, _, _ = repositoriesApi.ListRepositories(ctx).Execute()
 		for _, repo := range repos {
 			if !force {
 				fmt.Println("repository '" + repo.Name + "' exists, remove first or use '-f'")

@@ -58,7 +58,7 @@ func ensureRemoteRepoExists(properties map[string]interface{}) error {
 }
 
 func Push(repoName string, guid string, remoteName string, tags []string, metadataOnly bool, port int) {
-	cfg.BasePath = "http://localhost:" + strconv.Itoa(port)
+	cfg.Servers[0].URL = "http://localhost:" + strconv.Itoa(port)
 
 	var name string
 	if remoteName == "" {
@@ -66,17 +66,17 @@ func Push(repoName string, guid string, remoteName string, tags []string, metada
 	} else {
 		name = remoteName
 	}
-	_, _, err := remotesApi.ListRemotes(ctx, repoName)
+	_, _, err := remotesApi.ListRemotes(ctx, repoName).Execute()
 	if err != nil {
 		fmt.Println("remote is not set, run 'remote add' first")
 		os.Exit(1)
 	}
-	repoStatus, _, _ := repositoriesApi.GetRepositoryStatus(ctx, repoName)
-	if repoStatus.LastCommit == "" {
+	repoStatus, _, _ := repositoriesApi.GetRepositoryStatus(ctx, repoName).Execute()
+	if repoStatus.GetLastCommit() == "" {
 		fmt.Println("container has no history, run 'commit' to first commit state")
 		os.Exit(1)
 	}
-	remote, _, err := remotesApi.GetRemote(ctx, repoName, name)
+	remote, _, err := remotesApi.GetRemote(ctx, repoName, name).Execute()
 	if err != nil || remote.Provider == "" {
 		fmt.Printf("remote '%s' not found for repository '%s', run 'd3 remote add' first\n", name, repoName)
 		os.Exit(1)
@@ -105,13 +105,18 @@ func Push(repoName string, guid string, remoteName string, tags []string, metada
 			fmt.Println("tags cannot be specified when commit is also specified")
 			os.Exit(1)
 		}
-		commit, _, _ = commitsApi.GetCommit(ctx, repoName, guid)
+		c, _, _ := commitsApi.GetCommit(ctx, repoName, guid).Execute()
+		if c != nil {
+			commit = *c
+		}
 	} else {
 		if len(tags) == 0 {
-			commit, _, _ = commitsApi.GetCommit(ctx, repoName, repoStatus.LastCommit)
+			c, _, _ := commitsApi.GetCommit(ctx, repoName, repoStatus.GetLastCommit()).Execute()
+			if c != nil {
+				commit = *c
+			}
 		} else {
-			commitsOpts := &datadatdatclient.ListCommitsOpts{Tag: &tags}
-			commits, _, _ := commitsApi.ListCommits(ctx, repoName, commitsOpts)
+			commits, _, _ := commitsApi.ListCommits(ctx, repoName).Tag(tags).Execute()
 			if len(commits) == 0 {
 				fmt.Println("no matching commits found, unable to push latest")
 				os.Exit(1)
@@ -126,11 +131,10 @@ func Push(repoName string, guid string, remoteName string, tags []string, metada
 	// Check if commit already exists in the remote to prevent duplicate pushes.
 	// Skip for metadata-only pushes (--update-only), which re-push to sync tags.
 	if !metadataOnly {
-		emptyOpts := &datadatdatclient.ListRemoteCommitsOpts{}
-		remoteCommits, _, listErr := remotesApi.ListRemoteCommits(ctx, repoName, name, datadatdatclient.RemoteParameters{
+		remoteCommits, _, listErr := remotesApi.ListRemoteCommits(ctx, repoName, name).RemoteParameters(datadatdatclient.RemoteParameters{
 			Provider:   remote.Provider,
 			Properties: p,
-		}, emptyOpts)
+		}).Execute()
 		if listErr == nil {
 			for _, rc := range remoteCommits {
 				if rc.Id == commit.Id {
@@ -140,14 +144,11 @@ func Push(repoName string, guid string, remoteName string, tags []string, metada
 			}
 		}
 	}
-	pushOpts := &datadatdatclient.PushOpts{
-		MetadataOnly: &metadataOnly,
-	}
-	op, _, err := operationsApi.Push(ctx, repoName, remote.Name, commit.Id, params, pushOpts)
+	op, _, err := operationsApi.Push(ctx, repoName, remote.Name, commit.Id).RemoteParameters(params).MetadataOnly(metadataOnly).Execute()
 	if handleOperationError(err) {
 		os.Exit(1)
 	}
-	monitor := util.OperationMonitor(repoName, op)
+	monitor := util.OperationMonitor(repoName, *op)
 	if !monitor.Monitor(port) {
 		os.Exit(1)
 	}
