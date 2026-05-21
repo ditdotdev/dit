@@ -6,8 +6,8 @@ import (
 )
 
 func List(context string, port int) {
-	cfg.BasePath = "http://localhost:" + strconv.Itoa(port)
-	repos, _, _ := repositoriesApi.ListRepositories(ctx)
+	cfg.Servers[0].URL = "http://localhost:" + strconv.Itoa(port)
+	repos, _, _ := repositoriesApi.ListRepositories(ctx).Execute()
 	for _, repo := range repos {
 		var status string
 		info, err := k8s.GetStatefulSetStatus(repo.Name)

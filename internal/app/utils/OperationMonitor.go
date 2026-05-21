@@ -37,7 +37,7 @@ func (om operationMonitor) IsTerminal(state string) bool {
 }
 
 func (om operationMonitor) Monitor(port int) bool {
-	cfg.BasePath = "http://localhost:" + strconv.Itoa(port)
+	cfg.Servers[0].URL = "http://localhost:" + strconv.Itoa(port)
 
 	padLen := 0
 	//aborted := false
@@ -45,24 +45,23 @@ func (om operationMonitor) Monitor(port int) bool {
 	var lastId int32 = 0
 
 	for !om.IsTerminal(state) {
-		p := &datadatdatclient.GetOperationProgressOpts{LastId: &lastId}
-		entries, _, err := operationsApi.GetOperationProgress(ctx, om.operation.Id, p)
+		entries, _, err := operationsApi.GetOperationProgress(ctx, om.operation.Id).LastId(lastId).Execute()
 		if err == nil {
 			if len(entries) > 0 {
 				state = entries[len(entries)-1].Type
 			}
 			for _, e := range entries {
+				msg := e.GetMessage()
 				if e.Type != "PROGRESS" {
-					if e.Message != "" {
-						fmt.Println(e.Message)
+					if msg != "" {
+						fmt.Println(msg)
 					}
 					padLen = 0
 				} else {
-					m := e.Message
-					if len(m) > padLen {
-						padLen = len(m)
+					if len(msg) > padLen {
+						padLen = len(msg)
 					}
-					fmt.Printf("\r%s", m[0:(padLen-len(m)+1)])
+					fmt.Printf("\r%s", msg[0:(padLen-len(msg)+1)])
 				}
 				if e.Id > lastId {
 					lastId = e.Id

@@ -3,32 +3,30 @@ package local
 import (
 	"datadatdat/internal/app/clients"
 	"fmt"
-	datadatdatclient "github.com/datadatdat/datadatdat-client-go"
 	"os"
 	"strconv"
 )
 
 func Checkout(repo string, guid string, tags []string, port int, context string) {
-	cfg.BasePath = "http://localhost:" + strconv.Itoa(port)
+	cfg.Servers[0].URL = "http://localhost:" + strconv.Itoa(port)
 	docker := clients.Docker(context, port)
 
 	var sourceCommit string
 	if guid == "" {
 		if len(tags) > 0 {
-			opts := datadatdatclient.ListCommitsOpts{Tag: &tags}
-			commits, _, _ := commitsApi.ListCommits(ctx, repo, &opts)
+			commits, _, _ := commitsApi.ListCommits(ctx, repo).Tag(tags).Execute()
 			if len(commits) == 0 {
 				fmt.Println("no matching commits found")
 				os.Exit(1)
 			}
 			sourceCommit = commits[0].Id
 		} else {
-			status, _, _ := repositoriesApi.GetRepositoryStatus(ctx, repo)
-			if status.SourceCommit == "" {
+			status, _, _ := repositoriesApi.GetRepositoryStatus(ctx, repo).Execute()
+			if status.GetSourceCommit() == "" {
 				fmt.Println("no commits present, run 'd3 commit' first")
 				os.Exit(1)
 			}
-			sourceCommit = status.SourceCommit
+			sourceCommit = status.GetSourceCommit()
 		}
 	} else {
 		if len(tags) > 0 {
@@ -42,7 +40,7 @@ func Checkout(repo string, guid string, tags []string, port int, context string)
 		fmt.Printf("Warning: Failed to stop container %s: %v\n", repo, err)
 	}
 	fmt.Println("Checkout " + sourceCommit)
-	if _, err := commitsApi.CheckoutCommit(ctx, repo, sourceCommit); err != nil {
+	if _, err := commitsApi.CheckoutCommit(ctx, repo, sourceCommit).Execute(); err != nil {
 		fmt.Printf("Error checking out commit %s: %v\n", sourceCommit, err)
 		os.Exit(1)
 	}

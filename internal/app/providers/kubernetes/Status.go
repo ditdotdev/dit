@@ -17,9 +17,9 @@ import (
 // same logic that `d3 ls` uses, and then print the same header/volume
 // layout as common.Status for consistency.
 func Status(repo string, port int, context string) {
-	cfg.BasePath = "http://localhost:" + strconv.Itoa(port)
+	cfg.Servers[0].URL = "http://localhost:" + strconv.Itoa(port)
 
-	s, resp, err := repositoriesApi.GetRepositoryStatus(ctx, repo)
+	s, resp, err := repositoriesApi.GetRepositoryStatus(ctx, repo).Execute()
 	if err != nil || (resp != nil && resp.StatusCode >= 400) {
 		fmt.Printf("Error: repository '%s' not found\n", repo)
 		os.Exit(1)
@@ -28,17 +28,17 @@ func Status(repo string, port int, context string) {
 	runtimeStatus, _ := k8s.GetStatefulSetStatus(repo)
 	fmt.Printf("%20s %s\n", "Status: ", runtimeStatus)
 
-	if s.LastCommit != "" {
-		fmt.Printf("%20s %s\n", "Last Commit: ", s.LastCommit)
+	if s.GetLastCommit() != "" {
+		fmt.Printf("%20s %s\n", "Last Commit: ", s.GetLastCommit())
 	}
-	if s.SourceCommit != "" {
-		fmt.Printf("%20s %s\n", "Source Commit: ", s.SourceCommit)
+	if s.GetSourceCommit() != "" {
+		fmt.Printf("%20s %s\n", "Source Commit: ", s.GetSourceCommit())
 	}
 
-	vols, _, _ := volumesApi.ListVolumes(ctx, repo)
+	vols, _, _ := volumesApi.ListVolumes(ctx, repo).Execute()
 	fmt.Printf("%-30s  %-12s  %s\n", "Volume", "Uncompressed", "Compressed")
 	for _, v := range vols {
-		vstat, _, _ := volumesApi.GetVolumeStatus(ctx, repo, v.Name)
+		vstat, _, _ := volumesApi.GetVolumeStatus(ctx, repo, v.Name).Execute()
 		path, _ := vstat.Properties["path"].(string)
 		fmt.Printf("%-30s  %-12s  %s\n", path,
 			common.ByteCountBinary(vstat.LogicalSize),

@@ -21,16 +21,16 @@ func newGenericOpenAPIErrorForTest(t *testing.T, status int, apiErr datadatdatcl
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(status)
-		body := fmt.Sprintf(`{"code":%q,"message":%q,"details":%q}`, apiErr.Code, apiErr.Message, apiErr.Details)
+		body := fmt.Sprintf(`{"code":%q,"message":%q,"details":%q}`, apiErr.GetCode(), apiErr.Message, apiErr.GetDetails())
 		_, _ = w.Write([]byte(body))
 	}))
 	t.Cleanup(srv.Close)
 
 	c := datadatdatclient.NewConfiguration()
-	c.BasePath = srv.URL
+	c.Servers[0].URL = srv.URL
 	client := datadatdatclient.NewAPIClient(c)
 	params := datadatdatclient.RemoteParameters{Provider: "s3", Properties: map[string]any{}}
-	_, _, err := client.OperationsApi.Pull(context.Background(), "repo", "origin", "commit", params, nil)
+	_, _, err := client.OperationsApi.Pull(context.Background(), "repo", "origin", "commit").RemoteParameters(params).Execute()
 	if err == nil {
 		t.Fatalf("expected non-nil error from mock server")
 	}
@@ -52,9 +52,9 @@ func TestHandleOperationError_Nil(t *testing.T) {
 
 func TestHandleOperationError_ApiErrorMessage(t *testing.T) {
 	apiErr := datadatdatclient.ApiError{
-		Code:    "CommitExists",
 		Message: "commit 'abc123' already exists in repository 'myrepo'",
 	}
+	apiErr.SetCode("CommitExists")
 	err := newGenericOpenAPIErrorForTest(t, http.StatusConflict, apiErr)
 
 	handled := false
@@ -90,7 +90,8 @@ func TestHandleOperationError_GenericError(t *testing.T) {
 }
 
 func TestHandleOperationError_ApiErrorEmptyMessage(t *testing.T) {
-	apiErr := datadatdatclient.ApiError{Code: "Unknown"}
+	apiErr := datadatdatclient.ApiError{}
+	apiErr.SetCode("Unknown")
 	err := newGenericOpenAPIErrorForTest(t, http.StatusInternalServerError, apiErr)
 
 	handled := false

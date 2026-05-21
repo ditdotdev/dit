@@ -15,7 +15,7 @@ const (
 )
 
 func Pull(repoName string, guid string, remoteName string, tags []string, metadataOnly bool, port int) {
-	cfg.BasePath = "http://localhost:" + strconv.Itoa(port)
+	cfg.Servers[0].URL = "http://localhost:" + strconv.Itoa(port)
 
 	var name string
 	if remoteName == "" {
@@ -23,12 +23,12 @@ func Pull(repoName string, guid string, remoteName string, tags []string, metada
 	} else {
 		name = remoteName
 	}
-	_, _, err := remotesApi.ListRemotes(ctx, repoName)
+	_, _, err := remotesApi.ListRemotes(ctx, repoName).Execute()
 	if err != nil {
 		fmt.Println("remote is not set, run 'remote add' first")
 		os.Exit(1)
 	}
-	remote, _, err := remotesApi.GetRemote(ctx, repoName, name)
+	remote, _, err := remotesApi.GetRemote(ctx, repoName, name).Execute()
 	if err != nil || remote.Provider == "" {
 		fmt.Printf("remote '%s' not found for repository '%s', run 'd3 remote add' first\n", name, repoName)
 		os.Exit(1)
@@ -52,14 +52,15 @@ func Pull(repoName string, guid string, remoteName string, tags []string, metada
 			os.Exit(1)
 		}
 		var resp *http.Response
-		commit, resp, err = remotesApi.GetRemoteCommit(ctx, repoName, remote.Name, guid, params)
+		var c *datadatdatclient.Commit
+		c, resp, err = remotesApi.GetRemoteCommit(ctx, repoName, remote.Name, guid).RemoteParameters(params).Execute()
 		if err != nil {
 			handleRemoteError(err, resp, "")
 			os.Exit(1)
 		}
+		commit = *c
 	} else {
-		opts := datadatdatclient.ListRemoteCommitsOpts{Tag: &tags}
-		remoteCommits, resp, err := remotesApi.ListRemoteCommits(ctx, repoName, remote.Name, params, &opts)
+		remoteCommits, resp, err := remotesApi.ListRemoteCommits(ctx, repoName, remote.Name).RemoteParameters(params).Tag(tags).Execute()
 		if err != nil {
 			handleRemoteError(err, resp, "")
 			os.Exit(1)
@@ -74,15 +75,12 @@ func Pull(repoName string, guid string, remoteName string, tags []string, metada
 		fmt.Println("remote commit not found")
 		os.Exit(1)
 	}
-	pullOpts := &datadatdatclient.PullOpts{
-		MetadataOnly: &metadataOnly,
-	}
-	op, _, err := operationsApi.Pull(ctx, repoName, remote.Name, commit.Id, params, pullOpts)
+	op, _, err := operationsApi.Pull(ctx, repoName, remote.Name, commit.Id).RemoteParameters(params).MetadataOnly(metadataOnly).Execute()
 	if handleOperationError(err) {
 		os.Exit(1)
 	}
 
-	monitor := util.OperationMonitor(repoName, op)
+	monitor := util.OperationMonitor(repoName, *op)
 	if !monitor.Monitor(port) {
 		os.Exit(1)
 	}

@@ -9,10 +9,10 @@ import (
 
 // TODO pass this from provider as param
 func getContainersStatus(port int, context string) []runtimeStatus {
-	cfg.BasePath = "http://localhost:" + strconv.Itoa(port)
+	cfg.Servers[0].URL = "http://localhost:" + strconv.Itoa(port)
 	docker := clients.Docker(context, port)
 
-	repos, _, _ := repositoriesApi.ListRepositories(ctx)
+	repos, _, _ := repositoriesApi.ListRepositories(ctx).Execute()
 	var r []runtimeStatus
 	for _, repo := range repos {
 		status, err := docker.GetValFromContainer(repo.Name, "State", "Status")
@@ -43,9 +43,9 @@ func ByteCountBinary(b int64) string {
 }
 
 func Status(repo string, port int, context string) {
-	cfg.BasePath = "http://localhost:" + strconv.Itoa(port)
+	cfg.Servers[0].URL = "http://localhost:" + strconv.Itoa(port)
 
-	s, resp, err := repositoriesApi.GetRepositoryStatus(ctx, repo)
+	s, resp, err := repositoriesApi.GetRepositoryStatus(ctx, repo).Execute()
 	if err != nil || (resp != nil && resp.StatusCode >= 400) {
 		fmt.Printf("Error: repository '%s' not found\n", repo)
 		os.Exit(1)
@@ -56,19 +56,19 @@ func Status(repo string, port int, context string) {
 			fmt.Println(o)
 		}
 	}
-	if s.LastCommit != "" {
-		o := fmt.Sprintf("%20s %s", "Last Commit: ", s.LastCommit)
+	if s.GetLastCommit() != "" {
+		o := fmt.Sprintf("%20s %s", "Last Commit: ", s.GetLastCommit())
 		fmt.Println(o)
 	}
-	if s.SourceCommit != "" {
-		o := fmt.Sprintf("%20s %s", "Source Commit: ", s.SourceCommit)
+	if s.GetSourceCommit() != "" {
+		o := fmt.Sprintf("%20s %s", "Source Commit: ", s.GetSourceCommit())
 		fmt.Println(o)
 	}
-	vols, _, _ := volumesApi.ListVolumes(ctx, repo)
+	vols, _, _ := volumesApi.ListVolumes(ctx, repo).Execute()
 	o := fmt.Sprintf("%-30s  %-12s  %s", "Volume", "Uncompressed", "Compressed")
 	fmt.Println(o)
 	for _, v := range vols {
-		vstat, _, _ := volumesApi.GetVolumeStatus(ctx, repo, v.Name)
+		vstat, _, _ := volumesApi.GetVolumeStatus(ctx, repo, v.Name).Execute()
 		o := fmt.Sprintf("%-30s  %-12s  %s", vstat.Properties["path"],
 			ByteCountBinary(vstat.LogicalSize),
 			ByteCountBinary(vstat.ActualSize),
