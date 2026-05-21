@@ -11,16 +11,16 @@ import (
 )
 
 func Commit(repo string, message string, tags []string, user string, email string, port int) {
-	cfg.BasePath = "http://localhost:" + strconv.Itoa(port)
+	cfg.Servers[0].URL = "http://localhost:" + strconv.Itoa(port)
 
-	repoProps, resp, err := repositoriesApi.GetRepository(ctx, repo)
+	repoProps, resp, err := repositoriesApi.GetRepository(ctx, repo).Execute()
 	if err != nil || (resp != nil && resp.StatusCode >= 400) {
 		fmt.Printf("Error: repository '%s' not found\n", repo)
 		os.Exit(1)
 	}
 	metadata := Metadata{}.Load(repoProps.Properties)
-	repoStatus, _, _ := repositoriesApi.GetRepositoryStatus(ctx, repo)
-	sourceCommit := repoStatus.SourceCommit
+	repoStatus, _, _ := repositoriesApi.GetRepositoryStatus(ctx, repo).Execute()
+	sourceCommit := repoStatus.GetSourceCommit()
 	tagMetadata := make(map[string]string)
 	for _, tag := range tags {
 		var k string
@@ -47,6 +47,6 @@ func Commit(repo string, message string, tags []string, user string, email strin
 		Id:         guid,
 		Properties: metadata.ToMap(),
 	}
-	response, _, _ := commitsApi.CreateCommit(ctx, repo, commit)
+	response, _, _ := commitsApi.CreateCommit(ctx, repo).Commit(commit).Execute()
 	fmt.Println("Commit " + response.Id)
 }

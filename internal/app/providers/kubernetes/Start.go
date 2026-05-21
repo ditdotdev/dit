@@ -6,16 +6,16 @@ import (
 )
 
 func Start(repoName string, port int) {
-	cfg.BasePath = "http://localhost:" + strconv.Itoa(port)
+	cfg.Servers[0].URL = "http://localhost:" + strconv.Itoa(port)
 
-	repo, _, _ := repositoriesApi.GetRepository(ctx, repoName)
+	repo, _, _ := repositoriesApi.GetRepository(ctx, repoName).Execute()
 	fmt.Println("Updating deployment")
 	k8s.StartStatefulSet(repoName)
 
 	fmt.Println("Waiting for deployment to be ready")
 	k8s.WaitForStatefulSet(repoName)
 
-	if !disablePortMappingFromRepo(repo) {
+	if !disablePortMappingFromRepo(*repo) {
 		fmt.Println("Starting port forwarding")
 		k8s.StartPortForwarding(repoName)
 	}

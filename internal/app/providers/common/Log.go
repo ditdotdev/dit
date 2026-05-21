@@ -4,16 +4,13 @@ import (
 	"fmt"
 	"os"
 	"strconv"
-
-	client "github.com/datadatdat/datadatdat-client-go"
 )
 
 func Log(repo string, tags []string, port int) {
-	cfg.BasePath = "http://localhost:" + strconv.Itoa(port)
+	cfg.Servers[0].URL = "http://localhost:" + strconv.Itoa(port)
 
 	first := true
-	opts := client.ListCommitsOpts{Tag: &tags}
-	commits, resp, err := commitsApi.ListCommits(ctx, repo, &opts)
+	commits, resp, err := commitsApi.ListCommits(ctx, repo).Tag(tags).Execute()
 	if err != nil {
 		fmt.Printf("Error listing commits for %s: %v\n", repo, err)
 		os.Exit(1)

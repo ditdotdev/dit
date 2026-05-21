@@ -18,7 +18,7 @@ const (
 )
 
 func Run(container string, repository string, envVars []string, args []string, disablePortMap bool, privileged bool, createRepo bool, port int, context string) {
-	cfg.BasePath = "http://localhost:" + strconv.Itoa(port)
+	cfg.Servers[0].URL = "http://localhost:" + strconv.Itoa(port)
 	docker := clients.Docker(context, port)
 
 	if len(args) > 0 {
@@ -76,7 +76,7 @@ func Run(container string, repository string, envVars []string, args []string, d
 		Properties: nil,
 	}
 	if createRepo {
-		_, _, err := repositoriesApi.CreateRepository(ctx, repo)
+		_, _, err := repositoriesApi.CreateRepository(ctx).Repository(repo).Execute()
 		if err != nil && err.Error() == "409 Conflict" {
 			fmt.Println("repository '" + repo.Name + "' already exists")
 			os.Exit(1)
@@ -96,17 +96,17 @@ func Run(container string, repository string, envVars []string, args []string, d
 			Properties: map[string]interface{}{"path": path},
 			Config:     map[string]interface{}{},
 		}
-		vol, _, err := volumesApi.CreateVolume(ctx, repoName, v)
+		vol, _, err := volumesApi.CreateVolume(ctx, repoName).Volume(v).Execute()
 		//TODO BAD REQUEST
 
 		if err != nil {
-			if _, err := repositoriesApi.DeleteRepository(ctx, repoName); err != nil {
+			if _, err := repositoriesApi.DeleteRepository(ctx, repoName).Execute(); err != nil {
 				fmt.Printf("Warning: Failed to delete repository after volume creation failure: %v\n", err)
 			}
 			panic(err)
 			//TODO REMOVE VOLUME AND EXIT
 		}
-		datadatdatVolumes = append(datadatdatVolumes, vol)
+		datadatdatVolumes = append(datadatdatVolumes, *vol)
 		addVol := map[string]string{
 			"name": "v" + strconv.Itoa(i),
 			"path": path,
@@ -118,13 +118,13 @@ func Run(container string, repository string, envVars []string, args []string, d
 	for !ready {
 		ready = true
 		for _, v := range datadatdatVolumes {
-			s, _, _ := volumesApi.GetVolumeStatus(ctx, repoName, v.Name)
+			s, _, _ := volumesApi.GetVolumeStatus(ctx, repoName, v.Name).Execute()
 			if !s.Ready {
 				ready = false
 			}
-			if s.Error != "" {
+			if s.GetError() != "" {
 				//TODO REMOVE VOLUMES AND EXIT
-				fmt.Println("Error creating volume" + v.Name + ": " + s.Error)
+				fmt.Println("Error creating volume" + v.Name + ": " + s.GetError())
 				os.Exit(1)
 			}
 		}
@@ -155,7 +155,7 @@ func Run(container string, repository string, envVars []string, args []string, d
 		Name:       repoName,
 		Properties: metadata,
 	}
-	if _, _, err := repositoriesApi.UpdateRepository(ctx, repoName, updateRepo); err != nil {
+	if _, _, err := repositoriesApi.UpdateRepository(ctx, repoName).Repository(updateRepo).Execute(); err != nil {
 		fmt.Printf("Warning: Failed to update repository metadata: %v\n", err)
 	}
 
@@ -192,7 +192,7 @@ func Run(container string, repository string, envVars []string, args []string, d
 		Name:       repoName,
 		Properties: metadata,
 	}
-	if _, _, err := repositoriesApi.UpdateRepository(ctx, repoName, updateRepo); err != nil {
+	if _, _, err := repositoriesApi.UpdateRepository(ctx, repoName).Repository(updateRepo).Execute(); err != nil {
 		fmt.Printf("Warning: Failed to update repository runtime metadata: %v\n", err)
 	}
 

@@ -9,7 +9,7 @@ import (
 )
 
 func Uninstall(force bool, removeImages bool, context string, port int) {
-	cfg.BasePath = "http://localhost:" + strconv.Itoa(port)
+	cfg.Servers[0].URL = "http://localhost:" + strconv.Itoa(port)
 	docker := clients.Docker(context, port)
 
 	fmt.Printf("Uninstalling context '%s' (kubernetes)\n", context)
@@ -22,7 +22,7 @@ func Uninstall(force bool, removeImages bool, context string, port int) {
 
 	available, _ := docker.DatadatdatServerIsAvailable()
 	if available {
-		repos, _, _ := repositoriesApi.ListRepositories(ctx)
+		repos, _, _ := repositoriesApi.ListRepositories(ctx).Execute()
 		for _, repo := range repos {
 			if !force {
 				fmt.Println("repository '" + repo.Name + "' exists, remove first or use '-f'")

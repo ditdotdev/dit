@@ -22,7 +22,7 @@ func handleOperationError(err error) bool {
 	if err == nil {
 		return false
 	}
-	if e, ok := err.(datadatdatclient.GenericOpenAPIError); ok {
+	if e, ok := err.(*datadatdatclient.GenericOpenAPIError); ok {
 		if m, ok := e.Model().(datadatdatclient.ApiError); ok && m.Message != "" {
 			fmt.Println(m.Message)
 			return true

@@ -18,7 +18,7 @@ type mount struct {
 }
 
 func Copy(repo string, driver string, source string, path string, port int, context string) {
-	cfg.BasePath = "http://localhost:" + strconv.Itoa(port)
+	cfg.Servers[0].URL = "http://localhost:" + strconv.Itoa(port)
 	docker := clients.Docker(context, port)
 
 	info, err := docker.InspectContainer(repo)
@@ -60,8 +60,8 @@ func Copy(repo string, driver string, source string, path string, port int, cont
 			// Extract volume name from Docker volume name (format: "repo_v0" -> "v0")
 			parts := strings.SplitN(mount.Name, "_", 2)
 			v := parts[len(parts)-1]
-			_, _ = volumesApi.ActivateVolume(ctx, repo, v)
-			vol, _, _ := volumesApi.GetVolume(ctx, repo, v)
+			_, _ = volumesApi.ActivateVolume(ctx, repo, v).Execute()
+			vol, _, _ := volumesApi.GetVolume(ctx, repo, v).Execute()
 			/*
 				   TODO add multiple cp sources
 				   when(driver) {
@@ -72,7 +72,7 @@ func Copy(repo string, driver string, source string, path string, port int, cont
 			if _, err := docker.Cp(strings.TrimRight(source, "/"), target); err != nil {
 				fmt.Printf("Warning: Failed to copy data to volume: %v\n", err)
 			}
-			_, _ = volumesApi.DeactivateVolume(ctx, repo, v)
+			_, _ = volumesApi.DeactivateVolume(ctx, repo, v).Execute()
 		}
 	}
 	if running {

@@ -37,7 +37,7 @@ type CloneCallbacks struct {
 }
 
 func Clone(uri string, repo string, guid string, params []string, args []string, disablePortMap bool, tags []string, port int, context string, cb CloneCallbacks) {
-	cfg.BasePath = "http://localhost:" + strconv.Itoa(port)
+	cfg.Servers[0].URL = "http://localhost:" + strconv.Itoa(port)
 	docker := clients.Docker(context, port)
 
 	var parsedUri, _ = url.Parse(uri) //TODO handle err
@@ -64,14 +64,14 @@ func Clone(uri string, repo string, guid string, params []string, args []string,
 		tag := parsedUri.Query().Get("tag")
 		tags = append(tags, tag)
 	}
-	_, resp, err := repositoriesApi.CreateRepository(ctx, repository)
+	_, resp, err := repositoriesApi.CreateRepository(ctx).Repository(repository).Execute()
 	if err != nil {
 		handleRemoteError(err, resp, "")
 		os.Exit(1)
 	}
 
 	RemoteAdd(repoName, plainUri, "", nil, port) //TODO fix params
-	rm, _, _ := remotesApi.GetRemote(ctx, repoName, "origin")
+	rm, _, _ := remotesApi.GetRemote(ctx, repoName, "origin").Execute()
 	provider, err := ResolveProvider(rm.Provider)
 	if err != nil {
 		fmt.Println(err)
@@ -87,8 +87,7 @@ func Clone(uri string, repo string, guid string, params []string, args []string,
 		Properties: map[string]interface{}{"foo": "bar"},
 	}
 	if commitId == "" {
-		commitsOpts := &client.ListRemoteCommitsOpts{Tag: &tags}
-		remoteCommits, resp, err := remotesApi.ListRemoteCommits(ctx, repoName, rm.Name, p, commitsOpts)
+		remoteCommits, resp, err := remotesApi.ListRemoteCommits(ctx, repoName, rm.Name).RemoteParameters(p).Tag(tags).Execute()
 		if err != nil {
 			handleRemoteError(err, resp, serverUrl)
 			removeRepo(repoName, cb)
@@ -107,7 +106,7 @@ func Clone(uri string, repo string, guid string, params []string, args []string,
 		if len(tags) > 0 {
 			fmt.Println("tags cannot be specified with commit ID")
 		}
-		c, resp, err := remotesApi.GetRemoteCommit(ctx, repoName, rm.Name, commitId, p)
+		c, resp, err := remotesApi.GetRemoteCommit(ctx, repoName, rm.Name, commitId).RemoteParameters(p).Execute()
 		if err != nil {
 			handleRemoteError(err, resp, serverUrl)
 			removeRepo(repoName, cb)

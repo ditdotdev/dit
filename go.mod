@@ -5,7 +5,7 @@ go 1.26.2
 require (
 	github.com/briandowns/spinner v1.23.2
 	github.com/buger/jsonparser v1.2.0
-	github.com/datadatdat/datadatdat-client-go v1.10.0
+	github.com/datadatdat/datadatdat-client-go v1.11.0
 	github.com/datadatdat/datadatdat-remote-go v1.10.0
 	github.com/datadatdat/nop-remote-go v1.10.0
 	github.com/datadatdat/remote-sdk-go v1.10.0

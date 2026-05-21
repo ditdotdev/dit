@@ -8,9 +8,9 @@ import (
 )
 
 func TagCommit(repo string, guid string, tags []string, port int) {
-	cfg.BasePath = "http://localhost:" + strconv.Itoa(port)
+	cfg.Servers[0].URL = "http://localhost:" + strconv.Itoa(port)
 
-	commit, _, _ := commitsApi.GetCommit(ctx, repo, guid)
+	commit, _, _ := commitsApi.GetCommit(ctx, repo, guid).Execute()
 	commitTags := make(map[string]string)
 	t, ok := commit.Properties["tags"]
 	if ok {
@@ -37,7 +37,7 @@ func TagCommit(repo string, guid string, tags []string, port int) {
 		Id:         commit.Id,
 		Properties: m,
 	}
-	if _, _, err := commitsApi.UpdateCommit(ctx, repo, commit.Id, c); err != nil {
+	if _, _, err := commitsApi.UpdateCommit(ctx, repo, commit.Id).Commit(c).Execute(); err != nil {
 		fmt.Printf("Error updating commit tags: %v\n", err)
 	}
 }

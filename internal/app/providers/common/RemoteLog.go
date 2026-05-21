@@ -8,9 +8,9 @@ import (
 )
 
 func RemoteLog(repo string, remoteName string, tags []string, port int) {
-	cfg.BasePath = "http://localhost:" + strconv.Itoa(port)
+	cfg.Servers[0].URL = "http://localhost:" + strconv.Itoa(port)
 
-	remotes, _, _ := remotesApi.ListRemotes(ctx, repo)
+	remotes, _, _ := remotesApi.ListRemotes(ctx, repo).Execute()
 	if len(remotes) == 0 {
 		fmt.Println("remote is not set, run 'remote add' first")
 		os.Exit(1)
@@ -27,8 +27,7 @@ func RemoteLog(repo string, remoteName string, tags []string, port int) {
 			Provider:   r.Provider,
 			Properties: gp,
 		}
-		opts := client.ListRemoteCommitsOpts{Tag: &tags}
-		commits, _, err := remotesApi.ListRemoteCommits(ctx, repo, r.Name, p, &opts)
+		commits, _, err := remotesApi.ListRemoteCommits(ctx, repo, r.Name).RemoteParameters(p).Tag(tags).Execute()
 		if err == nil {
 			for _, c := range commits {
 				if !first {

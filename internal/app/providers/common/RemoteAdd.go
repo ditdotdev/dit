@@ -17,7 +17,7 @@ import (
 )
 
 func RemoteAdd(repo string, uri string, remoteName string, params map[string]string, port int) {
-	cfg.BasePath = "http://localhost:" + strconv.Itoa(port)
+	cfg.Servers[0].URL = "http://localhost:" + strconv.Itoa(port)
 
 	var name string
 	if remoteName != "" {
@@ -25,7 +25,7 @@ func RemoteAdd(repo string, uri string, remoteName string, params map[string]str
 	} else {
 		name = "origin"
 	}
-	_, _, err := remotesApi.GetRemote(ctx, repo, name)
+	_, _, err := remotesApi.GetRemote(ctx, repo, name).Execute()
 	if err == nil {
 		fmt.Println("remote " + name + " already exists for " + repo)
 		os.Exit(1)
@@ -40,12 +40,12 @@ func RemoteAdd(repo string, uri string, remoteName string, params map[string]str
 		Name:       name,
 		Properties: parsed.Properties,
 	}
-	_, _, err = remotesApi.CreateRemote(ctx, repo, r)
+	_, _, err = remotesApi.CreateRemote(ctx, repo).Remote(r).Execute()
 	if err != nil {
 		fmt.Printf("Error creating remote: %v\n", err)
 		os.Exit(1)
 	}
-	m, _, _ := repositoriesApi.GetRepository(ctx, repo)
+	m, _, _ := repositoriesApi.GetRepository(ctx, repo).Execute()
 	metadata := m.Properties
 	if metadata == nil {
 		metadata = make(map[string]interface{})
@@ -55,5 +55,5 @@ func RemoteAdd(repo string, uri string, remoteName string, params map[string]str
 		Name:       repo,
 		Properties: metadata,
 	}
-	_, _, _ = repositoriesApi.UpdateRepository(ctx, repo, newRepo)
+	_, _, _ = repositoriesApi.UpdateRepository(ctx, repo).Repository(newRepo).Execute()
 }
