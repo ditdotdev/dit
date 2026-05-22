@@ -12,8 +12,20 @@ import (
 
 var ce = utils.CommandExecutor(60, false)
 
-var user, _ = ce.Exec("git", "config", "user.name")
-var email, _ = ce.Exec("git", "config", "user.email")
+// gitIdentity returns the git config user.name + user.email, looked up
+// lazily on first use. Previously these were package-level vars that
+// forked `git` at package init for EVERY CLI invocation — including
+// pure-read commands like `d3 ls`, `d3 status`, `d3 log` — costing
+// 50-200ms of fork+exec overhead and failing outright in containers
+// without git installed. Only Commit and Migrate actually use these
+// values; defer the lookup until then.
+//
+// Both kubernetes/ and local/ Commit/Migrate paths route through here.
+func gitIdentity() (string, string) {
+	u, _ := ce.Exec("git", "config", "user.name")
+	e, _ := ce.Exec("git", "config", "user.email")
+	return strings.TrimSpace(u), strings.TrimSpace(e)
+}
 
 type local struct {
 	contextName             string
@@ -59,7 +71,8 @@ func (l local) Clone(uri string, repo string, commit string, params []string, ar
 }
 
 func (l local) Commit(repo string, message string, tags []string) {
-	cmn.Commit(repo, message, tags, strings.TrimSpace(user), strings.TrimSpace(email), l.portNum)
+	u, e := gitIdentity()
+	cmn.Commit(repo, message, tags, u, e, l.portNum)
 }
 
 func (l local) Copy(repo string, driver string, source string, path string) {
@@ -103,7 +116,8 @@ func (l local) Log(repo string, tags []string) {
 }
 
 func (l local) Migrate(repo string, name string) {
-	lcl.Migrate(repo, name, strings.TrimSpace(user), strings.TrimSpace(email), cmn.Commit, l.portNum, l.contextName)
+	u, e := gitIdentity()
+	lcl.Migrate(repo, name, u, e, cmn.Commit, l.portNum, l.contextName)
 }
 
 func (l local) Pull(repo string, commit string, remoteName string, tags []string, metadataOnly bool) {
