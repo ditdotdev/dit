@@ -69,6 +69,66 @@ func TestOperationMonitor_IsTerminal(t *testing.T) {
 	}
 }
 
+func TestFormatProgressLine(t *testing.T) {
+	tests := []struct {
+		name   string
+		msg    string
+		padLen int
+		want   string
+	}{
+		{
+			name:   "msg equal to padLen",
+			msg:    "hello",
+			padLen: 5,
+			want:   "\rhello",
+		},
+		{
+			name:   "msg shorter than padLen pads with trailing spaces",
+			msg:    "hi",
+			padLen: 5,
+			want:   "\rhi   ",
+		},
+		{
+			name:   "msg longer than padLen is not truncated",
+			msg:    "hello world",
+			padLen: 5,
+			want:   "\rhello world",
+		},
+		{
+			name:   "empty msg with padLen",
+			msg:    "",
+			padLen: 3,
+			want:   "\r   ",
+		},
+		{
+			name:   "padLen zero",
+			msg:    "x",
+			padLen: 0,
+			want:   "\rx",
+		},
+		// Regression: the previous implementation did
+		// msg[0:(padLen-len(msg)+1)] which panicked with a slice
+		// out-of-range when msg was shorter than padLen. Exercise
+		// that exact case to make sure the new helper does not panic.
+		{
+			name:   "shorter follow-up message after long message does not panic",
+			msg:    "ab",
+			padLen: 20,
+			want:   "\rab                  ",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := formatProgressLine(tt.msg, tt.padLen)
+			if got != tt.want {
+				t.Errorf("formatProgressLine(%q, %d) = %q, want %q",
+					tt.msg, tt.padLen, got, tt.want)
+			}
+		})
+	}
+}
+
 func TestOperationStateConstants(t *testing.T) {
 	// Verify the constant values haven't accidentally changed
 	if OperationStateComplete != "COMPLETE" {

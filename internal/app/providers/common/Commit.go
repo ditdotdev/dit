@@ -47,6 +47,16 @@ func Commit(repo string, message string, tags []string, user string, email strin
 		Id:         guid,
 		Properties: metadata.ToMap(),
 	}
-	response, _, _ := commitsApi.CreateCommit(ctx, repo).Commit(commit).Execute()
+	// Pre-fix the error + response were both discarded: `response, _, _ :=
+	// commitsApi.CreateCommit(...).Execute()`. On any server-side failure
+	// (auth, repo-status race, ZFS error) `response` was nil; the
+	// subsequent `response.Id` dereference panicked. Now we surface the
+	// server's ApiError.Message via the shared handleOperationError
+	// pathway used by Pull/Push, and exit non-zero so wrapping scripts
+	// can react.
+	response, _, err := commitsApi.CreateCommit(ctx, repo).Commit(commit).Execute()
+	if handleOperationError(err) {
+		os.Exit(1)
+	}
 	fmt.Println("Commit " + response.Id)
 }
