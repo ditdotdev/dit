@@ -21,3 +21,11 @@ var commitsApi = apiClient.CommitsApi
 var repositoriesApi = apiClient.RepositoriesApi
 var volumesApi = apiClient.VolumesApi
 var ctx = context.Background()
+
+// stateRunning is the docker container State.Status value the package treats as
+// "currently up." Extracted as a constant so goconst doesn't flag the literal
+// across Remove / Copy / Migrate / tests.
+const stateRunning = "running"
+
+// flagName is the docker --name flag, extracted to satisfy goconst.
+const flagName = "--name"
