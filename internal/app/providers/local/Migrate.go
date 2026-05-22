@@ -3,7 +3,6 @@ package local
 import (
 	"encoding/json"
 	"fmt"
-	"os"
 	"strconv"
 	"strings"
 
@@ -29,30 +28,30 @@ func Migrate(container string, name string, user string, email string, commit Co
 	_, err := docker.InspectContainer(container)
 	if err != nil {
 		fmt.Println("Container information is not available")
-		os.Exit(1)
+		osExit(1)
 	}
 	r, _ := docker.GetValFromContainer(container, "State", "Running")
 	running, _ := strconv.ParseBool(r)
 	if running {
 		fmt.Println("Cannot migrate a running container. Please stop " + container)
-		os.Exit(1)
+		osExit(1)
 	}
 
 	// Validate repository name
 	if err := validateRepositoryName(name); err != nil {
 		fmt.Println(err.Error())
-		os.Exit(1)
+		osExit(1)
 	}
 	image, _ := docker.GetValFromContainer(container, "Image")
 	_, err = docker.InspectImage(image)
 	if err != nil {
 		fmt.Println("Image information is not available")
-		os.Exit(1)
+		osExit(1)
 	}
 	vols := docker.GetSliceFromImage(image, "Config", "Volumes")
 	if len(vols) == 0 {
 		fmt.Println("No volumes found for image " + image)
-		os.Exit(1)
+		osExit(1)
 	}
 	fmt.Println("Creating repository " + name)
 	var args []string
@@ -141,7 +140,7 @@ func Migrate(container string, name string, user string, email string, commit Co
 	_, err = docker.Run(image, "", args)
 	if err != nil {
 		fmt.Println(err)
-		os.Exit(1)
+		osExit(1)
 	}
 	commit(name, "Initial Migration", nil, user, email, port)
 	fmt.Println(container + " migrated to controlled environment " + name)

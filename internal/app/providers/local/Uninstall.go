@@ -2,7 +2,6 @@ package local
 
 import (
 	"fmt"
-	"os"
 	"strconv"
 	"strings"
 )
@@ -19,7 +18,7 @@ func Uninstall(version string, force bool, removeImages bool, port int, context 
 		for _, repo := range repos {
 			if !force {
 				fmt.Println("repository '" + repo.Name + "' exists, remove first or use '-f'")
-				os.Exit(1)
+				osExit(1)
 			}
 			Remove(repo.Name, true, port, context)
 		}
