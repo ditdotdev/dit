@@ -4,7 +4,6 @@ import (
 	"datadatdat/internal/app"
 	"fmt"
 	"github.com/briandowns/spinner"
-	"os"
 	"strconv"
 	"strings"
 	"time"
@@ -22,7 +21,7 @@ func Install(latest string, registry string, verbose bool, port int, context str
 
 	if _, err := docker.Version(); err != nil {
 		fmt.Printf("Error checking docker version: %v\n", err)
-		os.Exit(1)
+		osExit(1)
 	}
 	if !docker.DatadatdatLatestIsDownloaded(registry, app.Version{}.FromString(latest)) {
 		s.Prefix = "Pulling datadatdat docker image (may take a while) "
@@ -31,7 +30,7 @@ func Install(latest string, registry string, verbose bool, port int, context str
 		pullImage := registry + "/datadatdat:" + latest
 		if _, err := docker.Pull(pullImage); err != nil {
 			fmt.Printf("Error pulling image %s: %v\n", pullImage, err)
-			os.Exit(1)
+			osExit(1)
 		}
 		tagLatest := "datadatdat:" + latest
 		if _, err := docker.Tag(pullImage, tagLatest); err != nil {

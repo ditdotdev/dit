@@ -2,7 +2,6 @@ package kubernetes
 
 import (
 	"fmt"
-	"os"
 	"strconv"
 	"strings"
 )
@@ -25,7 +24,7 @@ func Uninstall(force bool, removeImages bool, context string, port int) {
 		for _, repo := range repos {
 			if !force {
 				fmt.Println("repository '" + repo.Name + "' exists, remove first or use '-f'")
-				os.Exit(1)
+				osExit(1)
 			}
 		}
 		if _, err := docker.Remove("datadatdat-"+context+"-server", true); err != nil {
