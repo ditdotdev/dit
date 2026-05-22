@@ -2,7 +2,6 @@ package common
 
 import (
 	"fmt"
-	"os"
 	"strconv"
 )
 
@@ -15,7 +14,7 @@ func RemoteList(repo string, port int) {
 		provider, err := ResolveProvider(r.Provider)
 		if err != nil {
 			fmt.Println(err)
-			os.Exit(1)
+			osExit(1)
 		}
 		url, _, _ := provider.ToURL(r.Properties)
 		fmt.Printf("%-20s %-20s\n", r.Name, url)

@@ -2,7 +2,6 @@ package common
 
 import (
 	"fmt"
-	"os"
 	"strconv"
 )
 
@@ -47,7 +46,7 @@ func Status(repo string, port int, context string) {
 	s, resp, err := repositoriesApi.GetRepositoryStatus(ctx, repo).Execute()
 	if err != nil || (resp != nil && resp.StatusCode >= 400) {
 		fmt.Printf("Error: repository '%s' not found\n", repo)
-		os.Exit(1)
+		osExit(1)
 	}
 	for _, r := range getContainersStatus(port, context) {
 		if r.name == repo {

@@ -2,7 +2,6 @@ package common
 
 import (
 	"fmt"
-	"os"
 	"strconv"
 )
 
@@ -22,6 +21,6 @@ func Abort(repo string, port int) {
 	}
 	if abortCount == 0 {
 		fmt.Println("no operation in progress")
-		os.Exit(0)
+		osExit(0)
 	}
 }

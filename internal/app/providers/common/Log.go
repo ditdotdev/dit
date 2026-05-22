@@ -2,7 +2,6 @@ package common
 
 import (
 	"fmt"
-	"os"
 	"strconv"
 )
 
@@ -13,11 +12,11 @@ func Log(repo string, tags []string, port int) {
 	commits, resp, err := commitsApi.ListCommits(ctx, repo).Tag(tags).Execute()
 	if err != nil {
 		fmt.Printf("Error listing commits for %s: %v\n", repo, err)
-		os.Exit(1)
+		osExit(1)
 	}
 	if resp != nil && resp.StatusCode >= 400 {
 		fmt.Printf("Error listing commits for %s: server returned %d\n", repo, resp.StatusCode)
-		os.Exit(1)
+		osExit(1)
 	}
 
 	for _, commit := range commits {

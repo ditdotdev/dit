@@ -2,7 +2,6 @@ package common
 
 import (
 	"fmt"
-	"os"
 	"strconv"
 
 	client "github.com/datadatdat/datadatdat-client-go"
@@ -28,12 +27,12 @@ func RemoteAdd(repo string, uri string, remoteName string, params map[string]str
 	_, _, err := remotesApi.GetRemote(ctx, repo, name).Execute()
 	if err == nil {
 		fmt.Println("remote " + name + " already exists for " + repo)
-		os.Exit(1)
+		osExit(1)
 	}
 	parsed, err := remote.ParseURL(uri, params)
 	if err != nil {
 		fmt.Printf("Error parsing URI '%s': %v\n", uri, err)
-		os.Exit(1)
+		osExit(1)
 	}
 	r := client.Remote{
 		Provider:   parsed.Provider,
@@ -43,7 +42,7 @@ func RemoteAdd(repo string, uri string, remoteName string, params map[string]str
 	_, _, err = remotesApi.CreateRemote(ctx, repo).Remote(r).Execute()
 	if err != nil {
 		fmt.Printf("Error creating remote: %v\n", err)
-		os.Exit(1)
+		osExit(1)
 	}
 	m, _, _ := repositoriesApi.GetRepository(ctx, repo).Execute()
 	metadata := m.Properties
