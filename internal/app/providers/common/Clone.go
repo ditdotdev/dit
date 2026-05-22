@@ -1,7 +1,6 @@
 package common
 
 import (
-	"datadatdat/internal/app/clients"
 	"fmt"
 	"net/url"
 	"os"
@@ -38,7 +37,7 @@ type CloneCallbacks struct {
 
 func Clone(uri string, repo string, guid string, params []string, args []string, disablePortMap bool, tags []string, port int, context string, cb CloneCallbacks) {
 	cfg.Servers[0].URL = "http://localhost:" + strconv.Itoa(port)
-	docker := clients.Docker(context, port)
+	docker := newDocker(context, port)
 
 	var parsedUri, _ = url.Parse(uri) //TODO handle err
 	var repoName string

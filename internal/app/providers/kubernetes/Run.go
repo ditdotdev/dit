@@ -1,7 +1,6 @@
 package kubernetes
 
 import (
-	"datadatdat/internal/app/clients"
 	"fmt"
 	"os"
 	"strconv"
@@ -19,7 +18,7 @@ const (
 
 func Run(container string, repository string, envVars []string, args []string, disablePortMap bool, privileged bool, createRepo bool, port int, context string) {
 	cfg.Servers[0].URL = "http://localhost:" + strconv.Itoa(port)
-	docker := clients.Docker(context, port)
+	docker := newDocker(context, port)
 
 	if len(args) > 0 {
 		fmt.Println("kubernetes provider doesn't support additional arguments")

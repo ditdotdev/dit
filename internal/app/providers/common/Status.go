@@ -1,7 +1,6 @@
 package common
 
 import (
-	"datadatdat/internal/app/clients"
 	"fmt"
 	"os"
 	"strconv"
@@ -10,7 +9,7 @@ import (
 // TODO pass this from provider as param
 func getContainersStatus(port int, context string) []runtimeStatus {
 	cfg.Servers[0].URL = "http://localhost:" + strconv.Itoa(port)
-	docker := clients.Docker(context, port)
+	docker := newDocker(context, port)
 
 	repos, _, _ := repositoriesApi.ListRepositories(ctx).Execute()
 	var r []runtimeStatus
