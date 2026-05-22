@@ -1,7 +1,6 @@
 package local
 
 import (
-	"datadatdat/internal/app/clients"
 	"encoding/json"
 	"fmt"
 	"os"
@@ -25,7 +24,7 @@ type Commit func(string, string, []string, string, string, int)
 
 func Migrate(container string, name string, user string, email string, commit Commit, port int, context string) {
 	cfg.Servers[0].URL = "http://localhost:" + strconv.Itoa(port)
-	docker := clients.Docker(context, port)
+	docker := newDocker(context, port)
 
 	_, err := docker.InspectContainer(container)
 	if err != nil {

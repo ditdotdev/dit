@@ -1,7 +1,6 @@
 package local
 
 import (
-	"datadatdat/internal/app/clients"
 	"fmt"
 	"os"
 	"strconv"
@@ -12,7 +11,7 @@ import (
 
 func Run(container string, repository string, envVars []string, args []string, disablePortMap bool, privileged bool, createRepo bool, port int, context string) (string, error) {
 	cfg.Servers[0].URL = "http://localhost:" + strconv.Itoa(port)
-	docker := clients.Docker(context, port)
+	docker := newDocker(context, port)
 
 	// Validate repository name if provided
 	if repository != "" {
