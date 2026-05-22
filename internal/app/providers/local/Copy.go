@@ -3,7 +3,6 @@ package local
 import (
 	"encoding/json"
 	"fmt"
-	"os"
 	"strconv"
 	"strings"
 )
@@ -23,11 +22,11 @@ func Copy(repo string, driver string, source string, path string, port int, cont
 	info, err := docker.InspectContainer(repo)
 	if err != nil {
 		fmt.Println("Container information is not available")
-		os.Exit(1)
+		osExit(1)
 	} else {
 		if info == "" {
 			fmt.Println("Container information is not available")
-			os.Exit(1)
+			osExit(1)
 		}
 	}
 	// Use top-level Mounts (not HostConfig.Mounts which is null for volume-driver mounts)
@@ -36,20 +35,20 @@ func Copy(repo string, driver string, source string, path string, port int, cont
 	err = json.Unmarshal([]byte(m), &mounts)
 	if err != nil {
 		fmt.Printf("Failed to unmarshal mounts: %v\n", err)
-		os.Exit(1)
+		osExit(1)
 	}
 	r, _ := docker.GetValFromContainer(repo, "State", "Running")
 	running, _ := strconv.ParseBool(r)
 	if running {
 		if err := Stop(repo, port); err != nil {
 			fmt.Printf("Error: failed to stop container: %v\n", err)
-			os.Exit(1)
+			osExit(1)
 		}
 	}
 	if path == "" {
 		if len(mounts) > 1 {
 			fmt.Println(repo + " has more than 1 volume mount. --destination is required.")
-			os.Exit(1)
+			osExit(1)
 		}
 		path = mounts[0].Destination
 	}
@@ -77,7 +76,7 @@ func Copy(repo string, driver string, source string, path string, port int, cont
 	if running {
 		if err := Start(repo, port); err != nil {
 			fmt.Printf("Error: failed to start container: %v\n", err)
-			os.Exit(1)
+			osExit(1)
 		}
 	}
 	fmt.Println(repo + " running with data from " + source)

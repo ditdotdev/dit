@@ -2,7 +2,6 @@ package local
 
 import (
 	"fmt"
-	"os"
 	"strconv"
 	"strings"
 
@@ -17,7 +16,7 @@ func Run(container string, repository string, envVars []string, args []string, d
 	if repository != "" {
 		if err := validateRepositoryName(repository); err != nil {
 			fmt.Println(err.Error())
-			os.Exit(1)
+			osExit(1)
 		}
 	}
 
@@ -30,7 +29,7 @@ func Run(container string, repository string, envVars []string, args []string, d
 	containerExists, _ := docker.ContainerExists(containerName) //TODO handle this error
 	if containerExists {
 		fmt.Println("Container '" + containerName + "' already exists, name must be unique")
-		os.Exit(1)
+		osExit(1)
 	}
 
 	var image string
@@ -61,12 +60,12 @@ func Run(container string, repository string, envVars []string, args []string, d
 	}
 	if len(imageInfo) == 0 {
 		fmt.Println("Image information is not available")
-		os.Exit(1)
+		osExit(1)
 	}
 	vols := docker.GetSliceFromImage(image+":"+tag, "Config", "Volumes")
 	if len(vols) < 1 {
 		fmt.Println("No volumes found for image " + image)
-		os.Exit(1)
+		osExit(1)
 	}
 
 	fmt.Println("Creating repository " + containerName)
@@ -78,7 +77,7 @@ func Run(container string, repository string, envVars []string, args []string, d
 		_, _, err := repositoriesApi.CreateRepository(ctx).Repository(repo).Execute()
 		if err != nil && err.Error() == "409 Conflict" {
 			fmt.Println("repository '" + repo.Name + "' already exists")
-			os.Exit(1)
+			osExit(1)
 		}
 	}
 
@@ -108,7 +107,7 @@ func Run(container string, repository string, envVars []string, args []string, d
 	i := 0
 	for i < len(args) {
 		switch args[i] {
-		case "--name":
+		case flagName:
 			// Skip --name and the next argument
 			if i+1 < len(args) {
 				i += 2 // Skip both --name and its value
@@ -125,7 +124,7 @@ func Run(container string, repository string, envVars []string, args []string, d
 		}
 	}
 	argList = append(argList, filteredArgs...)
-	argList = append(argList, "--name")
+	argList = append(argList, flagName)
 	argList = append(argList, containerName)
 
 	var metaPorts []map[string]string
@@ -201,7 +200,7 @@ func Run(container string, repository string, envVars []string, args []string, d
 	_, _, err = repositoriesApi.UpdateRepository(ctx, containerName).Repository(updateRepo).Execute()
 	if err != nil {
 		fmt.Println(err)
-		os.Exit(1)
+		osExit(1)
 	}
 	_, err = docker.Run(dockerRunCmd, "", argList)
 

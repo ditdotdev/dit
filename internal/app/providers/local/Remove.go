@@ -2,7 +2,6 @@ package local
 
 import (
 	"fmt"
-	"os"
 	"strconv"
 )
 
@@ -18,9 +17,9 @@ func Remove(repo string, force bool, port int, context string) {
 		resourcesFound = true
 		if !force {
 			r, _ := docker.GetValFromContainer(repo, "State", "Status")
-			if r == "running" {
+			if r == stateRunning {
 				fmt.Println("container " + repo + " is running, stop or use '-f' to force")
-				os.Exit(1)
+				osExit(1)
 			}
 		}
 		fmt.Println("Removing repository " + repo)
@@ -75,7 +74,7 @@ func Remove(repo string, force bool, port int, context string) {
 			// If no other resources were found either, the repository doesn't exist
 			if !resourcesFound {
 				fmt.Printf("fatal: repository '%s' does not exist\n", repo)
-				os.Exit(1)
+				osExit(1)
 			}
 			// Otherwise, resources were removed but API record was already gone
 			// Continue to success message
@@ -94,6 +93,6 @@ func Remove(repo string, force bool, port int, context string) {
 	} else {
 		// This shouldn't happen given the checks above, but just in case
 		fmt.Printf("fatal: repository '%s' does not exist\n", repo)
-		os.Exit(1)
+		osExit(1)
 	}
 }

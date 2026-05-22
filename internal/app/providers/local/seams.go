@@ -3,6 +3,7 @@ package local
 import (
 	"datadatdat/internal/app"
 	"datadatdat/internal/app/clients"
+	"os"
 )
 
 // dockerClient is the subset of clients.Docker methods used by providers/local.
@@ -54,3 +55,6 @@ var newDocker = func(context string, port int) dockerClient {
 var newDockerWithRegistry = func(context string, port int, registry string) dockerClient {
 	return clients.DockerWithRegistry(context, port, registry)
 }
+
+// osExit indirects os.Exit so tests can capture the requested exit code.
+var osExit = os.Exit
