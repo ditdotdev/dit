@@ -10,6 +10,7 @@ import (
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/util/intstr"
 	k8s "k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/client-go/util/homedir"
@@ -128,6 +129,32 @@ func (k kubernetes) CreateStatefulSet(repoName string, imageId string, ports []i
 		Ports:        containerPorts,
 		Env:          envs,
 		VolumeMounts: volumeMounts,
+	}
+	// TCP readiness probe on the first exposed port so the Service's Endpoints
+	// object only gets the pod IP once the container is actually accepting
+	// connections — not just because the container process started.
+	//
+	// Without this, "pod Ready" fires the moment the container image's
+	// entrypoint launches; Endpoints picks up the IP immediately; kubectl
+	// port-forward attaches to a pod whose application (e.g. postgres) hasn't
+	// yet bound its port. The local TCP listener stays open (and trivial
+	// reachability checks like `echo > /dev/tcp/...` succeed) but every real
+	// connection through the forward gets "connection refused" from the pod
+	// end and kubectl never recovers. Surfaced by kubernetes-tests.bats test
+	// 15 (`postgres responds via the forwarded localhost port`) where test 12
+	// reported the local port reachable but test 15 timed out 30s later with
+	// `psql: connection refused`.
+	if len(containerPorts) > 0 {
+		container.ReadinessProbe = &v1.Probe{
+			ProbeHandler: v1.ProbeHandler{
+				TCPSocket: &v1.TCPSocketAction{
+					Port: intstr.FromInt(int(containerPorts[0].ContainerPort)),
+				},
+			},
+			InitialDelaySeconds: 1,
+			PeriodSeconds:       2,
+			FailureThreshold:    30, // up to 60s for the app to bind
+		}
 	}
 	containers := []v1.Container{container}
 
@@ -334,11 +361,22 @@ func (k kubernetes) WaitForStatefulSet(repoName string) {
  * hack to demonstrate the desired experience until we can build out a more full-featured port forwarder, such
  * as: https://github.com/pixel-point/kube-forwarder
  */
+// serviceEndpointsTimeout caps how long StartPortForwarding will poll for the
+// Service's Endpoints resource to have at least one ready address before
+// giving up. serviceEndpointsPollInterval is the gap between polls. Exposed
+// as vars so tests can shrink them.
+//
+// Pre-fix this was a blind `time.Sleep(1 * time.Second)` — a magic constant
+// that worked on warm clusters and failed on cold ones. Endpoints is the
+// actual readiness signal: k8s only adds a pod IP to a Service's Endpoints
+// once the backing pod has passed its readiness probe.
+var (
+	serviceEndpointsTimeout      = 60 * time.Second
+	serviceEndpointsPollInterval = 100 * time.Millisecond
+)
+
 func (k kubernetes) StartPortForwarding(repoName string) {
-	// Small grace period: the pod can report Ready before the service
-	// endpoint is actually routable. (time.Sleep takes a Duration; a bare
-	// literal is nanoseconds, so we explicitly use time.Second here.)
-	time.Sleep(1 * time.Second)
+	k.waitForServiceEndpoint(repoName)
 	service, _ := client.CoreV1().Services(k.namespace).Get(ctx, repoName, metav1.GetOptions{})
 	ports := service.Spec.Ports
 	for _, port := range ports {
@@ -371,6 +409,30 @@ func (k kubernetes) StartPortForwarding(repoName string) {
 		if err := writePortForwardPid(repoName, port.Port, pid); err != nil {
 			fmt.Printf("Warning: Failed to record port-forward pid for port %d: %v\n", port.Port, err)
 		}
+	}
+}
+
+// waitForServiceEndpoint polls the Service's Endpoints resource until at
+// least one ready address is present or serviceEndpointsTimeout elapses.
+// Logs a warning and returns on timeout — the subsequent kubectl
+// port-forward will then surface any persistent problem with a clearer
+// error than a blind sleep would.
+func (k kubernetes) waitForServiceEndpoint(repoName string) {
+	deadline := time.Now().Add(serviceEndpointsTimeout)
+	for {
+		ep, err := client.CoreV1().Endpoints(k.namespace).Get(ctx, repoName, metav1.GetOptions{})
+		if err == nil && ep != nil {
+			for _, subset := range ep.Subsets {
+				if len(subset.Addresses) > 0 {
+					return
+				}
+			}
+		}
+		if time.Now().After(deadline) {
+			fmt.Printf("Warning: no ready endpoints for service %q after %s; port-forward may fail until pod becomes routable\n", repoName, serviceEndpointsTimeout)
+			return
+		}
+		time.Sleep(serviceEndpointsPollInterval)
 	}
 }
 
