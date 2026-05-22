@@ -3,7 +3,6 @@ package common
 import (
 	"fmt"
 	"net/url"
-	"os"
 	"strconv"
 	"strings"
 
@@ -66,7 +65,7 @@ func Clone(uri string, repo string, guid string, params []string, args []string,
 	_, resp, err := repositoriesApi.CreateRepository(ctx).Repository(repository).Execute()
 	if err != nil {
 		handleRemoteError(err, resp, "")
-		os.Exit(1)
+		osExit(1)
 	}
 
 	RemoteAdd(repoName, plainUri, "", nil, port) //TODO fix params
@@ -74,7 +73,7 @@ func Clone(uri string, repo string, guid string, params []string, args []string,
 	provider, err := ResolveProvider(rm.Provider)
 	if err != nil {
 		fmt.Println(err)
-		os.Exit(1)
+		osExit(1)
 	}
 	gp, _ := provider.GetParameters(rm.Properties)
 	p := client.RemoteParameters{
@@ -135,13 +134,13 @@ func Clone(uri string, repo string, guid string, params []string, args []string,
 		_, err = docker.Pull(imageRef)
 		if err != nil {
 			fmt.Println("Unable to find image " + imageRef + " for " + metadata.image.Image)
-			os.Exit(1)
+			osExit(1)
 		}
 	}
 	_, err = docker.Pull(imageRef)
 	if err != nil {
 		fmt.Printf("Failed to pull image %s: %v\n", imageRef, err)
-		os.Exit(1)
+		osExit(1)
 	}
 	var envs []string
 	for _, v := range metadata.environment {
@@ -180,5 +179,5 @@ func handleRemoteError(err error, resp *http.Response, uri string) {
 
 func removeRepo(repoName string, cb CloneCallbacks) {
 	cb.Remove(repoName, true)
-	os.Exit(1)
+	osExit(1)
 }

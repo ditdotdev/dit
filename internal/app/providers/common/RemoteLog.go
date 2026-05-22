@@ -3,7 +3,6 @@ package common
 import (
 	"fmt"
 	client "github.com/datadatdat/datadatdat-client-go"
-	"os"
 	"strconv"
 )
 
@@ -13,14 +12,14 @@ func RemoteLog(repo string, remoteName string, tags []string, port int) {
 	remotes, _, _ := remotesApi.ListRemotes(ctx, repo).Execute()
 	if len(remotes) == 0 {
 		fmt.Println("remote is not set, run 'remote add' first")
-		os.Exit(1)
+		osExit(1)
 	}
 	first := true
 	for _, r := range remotes {
 		provider, err := ResolveProvider(r.Provider)
 		if err != nil {
 			fmt.Println(err)
-			os.Exit(1)
+			osExit(1)
 		}
 		gp, _ := provider.GetParameters(r.Properties)
 		p := client.RemoteParameters{
