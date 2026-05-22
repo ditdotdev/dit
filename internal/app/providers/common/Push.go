@@ -62,7 +62,7 @@ func Push(repoName string, guid string, remoteName string, tags []string, metada
 
 	var name string
 	if remoteName == "" {
-		name = "origin"
+		name = DefaultRemoteName
 	} else {
 		name = remoteName
 	}

@@ -23,6 +23,10 @@ var apiClient = datadatdatclient.NewAPIClient(cfg)
 var operationsApi = apiClient.OperationsApi
 var ctx = context.Background()
 
+// MonitorPollInterval is the gap between progress polls. Exposed as a var so
+// tests can shrink it to keep the suite fast.
+var MonitorPollInterval = 2 * time.Second
+
 type operationMonitor struct {
 	repo      string
 	operation datadatdatclient.Operation
@@ -106,7 +110,7 @@ func (om operationMonitor) Monitor(port int) bool {
 					lastId = e.Id
 				}
 			}
-			time.Sleep(2 * time.Second)
+			time.Sleep(MonitorPollInterval)
 		} else {
 			fmt.Printf("Error monitoring operation: %v\n", err)
 			break
