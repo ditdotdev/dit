@@ -2,7 +2,6 @@ package common
 
 import (
 	"fmt"
-	"os"
 	"strconv"
 	"strings"
 
@@ -16,7 +15,7 @@ func Commit(repo string, message string, tags []string, user string, email strin
 	repoProps, resp, err := repositoriesApi.GetRepository(ctx, repo).Execute()
 	if err != nil || (resp != nil && resp.StatusCode >= 400) {
 		fmt.Printf("Error: repository '%s' not found\n", repo)
-		os.Exit(1)
+		osExit(1)
 	}
 	metadata := Metadata{}.Load(repoProps.Properties)
 	repoStatus, _, _ := repositoriesApi.GetRepositoryStatus(ctx, repo).Execute()
@@ -56,7 +55,7 @@ func Commit(repo string, message string, tags []string, user string, email strin
 	// can react.
 	response, _, err := commitsApi.CreateCommit(ctx, repo).Commit(commit).Execute()
 	if handleOperationError(err) {
-		os.Exit(1)
+		osExit(1)
 	}
 	fmt.Println("Commit " + response.Id)
 }

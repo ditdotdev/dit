@@ -351,7 +351,7 @@ func (d docker) TeardownDatadatdatServers() (string, error) {
 	return d.Run(datadatdatImage, "/bin/bash /datadatdat/teardown", args)
 }
 
-func (d *docker) RemoveDatadatdatImages(version string) (string, error) {
+func (d docker) RemoveDatadatdatImages(version string) (string, error) {
 	var imageId, _ = ce.Exec("docker", "images", "datadatdat:"+version, "--format", "{{.ID}}")
 	imageId = strings.TrimSuffix(imageId, "\n")
 	return ce.Exec("docker", "rmi", imageId, "-f")
