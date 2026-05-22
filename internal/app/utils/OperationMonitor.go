@@ -27,6 +27,16 @@ var ctx = context.Background()
 // tests can shrink it to keep the suite fast.
 var MonitorPollInterval = 2 * time.Second
 
+// MonitorIdleTimeout is how long the monitor will wait without receiving any
+// new progress entries before bailing out. The server emits progress entries
+// periodically during a healthy operation; if the stream goes silent for
+// this long the operation is treated as wedged rather than blocking the CLI
+// forever.
+//
+// Pre-fix the monitor had no idle timeout at all — a hung server would keep
+// the CLI spinning indefinitely with no way out short of Ctrl-C.
+var MonitorIdleTimeout = 10 * time.Minute
+
 type operationMonitor struct {
 	repo      string
 	operation datadatdatclient.Operation
@@ -88,12 +98,20 @@ func (om operationMonitor) Monitor(port int) bool {
 	padLen := 0
 	state := "START"
 	var lastId int32 = 0
+	lastProgressAt := time.Now()
 
 	for !om.IsTerminal(state) {
 		entries, _, err := operationsApi.GetOperationProgress(ctx, om.operation.Id).LastId(lastId).Execute()
 		if err == nil {
 			if len(entries) > 0 {
 				state = entries[len(entries)-1].Type
+				lastProgressAt = time.Now()
+			} else if time.Since(lastProgressAt) > MonitorIdleTimeout {
+				// No new progress entries for the idle timeout window. Assume
+				// the operation is wedged and bail rather than blocking the
+				// CLI forever.
+				fmt.Printf("No progress from server for %s, giving up\n", MonitorIdleTimeout)
+				break
 			}
 			for _, e := range entries {
 				msg := e.GetMessage()

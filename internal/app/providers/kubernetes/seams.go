@@ -4,6 +4,7 @@ import (
 	"datadatdat/internal/app"
 	"datadatdat/internal/app/clients"
 	datadatdatclient "github.com/datadatdat/datadatdat-client-go"
+	"os"
 )
 
 // dockerClient is the subset of clients.Docker methods used by providers/kubernetes.
@@ -51,3 +52,6 @@ var newDocker = func(context string, port int) dockerClient {
 }
 
 var k8s kubernetesClient = clients.Kubernetes("default", "localhost", 5001)
+
+// osExit indirects os.Exit so tests can capture the requested exit code.
+var osExit = os.Exit

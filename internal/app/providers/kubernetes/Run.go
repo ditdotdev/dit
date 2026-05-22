@@ -22,12 +22,12 @@ func Run(container string, repository string, envVars []string, args []string, d
 
 	if len(args) > 0 {
 		fmt.Println("kubernetes provider doesn't support additional arguments")
-		os.Exit(1)
+		osExit(1)
 	}
 
 	if repository != "" && strings.Contains(repository, "/") {
 		fmt.Println("Repository name cannot contain a slash")
-		os.Exit(1)
+		osExit(1)
 	}
 
 	var repoName string
@@ -55,18 +55,18 @@ func Run(container string, repository string, envVars []string, args []string, d
 	if err != nil {
 		if _, err := docker.Pull(image + ":" + tag); err != nil {
 			fmt.Printf("Error pulling image %s:%s: %v\n", image, tag, err)
-			os.Exit(1)
+			osExit(1)
 		}
 		imageInfo, _ = docker.InspectImage(image + ":" + tag)
 	}
 	if len(imageInfo) == 0 {
 		fmt.Println("Image information is not available")
-		os.Exit(1)
+		osExit(1)
 	}
 	vols := docker.GetSliceFromImage(image+":"+tag, "Config", "Volumes")
 	if len(vols) < 1 {
 		fmt.Println("No volumes found for image " + image)
-		os.Exit(1)
+		osExit(1)
 	}
 
 	fmt.Println("Creating repository " + repoName)
@@ -78,7 +78,7 @@ func Run(container string, repository string, envVars []string, args []string, d
 		_, _, err := repositoriesApi.CreateRepository(ctx).Repository(repo).Execute()
 		if err != nil && err.Error() == "409 Conflict" {
 			fmt.Println("repository '" + repo.Name + "' already exists")
-			os.Exit(1)
+			osExit(1)
 		}
 	}
 
@@ -124,7 +124,7 @@ func Run(container string, repository string, envVars []string, args []string, d
 			if s.GetError() != "" {
 				//TODO REMOVE VOLUMES AND EXIT
 				fmt.Println("Error creating volume" + v.Name + ": " + s.GetError())
-				os.Exit(1)
+				osExit(1)
 			}
 		}
 	}
@@ -202,7 +202,7 @@ func Run(container string, repository string, envVars []string, args []string, d
 		// and starts with its own header). Print as-is so the formatting
 		// survives.
 		fmt.Fprintln(os.Stderr, err)
-		os.Exit(1)
+		osExit(1)
 	}
 
 	fmt.Println("Waiting for deployment to be ready")

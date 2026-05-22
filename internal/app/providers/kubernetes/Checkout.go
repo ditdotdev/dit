@@ -2,9 +2,20 @@ package kubernetes
 
 import (
 	"fmt"
-	"os"
 	"strconv"
 	"time"
+)
+
+// CommitReadyPollInterval is the gap between GetCommitStatus polls while
+// waiting for a commit to become ready. Exposed as a var so tests can shrink it.
+// CommitReadyTimeout caps the total wait — without it the loop could spin
+// forever if the server never marks the commit ready.
+//
+// Pre-fix this was `time.Sleep(1000)` (1000 nanoseconds — effectively a
+// CPU-bound busy loop) with no deadline at all.
+var (
+	CommitReadyPollInterval = 1 * time.Second
+	CommitReadyTimeout      = 5 * time.Minute
 )
 
 func Checkout(repoName string, guid string, tags []string, port int) {
@@ -16,43 +27,47 @@ func Checkout(repoName string, guid string, tags []string, port int) {
 			commits, _, _ := commitsApi.ListCommits(ctx, repoName).Tag(tags).Execute()
 			if len(commits) == 0 {
 				fmt.Println("no matching commits found")
-				os.Exit(1)
+				osExit(1)
 			}
 			sourceCommit = commits[0].Id
 		} else {
 			status, _, _ := repositoriesApi.GetRepositoryStatus(ctx, repoName).Execute()
 			if status.GetSourceCommit() == "" {
 				fmt.Println("no commits present, run 'd3 commit' first")
-				os.Exit(1)
+				osExit(1)
 			}
 			sourceCommit = status.GetSourceCommit()
 		}
 	} else {
 		if len(tags) > 0 {
 			fmt.Println("tags and commit cannot both be specified")
-			os.Exit(1)
+			osExit(1)
 		}
 		sourceCommit = guid
 	}
 
 	status, _, _ := commitsApi.GetCommitStatus(ctx, repoName, sourceCommit).Execute()
 
-	if !status.Ready {
+	if status == nil || !status.Ready {
 		fmt.Println("Waiting for commit to be ready")
-		c := true
-		for c {
+		deadline := time.Now().Add(CommitReadyTimeout)
+		for {
 			commitStatus, _, _ := commitsApi.GetCommitStatus(ctx, repoName, sourceCommit).Execute()
-			if commitStatus.Ready {
-				c = false
+			if commitStatus != nil && commitStatus.Ready {
+				break
 			}
-			time.Sleep(1000)
+			if time.Now().After(deadline) {
+				fmt.Printf("Timed out after %s waiting for commit %s to be ready\n", CommitReadyTimeout, sourceCommit)
+				osExit(1)
+			}
+			time.Sleep(CommitReadyPollInterval)
 		}
 	}
 
 	fmt.Println("Checkout " + sourceCommit)
 	if _, err := commitsApi.CheckoutCommit(ctx, repoName, sourceCommit).Execute(); err != nil {
 		fmt.Printf("Error checking out commit %s: %v\n", sourceCommit, err)
-		os.Exit(1)
+		osExit(1)
 	}
 
 	fmt.Println("Stopping port forwarding")
