@@ -22,7 +22,7 @@ func RemoteAdd(repo string, uri string, remoteName string, params map[string]str
 	if remoteName != "" {
 		name = remoteName
 	} else {
-		name = "origin"
+		name = DefaultRemoteName
 	}
 	_, _, err := remotesApi.GetRemote(ctx, repo, name).Execute()
 	if err == nil {
