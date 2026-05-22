@@ -1,7 +1,6 @@
 package local
 
 import (
-	"datadatdat/internal/app/clients"
 	"fmt"
 	"os"
 	"strconv"
@@ -10,7 +9,7 @@ import (
 
 func Uninstall(version string, force bool, removeImages bool, port int, context string) {
 	cfg.Servers[0].URL = "http://localhost:" + strconv.Itoa(port)
-	docker := clients.Docker(context, port)
+	docker := newDocker(context, port)
 
 	fmt.Printf("Uninstalling context '%s' (docker)\n", context)
 

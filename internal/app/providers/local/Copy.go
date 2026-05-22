@@ -1,7 +1,6 @@
 package local
 
 import (
-	"datadatdat/internal/app/clients"
 	"encoding/json"
 	"fmt"
 	"os"
@@ -19,7 +18,7 @@ type mount struct {
 
 func Copy(repo string, driver string, source string, path string, port int, context string) {
 	cfg.Servers[0].URL = "http://localhost:" + strconv.Itoa(port)
-	docker := clients.Docker(context, port)
+	docker := newDocker(context, port)
 
 	info, err := docker.InspectContainer(repo)
 	if err != nil {

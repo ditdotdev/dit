@@ -1,14 +1,13 @@
 package local
 
 import (
-	"datadatdat/internal/app/clients"
 	"fmt"
 	"strconv"
 )
 
 func List(context string, port int) {
 	cfg.Servers[0].URL = "http://localhost:" + strconv.Itoa(port)
-	docker := clients.Docker("", port)
+	docker := newDocker("", port)
 
 	repos, _, _ := repositoriesApi.ListRepositories(ctx).Execute()
 	for _, repo := range repos {

@@ -2,7 +2,6 @@ package kubernetes
 
 import (
 	"context"
-	"datadatdat/internal/app/clients"
 	client "github.com/datadatdat/datadatdat-client-go"
 	"os"
 )
@@ -18,5 +17,3 @@ var repositoriesApi = apiClient.RepositoriesApi
 var commitsApi = apiClient.CommitsApi
 var volumesApi = apiClient.VolumesApi
 var ctx = context.Background()
-
-var k8s = clients.Kubernetes("default", "localhost", 5001)

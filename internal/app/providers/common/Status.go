@@ -1,16 +1,14 @@
 package common
 
 import (
-	"datadatdat/internal/app/clients"
 	"fmt"
-	"os"
 	"strconv"
 )
 
 // TODO pass this from provider as param
 func getContainersStatus(port int, context string) []runtimeStatus {
 	cfg.Servers[0].URL = "http://localhost:" + strconv.Itoa(port)
-	docker := clients.Docker(context, port)
+	docker := newDocker(context, port)
 
 	repos, _, _ := repositoriesApi.ListRepositories(ctx).Execute()
 	var r []runtimeStatus
@@ -48,7 +46,7 @@ func Status(repo string, port int, context string) {
 	s, resp, err := repositoriesApi.GetRepositoryStatus(ctx, repo).Execute()
 	if err != nil || (resp != nil && resp.StatusCode >= 400) {
 		fmt.Printf("Error: repository '%s' not found\n", repo)
-		os.Exit(1)
+		osExit(1)
 	}
 	for _, r := range getContainersStatus(port, context) {
 		if r.name == repo {

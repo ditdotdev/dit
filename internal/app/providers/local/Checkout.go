@@ -1,7 +1,6 @@
 package local
 
 import (
-	"datadatdat/internal/app/clients"
 	"fmt"
 	"os"
 	"strconv"
@@ -9,7 +8,7 @@ import (
 
 func Checkout(repo string, guid string, tags []string, port int, context string) {
 	cfg.Servers[0].URL = "http://localhost:" + strconv.Itoa(port)
-	docker := clients.Docker(context, port)
+	docker := newDocker(context, port)
 
 	var sourceCommit string
 	if guid == "" {

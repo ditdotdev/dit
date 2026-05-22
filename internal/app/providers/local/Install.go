@@ -2,7 +2,6 @@ package local
 
 import (
 	"datadatdat/internal/app"
-	"datadatdat/internal/app/clients"
 	"datadatdat/internal/app/utils"
 	"fmt"
 	"github.com/briandowns/spinner"
@@ -16,7 +15,7 @@ var ce = utils.CommandExecutor(60, false)
 
 func Install(latest string, registry string, verbose bool, port int, context string) {
 	cfg.Servers[0].URL = "http://localhost:" + strconv.Itoa(port)
-	docker := clients.DockerWithRegistry(context, port, registry)
+	docker := newDockerWithRegistry(context, port, registry)
 
 	s := spinner.New(spinner.CharSets[9], 100*time.Millisecond)
 	s.HideCursor = true
