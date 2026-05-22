@@ -6,7 +6,6 @@ import (
 	k8s "datadatdat/internal/app/providers/kubernetes"
 	"fmt"
 	"os"
-	"strings"
 )
 
 type kubernetes struct {
@@ -57,7 +56,8 @@ func (k kubernetes) Clone(uri string, repo string, commit string, params []strin
 }
 
 func (k kubernetes) Commit(repo string, message string, tags []string) {
-	cmn.Commit(repo, message, tags, strings.TrimSpace(user), strings.TrimSpace(email), k.portNum)
+	u, e := gitIdentity()
+	cmn.Commit(repo, message, tags, u, e, k.portNum)
 }
 
 func (k kubernetes) Copy(repo string, driver string, source string, path string) {
@@ -151,7 +151,13 @@ func (k kubernetes) Uninstall(force bool, removeImage bool) {
 }
 
 func (k kubernetes) Upgrade(force bool, version string, finalize bool, path string) {
-	panic("implement me")
+	// In-place upgrade in kubernetes contexts requires coordinating with
+	// the cluster's deployment controller, persistent-volume reattachment,
+	// and the CSI driver lifecycle. None of that is wired up. Fail with a
+	// clear message instead of the previous `panic("implement me")` which
+	// dumped a Go stack trace at users.
+	fmt.Println("upgrade is not supported in kubernetes context; redeploy the datadatdat-server manifest with the new image tag instead")
+	os.Exit(1)
 }
 
 func Kubernetes(contextName string, host string, port int) Provider {
