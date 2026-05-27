@@ -10,7 +10,14 @@ ENV ?= DEV
 VERSION ?= dev
 LDFLAGS := -ldflags "-X datadatdat/internal/app.DatadatdatVersion=$(VERSION)"
 
-.PHONY: build release darwin-amd64 darwin-arm64 linux-amd64 linux-arm64 windows clean
+.PHONY: build release darwin-amd64 darwin-arm64 linux-amd64 linux-arm64 windows clean coverage
+
+# Runs go test ./... and prints both the raw % (what `go test -cover` reports)
+# and the scored % the CI repo-health gate uses (filters generated + main
+# packages — see scripts/local-coverage.sh for the regex, kept in sync with
+# datadatdat/.github/.github/workflows/repo-health.yml).
+coverage:
+	bash scripts/local-coverage.sh
 
 clean:
 	rm -rf $(RELEASE_DIR)
