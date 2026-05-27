@@ -29,6 +29,7 @@ sshKey
 sshKey.pub
 coverage.out
 coverage.html
+.health/
 
 # Large installer files (exceeds GitHub 100MB limit)
 Docker*.exe
