@@ -6,7 +6,6 @@ import (
 	lcl "datadatdat/internal/app/providers/local"
 	"datadatdat/internal/app/utils"
 	"fmt"
-	"os"
 	"strings"
 )
 
@@ -36,7 +35,7 @@ type local struct {
 }
 
 func (l local) GetType() string {
-	return "docker"
+	return ProviderTypeDocker
 }
 
 func (l local) GetName() string {
@@ -152,13 +151,13 @@ func (l local) Run(image string, repo string, environments []string, arguments [
 	s, err := lcl.Run(image, repo, environments, arguments, disablePortMap, privileged, true, l.portNum, l.contextName)
 	fmt.Println(s)
 	if err != nil {
-		os.Exit(1)
+		osExit(1)
 	}
 }
 
 func (l local) Start(repo string) {
 	if err := lcl.Start(repo, l.portNum); err != nil {
-		os.Exit(1)
+		osExit(1)
 	}
 }
 
@@ -168,7 +167,7 @@ func (l local) Status(repo string) {
 
 func (l local) Stop(repo string) {
 	if err := lcl.Stop(repo, l.portNum); err != nil {
-		os.Exit(1)
+		osExit(1)
 	}
 }
 
@@ -195,6 +194,6 @@ func Local(contextName string, host string, port int) Provider {
 		host:                    host,
 		portNum:                 port,
 		datadatdatServerVersion: app.DatadatdatVersion,
-		dockerRegistryUrl:       "datadatdat",
+		dockerRegistryUrl:       defaultDockerRegistry,
 	}
 }

@@ -58,3 +58,13 @@ var newDockerWithRegistry = func(context string, port int, registry string) dock
 
 // osExit indirects os.Exit so tests can capture the requested exit code.
 var osExit = os.Exit
+
+// SetOsExitForTesting swaps the package-level osExit seam, returning the
+// previous value so callers can restore it on cleanup. Lets tests in
+// the parent providers package intercept the exit calls that local.*
+// helpers make when docker isn't available.
+func SetOsExitForTesting(fn func(int)) func(int) {
+	prev := osExit
+	osExit = fn
+	return prev
+}
