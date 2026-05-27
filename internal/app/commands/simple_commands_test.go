@@ -38,24 +38,34 @@ func (f *fakeProvider) GetType() string { return f.ptype }
 func (f *fakeProvider) GetName() string { return f.name }
 func (f *fakeProvider) GetPort() int    { return f.port }
 
-func (f *fakeProvider) Abort(repo string)                          { f.record("Abort", repo) }
-func (f *fakeProvider) Checkout(repo, guid string, tags []string)  { f.record("Checkout", repo, guid, tags) }
+func (f *fakeProvider) Abort(repo string) { f.record("Abort", repo) }
+func (f *fakeProvider) Checkout(repo, guid string, tags []string) {
+	f.record("Checkout", repo, guid, tags)
+}
 func (f *fakeProvider) Clone(uri, repo, commit string, params, arguments []string, disablePortMap bool, tags []string) {
 	f.record("Clone", uri, repo, commit, params, arguments, disablePortMap, tags)
 }
-func (f *fakeProvider) Commit(repo, message string, tags []string) { f.record("Commit", repo, message, tags) }
-func (f *fakeProvider) Copy(repo, driver, source, path string)     { f.record("Copy", repo, driver, source, path) }
-func (f *fakeProvider) Delete(repo, commit string, tags []string)  { f.record("Delete", repo, commit, tags) }
-func (f *fakeProvider) Fork(uri, org, name string)                 { f.record("Fork", uri, org, name) }
-func (f *fakeProvider) Install(properties []string, verbose bool)  { f.record("Install", properties, verbose) }
+func (f *fakeProvider) Commit(repo, message string, tags []string) {
+	f.record("Commit", repo, message, tags)
+}
+func (f *fakeProvider) Copy(repo, driver, source, path string) {
+	f.record("Copy", repo, driver, source, path)
+}
+func (f *fakeProvider) Delete(repo, commit string, tags []string) {
+	f.record("Delete", repo, commit, tags)
+}
+func (f *fakeProvider) Fork(uri, org, name string) { f.record("Fork", uri, org, name) }
+func (f *fakeProvider) Install(properties []string, verbose bool) {
+	f.record("Install", properties, verbose)
+}
 func (f *fakeProvider) List(context string) {
 	f.record("List", context)
 	if f.OnList != nil {
 		f.OnList(context)
 	}
 }
-func (f *fakeProvider) Log(repo string, tags []string)             { f.record("Log", repo, tags) }
-func (f *fakeProvider) Migrate(repo, name string)                  { f.record("Migrate", repo, name) }
+func (f *fakeProvider) Log(repo string, tags []string) { f.record("Log", repo, tags) }
+func (f *fakeProvider) Migrate(repo, name string)      { f.record("Migrate", repo, name) }
 func (f *fakeProvider) Pull(repo, commit, remoteName string, tags []string, metadataOnly bool) {
 	f.record("Pull", repo, commit, remoteName, tags, metadataOnly)
 }
@@ -65,18 +75,20 @@ func (f *fakeProvider) Push(repo, commit, remoteName string, tags []string, meta
 func (f *fakeProvider) RemoteAdd(repo, uri, remoteName string, params map[string]string) {
 	f.record("RemoteAdd", repo, uri, remoteName, params)
 }
-func (f *fakeProvider) RemoteList(repo string)                                 { f.record("RemoteList", repo) }
-func (f *fakeProvider) RemoteLog(repo, remoteName string, tags []string)       { f.record("RemoteLog", repo, remoteName, tags) }
-func (f *fakeProvider) RemoteRemove(repo, remote string)                       { f.record("RemoteRemove", repo, remote) }
-func (f *fakeProvider) Remove(repo string, force bool)                         { f.record("Remove", repo, force) }
+func (f *fakeProvider) RemoteList(repo string) { f.record("RemoteList", repo) }
+func (f *fakeProvider) RemoteLog(repo, remoteName string, tags []string) {
+	f.record("RemoteLog", repo, remoteName, tags)
+}
+func (f *fakeProvider) RemoteRemove(repo, remote string) { f.record("RemoteRemove", repo, remote) }
+func (f *fakeProvider) Remove(repo string, force bool)   { f.record("Remove", repo, force) }
 func (f *fakeProvider) Run(image, repo string, environments, arguments []string, disablePortMap, privileged bool) {
 	f.record("Run", image, repo, environments, arguments, disablePortMap, privileged)
 }
-func (f *fakeProvider) Start(repo string)                              { f.record("Start", repo) }
-func (f *fakeProvider) Status(repo string)                             { f.record("Status", repo) }
-func (f *fakeProvider) Stop(repo string)                               { f.record("Stop", repo) }
-func (f *fakeProvider) Tag(repo, commit string, tags []string)         { f.record("Tag", repo, commit, tags) }
-func (f *fakeProvider) Uninstall(force, removeImage bool)              { f.record("Uninstall", force, removeImage) }
+func (f *fakeProvider) Start(repo string)                      { f.record("Start", repo) }
+func (f *fakeProvider) Status(repo string)                     { f.record("Status", repo) }
+func (f *fakeProvider) Stop(repo string)                       { f.record("Stop", repo) }
+func (f *fakeProvider) Tag(repo, commit string, tags []string) { f.record("Tag", repo, commit, tags) }
+func (f *fakeProvider) Uninstall(force, removeImage bool)      { f.record("Uninstall", force, removeImage) }
 func (f *fakeProvider) Upgrade(force bool, version string, finalize bool, path string) {
 	f.record("Upgrade", force, version, finalize, path)
 }

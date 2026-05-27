@@ -9,8 +9,8 @@ import (
 	"time"
 
 	datadatdatclient "github.com/datadatdat/datadatdat-client-go"
-	v1 "k8s.io/api/core/v1"
 	v1Apps "k8s.io/api/apps/v1"
+	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes/fake"
 )
@@ -113,8 +113,8 @@ func TestPortForwardPidFilesFor_FindsMatchingOnly(t *testing.T) {
 		"portforward-my-repo-1.pid",
 		"portforward-my-repo-2.pid",
 		"portforward-other-repo-1.pid",
-		"portforward-my-repo.txt",       // wrong suffix
-		"not-a-portforward.pid",         // wrong prefix
+		"portforward-my-repo.txt", // wrong suffix
+		"not-a-portforward.pid",   // wrong prefix
 	} {
 		if err := os.WriteFile(filepath.Join(dir, name), []byte("1"), 0600); err != nil {
 			t.Skipf("write: %v", err)

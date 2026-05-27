@@ -70,6 +70,9 @@ func captureStdout(t *testing.T, fn func()) string {
 }
 
 // startMockServer spins up an httptest server and returns the integer port.
+// httptest.NewServer binds to 127.0.0.1, so this does NOT trigger the
+// Windows Firewall prompt (that prompt fires on binds to 0.0.0.0 / all
+// interfaces — see providers.GetAvailablePort for the fixed call site).
 func startMockServer(t *testing.T, handler http.HandlerFunc) int {
 	t.Helper()
 	srv := httptest.NewServer(handler)
@@ -93,7 +96,6 @@ func alwaysOKHandler() http.HandlerFunc {
 		_, _ = w.Write([]byte("{}"))
 	}
 }
-
 
 // ---------------------------------------------------------------------------
 // Constructor + trivial accessors
@@ -362,4 +364,3 @@ func TestLocal_AllDelegators_CoverDispatch(t *testing.T) {
 		})
 	}
 }
-

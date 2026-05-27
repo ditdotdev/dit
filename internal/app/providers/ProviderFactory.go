@@ -154,10 +154,14 @@ func List() map[string]Provider {
 }
 
 func GetAvailablePort() int {
-	// G102: Intentionally binding to all interfaces to find an available port
-	// This is a common pattern for port discovery and is closed immediately
-	// #nosec G102 -- Binding to all interfaces for port discovery, closed immediately
-	l, err := net.Listen("tcp", ":0")
+	// Loopback-only bind for port discovery. Binding to ":0" (all interfaces)
+	// triggers a Windows Defender Firewall prompt every time a freshly-built
+	// binary runs — including each test binary, which has a new hash per
+	// compile. The OS assigns the same free port regardless of which
+	// interface we bind, so 127.0.0.1 is functionally equivalent and avoids
+	// the prompt entirely. The listener is closed immediately; the returned
+	// port is just a hint the caller binds for real later.
+	l, err := net.Listen("tcp", "127.0.0.1:0")
 	if err != nil {
 		panic(err)
 	}
