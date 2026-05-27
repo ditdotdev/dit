@@ -96,7 +96,7 @@ func classifyCommand(args []string) (providerOptional bool, defaultContextName s
 	}
 	switch args[1] {
 	case subcmdInstall:
-		return true, "docker"
+		return true, providers.ProviderTypeDocker
 	case "ls", subcmdContext, subcmdUninstall:
 		// uninstall (no flag) iterates every configured context itself,
 		// so it doesn't need a resolved default — and shouldn't panic in
