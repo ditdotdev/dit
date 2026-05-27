@@ -12,6 +12,15 @@ import (
 const (
 	ProviderTypeDocker     = "docker"
 	ProviderTypeKubernetes = "kubernetes"
+
+	// defaultDockerRegistry is the Docker Hub namespace where the
+	// official datadatdat images live. Used as the per-provider fallback
+	// registry when no override is specified.
+	defaultDockerRegistry = "datadatdat"
+
+	// defaultHost is the loopback host every provider binds to. The
+	// datadatdat-server API is intentionally not reachable from off-box.
+	defaultHost = "localhost"
 )
 
 /**
@@ -125,7 +134,7 @@ func Resolve(contextFlag, arg string) (Provider, string) {
 		p, ok := Providers[s[0]]
 		if !ok {
 			fmt.Fprintln(os.Stderr, "Error: no such context '"+s[0]+"'")
-			os.Exit(1)
+			osExit(1)
 		}
 		return p, s[1]
 	}
@@ -133,7 +142,7 @@ func Resolve(contextFlag, arg string) (Provider, string) {
 		p, ok := Providers[contextFlag]
 		if !ok {
 			fmt.Fprintln(os.Stderr, "Error: no such context '"+contextFlag+"'")
-			os.Exit(1)
+			osExit(1)
 		}
 		return p, arg
 	}
@@ -160,14 +169,14 @@ func GetAvailablePort() int {
 func Create(name string, provider string, port int) Provider {
 	if Providers[name] != nil {
 		fmt.Println("Error: context '" + name + "' already exists. Run 'd3 uninstall' first or use 'd3 upgrade'.")
-		os.Exit(1)
+		osExit(1)
 	}
 	var p Provider
 	switch provider {
 	case ProviderTypeDocker:
-		p = Local(name, "localhost", port) //TODO confirm provider host
+		p = Local(name, defaultHost, port) //TODO confirm provider host
 	case ProviderTypeKubernetes:
-		p = Kubernetes(name, "localhost", port)
+		p = Kubernetes(name, defaultHost, port)
 	}
 	return p
 }
@@ -176,7 +185,7 @@ func AddProvider(p Provider) {
 	contexts := viper.GetStringMap("contexts")
 	context := context{
 		isDefault:   len(contexts) < 1,
-		host:        "localhost", //TODO remap host URL
+		host:        defaultHost, //TODO remap host URL
 		port:        p.GetPort(),
 		contextType: p.GetType(),
 	}

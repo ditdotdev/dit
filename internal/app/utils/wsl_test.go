@@ -61,3 +61,15 @@ func TestSupportsModules_FutureKernel(t *testing.T) {
 		t.Error("Expected SupportsModules true for 7.x")
 	}
 }
+
+// CheckWSL2AndAdvise invokes `wsl -e uname -r`. On non-Windows hosts it
+// short-circuits at the runtime.GOOS check; on Windows hosts without
+// WSL it returns when the exec fails. Either way no panic.
+func TestCheckWSL2AndAdvise_DoesNotPanic(t *testing.T) {
+	defer func() {
+		if r := recover(); r != nil {
+			t.Fatalf("CheckWSL2AndAdvise panicked: %v", r)
+		}
+	}()
+	CheckWSL2AndAdvise()
+}
