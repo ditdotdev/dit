@@ -5,7 +5,6 @@ import (
 	cmn "datadatdat/internal/app/providers/common"
 	k8s "datadatdat/internal/app/providers/kubernetes"
 	"fmt"
-	"os"
 )
 
 type kubernetes struct {
@@ -17,7 +16,7 @@ type kubernetes struct {
 }
 
 func (k kubernetes) GetType() string {
-	return "kubernetes"
+	return ProviderTypeKubernetes
 }
 
 func (k kubernetes) GetName() string {
@@ -62,7 +61,7 @@ func (k kubernetes) Commit(repo string, message string, tags []string) {
 
 func (k kubernetes) Copy(repo string, driver string, source string, path string) {
 	fmt.Println("cp is not supported in kubernetes context")
-	os.Exit(0)
+	osExit(0)
 }
 
 func (k kubernetes) Fork(uri string, org string, name string) {
@@ -95,7 +94,7 @@ func (k kubernetes) Log(repo string, tags []string) {
 
 func (k kubernetes) Migrate(repo string, name string) {
 	fmt.Println("migrate is not supported in kubernetes context")
-	os.Exit(0)
+	osExit(0)
 }
 
 func (k kubernetes) Pull(repo string, commit string, remoteName string, tags []string, metadataOnly bool) {
@@ -157,7 +156,7 @@ func (k kubernetes) Upgrade(force bool, version string, finalize bool, path stri
 	// clear message instead of the previous `panic("implement me")` which
 	// dumped a Go stack trace at users.
 	fmt.Println("upgrade is not supported in kubernetes context; redeploy the datadatdat-server manifest with the new image tag instead")
-	os.Exit(1)
+	osExit(1)
 }
 
 func Kubernetes(contextName string, host string, port int) Provider {
@@ -166,6 +165,6 @@ func Kubernetes(contextName string, host string, port int) Provider {
 		host:                    host,
 		portNum:                 port,
 		datadatdatServerVersion: app.DatadatdatVersion,
-		dockerRegistryUrl:       "datadatdat",
+		dockerRegistryUrl:       defaultDockerRegistry,
 	}
 }

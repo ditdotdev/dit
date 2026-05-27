@@ -61,20 +61,35 @@ func (w WSL2Info) SupportsModules() bool {
 	return false
 }
 
+// goos and getWSLKernel are test seams. Production callers see
+// runtime.GOOS and the wsl shell-out exactly as before; tests can
+// swap them to drive CheckWSL2AndAdvise's branches on Linux CI
+// without an actual WSL2 environment.
+var (
+	goos         = runtime.GOOS
+	getWSLKernel = realGetWSLKernel
+)
+
+func realGetWSLKernel() (string, error) {
+	out, err := exec.Command("wsl", "-e", "uname", "-r").Output()
+	if err != nil {
+		return "", err
+	}
+	return strings.TrimSpace(string(out)), nil
+}
+
 // CheckWSL2AndAdvise prints guidance for WSL2 users during install
 func CheckWSL2AndAdvise() {
-	if runtime.GOOS != "windows" {
+	if goos != "windows" {
 		return
 	}
 
-	// Get kernel version from WSL
-	out, err := exec.Command("wsl", "-e", "uname", "-r").Output()
+	kernelVersion, err := getWSLKernel()
 	if err != nil {
 		// WSL not available or not running, not a WSL2 environment
 		return
 	}
 
-	kernelVersion := strings.TrimSpace(string(out))
 	info := DetectWSL2(kernelVersion)
 
 	if !info.IsWSL2 {

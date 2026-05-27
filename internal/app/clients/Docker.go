@@ -17,6 +17,16 @@ const EOL = "\n"
 // is configured and as the literal "datadatdat" image-name lookup target.
 const defaultDockerHubRegistry = "datadatdat"
 
+// dockerCmd is the name of the docker CLI binary that this client shells
+// out to. Extracted so goconst doesn't flag the literal across the dozen
+// ce.Exec(dockerCmd, ...) call sites below.
+const dockerCmd = "docker"
+
+// localRegistry is the sentinel registry value that means "use the image
+// name as-is without prepending a registry namespace". Used by callers
+// that hand-roll their own image references (e.g. `myrepo/myimage:tag`).
+const localRegistry = "local"
+
 type docker struct {
 	identity string
 	port     int
@@ -31,7 +41,7 @@ func (d docker) FormatVolumeName(repoName, volumeName string) string {
 
 func Docker(i string, p int) docker {
 	if i == "" {
-		i = "docker"
+		i = dockerCmd
 	}
 	if p == 0 {
 		p = 5001
@@ -41,7 +51,7 @@ func Docker(i string, p int) docker {
 
 func DockerWithRegistry(i string, p int, r string) docker {
 	if i == "" {
-		i = "docker"
+		i = dockerCmd
 	}
 	if p == 0 {
 		p = 5001
@@ -53,7 +63,7 @@ func DockerWithRegistry(i string, p int, r string) docker {
 }
 
 func (d docker) getImageName(image string) string {
-	if d.registry == "local" || strings.Contains(image, "/") {
+	if d.registry == localRegistry || strings.Contains(image, "/") {
 		return image
 	}
 	return d.registry + "/" + image
@@ -102,20 +112,20 @@ func (d docker) getLocalLaunchArgs() []string {
 }
 
 func (d docker) Version() (string, error) {
-	return ce.Exec("docker", "-v")
+	return ce.Exec(dockerCmd, "-v")
 }
 
 func (d docker) ContainerExists(container string) (bool, error) {
-	out, err := ce.Exec("docker", "ps", "-a", "-f", "name=^/"+container+`$`, "--format", `"{{.Names}}"`)
+	out, err := ce.Exec(dockerCmd, "ps", "-a", "-f", "name=^/"+container+`$`, "--format", `"{{.Names}}"`)
 	return len(out) > 0, err
 }
 
 func (d docker) Pull(image string) (string, error) {
-	return ce.Exec("docker", "pull", image)
+	return ce.Exec(dockerCmd, "pull", image)
 }
 
 func (d docker) Tag(source string, target string) (string, error) {
-	return ce.Exec("docker", "tag", source, target)
+	return ce.Exec(dockerCmd, "tag", source, target)
 }
 
 func (d docker) Remove(container string, force bool) (string, error) {
@@ -125,14 +135,14 @@ func (d docker) Remove(container string, force bool) (string, error) {
 		args = append(args, "-f")
 	}
 	args = append(args, container)
-	return ce.Exec("docker", args...)
+	return ce.Exec(dockerCmd, args...)
 }
 
 func (d docker) RemoveStopped(repo string) (string, error) {
-	c, _ := ce.Exec("docker", "ps", "-a", "-f", "name=^/"+repo+`$`, "--format", `"{{.ID}}"`)
+	c, _ := ce.Exec(dockerCmd, "ps", "-a", "-f", "name=^/"+repo+`$`, "--format", `"{{.ID}}"`)
 	c = strings.ReplaceAll(c, EOL, "")
 	c = strings.ReplaceAll(c, `"`, "")
-	return ce.Exec("docker", "container", "rm", c)
+	return ce.Exec(dockerCmd, "container", "rm", c)
 }
 
 func (d docker) RemoveVolume(name string, force bool) (string, error) {
@@ -143,7 +153,7 @@ func (d docker) RemoveVolume(name string, force bool) (string, error) {
 		args = append(args, "-f")
 	}
 	args = append(args, name)
-	return ce.Exec("docker", args...)
+	return ce.Exec(dockerCmd, args...)
 }
 
 // VolumeExists returns true if a Docker volume with the given name exists.
@@ -151,12 +161,12 @@ func (d docker) RemoveVolume(name string, force bool) (string, error) {
 // there, so callers that need to know whether removal was a no-op must check
 // first with this helper.
 func (d docker) VolumeExists(name string) bool {
-	_, err := ce.Exec("docker", "volume", "inspect", name)
+	_, err := ce.Exec(dockerCmd, "volume", "inspect", name)
 	return err == nil
 }
 
 func (d docker) InspectContainer(container string) (string, error) {
-	return ce.Exec("docker", "inspect", "--type", "container", container)
+	return ce.Exec(dockerCmd, "inspect", "--type", "container", container)
 }
 
 func (d docker) GetValFromContainer(c string, key ...string) (string, error) {
@@ -179,7 +189,7 @@ func (d docker) GetSliceFromContainer(c string, key ...string) []string {
 }
 
 func (d docker) InspectImage(image string) (string, error) {
-	return ce.Exec("docker", "inspect", "--type", "image", image)
+	return ce.Exec(dockerCmd, "inspect", "--type", "image", image)
 }
 
 func (d docker) GetValFromImage(image string, key ...string) string {
@@ -205,19 +215,19 @@ func (d docker) Run(image string, entry string, args []string) (string, error) {
 	if len(entry) > 0 {
 		args = append(args, strings.Split(entry, " ")...)
 	}
-	return ce.Exec("docker", args...)
+	return ce.Exec(dockerCmd, args...)
 }
 
 func (d docker) FetchLogs(container string) []string {
-	output, _ := ce.Exec("docker", "logs", container)
+	output, _ := ce.Exec(dockerCmd, "logs", container)
 	lines := strings.Split(output, EOL)
 	return lines
 }
 
 func (d docker) DatadatdatLatestIsDownloaded(registry string, latest app.Version) bool {
-	// If registry is "local", check for local datadatdat:latest first
-	if registry == "local" {
-		localOut, _ := ce.Exec("docker", "images", defaultDockerHubRegistry, "--format", `"{{.Repository}}:{{.Tag}}"`)
+	// If registry is the local sentinel, check for local datadatdat:latest first
+	if registry == localRegistry {
+		localOut, _ := ce.Exec(dockerCmd, "images", defaultDockerHubRegistry, "--format", `"{{.Repository}}:{{.Tag}}"`)
 		if strings.Contains(localOut, "datadatdat:latest") {
 			return true // Use local datadatdat:latest image
 		}
@@ -226,7 +236,7 @@ func (d docker) DatadatdatLatestIsDownloaded(registry string, latest app.Version
 	}
 
 	image := registry + "/datadatdat"
-	out, _ := ce.Exec("docker", "images", image, "--format", `"{{.Tag}}"`)
+	out, _ := ce.Exec(dockerCmd, "images", image, "--format", `"{{.Tag}}"`)
 	tags := strings.Split(string(out), EOL)
 	hasVersionTag := false
 	for _, item := range tags {
@@ -258,7 +268,7 @@ func (d docker) DatadatdatLatestIsDownloaded(registry string, latest app.Version
 }
 
 func (d docker) ContainerIsRunning(container string) (bool, error) {
-	out, err := ce.Exec("docker", "ps", "-f", "name=^/"+container+`$`, "--format", `"{{.Names}}"`)
+	out, err := ce.Exec(dockerCmd, "ps", "-f", "name=^/"+container+`$`, "--format", `"{{.Names}}"`)
 	return len(out) > 0, err
 }
 
@@ -352,9 +362,9 @@ func (d docker) TeardownDatadatdatServers() (string, error) {
 }
 
 func (d docker) RemoveDatadatdatImages(version string) (string, error) {
-	var imageId, _ = ce.Exec("docker", "images", "datadatdat:"+version, "--format", "{{.ID}}")
+	var imageId, _ = ce.Exec(dockerCmd, "images", "datadatdat:"+version, "--format", "{{.ID}}")
 	imageId = strings.TrimSuffix(imageId, "\n")
-	return ce.Exec("docker", "rmi", imageId, "-f")
+	return ce.Exec(dockerCmd, "rmi", imageId, "-f")
 }
 
 func (d docker) RemoveDatadatdatServer() (string, error) {
@@ -370,7 +380,7 @@ func (d docker) RemoveDatadatdatVolume() (string, error) {
 }
 
 func (d docker) CreateVolume(name string, path string) (string, error) {
-	return ce.Exec("docker", "volume", "create", "-d", "datadatdat-"+d.identity, "-o", "path="+path, name)
+	return ce.Exec(dockerCmd, "volume", "create", "-d", "datadatdat-"+d.identity, "-o", "path="+path, name)
 }
 
 func (d docker) ListVolumes(repo string) []string {
@@ -380,7 +390,7 @@ func (d docker) ListVolumes(repo string) []string {
 		"volume", "ls", "-f", "driver=datadatdat-docker", "-f", "name="+repo,
 		"--format", "{{.Name}}",
 	)
-	s, err := ce.Exec("docker", args...)
+	s, err := ce.Exec(dockerCmd, args...)
 	if err == nil {
 		vols := strings.Split(s, "\n")
 		vols = vols[:len(vols)-1]
@@ -394,11 +404,11 @@ func (d docker) ListVolumes(repo string) []string {
 }
 
 func (d docker) Stop(repo string) (string, error) {
-	return ce.Exec("docker", "stop", repo)
+	return ce.Exec(dockerCmd, "stop", repo)
 }
 
 func (d docker) Start(repo string) (string, error) {
-	return ce.Exec("docker", "start", repo)
+	return ce.Exec(dockerCmd, "start", repo)
 }
 
 func (d docker) Cp(source string, target string) (string, error) {
@@ -407,5 +417,5 @@ func (d docker) Cp(source string, target string) (string, error) {
 	if runtime.GOOS == "windows" && len(source) >= 3 && source[0] == '/' && source[2] == '/' {
 		source = strings.ToUpper(string(source[1])) + ":" + source[2:]
 	}
-	return ce.Exec("docker", "cp", "-a", source+"/.", "datadatdat-"+d.identity+"-server:"+target)
+	return ce.Exec(dockerCmd, "cp", "-a", source+"/.", "datadatdat-"+d.identity+"-server:"+target)
 }
