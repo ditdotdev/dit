@@ -35,3 +35,6 @@ coverage.html
 Docker*.exe
 "Docker Desktop Installer*.exe"
 .release-state/
+
+# Coverage profiles from local test runs (cov.out, cov-utils.out, etc.)
+cov*.out
