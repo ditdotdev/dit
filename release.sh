@@ -413,7 +413,13 @@ phase_preflight() {
     fi
     log_success "AWS credentials valid"
 
-    # Check all repos exist and are on master with clean state
+    # Check all repos exist and are on master with clean state.
+    #
+    # The clean-tree check is load-bearing for datadatdat-remote-server in
+    # particular: Phase 8 step 0 runs `terraform apply` against that repo's
+    # deploy/terraform/ directory (issue #137). An uncommitted change in
+    # that subtree would mean what we apply diverges from what's on master
+    # — exactly the drift the new step is meant to PREVENT.
     log_step "Checking repository states..."
     local all_repos=(
         remote-sdk-go "${GO_PROVIDERS[@]}"
@@ -994,6 +1000,34 @@ phase_ecs_deploy() {
         log_info "ECS deployment skipped (--skip-ecs)"
         save_phase_state 8
         return 0
+    fi
+
+    # 0. Apply Terraform changes BEFORE the bash deploy modifies live state
+    # (issue #137). Catches drift in TF-owned infra (DNS, IAM, SSM, log
+    # groups, IAM policies) every release so the source-vs-live gap stays
+    # small. ECS service `task_definition` fields carry lifecycle
+    # ignore_changes in the TF module, so apply won't try to roll back
+    # task definitions registered by the bash deploy in step 3 below.
+    # The Phase 0 pre-flight verified datadatdat-remote-server's working
+    # tree is clean, so what we apply matches what's checked in on master.
+    local tf_dir="$WORKSPACE/datadatdat-remote-server/deploy/terraform"
+    if [ ! -d "$tf_dir" ]; then
+        log_error "Terraform directory not found at $tf_dir"
+        exit 1
+    fi
+    log_step "Applying Terraform (catches infrastructure drift before deploy)..."
+    if $DRY_RUN; then
+        log_dry "cd $tf_dir && terraform init -input=false"
+        log_dry "cd $tf_dir && terraform apply -auto-approve -input=false"
+    else
+        if ! command -v terraform >/dev/null 2>&1; then
+            log_error "terraform not found in PATH. Install from https://developer.hashicorp.com/terraform/downloads"
+            exit 1
+        fi
+        cd "$tf_dir"
+        terraform init -input=false
+        terraform apply -auto-approve -input=false
+        log_success "Terraform apply completed"
     fi
 
     # 1. Run Liquibase migrations against production database via EC2
