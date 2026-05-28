@@ -9,30 +9,43 @@ package main
 
 import (
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
 
+	"github.com/spf13/cobra"
 	"github.com/spf13/cobra/doc"
 
 	"datadatdat/internal/app/commands"
 )
 
-const outDir = "docs/src/cli/cmd"
+const defaultOutDir = "docs/src/cli/cmd"
 
-func main() {
+// generate writes the Markdown command reference for root into outDir and
+// reports progress to stdout. Pulled out of main() so it's testable.
+func generate(root *cobra.Command, outDir string, stdout io.Writer) error {
 	if err := os.MkdirAll(outDir, 0o750); err != nil {
-		fmt.Fprintf(os.Stderr, "gen-docs: %v\n", err)
-		os.Exit(1)
+		return fmt.Errorf("mkdir %s: %w", outDir, err)
 	}
-
-	root := commands.RootCmd()
 	root.DisableAutoGenTag = true
-
 	if err := doc.GenMarkdownTree(root, outDir); err != nil {
-		fmt.Fprintf(os.Stderr, "gen-docs: %v\n", err)
-		os.Exit(1)
+		return fmt.Errorf("gen markdown tree: %w", err)
 	}
-
 	abs, _ := filepath.Abs(outDir)
-	fmt.Printf("Generated CLI reference at %s\n", abs)
+	_, _ = fmt.Fprintf(stdout, "Generated CLI reference at %s\n", abs)
+	return nil
 }
+
+// run is the testable shell for main(): it isolates the side effects
+// (resolving the live root command, writing to stdout/stderr, exit code)
+// behind a single int-returning function so main() is a one-liner that
+// CI doesn't need to cover.
+func run(outDir string, stdout, stderr io.Writer) int {
+	if err := generate(commands.RootCmd(), outDir, stdout); err != nil {
+		_, _ = fmt.Fprintf(stderr, "gen-docs: %v\n", err)
+		return 1
+	}
+	return 0
+}
+
+func main() { os.Exit(run(defaultOutDir, os.Stdout, os.Stderr)) }
