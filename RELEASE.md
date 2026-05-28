@@ -1101,14 +1101,29 @@ docker-compose up -d
 
 #### Phase 7: Documentation Publication
 
-##### 7.1 Release Documentation
-```bash
-# Documentation is automatically published when CLI is tagged
-# The .github/workflows/docs-release.yml triggers on d3 CLI tags
+Docs are served from the `/docs` route inside `datadatdat-remote-server`'s
+web service, which vendors a copy of `datadatdat/docs/src/` under
+`services/web/content/docs/`. There is no separate docs-publish workflow.
 
-# Manual verification:
-# Check https://datadatdat.com for updated docs
-# Verify version-specific docs are published
+##### 7.1 Bump the docs snapshot in remote-server
+```bash
+# After tagging the CLI, copy the docs/src/ tree into remote-server's
+# content/docs/ and open a PR. This is a vendoring step — no submodule,
+# no cross-repo SSH key.
+cd /c/dev/datadatdat-remote-server
+git checkout -b update/docs-from-cli-${TAG}
+rm -rf services/web/content/docs
+cp -r /c/dev/datadatdat/docs/src services/web/content/docs
+git add services/web/content/docs
+git commit -m "Refresh docs from datadatdat ${TAG}"
+gh pr create --fill
+```
+
+##### 7.2 Verify
+```bash
+# After merge and redeploy, check https://datadatdat.com/docs renders the
+# updated content. The Documentation entry in the profile dropdown is the
+# user-facing entry point.
 ```
 
 ## Release Validation
