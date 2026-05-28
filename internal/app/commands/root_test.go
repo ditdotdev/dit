@@ -2,6 +2,23 @@ package commands
 
 import "testing"
 
+// RootCmd returns the package-level rootCmd so cmd/gen-docs can walk the
+// command tree to regenerate the Markdown CLI reference. Asserting it
+// hands back the right command keeps the gen-docs entry point honest if
+// rootCmd ever gets renamed or wrapped.
+func TestRootCmd(t *testing.T) {
+	cmd := RootCmd()
+	if cmd == nil {
+		t.Fatal("RootCmd() returned nil")
+	}
+	if cmd.Use != "d3" {
+		t.Errorf("RootCmd().Use = %q, want \"d3\"", cmd.Use)
+	}
+	if !cmd.HasSubCommands() {
+		t.Error("RootCmd() has no subcommands; gen-docs would emit only d3.md")
+	}
+}
+
 // classifyCommand says whether a command can run without a resolved
 // provider, and what default context name the install path should use.
 // Regression-driven by:
