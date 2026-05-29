@@ -36,3 +36,17 @@ func TestParseURLResolvesAllProviderSchemes(t *testing.T) {
 		})
 	}
 }
+
+// TestParseURLForwardsSSHHostKeyOptions verifies the ssh provider accepts the
+// skipHostCheck opt-out via -p and forwards it (camelCase) so the server can
+// honor it. Regression for the strict-host-key default: without this, the CLI
+// can't disable host-key checking on an ssh remote and `d3 remote add` fails.
+func TestParseURLForwardsSSHHostKeyOptions(t *testing.T) {
+	res, err := remote.ParseURL("ssh://user@host/path", map[string]string{"skipHostCheck": "true"})
+	if err != nil {
+		t.Fatalf("ParseURL with skipHostCheck returned error: %v", err)
+	}
+	if got, ok := res.Properties["skipHostCheck"]; !ok || got != "true" {
+		t.Fatalf("skipHostCheck not forwarded: got %v (ok=%v), want \"true\"", got, ok)
+	}
+}
