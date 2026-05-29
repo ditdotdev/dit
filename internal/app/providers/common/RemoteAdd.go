@@ -5,14 +5,19 @@ import (
 	"strconv"
 
 	client "github.com/datadatdat/datadatdat-client-go"
+	// Blank-import every remote provider so its init() registers with the SDK
+	// registry. Since the remote-sdk-go registry refactor, remote.ParseURL
+	// resolves a URI by asking each *registered* provider (via FromURL), so a
+	// provider that isn't imported here can't be parsed — `d3 remote add
+	// ssh://...` would fail with "no remote provider found". The old scheme-based
+	// ParseURL didn't need this, which is why these were previously commented out.
 	_ "github.com/datadatdat/datadatdat-remote-go/datadatdat"
+	_ "github.com/datadatdat/nop-remote-go/nop"
+	_ "github.com/datadatdat/s3-remote-go/s3"
+	_ "github.com/datadatdat/s3web-remote-go/s3web"
+	_ "github.com/datadatdat/ssh-remote-go/ssh"
 
-	// TODO: Uncomment when these providers have their Go packages implemented
-	// _ "github.com/datadatdat/nop-remote-go/nop"
 	"github.com/datadatdat/remote-sdk-go/remote"
-	// _ "github.com/datadatdat/s3-remote-go/s3"
-	// _ "github.com/datadatdat/s3web-remote-go/s3web"
-	// _ "github.com/datadatdat/ssh-remote-go/ssh"
 )
 
 func RemoteAdd(repo string, uri string, remoteName string, params map[string]string, port int) {

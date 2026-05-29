@@ -6,8 +6,9 @@ import (
 	"testing"
 )
 
-// datadatdatRemoteJSON references the only provider registered in providers/common
-// (datadatdat-remote-go via blank-import in RemoteAdd.go).
+// datadatdatRemoteJSON references the datadatdat provider, one of several
+// registered in providers/common via blank-imports in RemoteAdd.go (datadatdat,
+// ssh, s3, s3web, nop).
 const datadatdatRemoteJSON = `{"provider":"datadatdat","name":"origin","properties":{"host":"example.com","org":"o","repo":"r"}}`
 
 func TestRemoteList_Success(t *testing.T) {
