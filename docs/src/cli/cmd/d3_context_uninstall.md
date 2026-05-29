@@ -21,5 +21,5 @@ d3 context uninstall [CONTEXTNAME] [flags]
 
 ### SEE ALSO
 
-* [d3 context](d3_context.md)	 - Manage datadatdat contexts
+* [d3 context](d3_context)	 - Manage datadatdat contexts
 

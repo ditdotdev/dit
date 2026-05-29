@@ -20,8 +20,8 @@ Manage authentication credentials for datadatdat remote servers.
 
 ### SEE ALSO
 
-* [d3](d3.md)	 - Datadatdat CLI
-* [d3 auth login](d3_auth_login.md)	 - Store API key for a remote server
-* [d3 auth logout](d3_auth_logout.md)	 - Remove stored credentials for a server
-* [d3 auth status](d3_auth_status.md)	 - Show authentication status
+* [d3](d3)	 - Datadatdat CLI
+* [d3 auth login](d3_auth_login)	 - Store API key for a remote server
+* [d3 auth logout](d3_auth_logout)	 - Remove stored credentials for a server
+* [d3 auth status](d3_auth_status)	 - Show authentication status
 

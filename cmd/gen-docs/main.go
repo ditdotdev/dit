@@ -12,6 +12,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/cobra/doc"
@@ -23,12 +24,19 @@ const defaultOutDir = "docs/src/cli/cmd"
 
 // generate writes the Markdown command reference for root into outDir and
 // reports progress to stdout. Pulled out of main() so it's testable.
+//
+// Uses GenMarkdownTreeCustom so the SEE ALSO cross-reference links land
+// as `[d3](d3)` instead of `[d3](d3.md)` — the Next.js renderer at
+// datadatdat.com/docs routes by clean slug (/docs/cli/cmd/d3), and the
+// default `.md` suffix 404s.
 func generate(root *cobra.Command, outDir string, stdout io.Writer) error {
 	if err := os.MkdirAll(outDir, 0o750); err != nil {
 		return fmt.Errorf("mkdir %s: %w", outDir, err)
 	}
 	root.DisableAutoGenTag = true
-	if err := doc.GenMarkdownTree(root, outDir); err != nil {
+	emptyPrepender := func(string) string { return "" }
+	stripMdSuffix := func(link string) string { return strings.TrimSuffix(link, ".md") }
+	if err := doc.GenMarkdownTreeCustom(root, outDir, emptyPrepender, stripMdSuffix); err != nil {
 		return fmt.Errorf("gen markdown tree: %w", err)
 	}
 	abs, _ := filepath.Abs(outDir)

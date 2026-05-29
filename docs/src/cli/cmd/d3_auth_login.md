@@ -26,5 +26,5 @@ d3 auth login [flags]
 
 ### SEE ALSO
 
-* [d3 auth](d3_auth.md)	 - Manage authentication credentials
+* [d3 auth](d3_auth)	 - Manage authentication credentials
 

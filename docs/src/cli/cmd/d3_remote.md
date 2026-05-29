@@ -16,9 +16,9 @@ Add, log, ls and rm remotes
 
 ### SEE ALSO
 
-* [d3](d3.md)	 - Datadatdat CLI
-* [d3 remote add](d3_remote_add.md)	 - Set remote destination for a repository
-* [d3 remote log](d3_remote_log.md)	 - Display log on remote
-* [d3 remote ls](d3_remote_ls.md)	 - List remotes for a repository
-* [d3 remote rm](d3_remote_rm.md)	 - Remove remote from a repository
+* [d3](d3)	 - Datadatdat CLI
+* [d3 remote add](d3_remote_add)	 - Set remote destination for a repository
+* [d3 remote log](d3_remote_log)	 - Display log on remote
+* [d3 remote ls](d3_remote_ls)	 - List remotes for a repository
+* [d3 remote rm](d3_remote_rm)	 - Remove remote from a repository
 
