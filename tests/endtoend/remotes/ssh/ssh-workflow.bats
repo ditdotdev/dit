@@ -45,7 +45,9 @@ teardown_file() {
   [ -f "$BATS_TMPDIR/ssh_host.txt" ] || skip "SSH_HOST not saved"
   SSH_HOST=$(cat "$BATS_TMPDIR/ssh_host.txt")
   
-  run "$D3" remote add "ssh://root:root@$SSH_HOST/test" ssh-test
+  # ssh-test-server has an ephemeral host key not in known_hosts; opt out of
+  # strict host-key checking (default since remote-sdk #48 / ssh-remote #62).
+  run "$D3" remote add -p "skipHostCheck=true" "ssh://root:root@$SSH_HOST/test" ssh-test
   assert_success
 }
 
@@ -163,7 +165,7 @@ teardown_file() {
   [ -f "$BATS_TMPDIR/ssh_host.txt" ] || skip "SSH_HOST not saved"
   SSH_HOST=$(cat "$BATS_TMPDIR/ssh_host.txt")
   
-  run "$D3" remote add -p "keyFile=$REPO_ROOT/tests/endtoend/remotes/ssh/sshKey" "ssh://root@$SSH_HOST/sshtest" ssh-test
+  run "$D3" remote add -p "keyFile=$REPO_ROOT/tests/endtoend/remotes/ssh/sshKey" -p "skipHostCheck=true" "ssh://root@$SSH_HOST/sshtest" ssh-test
   assert_success
 }
 
