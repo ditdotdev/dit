@@ -5,7 +5,7 @@ go 1.26.2
 require (
 	github.com/briandowns/spinner v1.23.2
 	github.com/buger/jsonparser v1.2.0
-	github.com/datadatdat/datadatdat-client-go v1.9.0
+	github.com/datadatdat/datadatdat-client-go v1.9.1
 	github.com/datadatdat/datadatdat-remote-go v1.9.1
 	github.com/datadatdat/nop-remote-go v1.9.1
 	github.com/datadatdat/remote-sdk-go v1.9.1
@@ -23,7 +23,6 @@ require (
 )
 
 require (
-	github.com/antihax/optional v1.0.0 // indirect
 	github.com/aws/aws-sdk-go-v2 v1.41.8 // indirect
 	github.com/aws/aws-sdk-go-v2/aws/protocol/eventstream v1.7.10 // indirect
 	github.com/aws/aws-sdk-go-v2/config v1.32.19 // indirect

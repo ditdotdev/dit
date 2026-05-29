@@ -25,7 +25,7 @@ if [[ "$ENV" == "PROD" ]]; then
   export APIKEY_TEST_ORG="apikeytest"
 
   # Download API test version (production may lag behind dev)
-  export DOWNLOAD_TEST_VERSION="${DOWNLOAD_TEST_VERSION:-v1.9.0}"
+  export DOWNLOAD_TEST_VERSION="${DOWNLOAD_TEST_VERSION:-v1.9.1}"
 
   # RDS / SSH access for database commands
   export EC2_HOST="${EC2_HOST:-ec2-user@100.22.249.49}"
@@ -77,7 +77,7 @@ else
   export APIKEY_TEST_ORG="apikeytest"
 
   # Download API test version
-  export DOWNLOAD_TEST_VERSION="${DOWNLOAD_TEST_VERSION:-v1.9.0}"
+  export DOWNLOAD_TEST_VERSION="${DOWNLOAD_TEST_VERSION:-v1.9.1}"
 
   # Helper: execute SQL against local postgres container
   run_sql() {
