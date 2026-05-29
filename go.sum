@@ -61,7 +61,7 @@ github.com/datadatdat/s3-remote-go v1.9.1 h1:GKORpalJekzzWNxUjTxQjt563AlBbK6gxfj
 github.com/datadatdat/s3-remote-go v1.9.1/go.mod h1:YXcJ1+wO/X9kV2M22Azt7lMx4MoRv7AUEz+K2sxP0Ws=
 github.com/datadatdat/s3web-remote-go v1.9.1 h1:wXyheJu+lPtLasEAv2NFbIODUcAk3XTH8fCstItpeyM=
 github.com/datadatdat/s3web-remote-go v1.9.1/go.mod h1:w20WOTEtMm4FVmc+ffbo3+LvH08K8/ptRRvwvBf4bdg=
-github.com/datadatdat/ssh-remote-go v1.9.1 h1:5QpTRIbzmFvQEM6hipygsadoO9YjcByMgbsM+mAaVaE=
+github.com/datadatdat/ssh-remote-go v1.9.1 h1:H9VlUyLM5wWOZQ6grSWzlR5MHkUYFxOBNtvvOl50eZ0=
 github.com/datadatdat/ssh-remote-go v1.9.1/go.mod h1:XapWjLq73DVaCxaOXcQ+31rsXkOTP6QxVhgT5Atz3bo=
 github.com/davecgh/go-spew v1.1.0/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/davecgh/go-spew v1.1.1/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
