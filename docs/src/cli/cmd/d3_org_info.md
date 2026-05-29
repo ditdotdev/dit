@@ -25,5 +25,5 @@ d3 org info <org-name> [flags]
 
 ### SEE ALSO
 
-* [d3 org](d3_org.md)	 - Manage organizations
+* [d3 org](d3_org)	 - Manage organizations
 

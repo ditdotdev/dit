@@ -20,9 +20,9 @@ Manage organizations on a datadatdat remote server.
 
 ### SEE ALSO
 
-* [d3](d3.md)	 - Datadatdat CLI
-* [d3 org create](d3_org_create.md)	 - Create an organization
-* [d3 org info](d3_org_info.md)	 - Show organization details
-* [d3 org list](d3_org_list.md)	 - List organizations you belong to
-* [d3 org members](d3_org_members.md)	 - List organization members
+* [d3](d3)	 - Datadatdat CLI
+* [d3 org create](d3_org_create)	 - Create an organization
+* [d3 org info](d3_org_info)	 - Show organization details
+* [d3 org list](d3_org_list)	 - List organizations you belong to
+* [d3 org members](d3_org_members)	 - List organization members
 
