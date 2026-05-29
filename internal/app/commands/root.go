@@ -58,6 +58,12 @@ func Execute() {
 	}
 }
 
+// RootCmd returns the root cobra command. Used by cmd/gen-docs to regenerate
+// the Markdown command reference.
+func RootCmd() *cobra.Command {
+	return rootCmd
+}
+
 func init() {
 	cobra.OnInitialize(initConfig)
 

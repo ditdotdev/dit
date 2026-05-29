@@ -10,7 +10,14 @@ ENV ?= DEV
 VERSION ?= dev
 LDFLAGS := -ldflags "-X datadatdat/internal/app.DatadatdatVersion=$(VERSION)"
 
-.PHONY: build release darwin-amd64 darwin-arm64 linux-amd64 linux-arm64 windows clean coverage
+.PHONY: build release darwin-amd64 darwin-arm64 linux-amd64 linux-arm64 windows clean coverage gen-docs
+
+# Regenerate the Markdown CLI reference under docs/src/cli/cmd/ from the live
+# Cobra command tree. CI runs the same target and then `git diff --exit-code`
+# against that directory, so any CLI flag/help change must ship with regenerated
+# docs or the PR fails.
+gen-docs:
+	go run ./cmd/gen-docs
 
 # Runs go test ./... and prints both the raw % (what `go test -cover` reports)
 # and the scored % the CI repo-health gate uses (filters generated + main

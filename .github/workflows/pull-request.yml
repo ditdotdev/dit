@@ -297,19 +297,36 @@ jobs:
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           AWS_REGION: ${{ secrets.AWS_REGION }}
 
-  # Documentation build
-  docs:
-    name: Build Documentation
+  # Verify the Cobra-generated CLI reference under docs/src/cli/cmd/ is up to
+  # date. If a flag, short-help, or subcommand changed without regenerating,
+  # the diff check fails and the PR has to ship the regenerated Markdown.
+  gen-docs:
+    name: CLI Docs Up To Date
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
         with:
           token: ${{ secrets.GO_MODULES_TOKEN }}
 
-      - name: Install virtualenv
-        run: sudo pip3 install virtualenv
+      - uses: actions/setup-go@v6
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache: true
 
-      - name: Build documentation
+      - name: Configure Git for private modules
         run: |
-          export PATH=/usr/local/bin:$PATH
-          ./docs/build.sh -r development -v development
+          git config --global url."https://x-access-token:${{ secrets.GO_MODULES_TOKEN }}@github.com/".insteadOf "https://github.com/"
+          git config --global credential.helper store
+          echo "https://x-access-token:${{ secrets.GO_MODULES_TOKEN }}@github.com" > ~/.git-credentials
+
+      - name: Regenerate CLI reference
+        run: make gen-docs
+
+      - name: Fail if regenerated docs differ from committed
+        run: |
+          if ! git diff --exit-code docs/src/cli/cmd; then
+            echo
+            echo "::error::CLI reference under docs/src/cli/cmd/ is out of date."
+            echo "Run 'make gen-docs' locally and commit the result."
+            exit 1
+          fi
