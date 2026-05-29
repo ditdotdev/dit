@@ -21,5 +21,5 @@ d3 log [REPOSITORY] [flags]
 
 ### SEE ALSO
 
-* [d3](d3.md)	 - Datadatdat CLI
+* [d3](d3)	 - Datadatdat CLI
 

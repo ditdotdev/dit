@@ -25,5 +25,5 @@ d3 repo create <org> <repo> [flags]
 
 ### SEE ALSO
 
-* [d3 repo](d3_repo.md)	 - Manage server-side repositories
+* [d3 repo](d3_repo)	 - Manage server-side repositories
 

@@ -20,5 +20,5 @@ d3 remote rm [REPOSITORY] [REMOTE] [flags]
 
 ### SEE ALSO
 
-* [d3 remote](d3_remote.md)	 - Add, log, ls and rm remotes
+* [d3 remote](d3_remote)	 - Add, log, ls and rm remotes
 
