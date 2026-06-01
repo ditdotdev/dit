@@ -5,13 +5,13 @@ go 1.26.2
 require (
 	github.com/briandowns/spinner v1.23.2
 	github.com/buger/jsonparser v1.2.0
-	github.com/datadatdat/datadatdat-client-go v1.9.1
-	github.com/datadatdat/datadatdat-remote-go v1.9.1
-	github.com/datadatdat/nop-remote-go v1.9.1
-	github.com/datadatdat/remote-sdk-go v1.9.1
-	github.com/datadatdat/s3-remote-go v1.9.1
-	github.com/datadatdat/s3web-remote-go v1.9.1
-	github.com/datadatdat/ssh-remote-go v1.9.1
+	github.com/datadatdat/datadatdat-client-go v1.9.2
+	github.com/datadatdat/datadatdat-remote-go v1.9.2
+	github.com/datadatdat/nop-remote-go v1.9.2
+	github.com/datadatdat/remote-sdk-go v1.9.2
+	github.com/datadatdat/s3-remote-go v1.9.2
+	github.com/datadatdat/s3web-remote-go v1.9.2
+	github.com/datadatdat/ssh-remote-go v1.9.2
 	github.com/google/uuid v1.6.0
 	github.com/spf13/cobra v1.10.2
 	github.com/spf13/pflag v1.0.10
