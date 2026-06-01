@@ -5,7 +5,7 @@ nav_order: 150
 ---
 
 Datadatdat provides a way to run repositories in different container environments,
-known as "contexts" (see lifecycle_context for more information). A
+known as "contexts" (see [Contexts](context.md) for more information). A
 Kubernetes context represents a set of repositories running in a cluster,
 accessed via the Kubernetes API. This cluster could be local to the machine,
 hosted centrally, or delivered as a cloud service. Through Datadatdat, not only can
@@ -17,13 +17,13 @@ cluster and later cloning for local debugging).
 
 Datadatdat requires a Kubernetes cluster with the following configuration options:
 
-* The there must be a CSI (Container Storage Interface) driver installed that
-  supports the `alpha snapshot <https://kubernetes-csi.github.io/docs/snapshot-restore-feature.html>`
+* There must be a CSI (Container Storage Interface) driver installed that
+  supports the [alpha snapshot](https://kubernetes-csi.github.io/docs/snapshot-restore-feature.html)
   capabilities. Datadatdat does not yet work with the
-  `beta snapshots apis <https://kubernetes.io/blog/2019/12/09/kubernetes-1-17-feature-cis-volume-snapshot-beta/>`.
-* The `VolumeSnapshotDataSource <https://v1-13.docs.kubernetes.io/docs/reference/command-line-tools-reference/feature-gates/>`
+  [beta snapshot APIs](https://kubernetes.io/blog/2019/12/09/kubernetes-1-17-feature-cis-volume-snapshot-beta/).
+* The [VolumeSnapshotDataSource](https://v1-13.docs.kubernetes.io/docs/reference/command-line-tools-reference/feature-gates/)
   feature gate must be enabled.
-* The `VolumeSnapshot <https://kubernetes.io/docs/concepts/storage/volume-snapshots/>`
+* The [VolumeSnapshot](https://kubernetes.io/docs/concepts/storage/volume-snapshots/)
   API must be enabled.
 * The default storage class and snapshot class must use a CSI driver with
   snapshot capabilities.
@@ -66,13 +66,9 @@ in the future.
 
 ## Limitations
 
-.. attention
-
-```
-Kubernetes support is currently in an _beta_ state. Many elements of
-configurability and reliability have not yet been fully fleshed out,
-and it may not work in all environments.
-```
+> **Beta:** Kubernetes support is currently in a _beta_ state. Many elements of
+> configurability and reliability have not yet been fully fleshed out, and it
+> may not work in all environments.
 
 In addition to the general immaturity of Kubernetes support, there are some
 specific known limitations with beta:
@@ -94,3 +90,42 @@ specific known limitations with beta:
   the system is restarted, or that process dies, it will need to be manually
   restarted, either by running the `kubectl` directly, or stopping and
   starting the repository.
+
+## Troubleshooting
+
+### Commits succeed but clones or checkouts come up empty
+
+If `d3 commit` reports success but a later `d3 clone` or `d3 checkout` produces
+an empty database (for example, `ERROR: relation "<table>" does not exist`), the
+cluster's **default** storage class is almost certainly not snapshot-capable.
+
+Because Datadatdat always uses the default storage class and snapshot class (see
+[Kubernetes Requirements](#kubernetes-requirements)), a default class that lacks
+a working CSI snapshot driver fails silently: the commit is recorded but its
+VolumeSnapshot never captures any data, so clones and checkouts restore an empty
+volume. A telltale sign is a commit whose reported size is only a few bytes.
+
+Diagnose it:
+
+```bash
+# A commit's snapshot should become READY=true with a non-empty restore size.
+# READY=<none> / SIZE=<none> means the source volume's StorageClass cannot snapshot.
+kubectl get volumesnapshot
+
+# Confirm which StorageClass is the default and that a CSI snapshot class exists.
+kubectl get storageclass
+kubectl get volumesnapshotclass
+```
+
+If the default storage class is not snapshot-capable, promote a CSI
+snapshot-capable class to be the default and demote the old one:
+
+```bash
+kubectl patch storageclass <old-default> -p \
+  '{"metadata":{"annotations":{"storageclass.kubernetes.io/is-default-class":"false"}}}'
+kubectl patch storageclass <csi-snapshot-class> -p \
+  '{"metadata":{"annotations":{"storageclass.kubernetes.io/is-default-class":"true"}}}'
+```
+
+Existing PersistentVolumeClaims keep the storage class they were created with, so
+re-create the repository after changing the default.
