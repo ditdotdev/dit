@@ -894,9 +894,14 @@ phase_cli() {
     # Tag and release (triggers build + E2E + release creation)
     tag_and_push "$repo_path" "v$VERSION"
 
-    # This is the longest workflow - builds 5 platforms + E2E tests
-    log_info "CLI release workflow typically takes 10-15 minutes..."
-    wait_for_workflow "datadatdat" "release.yml"
+    # This is the longest workflow - builds 5 platforms + runs full E2E
+    # (BATS suites + minikube + ZFS modprobe). The default WORKFLOW_TIMEOUT
+    # (1800s) was the cap before v1.9.2; that release ran longer than 30
+    # min and tripped the timeout even though the GH Actions run itself
+    # succeeded. Double the wait for this one phase so the script doesn't
+    # bail before the real workflow has finished.
+    log_info "CLI release workflow typically takes 10-15 minutes (timeout doubled to ~60 min for headroom)..."
+    WORKFLOW_TIMEOUT=$((WORKFLOW_TIMEOUT * 2)) wait_for_workflow "datadatdat" "release.yml"
     verify_gh_release "datadatdat" "v$VERSION"
 
     # Upload CLI binaries to production S3 + local dev MinIO
