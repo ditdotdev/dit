@@ -1,7 +1,7 @@
 package commands
 
 import (
-	"datadatdat/internal/app/providers"
+	"github.com/ditdotdev/dit/internal/app/providers"
 
 	"github.com/spf13/cobra"
 )
@@ -14,8 +14,8 @@ var runCmd = &cobra.Command{
 Containers associated with a repository can be launched using context specific
 run arguments and passed verbatim using '--' as the flag.
 
-Docker example: 'd3 run --disable-port-mapping postgres -- -p 2345:5432'
-Privileged example: 'd3 run --privileged icr.io/db2_community/db2:latest'`,
+Docker example: 'dit run --disable-port-mapping postgres -- -p 2345:5432'
+Privileged example: 'dit run --privileged icr.io/db2_community/db2:latest'`,
 	Args: cobra.MinimumNArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
 		image := args[0]

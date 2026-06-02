@@ -63,7 +63,7 @@ func TestK8sUninstall_FullFlow(t *testing.T) {
 
 	d := &fakeDocker{
 		serverAvailable: true,
-		volumeExists:    map[string]bool{"datadatdat-ctx-data": true},
+		volumeExists:    map[string]bool{"dit-ctx-data": true},
 	}
 	output := captureStdout(func() {
 		_, _ = captureExit(t, func() {
@@ -73,7 +73,7 @@ func TestK8sUninstall_FullFlow(t *testing.T) {
 		})
 	})
 
-	if !strings.Contains(output, "Uninstalled datadatdat infrastructure") {
+	if !strings.Contains(output, "Uninstalled dit infrastructure") {
 		t.Errorf("expected uninstalled summary, got %q", output)
 	}
 	if !strings.Contains(output, "server container") || !strings.Contains(output, "data volume") || !strings.Contains(output, "images") {

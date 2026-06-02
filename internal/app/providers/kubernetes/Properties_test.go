@@ -3,7 +3,7 @@ package kubernetes
 import (
 	"testing"
 
-	client "github.com/datadatdat/datadatdat-client-go"
+	client "github.com/ditdotdev/dit-client-go"
 )
 
 // disablePortMappingFromRepo must read the flag from the nested v2 metadata

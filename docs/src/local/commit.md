@@ -20,7 +20,7 @@ WriteResult({ "nInserted" : 1 })
 { "_id" : ObjectId("5d8d035b4958f33cf90b4d83"), "firstName" : "Katherine", "lastName" : "Goble" }
 { "_id" : ObjectId("5d8d036e4958f33cf90b4d84"), "firstName" : "Mary", "lastName" : "Jackson" }
 >
-$ d3 commit -m "hidden figures" mymongo
+$ dit commit -m "hidden figures" mymongo
 Commit 503d7863-14b7-4c39-b609-778fb976ba6a
 ```
 
@@ -29,7 +29,7 @@ container `mymongo` and stored that in the repository. It should now be
 visible in the log
 
 ```bash
-$ d3 log mymongo
+$ dit log mymongo
 commit 503d7863-14b7-4c39-b609-778fb976ba6a
 User: Anne Smith
 Email: anne.smith@gmail.com
@@ -60,15 +60,15 @@ BulkWriteResult({
 { "_id" : ObjectId("5d8d05a643a059308e3dfae7"), "firstName" : "Grace", "lastName" : "Hopper" }
 { "_id" : ObjectId("5d8d05a643a059308e3dfae8"), "firstName" : "Ada", "lastName" : "Lovelace" }
 >
-$ d3 commit -m "more great scientists" mymongo
+$ dit commit -m "more great scientists" mymongo
 Commit 15ce0a6e-f15e-47a4-a65a-305fcb9efa5c
 ```
 
 Once we have this committed state, we can easily go back to a previous state
-by running `d3 checkout`
+by running `dit checkout`
 
 ```bash
-$ d3 checkout -c 503d7863-14b7-4c39-b609-778fb976ba6a mymongo
+$ dit checkout -c 503d7863-14b7-4c39-b609-778fb976ba6a mymongo
 Stopping container mymongo
 Checkout 503d7863-14b7-4c39-b609-778fb976ba6a
 Starting container mymongo
@@ -85,7 +85,7 @@ Here you can see that we stopped the container, swapped out the data, and
 started it again. And with that, we're back to the original commit we created.
 
 > **Warning:**
-> The d3 infrastructure has not currently been built for scale, and while it
+> The dit infrastructure has not currently been built for scale, and while it
 > should work fine for dozens of commits, creating hundreds or thousands of
 > commits or repositories may have adverse effects on the system. This will be
 > addressed in a future release.

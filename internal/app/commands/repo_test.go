@@ -10,7 +10,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"datadatdat/internal/app/providers/common"
+	"github.com/ditdotdev/dit/internal/app/providers/common"
 )
 
 const testBearerToken = "Bearer test-key"
@@ -73,13 +73,13 @@ func execRepoCmd(args ...string) (string, error) {
 }
 
 // ===========================================================================
-// d3 repo create
+// dit repo create
 // ===========================================================================
 
 func TestRepoCreateCmd_Success(t *testing.T) {
 	resetRepoFlags()
-	t.Setenv("DATADATDAT_API_KEY", "")
-	_ = os.Unsetenv("DATADATDAT_API_KEY")
+	t.Setenv("DIT_API_KEY", "")
+	_ = os.Unsetenv("DIT_API_KEY")
 
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodPost {
@@ -110,7 +110,7 @@ func TestRepoCreateCmd_Success(t *testing.T) {
 
 func TestRepoCreateCmd_AlreadyExists(t *testing.T) {
 	resetRepoFlags()
-	t.Setenv("DATADATDAT_API_KEY", "test-key")
+	t.Setenv("DIT_API_KEY", "test-key")
 
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusConflict)
@@ -129,8 +129,8 @@ func TestRepoCreateCmd_AlreadyExists(t *testing.T) {
 
 func TestRepoCreateCmd_NoAuth(t *testing.T) {
 	resetRepoFlags()
-	t.Setenv("DATADATDAT_API_KEY", "")
-	_ = os.Unsetenv("DATADATDAT_API_KEY")
+	t.Setenv("DIT_API_KEY", "")
+	_ = os.Unsetenv("DIT_API_KEY")
 
 	cleanup := setupRepoEmptyCreds(t)
 	defer cleanup()
@@ -143,7 +143,7 @@ func TestRepoCreateCmd_NoAuth(t *testing.T) {
 
 func TestRepoCreateCmd_ServerError(t *testing.T) {
 	resetRepoFlags()
-	t.Setenv("DATADATDAT_API_KEY", "test-key")
+	t.Setenv("DIT_API_KEY", "test-key")
 
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusInternalServerError)
@@ -162,7 +162,7 @@ func TestRepoCreateCmd_ServerError(t *testing.T) {
 
 func TestRepoCreateCmd_NoServer(t *testing.T) {
 	resetRepoFlags()
-	t.Setenv("DATADATDAT_API_KEY", "some-key")
+	t.Setenv("DIT_API_KEY", "some-key")
 
 	cleanup := setupRepoEmptyCreds(t)
 	defer cleanup()
@@ -188,13 +188,13 @@ func TestRepoCreateCmd_MissingArgs(t *testing.T) {
 }
 
 // ===========================================================================
-// d3 repo delete
+// dit repo delete
 // ===========================================================================
 
 func TestRepoDeleteCmd_Success(t *testing.T) {
 	resetRepoFlags()
-	t.Setenv("DATADATDAT_API_KEY", "")
-	_ = os.Unsetenv("DATADATDAT_API_KEY")
+	t.Setenv("DIT_API_KEY", "")
+	_ = os.Unsetenv("DIT_API_KEY")
 
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodDelete {
@@ -224,7 +224,7 @@ func TestRepoDeleteCmd_Success(t *testing.T) {
 
 func TestRepoDeleteCmd_NotFound(t *testing.T) {
 	resetRepoFlags()
-	t.Setenv("DATADATDAT_API_KEY", "test-key")
+	t.Setenv("DIT_API_KEY", "test-key")
 
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusNotFound)
@@ -243,8 +243,8 @@ func TestRepoDeleteCmd_NotFound(t *testing.T) {
 
 func TestRepoDeleteCmd_NoAuth(t *testing.T) {
 	resetRepoFlags()
-	t.Setenv("DATADATDAT_API_KEY", "")
-	_ = os.Unsetenv("DATADATDAT_API_KEY")
+	t.Setenv("DIT_API_KEY", "")
+	_ = os.Unsetenv("DIT_API_KEY")
 
 	cleanup := setupRepoEmptyCreds(t)
 	defer cleanup()
@@ -270,13 +270,13 @@ func TestRepoDeleteCmd_MissingArgs(t *testing.T) {
 }
 
 // ===========================================================================
-// d3 repo ls
+// dit repo ls
 // ===========================================================================
 
 func TestRepoListCmd_Success(t *testing.T) {
 	resetRepoFlags()
-	t.Setenv("DATADATDAT_API_KEY", "")
-	_ = os.Unsetenv("DATADATDAT_API_KEY")
+	t.Setenv("DIT_API_KEY", "")
+	_ = os.Unsetenv("DIT_API_KEY")
 
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodGet {
@@ -314,8 +314,8 @@ func TestRepoListCmd_Success(t *testing.T) {
 
 func TestRepoListCmd_FilterByOrg(t *testing.T) {
 	resetRepoFlags()
-	t.Setenv("DATADATDAT_API_KEY", "")
-	_ = os.Unsetenv("DATADATDAT_API_KEY")
+	t.Setenv("DIT_API_KEY", "")
+	_ = os.Unsetenv("DIT_API_KEY")
 
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path != "/api/v1/repos/myorg" {
@@ -342,7 +342,7 @@ func TestRepoListCmd_FilterByOrg(t *testing.T) {
 
 func TestRepoListCmd_EmptyList(t *testing.T) {
 	resetRepoFlags()
-	t.Setenv("DATADATDAT_API_KEY", "test-key")
+	t.Setenv("DIT_API_KEY", "test-key")
 
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
@@ -364,8 +364,8 @@ func TestRepoListCmd_EmptyList(t *testing.T) {
 
 func TestRepoListCmd_NoAuth(t *testing.T) {
 	resetRepoFlags()
-	t.Setenv("DATADATDAT_API_KEY", "")
-	_ = os.Unsetenv("DATADATDAT_API_KEY")
+	t.Setenv("DIT_API_KEY", "")
+	_ = os.Unsetenv("DIT_API_KEY")
 
 	cleanup := setupRepoEmptyCreds(t)
 	defer cleanup()
@@ -378,7 +378,7 @@ func TestRepoListCmd_NoAuth(t *testing.T) {
 
 func TestRepoListCmd_ServerError(t *testing.T) {
 	resetRepoFlags()
-	t.Setenv("DATADATDAT_API_KEY", "test-key")
+	t.Setenv("DIT_API_KEY", "test-key")
 
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusInternalServerError)
@@ -417,7 +417,7 @@ func TestRepoListCmd_Usage(t *testing.T) {
 
 func TestRepoListCmd_BadJSON(t *testing.T) {
 	resetRepoFlags()
-	t.Setenv("DATADATDAT_API_KEY", "test-key")
+	t.Setenv("DIT_API_KEY", "test-key")
 
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")

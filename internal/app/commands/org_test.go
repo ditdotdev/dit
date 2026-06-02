@@ -10,7 +10,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"datadatdat/internal/app/providers/common"
+	"github.com/ditdotdev/dit/internal/app/providers/common"
 )
 
 // resetOrgFlags clears flag state between tests since cobra retains values.
@@ -21,8 +21,8 @@ func resetOrgFlags() {
 func TestOrgListCmd_DisplaysOrgs(t *testing.T) {
 	resetOrgFlags()
 	// Ensure env var doesn't interfere — must use stored credentials
-	t.Setenv("DATADATDAT_API_KEY", "")
-	if err := os.Unsetenv("DATADATDAT_API_KEY"); err != nil {
+	t.Setenv("DIT_API_KEY", "")
+	if err := os.Unsetenv("DIT_API_KEY"); err != nil {
 		t.Fatalf("failed to unset env: %v", err)
 	}
 
@@ -93,7 +93,7 @@ func TestOrgListCmd_WithEnvVar(t *testing.T) {
 	}))
 	defer server.Close()
 
-	t.Setenv("DATADATDAT_API_KEY", "env-key")
+	t.Setenv("DIT_API_KEY", "env-key")
 
 	tmpDir := t.TempDir()
 	credsFile := filepath.Join(tmpDir, "credentials")
@@ -124,8 +124,8 @@ func TestOrgListCmd_WithEnvVar(t *testing.T) {
 
 func TestOrgListCmd_NoAuth(t *testing.T) {
 	resetOrgFlags()
-	t.Setenv("DATADATDAT_API_KEY", "")
-	if err := os.Unsetenv("DATADATDAT_API_KEY"); err != nil {
+	t.Setenv("DIT_API_KEY", "")
+	if err := os.Unsetenv("DIT_API_KEY"); err != nil {
 		t.Fatalf("failed to unset env: %v", err)
 	}
 
@@ -148,8 +148,8 @@ func TestOrgListCmd_NoAuth(t *testing.T) {
 
 func TestOrgListCmd_DefaultServer(t *testing.T) {
 	resetOrgFlags()
-	t.Setenv("DATADATDAT_API_KEY", "")
-	if err := os.Unsetenv("DATADATDAT_API_KEY"); err != nil {
+	t.Setenv("DIT_API_KEY", "")
+	if err := os.Unsetenv("DIT_API_KEY"); err != nil {
 		t.Fatalf("failed to unset env: %v", err)
 	}
 
@@ -191,7 +191,7 @@ func TestOrgListCmd_DefaultServer(t *testing.T) {
 
 func TestOrgListCmd_NoServerConfigured(t *testing.T) {
 	resetOrgFlags()
-	t.Setenv("DATADATDAT_API_KEY", "some-key")
+	t.Setenv("DIT_API_KEY", "some-key")
 
 	tmpDir := t.TempDir()
 	credsFile := filepath.Join(tmpDir, "credentials")
@@ -220,7 +220,7 @@ func TestOrgListCmd_NoServerConfigured(t *testing.T) {
 
 func TestOrgListCmd_ServerError(t *testing.T) {
 	resetOrgFlags()
-	t.Setenv("DATADATDAT_API_KEY", "test-key")
+	t.Setenv("DIT_API_KEY", "test-key")
 
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusInternalServerError)
@@ -256,7 +256,7 @@ func TestOrgListCmd_ServerError(t *testing.T) {
 
 func TestOrgListCmd_ServerUnauthorized(t *testing.T) {
 	resetOrgFlags()
-	t.Setenv("DATADATDAT_API_KEY", "bad-key")
+	t.Setenv("DIT_API_KEY", "bad-key")
 
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusUnauthorized)
@@ -291,7 +291,7 @@ func TestOrgListCmd_ServerUnauthorized(t *testing.T) {
 
 func TestOrgListCmd_EmptyList(t *testing.T) {
 	resetOrgFlags()
-	t.Setenv("DATADATDAT_API_KEY", "test-key")
+	t.Setenv("DIT_API_KEY", "test-key")
 
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
@@ -327,7 +327,7 @@ func TestOrgListCmd_EmptyList(t *testing.T) {
 
 func TestOrgListCmd_BadJSON(t *testing.T) {
 	resetOrgFlags()
-	t.Setenv("DATADATDAT_API_KEY", "test-key")
+	t.Setenv("DIT_API_KEY", "test-key")
 
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
@@ -370,7 +370,7 @@ func TestOrgListCmd_LsAlias(t *testing.T) {
 	}))
 	defer server.Close()
 
-	t.Setenv("DATADATDAT_API_KEY", "test-key")
+	t.Setenv("DIT_API_KEY", "test-key")
 
 	tmpDir := t.TempDir()
 	credsFile := filepath.Join(tmpDir, "credentials")
@@ -458,13 +458,13 @@ func execOrgCmd(args ...string) (string, error) {
 }
 
 // ===========================================================================
-// d3 org create
+// dit org create
 // ===========================================================================
 
 func TestOrgCreateCmd_Success(t *testing.T) {
 	resetOrgCreateFlags()
-	t.Setenv("DATADATDAT_API_KEY", "")
-	_ = os.Unsetenv("DATADATDAT_API_KEY")
+	t.Setenv("DIT_API_KEY", "")
+	_ = os.Unsetenv("DIT_API_KEY")
 
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodPost {
@@ -510,7 +510,7 @@ func TestOrgCreateCmd_Success(t *testing.T) {
 
 func TestOrgCreateCmd_AlreadyExists(t *testing.T) {
 	resetOrgCreateFlags()
-	t.Setenv("DATADATDAT_API_KEY", "test-key")
+	t.Setenv("DIT_API_KEY", "test-key")
 
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusConflict)
@@ -529,8 +529,8 @@ func TestOrgCreateCmd_AlreadyExists(t *testing.T) {
 
 func TestOrgCreateCmd_NoAuth(t *testing.T) {
 	resetOrgCreateFlags()
-	t.Setenv("DATADATDAT_API_KEY", "")
-	_ = os.Unsetenv("DATADATDAT_API_KEY")
+	t.Setenv("DIT_API_KEY", "")
+	_ = os.Unsetenv("DIT_API_KEY")
 
 	cleanup := setupOrgEmptyCreds(t)
 	defer cleanup()
@@ -552,7 +552,7 @@ func TestOrgCreateCmd_MissingArgs(t *testing.T) {
 
 func TestOrgCreateCmd_NoServer(t *testing.T) {
 	resetOrgCreateFlags()
-	t.Setenv("DATADATDAT_API_KEY", "some-key")
+	t.Setenv("DIT_API_KEY", "some-key")
 
 	cleanup := setupOrgEmptyCreds(t)
 	defer cleanup()
@@ -564,13 +564,13 @@ func TestOrgCreateCmd_NoServer(t *testing.T) {
 }
 
 // ===========================================================================
-// d3 org info
+// dit org info
 // ===========================================================================
 
 func TestOrgInfoCmd_Success(t *testing.T) {
 	resetOrgInfoFlags()
-	t.Setenv("DATADATDAT_API_KEY", "")
-	_ = os.Unsetenv("DATADATDAT_API_KEY")
+	t.Setenv("DIT_API_KEY", "")
+	_ = os.Unsetenv("DIT_API_KEY")
 
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodGet {
@@ -604,7 +604,7 @@ func TestOrgInfoCmd_Success(t *testing.T) {
 
 func TestOrgInfoCmd_NotFound(t *testing.T) {
 	resetOrgInfoFlags()
-	t.Setenv("DATADATDAT_API_KEY", "test-key")
+	t.Setenv("DIT_API_KEY", "test-key")
 
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusNotFound)
@@ -622,8 +622,8 @@ func TestOrgInfoCmd_NotFound(t *testing.T) {
 
 func TestOrgInfoCmd_NoAuth(t *testing.T) {
 	resetOrgInfoFlags()
-	t.Setenv("DATADATDAT_API_KEY", "")
-	_ = os.Unsetenv("DATADATDAT_API_KEY")
+	t.Setenv("DIT_API_KEY", "")
+	_ = os.Unsetenv("DIT_API_KEY")
 
 	cleanup := setupOrgEmptyCreds(t)
 	defer cleanup()
@@ -644,13 +644,13 @@ func TestOrgInfoCmd_MissingArgs(t *testing.T) {
 }
 
 // ===========================================================================
-// d3 org members
+// dit org members
 // ===========================================================================
 
 func TestOrgMembersCmd_Success(t *testing.T) {
 	resetOrgMembersFlags()
-	t.Setenv("DATADATDAT_API_KEY", "")
-	_ = os.Unsetenv("DATADATDAT_API_KEY")
+	t.Setenv("DIT_API_KEY", "")
+	_ = os.Unsetenv("DIT_API_KEY")
 
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodGet {
@@ -684,7 +684,7 @@ func TestOrgMembersCmd_Success(t *testing.T) {
 
 func TestOrgMembersCmd_NotFound(t *testing.T) {
 	resetOrgMembersFlags()
-	t.Setenv("DATADATDAT_API_KEY", "test-key")
+	t.Setenv("DIT_API_KEY", "test-key")
 
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusNotFound)
@@ -702,8 +702,8 @@ func TestOrgMembersCmd_NotFound(t *testing.T) {
 
 func TestOrgMembersCmd_NoAuth(t *testing.T) {
 	resetOrgMembersFlags()
-	t.Setenv("DATADATDAT_API_KEY", "")
-	_ = os.Unsetenv("DATADATDAT_API_KEY")
+	t.Setenv("DIT_API_KEY", "")
+	_ = os.Unsetenv("DIT_API_KEY")
 
 	cleanup := setupOrgEmptyCreds(t)
 	defer cleanup()
@@ -725,7 +725,7 @@ func TestOrgMembersCmd_MissingArgs(t *testing.T) {
 
 func TestOrgMembersCmd_EmptyList(t *testing.T) {
 	resetOrgMembersFlags()
-	t.Setenv("DATADATDAT_API_KEY", "test-key")
+	t.Setenv("DIT_API_KEY", "test-key")
 
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")

@@ -24,7 +24,7 @@ func CredentialsPath() string {
 	if err != nil {
 		return ""
 	}
-	return filepath.Join(u.HomeDir, ".datadatdat", "credentials")
+	return filepath.Join(u.HomeDir, ".dit", "credentials")
 }
 
 // LoadCredentials reads credentials from the given file path.
@@ -67,10 +67,10 @@ func SaveCredentials(path string, creds Credentials) error {
 }
 
 // GetAPIKey returns the API key to use, checking:
-// 1. DATADATDAT_API_KEY environment variable (highest priority)
+// 1. DIT_API_KEY environment variable (highest priority)
 // 2. Stored credentials for the default server
 func GetAPIKey(credsPath string) string {
-	if envKey := os.Getenv("DATADATDAT_API_KEY"); envKey != "" {
+	if envKey := os.Getenv("DIT_API_KEY"); envKey != "" {
 		return envKey
 	}
 

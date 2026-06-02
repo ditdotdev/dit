@@ -12,7 +12,7 @@ func Uninstall(version string, force bool, removeImages bool, port int, context 
 
 	fmt.Printf("Uninstalling context '%s' (docker)\n", context)
 
-	serverAvailable, _ := docker.DatadatdatServerIsAvailable()
+	serverAvailable, _ := docker.DitServerIsAvailable()
 	if serverAvailable {
 		var repos, _, _ = repositoriesApi.ListRepositories(ctx).Execute()
 		for _, repo := range repos {
@@ -31,16 +31,16 @@ func Uninstall(version string, force bool, removeImages bool, port int, context 
 	// Remove both containers first to release ZFS mounts, then teardown
 	// can destroy the pool and clean up network/mounts.
 	if serverAvailable {
-		s, err := docker.RemoveDatadatdatServer()
+		s, err := docker.RemoveDitServer()
 		if err != nil {
 			fmt.Println(s)
 			panic(err)
 		}
 		removed = append(removed, "server container")
 	}
-	launchAvailable, _ := docker.DatadatdatLaunchIsAvailable()
+	launchAvailable, _ := docker.DitLaunchIsAvailable()
 	if launchAvailable {
-		s, err := docker.RemoveDatadatdatLaunch()
+		s, err := docker.RemoveDitLaunch()
 		if err != nil {
 			fmt.Println(s)
 			panic(err)
@@ -50,11 +50,11 @@ func Uninstall(version string, force bool, removeImages bool, port int, context 
 
 	// Only run the ZFS teardown container when there was actually a server
 	// to tear down. Running it against empty state produces misleading
-	// "Tearing down Datadatdat servers" output and can waste time on hosts
+	// "Tearing down Dit servers" output and can waste time on hosts
 	// where the teardown image has to pull.
 	if serverAvailable {
-		fmt.Println("Tearing down Datadatdat servers")
-		if output, err := docker.TeardownDatadatdatServers(); err != nil {
+		fmt.Println("Tearing down Dit servers")
+		if output, err := docker.TeardownDitServers(); err != nil {
 			// On WSL2, the teardown container may fail to destroy the ZFS pool due to
 			// hostid mismatch (pool created by WSL host, teardown runs in Docker container).
 			// This is non-fatal — the pool can be cleaned up via scripts/setup-zfs-pools.sh --clean.
@@ -65,27 +65,27 @@ func Uninstall(version string, force bool, removeImages bool, port int, context 
 		}
 	}
 
-	volumeName := "datadatdat-" + context + "-data"
+	volumeName := "dit-" + context + "-data"
 	if docker.VolumeExists(volumeName) {
-		if _, err := docker.RemoveDatadatdatVolume(); err != nil {
-			fmt.Printf("Warning: Failed to remove datadatdat volume: %v\n", err)
+		if _, err := docker.RemoveDitVolume(); err != nil {
+			fmt.Printf("Warning: Failed to remove dit volume: %v\n", err)
 		} else {
 			removed = append(removed, "data volume")
 		}
 	}
 
 	if removeImages {
-		fmt.Println("Removing Datadatdat Docker image")
-		if _, err := docker.RemoveDatadatdatImages(version); err != nil { //TODO track this
-			fmt.Printf("Warning: Failed to remove datadatdat images: %v\n", err)
+		fmt.Println("Removing Dit Docker image")
+		if _, err := docker.RemoveDitImages(version); err != nil { //TODO track this
+			fmt.Printf("Warning: Failed to remove dit images: %v\n", err)
 		} else {
 			removed = append(removed, "images")
 		}
 	}
 
 	if len(removed) == 0 {
-		fmt.Printf("No datadatdat infrastructure found for context '%s'; nothing to uninstall.\n", context)
+		fmt.Printf("No dit infrastructure found for context '%s'; nothing to uninstall.\n", context)
 		return
 	}
-	fmt.Printf("Uninstalled datadatdat infrastructure for context '%s' (%s)\n", context, strings.Join(removed, ", "))
+	fmt.Printf("Uninstalled dit infrastructure for context '%s' (%s)\n", context, strings.Join(removed, ", "))
 }

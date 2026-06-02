@@ -1,7 +1,7 @@
 package commands
 
 import (
-	cmn "datadatdat/internal/app/providers/common"
+	cmn "github.com/ditdotdev/dit/internal/app/providers/common"
 
 	"github.com/spf13/cobra"
 )

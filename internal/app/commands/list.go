@@ -1,7 +1,7 @@
 package commands
 
 import (
-	"datadatdat/internal/app/providers"
+	"github.com/ditdotdev/dit/internal/app/providers"
 	"fmt"
 	"os"
 

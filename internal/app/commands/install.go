@@ -1,14 +1,14 @@
 package commands
 
 import (
-	"datadatdat/internal/app/providers"
+	"github.com/ditdotdev/dit/internal/app/providers"
 	"github.com/spf13/cobra"
 )
 
 // installCmd represents the install command
 var installCmd = &cobra.Command{
 	Use:   subcmdInstall,
-	Short: "Install datadatdat infrastructure",
+	Short: "Install dit infrastructure",
 
 	Run: func(cmd *cobra.Command, args []string) {
 		registry, _ := cmd.Flags().GetString("registry")
@@ -20,6 +20,6 @@ var installCmd = &cobra.Command{
 
 func init() {
 	rootCmd.AddCommand(installCmd)
-	installCmd.Flags().String("registry", "datadatdat", "Registry URL for datadatdat docker image, defaults to datadatdat")
-	installCmd.Flags().BoolVarP(&verbose, "verbose", "v", false, "Verbose output of Datadatdat Server installation steps.")
+	installCmd.Flags().String("registry", "ditdotdev", "Registry URL for dit docker image, defaults to ditdotdev")
+	installCmd.Flags().BoolVarP(&verbose, "verbose", "v", false, "Verbose output of Dit Server installation steps.")
 }

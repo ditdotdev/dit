@@ -8,8 +8,8 @@ import (
 )
 
 func TestGetAPIKey_EnvVarOverride(t *testing.T) {
-	// DATADATDAT_API_KEY env var should take priority over stored credentials
-	t.Setenv("DATADATDAT_API_KEY", "env-key-123")
+	// DIT_API_KEY env var should take priority over stored credentials
+	t.Setenv("DIT_API_KEY", "env-key-123")
 
 	tmpDir := t.TempDir()
 	credsFile := filepath.Join(tmpDir, "credentials")
@@ -29,8 +29,8 @@ func TestGetAPIKey_EnvVarOverride(t *testing.T) {
 }
 
 func TestGetAPIKey_FallsBackToStored(t *testing.T) {
-	t.Setenv("DATADATDAT_API_KEY", "")
-	if err := os.Unsetenv("DATADATDAT_API_KEY"); err != nil {
+	t.Setenv("DIT_API_KEY", "")
+	if err := os.Unsetenv("DIT_API_KEY"); err != nil {
 		t.Fatalf("failed to unset env: %v", err)
 	}
 
@@ -52,8 +52,8 @@ func TestGetAPIKey_FallsBackToStored(t *testing.T) {
 }
 
 func TestGetAPIKey_NoCredentials(t *testing.T) {
-	t.Setenv("DATADATDAT_API_KEY", "")
-	if err := os.Unsetenv("DATADATDAT_API_KEY"); err != nil {
+	t.Setenv("DIT_API_KEY", "")
+	if err := os.Unsetenv("DIT_API_KEY"); err != nil {
 		t.Fatalf("failed to unset env: %v", err)
 	}
 
@@ -158,13 +158,13 @@ func TestCredentialsPath(t *testing.T) {
 	if path == "" {
 		t.Fatal("CredentialsPath() returned empty string")
 	}
-	// Should end with .datadatdat/credentials
+	// Should end with .dit/credentials
 	if filepath.Base(path) != "credentials" {
 		t.Errorf("CredentialsPath() = %q, want to end with 'credentials'", path)
 	}
 	dir := filepath.Base(filepath.Dir(path))
-	if dir != ".datadatdat" {
-		t.Errorf("CredentialsPath() parent dir = %q, want '.datadatdat'", dir)
+	if dir != ".dit" {
+		t.Errorf("CredentialsPath() parent dir = %q, want '.dit'", dir)
 	}
 }
 
@@ -259,8 +259,8 @@ func TestLoadCredentials_NilServersField(t *testing.T) {
 }
 
 func TestGetAPIKey_NoDefaultServer(t *testing.T) {
-	t.Setenv("DATADATDAT_API_KEY", "")
-	if err := os.Unsetenv("DATADATDAT_API_KEY"); err != nil {
+	t.Setenv("DIT_API_KEY", "")
+	if err := os.Unsetenv("DIT_API_KEY"); err != nil {
 		t.Fatalf("failed to unset env: %v", err)
 	}
 
@@ -282,8 +282,8 @@ func TestGetAPIKey_NoDefaultServer(t *testing.T) {
 }
 
 func TestGetAPIKey_DefaultServerNotInMap(t *testing.T) {
-	t.Setenv("DATADATDAT_API_KEY", "")
-	if err := os.Unsetenv("DATADATDAT_API_KEY"); err != nil {
+	t.Setenv("DIT_API_KEY", "")
+	if err := os.Unsetenv("DIT_API_KEY"); err != nil {
 		t.Fatalf("failed to unset env: %v", err)
 	}
 
@@ -303,8 +303,8 @@ func TestGetAPIKey_DefaultServerNotInMap(t *testing.T) {
 }
 
 func TestGetAPIKey_CorruptFile(t *testing.T) {
-	t.Setenv("DATADATDAT_API_KEY", "")
-	if err := os.Unsetenv("DATADATDAT_API_KEY"); err != nil {
+	t.Setenv("DIT_API_KEY", "")
+	if err := os.Unsetenv("DIT_API_KEY"); err != nil {
 		t.Fatalf("failed to unset env: %v", err)
 	}
 

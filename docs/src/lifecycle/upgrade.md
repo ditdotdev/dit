@@ -1,20 +1,20 @@
 ---
-title: Upgrading Datadatdat
+title: Upgrading Dit
 nav_label: Upgrade
 nav_order: 160
 ---
 
-Datadatdat can be automatically upgraded with the cli_cmd_upgrade command.
+Dit can be automatically upgraded with the cli_cmd_upgrade command.
 This command works by:
 
-1. Downloading a newest version of the d3 binary
-2. Finding the location of the `d3` binary in your `PATH`.
-3. Copying over the new d3 binary
+1. Downloading a newest version of the dit binary
+2. Finding the location of the `dit` binary in your `PATH`.
+3. Copying over the new dit binary
 4. Running post-installation phase of the new binary, which may stop
-   all repositories and upgrade the d3 docker container in the process.
+   all repositories and upgrade the dit docker container in the process.
 
 This will require access to download binaries from GitHub.
-If any parts of this fail, it should leave the original d3 installation
+If any parts of this fail, it should leave the original dit installation
 intact.
 
 > **Warning:**
@@ -23,14 +23,14 @@ intact.
 >
 
 > **Note:**
-> If your d3 binary is not found in the PATH, you can specify the
-> `--path` option to point to where d3 can be found.
+> If your dit binary is not found in the PATH, you can specify the
+> `--path` option to point to where dit can be found.
 >
 
 ## Manual Upgrade
 
-Datadatdat does not currently support upgrading to a d3 binary that has been
-manually downloaded, such as when corporate firewalls prevent d3 from
+Dit does not currently support upgrading to a dit binary that has been
+manually downloaded, such as when corporate firewalls prevent dit from
 automatically downloading from GitHub. Until this is supported, you will have
-to uninstall and re-install datadatdat, destroying any active repositories in the
+to uninstall and re-install dit, destroying any active repositories in the
 process.

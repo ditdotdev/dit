@@ -1,6 +1,6 @@
 FROM amazon/dynamodb-local:latest
 
-# Add VOLUME directive for datadatdat compatibility
+# Add VOLUME directive for dit compatibility
 VOLUME ["/home/dynamodblocal"]
 
 # Set working directory (keep same as base image)

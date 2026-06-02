@@ -7,11 +7,11 @@ import (
 // migrateCmd represents the migrate command
 var migrateCmd = &cobra.Command{
 	Use:   "migrate [REPOSITORY]",
-	Short: "Migrate an existing docker database container to datadatdat repository",
-	Long: `Migrate an existing docker database container to datadatdat repository. 
+	Short: "Migrate an existing docker database container to dit repository",
+	Long: `Migrate an existing docker database container to dit repository. 
 Container becomes the new name of the docker container.
 
-Example: 'd3 migrate -s oldPostgres datadatdatPostgres'`,
+Example: 'dit migrate -s oldPostgres ditPostgres'`,
 	Args: cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
 		repo := args[0]

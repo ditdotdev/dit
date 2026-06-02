@@ -6,7 +6,7 @@
 set -e
 
 VERSION=${1:-latest}
-IMAGE_NAME="datadatdat/nginx-test"
+IMAGE_NAME="ditdotdev/nginx-test"
 
 echo "Building and pushing ${IMAGE_NAME}:${VERSION} for linux/amd64,linux/arm64"
 

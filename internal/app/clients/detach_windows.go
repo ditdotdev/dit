@@ -16,7 +16,7 @@ const (
 // detachedSysProcAttr returns SysProcAttr values that make a spawned child
 // process survive the parent's exit. Needed because the Chocolatey-installed
 // `kubectl` is a thin shim PE that spawns the real kubectl.exe and then exits;
-// without these flags, when d3 exits, the real kubectl.exe also exits, which
+// without these flags, when dit exits, the real kubectl.exe also exits, which
 // kills `kubectl port-forward` and breaks `psql -h localhost` in the demo.
 func detachedSysProcAttr() *syscall.SysProcAttr {
 	return &syscall.SysProcAttr{

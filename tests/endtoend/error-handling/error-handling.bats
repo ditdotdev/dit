@@ -1,7 +1,7 @@
 #!/usr/bin/env bats
 
 # E2E Error Handling Tests
-# Verifies d3 CLI returns non-zero exit codes for invalid operations
+# Verifies dit CLI returns non-zero exit codes for invalid operations
 
 # Load shared test helpers
 load '../test_helper'
@@ -19,12 +19,12 @@ teardown_file() {
 # Commands that correctly return non-zero for non-existent repos
 # ========================================
 
-@test "d3 rm on non-existent repo fails" {
+@test "dit rm on non-existent repo fails" {
   run "$D3" rm nonexistent-repo-xyz
   assert_failure
 }
 
-@test "d3 checkout on non-existent repo fails" {
+@test "dit checkout on non-existent repo fails" {
   run "$D3" checkout --commit aaaa1111bbbb2222 nonexistent-repo-xyz
   assert_failure
 }
@@ -33,31 +33,31 @@ teardown_file() {
 # Commands that correctly return non-zero for non-existent repos
 # ========================================
 
-@test "d3 log on non-existent repo fails" {
+@test "dit log on non-existent repo fails" {
   run "$D3" log nonexistent-repo-xyz
   assert_failure
   assert_output --partial "Error"
 }
 
-@test "d3 stop on non-existent repo fails" {
+@test "dit stop on non-existent repo fails" {
   run "$D3" stop nonexistent-repo-xyz
   assert_failure
   assert_output --partial "Error"
 }
 
-@test "d3 start on non-existent repo fails" {
+@test "dit start on non-existent repo fails" {
   run "$D3" start nonexistent-repo-xyz
   assert_failure
   assert_output --partial "Error"
 }
 
-@test "d3 status on non-existent repo fails" {
+@test "dit status on non-existent repo fails" {
   run "$D3" status nonexistent-repo-xyz
   assert_failure
   assert_output --partial "Error"
 }
 
-@test "d3 commit on non-existent repo fails" {
+@test "dit commit on non-existent repo fails" {
   run "$D3" commit -m "should fail" nonexistent-repo-xyz
   assert_failure
   assert_output --partial "Error"
@@ -73,12 +73,12 @@ teardown_file() {
   sleep 5
 }
 
-@test "d3 push on repo with no remote fails" {
+@test "dit push on repo with no remote fails" {
   run "$D3" push errortest
   assert_failure
 }
 
-@test "d3 pull on repo with no remote fails" {
+@test "dit pull on repo with no remote fails" {
   run "$D3" pull errortest
   assert_failure
 }
@@ -87,7 +87,7 @@ teardown_file() {
 # Duplicate operations
 # ========================================
 
-@test "d3 run with duplicate name fails" {
+@test "dit run with duplicate name fails" {
   run "$D3" run -n errortest -P mongo
   assert_failure
 }
@@ -96,24 +96,24 @@ teardown_file() {
 # Invalid remote URI
 # ========================================
 
-@test "d3 clone from non-existent s3 remote fails loudly" {
+@test "dit clone from non-existent s3 remote fails loudly" {
   run "$D3" clone -n errortest-s3-dup s3://nonexistent-bucket-xyz-9999/notapath
   assert_failure
   refute_output ""
 }
 
-@test "d3 clone from non-existent s3web remote fails loudly" {
+@test "dit clone from non-existent s3web remote fails loudly" {
   run "$D3" clone -n errortest-s3web-dup s3web://nonexistent-bucket-xyz-9999.s3-website-us-west-2.amazonaws.com/notapath
   assert_failure
   refute_output ""
 }
 
-@test "d3 clone with duplicate repo name fails loudly (regression #103)" {
+@test "dit clone with duplicate repo name fails loudly (regression #103)" {
   # 'errortest' was already created by an earlier test in this file; cloning
-  # into the same name forces CreateRepository to fail on the d3 server. Pre-fix,
-  # d3 clone silently exited 0 with no output; post-fix it must exit non-zero
+  # into the same name forces CreateRepository to fail on the dit server. Pre-fix,
+  # dit clone silently exited 0 with no output; post-fix it must exit non-zero
   # AND print a non-empty error message.
-  run "$D3" clone -n errortest s3web://demo-datadatdat.s3-website-us-west-2.amazonaws.com/hello-world/postgres
+  run "$D3" clone -n errortest s3web://demo-dit.s3-website-us-west-2.amazonaws.com/hello-world/postgres
   assert_failure
   refute_output ""
 }

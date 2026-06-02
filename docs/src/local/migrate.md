@@ -4,9 +4,9 @@ nav_label: Migrate
 nav_order: 250
 ---
 
-Datadatdat provides lots of freedom for how you might populate data into a new
+Dit provides lots of freedom for how you might populate data into a new
 repository. You might run some scripts to generate data, load data from
-a database dump, or replicate data into the container. Datadatdat does not try to
+a database dump, or replicate data into the container. Dit does not try to
 encode these database-specific mechanisms into the tool, but does provide some
 platform-agnostic capabilities for loading data. In this section, we show
 how you can migrate data from a container you already have running on your
@@ -37,7 +37,7 @@ Assuming the container meets the above criteria, you can create a repository
 from it by running
 
 ```bash
-d3 mgirate -s somecontainer myrepo
+dit mgirate -s somecontainer myrepo
 ```
 
 This will get the configuration of the container and use it verbatim for the

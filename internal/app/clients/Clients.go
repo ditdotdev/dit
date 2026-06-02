@@ -1,7 +1,7 @@
 package clients
 
 import (
-	"datadatdat/internal/app/utils"
+	"github.com/ditdotdev/dit/internal/app/utils"
 	"os"
 )
 
@@ -22,8 +22,8 @@ var realCE = utils.CommandExecutor(60, false)
 var ce commandRunner = realCE
 
 func init() {
-	_, d := os.LookupEnv("DATADATDAT_DEBUG")
-	// Enable command executor debug mode if DATADATDAT_DEBUG is set
+	_, d := os.LookupEnv("DIT_DEBUG")
+	// Enable command executor debug mode if DIT_DEBUG is set
 	if d {
 		realCE.SetDebug(true)
 		ce = realCE

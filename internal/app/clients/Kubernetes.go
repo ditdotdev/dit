@@ -4,7 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	datadatdatclient "github.com/datadatdat/datadatdat-client-go"
+	ditclient "github.com/ditdotdev/dit-client-go"
 	v1Apps "k8s.io/api/apps/v1"
 	v1 "k8s.io/api/core/v1"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
@@ -25,9 +25,9 @@ import (
 
 var ctx = context.Background()
 
-// labelDatadatdatRepository is the kubernetes label key used to associate
-// resources (StatefulSets, Services, etc.) with their owning d3 repository.
-const labelDatadatdatRepository = "datadatdatRepository"
+// labelDitRepository is the kubernetes label key used to associate
+// resources (StatefulSets, Services, etc.) with their owning dit repository.
+const labelDitRepository = "ditRepository"
 
 var client k8s.Interface
 
@@ -59,7 +59,7 @@ func init() {
  * the ports in the container. We then create a single replica stateful set with the given volumes (each with
  * existing PVCs) mapped in.
  */
-func (k kubernetes) CreateStatefulSet(repoName string, imageId string, ports []int, volumes []datadatdatclient.Volume, environment []string) error {
+func (k kubernetes) CreateStatefulSet(repoName string, imageId string, ports []int, volumes []ditclient.Volume, environment []string) error {
 	// Fail fast on resources left behind by an interrupted prior session.
 	// Without this check the user gets the raw k8s `services "<repo>"
 	// already exists` surface with no recovery hint. See issue #126.
@@ -71,7 +71,7 @@ func (k kubernetes) CreateStatefulSet(repoName string, imageId string, ports []i
 	objectMeta := metav1.ObjectMeta{
 		Name:      repoName,
 		Namespace: k.namespace,
-		Labels:    map[string]string{labelDatadatdatRepository: repoName},
+		Labels:    map[string]string{labelDitRepository: repoName},
 	}
 	servicePorts := make([]v1.ServicePort, 0, len(ports))
 	for _, port := range ports {
@@ -83,7 +83,7 @@ func (k kubernetes) CreateStatefulSet(repoName string, imageId string, ports []i
 	}
 	serviceSpec := v1.ServiceSpec{
 		Ports:     servicePorts,
-		Selector:  map[string]string{labelDatadatdatRepository: repoName},
+		Selector:  map[string]string{labelDitRepository: repoName},
 		ClusterIP: "None",
 	}
 	service := v1.Service{
@@ -188,7 +188,7 @@ func (k kubernetes) CreateStatefulSet(repoName string, imageId string, ports []i
 	}
 	replica := int32(1)
 	selector := metav1.LabelSelector{
-		MatchLabels: map[string]string{labelDatadatdatRepository: repoName},
+		MatchLabels: map[string]string{labelDitRepository: repoName},
 	}
 	statefulSpecs := v1Apps.StatefulSetSpec{
 		Replicas:    &replica,
@@ -210,7 +210,7 @@ func (k kubernetes) CreateStatefulSet(repoName string, imageId string, ports []i
 // checkForOrphanedResources looks for a Service or StatefulSet of the same
 // name, plus any PVCs labelled with this repo, and returns a recovery-hint
 // error if any are found. Empty return means the namespace is clean for a
-// fresh `d3 run`. NotFound on Get is the expected happy case — only real
+// fresh `dit run`. NotFound on Get is the expected happy case — only real
 // API errors propagate.
 func (k kubernetes) checkForOrphanedResources(repoName string) error {
 	var found []string
@@ -227,7 +227,7 @@ func (k kubernetes) checkForOrphanedResources(repoName string) error {
 		return fmt.Errorf("checking for existing statefulset %q: %w", repoName, err)
 	}
 
-	selector := labelDatadatdatRepository + "=" + repoName
+	selector := labelDitRepository + "=" + repoName
 	pvcs, err := client.CoreV1().PersistentVolumeClaims(k.namespace).List(ctx, metav1.ListOptions{LabelSelector: selector})
 	if err != nil {
 		return fmt.Errorf("listing PVCs labelled %s: %w", selector, err)
@@ -245,15 +245,15 @@ func (k kubernetes) checkForOrphanedResources(repoName string) error {
 	for _, r := range found {
 		fmt.Fprintf(&b, "  - %s\n", r)
 	}
-	b.WriteString("\nThese were likely left behind by a prior d3 session. To clean up:\n")
-	fmt.Fprintf(&b, "  d3 rm %s -f --context <context>\n", repoName)
-	b.WriteString("or, if d3 has no record of the repo:\n")
-	fmt.Fprintf(&b, "  kubectl delete statefulset,svc,pvc,pod,volumesnapshot -l %s=%s", labelDatadatdatRepository, repoName)
+	b.WriteString("\nThese were likely left behind by a prior dit session. To clean up:\n")
+	fmt.Fprintf(&b, "  dit rm %s -f --context <context>\n", repoName)
+	b.WriteString("or, if dit has no record of the repo:\n")
+	fmt.Fprintf(&b, "  kubectl delete statefulset,svc,pvc,pod,volumesnapshot -l %s=%s", labelDitRepository, repoName)
 	return errors.New(b.String())
 }
 
 // StatefulSet status values returned by GetStatefulSetStatus. Callers
-// (WaitForStatefulSet, d3 stop/start) treat detached/stopped/running as
+// (WaitForStatefulSet, dit stop/start) treat detached/stopped/running as
 // terminal; anything else means "keep polling". Kept as untyped string
 // constants because the surrounding code already passes the result as a
 // plain string.
@@ -293,7 +293,7 @@ func (k kubernetes) GetStatefulSetStatus(repoName string) (string, error) {
 	// a moment to observe the new generation; until then Status.Replicas
 	// and Status.ReadyReplicas still reflect the prior spec. Trusting
 	// those values made WaitForStatefulSet return immediately on a 0==0
-	// match — so `d3 checkout` returned before the new pod was scheduled
+	// match — so `dit checkout` returned before the new pod was scheduled
 	// and a follow-up `kubectl exec` failed with "pod does not have a
 	// host assigned".
 	if set.Status.ObservedGeneration < set.Generation {
@@ -334,7 +334,7 @@ var waitForStatefulSetPollInterval = 1 * time.Second
 /**
  * Wait for the given statefulset to reach a terminal state (running or stopped), throwing an error if we've
  * reached the failed state. Bails after waitForStatefulSetTimeout if the StatefulSet never reaches a terminal
- * state — a "detached" status (no StatefulSet present) is treated as terminal so callers like d3 stop / d3 rm
+ * state — a "detached" status (no StatefulSet present) is treated as terminal so callers like dit stop / dit rm
  * don't hang forever waiting for resources that were never created.
  */
 func (k kubernetes) WaitForStatefulSet(repoName string) {
@@ -381,14 +381,14 @@ func (k kubernetes) StartPortForwarding(repoName string) {
 	ports := service.Spec.Ports
 	for _, port := range ports {
 		// Launch kubectl port-forward as a detached child that outlives the
-		// current `d3` invocation. The earlier approach shelled out to
+		// current `dit` invocation. The earlier approach shelled out to
 		// `sh -c "... &"` via ce.Exec which waits for the shell; once the
 		// shell exits, the `&`-backgrounded grandchild is orphaned and, on
 		// Windows, gets reaped almost immediately, so `psql -h localhost`
 		// would fail with "connection refused".
 		//
 		// exec.Command + Start (without Wait) leaves the child running
-		// and independent of d3.
+		// and independent of dit.
 		cmd := exec.Command("kubectl", "port-forward", "svc/"+repoName, fmt.Sprint(port.Port)) // #nosec G204 -- repoName and port come from the user's own repo and service spec
 		cmd.Stdin = nil
 		cmd.Stdout = nil
@@ -399,7 +399,7 @@ func (k kubernetes) StartPortForwarding(repoName string) {
 			continue
 		}
 		pid := cmd.Process.Pid
-		// Release the handle so the child is not waited on by d3's exit.
+		// Release the handle so the child is not waited on by dit's exit.
 		if err := cmd.Process.Release(); err != nil {
 			fmt.Printf("Warning: Failed to detach port-forward for port %d: %v\n", port.Port, err)
 		}
@@ -439,7 +439,7 @@ func (k kubernetes) waitForServiceEndpoint(repoName string) {
 // StopPortForwarding kills any kubectl port-forward processes that
 // StartPortForwarding launched for this repo. Matches by PID file rather
 // than by Service spec lookup so it still works after the Service has
-// been deleted (e.g. during `d3 rm`).
+// been deleted (e.g. during `dit rm`).
 //
 // Note on Windows: when kubectl is installed via Chocolatey, /c/bin/kubectl
 // is a "shim" PE that launches the real kubectl.exe and exits. Go's
@@ -542,7 +542,7 @@ func findListeningPidOnPort(port int) int {
 
 func portForwardPidDir() string {
 	home, _ := os.UserHomeDir()
-	return filepath.Join(home, ".datadatdat")
+	return filepath.Join(home, ".dit")
 }
 
 func portForwardPidFilePath(repoName string, port int32) string {
@@ -579,7 +579,7 @@ func portForwardPidFilesFor(repoName string) []string {
 /**
  * Update the volumes within a given StatefulSet.
  */
-func (k kubernetes) UpdateStatefulSetVolumes(repoName string, volumes []datadatdatclient.Volume) {
+func (k kubernetes) UpdateStatefulSetVolumes(repoName string, volumes []ditclient.Volume) {
 	// Build a JSONPatch document. Two pre-existing bugs:
 	//
 	//  1. The previous string-concat used `\\\"` (which evaluates to `\"`,
@@ -594,7 +594,7 @@ func (k kubernetes) UpdateStatefulSetVolumes(repoName string, volumes []datadatd
 	//     brackets and no comma separator, which would have failed to
 	//     parse even if the quotes were right.
 	//
-	// Surfaced by kubernetes-tests.bats test 19 — d3 checkout returned
+	// Surfaced by kubernetes-tests.bats test 19 — dit checkout returned
 	// success without actually swapping PVCs because the patch silently
 	// failed. See StopStatefulSet/StartStatefulSet patches for the
 	// correct shape (array, single-escaped quotes).
@@ -629,9 +629,9 @@ func (k kubernetes) UpdateStatefulSetVolumes(repoName string, volumes []datadatd
 
 func (k kubernetes) DeleteStatefulSpec(repoName string) {
 	// Tolerate NotFound for both the StatefulSet and Service. A repository
-	// record can exist on the datadatdat server with no underlying k8s
-	// resources if an earlier `d3 run` failed after CreateRepository but
-	// before CreateStatefulSet succeeded; `d3 rm -f` must still be able to
+	// record can exist on the dit server with no underlying k8s
+	// resources if an earlier `dit run` failed after CreateRepository but
+	// before CreateStatefulSet succeeded; `dit rm -f` must still be able to
 	// clean that up without panicking.
 	if err := client.AppsV1().StatefulSets(k.namespace).Delete(ctx, repoName, metav1.DeleteOptions{}); err != nil && !k8serrors.IsNotFound(err) {
 		panic(err)

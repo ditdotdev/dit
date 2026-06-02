@@ -8,7 +8,7 @@ import (
 	"testing"
 	"time"
 
-	"datadatdat/internal/app/utils"
+	"github.com/ditdotdev/dit/internal/app/utils"
 )
 
 // init shrinks the OperationMonitor poll interval to a fast value for tests so

@@ -1,5 +1,5 @@
-DATADATDAT_TARGET := build/d3
-DATADATDAT_BIN := /usr/local/bin/d3
+DIT_TARGET := build/dit
+DIT_BIN := /usr/local/bin/dit
 RELEASE_DIR := release
 OS := "macos-latest"
 
@@ -8,7 +8,7 @@ ENV ?= DEV
 
 # Version injection for build-time version setting
 VERSION ?= dev
-LDFLAGS := -ldflags "-X datadatdat/internal/app.DatadatdatVersion=$(VERSION)"
+LDFLAGS := -ldflags "-X github.com/ditdotdev/dit/internal/app.DitVersion=$(VERSION)"
 
 .PHONY: build release darwin-amd64 darwin-arm64 linux-amd64 linux-arm64 windows clean coverage gen-docs
 
@@ -22,7 +22,7 @@ gen-docs:
 # Runs go test ./... and prints both the raw % (what `go test -cover` reports)
 # and the scored % the CI repo-health gate uses (filters generated + main
 # packages — see scripts/local-coverage.sh for the regex, kept in sync with
-# datadatdat/.github/.github/workflows/repo-health.yml).
+# ditdotdev/.github/.github/workflows/repo-health.yml).
 coverage:
 	bash scripts/local-coverage.sh
 
@@ -33,42 +33,42 @@ clean:
 	@echo "Cleaned all build artifacts and caches"
 
 windows:
-	GOOS=windows GOARCH=amd64 go build $(LDFLAGS) -o $(RELEASE_DIR)/windows/d3.exe cmd/datadatdat/datadatdat.go
-	cd $(RELEASE_DIR)/windows && zip datadatdat-cli-$(VERSION)-windows_amd64.zip d3.exe
+	GOOS=windows GOARCH=amd64 go build $(LDFLAGS) -o $(RELEASE_DIR)/windows/dit.exe cmd/dit/dit.go
+	cd $(RELEASE_DIR)/windows && zip dit-cli-$(VERSION)-windows_amd64.zip dit.exe
 
 linux-amd64:
-	GOOS=linux GOARCH=amd64 go build $(LDFLAGS) -o $(RELEASE_DIR)/linux-amd64/d3 cmd/datadatdat/datadatdat.go
-	cd $(RELEASE_DIR)/linux-amd64 && tar -cvf datadatdat-cli-$(VERSION)-linux_amd64.tar d3
+	GOOS=linux GOARCH=amd64 go build $(LDFLAGS) -o $(RELEASE_DIR)/linux-amd64/dit cmd/dit/dit.go
+	cd $(RELEASE_DIR)/linux-amd64 && tar -cvf dit-cli-$(VERSION)-linux_amd64.tar dit
 
 linux-arm64:
-	GOOS=linux GOARCH=arm64 go build $(LDFLAGS) -o $(RELEASE_DIR)/linux-arm64/d3 cmd/datadatdat/datadatdat.go
-	cd $(RELEASE_DIR)/linux-arm64 && tar -cvf datadatdat-cli-$(VERSION)-linux_arm64.tar d3
+	GOOS=linux GOARCH=arm64 go build $(LDFLAGS) -o $(RELEASE_DIR)/linux-arm64/dit cmd/dit/dit.go
+	cd $(RELEASE_DIR)/linux-arm64 && tar -cvf dit-cli-$(VERSION)-linux_arm64.tar dit
 
 darwin-amd64:
-	GOOS=darwin GOARCH=amd64 go build $(LDFLAGS) -o $(RELEASE_DIR)/darwin-amd64/d3 cmd/datadatdat/datadatdat.go
-	cd $(RELEASE_DIR)/darwin-amd64 && zip datadatdat-cli-$(VERSION)-darwin_amd64.zip d3
+	GOOS=darwin GOARCH=amd64 go build $(LDFLAGS) -o $(RELEASE_DIR)/darwin-amd64/dit cmd/dit/dit.go
+	cd $(RELEASE_DIR)/darwin-amd64 && zip dit-cli-$(VERSION)-darwin_amd64.zip dit
 
 darwin-arm64:
-	GOOS=darwin GOARCH=arm64 go build $(LDFLAGS) -o $(RELEASE_DIR)/darwin-arm64/d3 cmd/datadatdat/datadatdat.go
-	cd $(RELEASE_DIR)/darwin-arm64 && zip datadatdat-cli-$(VERSION)-darwin_arm64.zip d3
+	GOOS=darwin GOARCH=arm64 go build $(LDFLAGS) -o $(RELEASE_DIR)/darwin-arm64/dit cmd/dit/dit.go
+	cd $(RELEASE_DIR)/darwin-arm64 && zip dit-cli-$(VERSION)-darwin_arm64.zip dit
 
 release: darwin-amd64 darwin-arm64 linux-amd64 linux-arm64 windows
 	@echo "Copying release binaries to root directory..."
-	cp $(RELEASE_DIR)/windows/d3.exe d3.exe
-	cp $(RELEASE_DIR)/linux-amd64/d3 d3-linux
-	cp $(RELEASE_DIR)/darwin-arm64/d3 d3-mac
+	cp $(RELEASE_DIR)/windows/dit.exe dit.exe
+	cp $(RELEASE_DIR)/linux-amd64/dit dit-linux
+	cp $(RELEASE_DIR)/darwin-arm64/dit dit-mac
 	@echo "Release complete! Binaries copied to root directory."
 
 build:
-	@echo "Building datadatdat with version $(VERSION)..."
-	go build $(LDFLAGS) -o $(DATADATDAT_TARGET) cmd/datadatdat/datadatdat.go
-	@echo "Build complete: $(DATADATDAT_TARGET)"
+	@echo "Building dit with version $(VERSION)..."
+	go build $(LDFLAGS) -o $(DIT_TARGET) cmd/dit/dit.go
+	@echo "Build complete: $(DIT_TARGET)"
 
 link:
-	ln -s $(DATADATDAT_TARGET) $(DATADATDAT_BIN)
+	ln -s $(DIT_TARGET) $(DIT_BIN)
 
 unlink:
-	rm  $(DATADATDAT_BIN)
+	rm  $(DIT_BIN)
 
 test-install:
 	bats tests/endtoend/infrastructure/install.bats
@@ -94,23 +94,23 @@ test-s3-workflow:
 test-ssh-workflow:
 	bats tests/endtoend/remotes/ssh/ssh-workflow.bats
 
-test-datadatdat-workflow:
-	ENV=$(ENV) bats tests/endtoend/remotes/datadatdat/datadatdat-workflow.bats
+test-dit-workflow:
+	ENV=$(ENV) bats tests/endtoend/remotes/ditdotdev/dit-workflow.bats
 
 test-auth-workflow:
-	ENV=$(ENV) bats tests/endtoend/remotes/datadatdat/auth-workflow.bats
+	ENV=$(ENV) bats tests/endtoend/remotes/ditdotdev/auth-workflow.bats
 
 test-org-workflow:
-	ENV=$(ENV) bats tests/endtoend/remotes/datadatdat/org-workflow.bats
+	ENV=$(ENV) bats tests/endtoend/remotes/ditdotdev/org-workflow.bats
 
 test-clone-commit-workflow:
-	ENV=$(ENV) bats tests/endtoend/remotes/datadatdat/clone-commit-workflow.bats
+	ENV=$(ENV) bats tests/endtoend/remotes/ditdotdev/clone-commit-workflow.bats
 
 test-billing-workflow:
-	ENV=$(ENV) bats tests/endtoend/remotes/datadatdat/billing-workflow.bats
+	ENV=$(ENV) bats tests/endtoend/remotes/ditdotdev/billing-workflow.bats
 
 test-stripe-integration:
-	ENV=$(ENV) bats tests/endtoend/remotes/datadatdat/stripe-integration.bats
+	ENV=$(ENV) bats tests/endtoend/remotes/ditdotdev/stripe-integration.bats
 
 test-multi-context:
 	bats tests/endtoend/multi-context/multi-context.bats
@@ -137,25 +137,25 @@ test-push-pull-options:
 	bats tests/endtoend/push-pull/push-pull-options.bats
 
 test-abort-workflow:
-	ENV=$(ENV) bats tests/endtoend/remotes/datadatdat/abort-workflow.bats
+	ENV=$(ENV) bats tests/endtoend/remotes/ditdotdev/abort-workflow.bats
 
 test-auth-status:
-	ENV=$(ENV) bats tests/endtoend/remotes/datadatdat/auth-status.bats
+	ENV=$(ENV) bats tests/endtoend/remotes/ditdotdev/auth-status.bats
 
 test-push-pull-tags-remote:
-	ENV=$(ENV) bats tests/endtoend/remotes/datadatdat/push-pull-tags-remote.bats
+	ENV=$(ENV) bats tests/endtoend/remotes/ditdotdev/push-pull-tags-remote.bats
 
 test-fork-workflow:
-	ENV=$(ENV) bats tests/endtoend/remotes/datadatdat/fork-workflow.bats
+	ENV=$(ENV) bats tests/endtoend/remotes/ditdotdev/fork-workflow.bats
 
 test-fork-cross-user:
-	ENV=$(ENV) bats tests/endtoend/remotes/datadatdat/fork-cross-user.bats
+	ENV=$(ENV) bats tests/endtoend/remotes/ditdotdev/fork-cross-user.bats
 
 test-whitelist-approval:
-	ENV=$(ENV) bats tests/endtoend/remotes/datadatdat/whitelist-approval.bats
+	ENV=$(ENV) bats tests/endtoend/remotes/ditdotdev/whitelist-approval.bats
 
 test-public-repo-permissions:
-	ENV=$(ENV) bats tests/endtoend/remotes/datadatdat/public-repo-permissions.bats
+	ENV=$(ENV) bats tests/endtoend/remotes/ditdotdev/public-repo-permissions.bats
 
 # Kubernetes provider tests. Both targets self-skip when no k8s cluster is
 # reachable (kubectl cluster-info), so they are safe to include in `e2e` /
@@ -170,6 +170,6 @@ test-kubernetes-remote:
 e2e: test-install test-getting-started test-tags test-tag-management test-docker-context test-container-lifecycle test-context-list test-data-import test-error-handling test-s3-workflow test-push-pull-options test-ssh-workflow test-kubernetes test-upgrade test-uninstall
 
 test-connect-drs-network:
-	docker network connect datadatdat-docker datadatdat-docker-server 2>/dev/null || true
+	docker network connect dit-docker dit-docker-server 2>/dev/null || true
 
-e2e-server: test-install test-connect-drs-network test-datadatdat-workflow test-clone-commit-workflow test-auth-workflow test-whitelist-approval test-public-repo-permissions test-auth-status test-org-workflow test-billing-workflow test-stripe-integration test-abort-workflow test-push-pull-tags-remote test-fork-workflow test-fork-cross-user test-kubernetes-remote test-uninstall
+e2e-server: test-install test-connect-drs-network test-dit-workflow test-clone-commit-workflow test-auth-workflow test-whitelist-approval test-public-repo-permissions test-auth-status test-org-workflow test-billing-workflow test-stripe-integration test-abort-workflow test-push-pull-tags-remote test-fork-workflow test-fork-cross-user test-kubernetes-remote test-uninstall

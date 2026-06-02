@@ -1,10 +1,10 @@
 package providers
 
 import (
-	"datadatdat/internal/app"
-	cmn "datadatdat/internal/app/providers/common"
-	lcl "datadatdat/internal/app/providers/local"
-	"datadatdat/internal/app/utils"
+	"github.com/ditdotdev/dit/internal/app"
+	cmn "github.com/ditdotdev/dit/internal/app/providers/common"
+	lcl "github.com/ditdotdev/dit/internal/app/providers/local"
+	"github.com/ditdotdev/dit/internal/app/utils"
 	"fmt"
 	"strings"
 )
@@ -14,7 +14,7 @@ var ce = utils.CommandExecutor(60, false)
 // gitIdentity returns the git config user.name + user.email, looked up
 // lazily on first use. Previously these were package-level vars that
 // forked `git` at package init for EVERY CLI invocation — including
-// pure-read commands like `d3 ls`, `d3 status`, `d3 log` — costing
+// pure-read commands like `dit ls`, `dit status`, `dit log` — costing
 // 50-200ms of fork+exec overhead and failing outright in containers
 // without git installed. Only Commit and Migrate actually use these
 // values; defer the lookup until then.
@@ -30,7 +30,7 @@ type local struct {
 	contextName             string
 	host                    string
 	portNum                 int
-	datadatdatServerVersion string
+	ditServerVersion string
 	dockerRegistryUrl       string
 }
 
@@ -103,7 +103,7 @@ func (l local) Install(properties []string, verbose bool) {
 			break
 		}
 	}
-	lcl.Install(l.datadatdatServerVersion, registry, verbose, l.portNum, l.contextName)
+	lcl.Install(l.ditServerVersion, registry, verbose, l.portNum, l.contextName)
 }
 
 func (l local) List(context string) {
@@ -176,15 +176,15 @@ func (l local) Tag(repo string, commit string, tags []string) {
 }
 
 func (l local) Uninstall(force bool, removeImage bool) {
-	lcl.Uninstall(l.datadatdatServerVersion, force, removeImage, l.portNum, l.contextName)
+	lcl.Uninstall(l.ditServerVersion, force, removeImage, l.portNum, l.contextName)
 }
 
 func (l local) Upgrade(force bool, version string, finalize bool, path string) {
-	targetVersion := l.datadatdatServerVersion
+	targetVersion := l.ditServerVersion
 	if version != "" {
 		targetVersion = version
 	}
-	fmt.Println("Upgrading datadatdat infrastructure to " + targetVersion)
+	fmt.Println("Upgrading dit infrastructure to " + targetVersion)
 	lcl.Install(targetVersion, l.dockerRegistryUrl, false, l.portNum, l.contextName)
 }
 
@@ -193,7 +193,7 @@ func Local(contextName string, host string, port int) Provider {
 		contextName:             contextName,
 		host:                    host,
 		portNum:                 port,
-		datadatdatServerVersion: app.DatadatdatVersion,
+		ditServerVersion: app.DitVersion,
 		dockerRegistryUrl:       defaultDockerRegistry,
 	}
 }

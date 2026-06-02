@@ -2,7 +2,7 @@ package common
 
 import (
 	"fmt"
-	client "github.com/datadatdat/datadatdat-client-go"
+	client "github.com/ditdotdev/dit-client-go"
 	"strconv"
 )
 
