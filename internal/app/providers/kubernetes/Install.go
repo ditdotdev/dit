@@ -1,9 +1,9 @@
 package kubernetes
 
 import (
-	"github.com/ditdotdev/dit/internal/app"
 	"fmt"
 	"github.com/briandowns/spinner"
+	"github.com/ditdotdev/dit/internal/app"
 	"strconv"
 	"strings"
 	"time"

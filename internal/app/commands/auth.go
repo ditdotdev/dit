@@ -1,8 +1,8 @@
 package commands
 
 import (
-	"github.com/ditdotdev/dit/internal/app/providers/common"
 	"fmt"
+	"github.com/ditdotdev/dit/internal/app/providers/common"
 
 	"github.com/spf13/cobra"
 )

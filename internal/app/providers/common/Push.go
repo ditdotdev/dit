@@ -1,8 +1,8 @@
 package common
 
 import (
-	util "github.com/ditdotdev/dit/internal/app/utils"
 	"fmt"
+	util "github.com/ditdotdev/dit/internal/app/utils"
 	"net/http"
 	"os"
 	"strconv"

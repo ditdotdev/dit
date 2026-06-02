@@ -1,18 +1,18 @@
 package providers
 
 import (
+	"fmt"
 	"github.com/ditdotdev/dit/internal/app"
 	cmn "github.com/ditdotdev/dit/internal/app/providers/common"
 	k8s "github.com/ditdotdev/dit/internal/app/providers/kubernetes"
-	"fmt"
 )
 
 type kubernetes struct {
-	contextName             string
-	host                    string
-	portNum                 int
-	ditServerVersion string
-	dockerRegistryUrl       string
+	contextName       string
+	host              string
+	portNum           int
+	ditServerVersion  string
+	dockerRegistryUrl string
 }
 
 func (k kubernetes) GetType() string {
@@ -161,10 +161,10 @@ func (k kubernetes) Upgrade(force bool, version string, finalize bool, path stri
 
 func Kubernetes(contextName string, host string, port int) Provider {
 	return kubernetes{
-		contextName:             contextName,
-		host:                    host,
-		portNum:                 port,
-		ditServerVersion: app.DitVersion,
-		dockerRegistryUrl:       defaultDockerRegistry,
+		contextName:       contextName,
+		host:              host,
+		portNum:           port,
+		ditServerVersion:  app.DitVersion,
+		dockerRegistryUrl: defaultDockerRegistry,
 	}
 }

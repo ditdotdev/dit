@@ -29,8 +29,8 @@ func TestInstall_DockerNotAvailableExits(t *testing.T) {
 func TestInstall_LatestNotDownloadedTriggersPull(t *testing.T) {
 	d := &fakeDocker{
 		ditLatestIsDownloaded: false,
-		fetchLaunchLogs:              []string{"DATADATDAT START 2024-01-01 00:00:00 hello", "DATADATDAT FINISHED"},
-		launchOut:                    "ok",
+		fetchLaunchLogs:       []string{"DATADATDAT START 2024-01-01 00:00:00 hello", "DATADATDAT FINISHED"},
+		launchOut:             "ok",
 	}
 	output := captureStdout(func() {
 		_, _ = captureExit(t, func() {
@@ -48,8 +48,8 @@ func TestInstall_LatestNotDownloadedTriggersPull(t *testing.T) {
 func TestInstall_LatestNotDownloadedLocalFallback(t *testing.T) {
 	d := &fakeDocker{
 		ditLatestIsDownloaded: false,
-		fetchLaunchLogs:              []string{"DATADATDAT FINISHED"},
-		launchOut:                    "ok",
+		fetchLaunchLogs:       []string{"DATADATDAT FINISHED"},
+		launchOut:             "ok",
 	}
 	_ = captureStdout(func() {
 		_, _ = captureExit(t, func() {
@@ -69,8 +69,8 @@ func TestInstall_RemovesPreexistingServer(t *testing.T) {
 		ditLatestIsDownloaded: true,
 		ditServerAvailable:    true,
 		ditLaunchAvailable:    true,
-		fetchLaunchLogs:              []string{"DATADATDAT FINISHED"},
-		launchOut:                    "ok",
+		fetchLaunchLogs:       []string{"DATADATDAT FINISHED"},
+		launchOut:             "ok",
 	}
 	_ = captureStdout(func() {
 		_, _ = captureExit(t, func() {
@@ -88,8 +88,8 @@ func TestInstall_RemovesPreexistingServer(t *testing.T) {
 func TestInstall_LaunchFailurePanics(t *testing.T) {
 	d := &fakeDocker{
 		ditLatestIsDownloaded: true,
-		launchErr:                    errors.New("docker daemon down"),
-		launchOut:                    "boom",
+		launchErr:             errors.New("docker daemon down"),
+		launchOut:             "boom",
 	}
 	panicked := false
 	_ = captureStdout(func() {

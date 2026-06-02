@@ -1,9 +1,9 @@
 package kubernetes
 
 import (
+	ditclient "github.com/ditdotdev/dit-client-go"
 	"github.com/ditdotdev/dit/internal/app"
 	"github.com/ditdotdev/dit/internal/app/clients"
-	ditclient "github.com/ditdotdev/dit-client-go"
 	"os"
 )
 
@@ -90,10 +90,10 @@ func (noopK8s) CreateStatefulSet(string, string, []int, []ditclient.Volume, []st
 func (noopK8s) GetStatefulSetStatus(string) (string, error) {
 	return noopK8sRunningStatus, nil
 }
-func (noopK8s) WaitForStatefulSet(string)                                  {}
-func (noopK8s) StartPortForwarding(string)                                 {}
-func (noopK8s) StopPortForwarding(string)                                  {}
+func (noopK8s) WaitForStatefulSet(string)                           {}
+func (noopK8s) StartPortForwarding(string)                          {}
+func (noopK8s) StopPortForwarding(string)                           {}
 func (noopK8s) UpdateStatefulSetVolumes(string, []ditclient.Volume) {}
-func (noopK8s) DeleteStatefulSpec(string)                                  {}
-func (noopK8s) StopStatefulSet(string)                                     {}
-func (noopK8s) StartStatefulSet(string)                                    {}
+func (noopK8s) DeleteStatefulSpec(string)                           {}
+func (noopK8s) StopStatefulSet(string)                              {}
+func (noopK8s) StartStatefulSet(string)                             {}

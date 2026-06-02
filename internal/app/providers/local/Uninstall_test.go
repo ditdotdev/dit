@@ -65,7 +65,7 @@ func TestUninstall_FullFlow(t *testing.T) {
 	d := &fakeDocker{
 		ditServerAvailable: true,
 		ditLaunchAvailable: true,
-		volumeExists:              map[string]bool{"dit-ctx-data": true},
+		volumeExists:       map[string]bool{"dit-ctx-data": true},
 	}
 
 	output := captureStdout(func() {

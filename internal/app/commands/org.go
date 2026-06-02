@@ -2,9 +2,9 @@ package commands
 
 import (
 	"bytes"
-	"github.com/ditdotdev/dit/internal/app/providers/common"
 	"encoding/json"
 	"fmt"
+	"github.com/ditdotdev/dit/internal/app/providers/common"
 	"io"
 	"net/http"
 	"os"

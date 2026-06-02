@@ -1,9 +1,9 @@
 package commands
 
 import (
+	"fmt"
 	"github.com/ditdotdev/dit/internal/app"
 	"github.com/ditdotdev/dit/internal/app/providers"
-	"fmt"
 	"os"
 	"os/user"
 

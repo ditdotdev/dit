@@ -1,9 +1,9 @@
 package kubernetes
 
 import (
+	ditclient "github.com/ditdotdev/dit-client-go"
 	"github.com/ditdotdev/dit/internal/app"
 	"github.com/ditdotdev/dit/internal/app/utils"
-	ditclient "github.com/ditdotdev/dit-client-go"
 
 	"bytes"
 	"io"
@@ -96,7 +96,7 @@ func (f *fakeDocker) DitLatestIsDownloaded(string, app.Version) bool {
 }
 func (f *fakeDocker) DitLaunchIsAvailable() (bool, error) { return f.launchAvailable, nil }
 func (f *fakeDocker) DitServerIsAvailable() (bool, error) { return f.serverAvailable, nil }
-func (f *fakeDocker) FetchLaunchLogs() []string                  { return f.fetchLaunchLogs }
+func (f *fakeDocker) FetchLaunchLogs() []string           { return f.fetchLaunchLogs }
 func (f *fakeDocker) GetSliceFromImage(i string, k ...string) []string {
 	return f.getSliceFromImage[i+":"+joinKeys(k)]
 }
@@ -112,13 +112,13 @@ func (f *fakeDocker) InspectImage(string) (string, error) {
 func (f *fakeDocker) LaunchDitKubernetesServers() (string, error) {
 	return f.launchK8sOut, f.launchK8sErr
 }
-func (f *fakeDocker) Pull(string) (string, error)                   { f.PullCalls++; return "", f.pullErr }
-func (f *fakeDocker) Remove(string, bool) (string, error)           { f.RemoveCalls++; return "", f.removeErr }
-func (f *fakeDocker) RemoveDitImages(string) (string, error) { return "", f.removeImagesErr }
-func (f *fakeDocker) RemoveVolume(string, bool) (string, error)     { return "", f.removeVolumeErr }
-func (f *fakeDocker) Tag(string, string) (string, error)            { return "", f.tagErr }
-func (f *fakeDocker) Version() (string, error)                      { return "", f.versionErr }
-func (f *fakeDocker) VolumeExists(name string) bool                 { return f.volumeExists[name] }
+func (f *fakeDocker) Pull(string) (string, error)               { f.PullCalls++; return "", f.pullErr }
+func (f *fakeDocker) Remove(string, bool) (string, error)       { f.RemoveCalls++; return "", f.removeErr }
+func (f *fakeDocker) RemoveDitImages(string) (string, error)    { return "", f.removeImagesErr }
+func (f *fakeDocker) RemoveVolume(string, bool) (string, error) { return "", f.removeVolumeErr }
+func (f *fakeDocker) Tag(string, string) (string, error)        { return "", f.tagErr }
+func (f *fakeDocker) Version() (string, error)                  { return "", f.versionErr }
+func (f *fakeDocker) VolumeExists(name string) bool             { return f.volumeExists[name] }
 
 func joinKeys(k []string) string {
 	out := ""
