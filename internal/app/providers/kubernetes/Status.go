@@ -1,8 +1,8 @@
 package kubernetes
 
 import (
-	"github.com/ditdotdev/dit/internal/app/providers/common"
 	"fmt"
+	"github.com/ditdotdev/dit/internal/app/providers/common"
 	"strconv"
 )
 

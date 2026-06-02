@@ -1,11 +1,11 @@
 package providers
 
 import (
+	"fmt"
 	"github.com/ditdotdev/dit/internal/app"
 	cmn "github.com/ditdotdev/dit/internal/app/providers/common"
 	lcl "github.com/ditdotdev/dit/internal/app/providers/local"
 	"github.com/ditdotdev/dit/internal/app/utils"
-	"fmt"
 	"strings"
 )
 
@@ -27,11 +27,11 @@ func gitIdentity() (string, string) {
 }
 
 type local struct {
-	contextName             string
-	host                    string
-	portNum                 int
-	ditServerVersion string
-	dockerRegistryUrl       string
+	contextName       string
+	host              string
+	portNum           int
+	ditServerVersion  string
+	dockerRegistryUrl string
 }
 
 func (l local) GetType() string {
@@ -190,10 +190,10 @@ func (l local) Upgrade(force bool, version string, finalize bool, path string) {
 
 func Local(contextName string, host string, port int) Provider {
 	return local{
-		contextName:             contextName,
-		host:                    host,
-		portNum:                 port,
-		ditServerVersion: app.DitVersion,
-		dockerRegistryUrl:       defaultDockerRegistry,
+		contextName:       contextName,
+		host:              host,
+		portNum:           port,
+		ditServerVersion:  app.DitVersion,
+		dockerRegistryUrl: defaultDockerRegistry,
 	}
 }

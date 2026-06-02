@@ -1,10 +1,10 @@
 package local
 
 import (
-	"github.com/ditdotdev/dit/internal/app"
-	"github.com/ditdotdev/dit/internal/app/utils"
 	"fmt"
 	"github.com/briandowns/spinner"
+	"github.com/ditdotdev/dit/internal/app"
+	"github.com/ditdotdev/dit/internal/app/utils"
 	"strconv"
 	"strings"
 	"time"

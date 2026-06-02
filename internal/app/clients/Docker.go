@@ -1,9 +1,9 @@
 package clients
 
 import (
-	"github.com/ditdotdev/dit/internal/app"
 	"fmt"
 	"github.com/buger/jsonparser"
+	"github.com/ditdotdev/dit/internal/app"
 	"os"
 	"runtime"
 	"strconv"
