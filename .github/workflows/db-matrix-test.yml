@@ -23,16 +23,16 @@ jobs:
         database:
     
         # Amazon DynamoDB
-        # https://hub.docker.com/r/datadatdat/dynamodb-local
+        # https://hub.docker.com/r/ditdotdev/dynamodb-local
         # Wrapped versions of amazon/dynamodb-local with VOLUME directives
         # Source Dockerfiles: tests/endtoend/db-matrix/dynamodb-local-*.Dockerfile
-        - datadatdat/dynamodb-local:latest
-        - datadatdat/dynamodb-local:3.3.0
-        - datadatdat/dynamodb-local:3.2.0
-        - datadatdat/dynamodb-local:3.1.0
-        - datadatdat/dynamodb-local:3.0.0
-        - datadatdat/dynamodb-local:2.6.1
-        - datadatdat/dynamodb-local:2.5.4
+        - ditdotdev/dynamodb-local:latest
+        - ditdotdev/dynamodb-local:3.3.0
+        - ditdotdev/dynamodb-local:3.2.0
+        - ditdotdev/dynamodb-local:3.1.0
+        - ditdotdev/dynamodb-local:3.0.0
+        - ditdotdev/dynamodb-local:2.6.1
+        - ditdotdev/dynamodb-local:2.5.4
 
         # Apache Cassandra
         # https://hub.docker.com/_/cassandra
@@ -59,13 +59,13 @@ jobs:
 
         # CockroachDB
         # https://hub.docker.com/r/cockroachdb/cockroach
-        # https://hub.docker.com/r/datadatdat/cockroach
+        # https://hub.docker.com/r/ditdotdev/cockroach
         # Wrapped versions of cockroachdb/cockroach with VOLUME directives
         # Source Dockerfiles: tests/endtoend/db-matrix/cockroach-*.Dockerfile
-        - datadatdat/cockroach:v26.1.2
-        - datadatdat/cockroach:v25.4.8
-        - datadatdat/cockroach:v25.2.16
-        - datadatdat/cockroach:v24.3.30
+        - ditdotdev/cockroach:v26.1.2
+        - ditdotdev/cockroach:v25.4.8
+        - ditdotdev/cockroach:v25.2.16
+        - ditdotdev/cockroach:v24.3.30
 
         # Apache Hive
         # Not sure if this makes sense. 
@@ -79,12 +79,12 @@ jobs:
         - docker.dragonflydb.io/dragonflydb/dragonfly:v1.38.0
 
         # Elasticsearch
-        # https://hub.docker.com/r/datadatdat/elasticsearch
+        # https://hub.docker.com/r/ditdotdev/elasticsearch
         # Wrapped versions of elasticsearch with VOLUME directives
         # Source Dockerfiles: tests/endtoend/db-matrix/elasticsearch-*.Dockerfile
-        - datadatdat/elasticsearch:9.3.3
-        - datadatdat/elasticsearch:9.2.8
-        - datadatdat/elasticsearch:8.19.14
+        - ditdotdev/elasticsearch:9.3.3
+        - ditdotdev/elasticsearch:9.2.8
+        - ditdotdev/elasticsearch:8.19.14
 
         # Google BigQuery
         # Managed cloud service; no official DB server image on Docker Hub
@@ -111,13 +111,13 @@ jobs:
         # Cloud DB service; no official DB server image on Docker Hub
 
         # Microsoft SQL Server
-        # https://hub.docker.com/r/datadatdat/mssql-server
+        # https://hub.docker.com/r/ditdotdev/mssql-server
         # Wrapped versions of mcr.microsoft.com/mssql/server with VOLUME directives
         # Source Dockerfiles: tests/endtoend/db-matrix/mssql-*.Dockerfile
-        - datadatdat/mssql-server:2025
-        - datadatdat/mssql-server:2022
-        - datadatdat/mssql-server:2019
-        - datadatdat/mssql-server:2017
+        - ditdotdev/mssql-server:2025
+        - ditdotdev/mssql-server:2022
+        - ditdotdev/mssql-server:2019
+        - ditdotdev/mssql-server:2017
 
         # MongoDB
         - mongo:latest
@@ -137,69 +137,69 @@ jobs:
         - neo4j:5
 
         # Oracle
-        # https://hub.docker.com/r/datadatdat/oracle-xe
-        # https://hub.docker.com/r/datadatdat/oracle-free
+        # https://hub.docker.com/r/ditdotdev/oracle-xe
+        # https://hub.docker.com/r/ditdotdev/oracle-free
         # Wrapped versions of gvenzl/oracle-xe and gvenzl/oracle-free with VOLUME directives
         # Source Dockerfiles: tests/endtoend/db-matrix/oracle-*.Dockerfile
-        #- datadatdat/oracle-xe:latest
-        #- datadatdat/oracle-xe:latest-faststart
-        #- datadatdat/oracle-xe:slim
-        - datadatdat/oracle-xe:slim-faststart
-        #- datadatdat/oracle-xe:full
-        #- datadatdat/oracle-xe:full-faststart
+        #- ditdotdev/oracle-xe:latest
+        #- ditdotdev/oracle-xe:latest-faststart
+        #- ditdotdev/oracle-xe:slim
+        - ditdotdev/oracle-xe:slim-faststart
+        #- ditdotdev/oracle-xe:full
+        #- ditdotdev/oracle-xe:full-faststart
 
-        #- datadatdat/oracle-xe:21
-        #- datadatdat/oracle-xe:21-faststart
-        #- datadatdat/oracle-xe:21-slim
-        - datadatdat/oracle-xe:21-slim-faststart
-        #- datadatdat/oracle-xe:21-full
-        #- datadatdat/oracle-xe:21-full-faststart
+        #- ditdotdev/oracle-xe:21
+        #- ditdotdev/oracle-xe:21-faststart
+        #- ditdotdev/oracle-xe:21-slim
+        - ditdotdev/oracle-xe:21-slim-faststart
+        #- ditdotdev/oracle-xe:21-full
+        #- ditdotdev/oracle-xe:21-full-faststart
 
-        #- datadatdat/oracle-xe:18
-        #- datadatdat/oracle-xe:18-faststart
-        #- datadatdat/oracle-xe:18-slim
-        - datadatdat/oracle-xe:18-slim-faststart
-        #- datadatdat/oracle-xe:18-full
-        #- datadatdat/oracle-xe:18-full-faststart
+        #- ditdotdev/oracle-xe:18
+        #- ditdotdev/oracle-xe:18-faststart
+        #- ditdotdev/oracle-xe:18-slim
+        - ditdotdev/oracle-xe:18-slim-faststart
+        #- ditdotdev/oracle-xe:18-full
+        #- ditdotdev/oracle-xe:18-full-faststart
 
-        #- datadatdat/oracle-xe:11
-        #- datadatdat/oracle-xe:11-faststart
-        #- datadatdat/oracle-xe:11-slim
-        - datadatdat/oracle-xe:11-slim-faststart
-        #- datadatdat/oracle-xe:11-full
-        #- datadatdat/oracle-xe:11-full-faststart
+        #- ditdotdev/oracle-xe:11
+        #- ditdotdev/oracle-xe:11-faststart
+        #- ditdotdev/oracle-xe:11-slim
+        - ditdotdev/oracle-xe:11-slim-faststart
+        #- ditdotdev/oracle-xe:11-full
+        #- ditdotdev/oracle-xe:11-full-faststart
 
         # https://hub.docker.com/r/gvenzl/oracle-free
-        #- datadatdat/oracle-free:latest
-        #- datadatdat/oracle-free:latest-faststart
-        #- datadatdat/oracle-free:slim
-        - datadatdat/oracle-free:slim-faststart
-        #- datadatdat/oracle-free:full
-        #- datadatdat/oracle-free:full-faststart
+        #- ditdotdev/oracle-free:latest
+        #- ditdotdev/oracle-free:latest-faststart
+        #- ditdotdev/oracle-free:slim
+        - ditdotdev/oracle-free:slim-faststart
+        #- ditdotdev/oracle-free:full
+        #- ditdotdev/oracle-free:full-faststart
         
-        #- datadatdat/oracle-free:23
-        #- datadatdat/oracle-free:23-faststart
-        #- datadatdat/oracle-free:23-slim
-        - datadatdat/oracle-free:23-slim-faststart
-        #- datadatdat/oracle-free:23-full
-        #- datadatdat/oracle-free:23-full-faststart
+        #- ditdotdev/oracle-free:23
+        #- ditdotdev/oracle-free:23-faststart
+        #- ditdotdev/oracle-free:23-slim
+        - ditdotdev/oracle-free:23-slim-faststart
+        #- ditdotdev/oracle-free:23-full
+        #- ditdotdev/oracle-free:23-full-faststart
 
-        #- datadatdat/oracle-free:23.26.0
-        #- datadatdat/oracle-free:23.26.0-faststart
-        #- datadatdat/oracle-free:23.26.0-slim
-        - datadatdat/oracle-free:23.26.1-slim-faststart
-        - datadatdat/oracle-free:23.26.0-slim-faststart
-        #- datadatdat/oracle-free:23.26.0-full
-        #- datadatdat/oracle-free:23.26.0-full-faststart
+        #- ditdotdev/oracle-free:23.26.0
+        #- ditdotdev/oracle-free:23.26.0-faststart
+        #- ditdotdev/oracle-free:23.26.0-slim
+        - ditdotdev/oracle-free:23.26.1-slim-faststart
+        - ditdotdev/oracle-free:23.26.0-slim-faststart
+        #- ditdotdev/oracle-free:23.26.0-full
+        #- ditdotdev/oracle-free:23.26.0-full-faststart
 
         # OpenSearch
         # https://hub.docker.com/r/opensearchproject/opensearch
-        # https://hub.docker.com/r/datadatdat/opensearch
+        # https://hub.docker.com/r/ditdotdev/opensearch
         # Wrapped versions of opensearchproject/opensearch with VOLUME directives
         # Source Dockerfiles: tests/endtoend/db-matrix/opensearch-*.Dockerfile
-        - datadatdat/opensearch:3.6.0
-        - datadatdat/opensearch:3.5.0
-        - datadatdat/opensearch:2.19.5
+        - ditdotdev/opensearch:3.6.0
+        - ditdotdev/opensearch:3.5.0
+        - ditdotdev/opensearch:2.19.5
 
         # PostgreSQL
         - postgres:18
@@ -210,27 +210,27 @@ jobs:
 
         # Qdrant
         # https://hub.docker.com/r/qdrant/qdrant
-        # https://hub.docker.com/r/datadatdat/qdrant
+        # https://hub.docker.com/r/ditdotdev/qdrant
         # Wrapped versions of qdrant/qdrant with VOLUME directives
         # Source Dockerfiles: tests/endtoend/db-matrix/qdrant-*.Dockerfile
-        - datadatdat/qdrant:v1.17
-        - datadatdat/qdrant:v1.16
+        - ditdotdev/qdrant:v1.17
+        - ditdotdev/qdrant:v1.16
 
         # Redis
-        # https://hub.docker.com/r/datadatdat/redis
+        # https://hub.docker.com/r/ditdotdev/redis
         # Wrapped versions of redis with VOLUME directives
         # Source Dockerfiles: tests/endtoend/db-matrix/redis-*.Dockerfile
-        - datadatdat/redis:8
-        - datadatdat/redis:7
-        - datadatdat/redis:7.2
+        - ditdotdev/redis:8
+        - ditdotdev/redis:7
+        - ditdotdev/redis:7.2
 
         # Valkey
-        # https://hub.docker.com/r/datadatdat/valkey
+        # https://hub.docker.com/r/ditdotdev/valkey
         # Wrapped versions of valkey/valkey with VOLUME directives
         # Source Dockerfiles: tests/endtoend/db-matrix/valkey-*.Dockerfile
-        - datadatdat/valkey:9
-        - datadatdat/valkey:8
-        - datadatdat/valkey:7
+        - ditdotdev/valkey:9
+        - ditdotdev/valkey:8
+        - ditdotdev/valkey:7
 
         # ScyllaDB
         # https://hub.docker.com/r/scylladb/scylla
@@ -247,23 +247,23 @@ jobs:
 
         # TiDB
         # https://hub.docker.com/r/pingcap/tidb
-        # https://hub.docker.com/r/datadatdat/tidb
+        # https://hub.docker.com/r/ditdotdev/tidb
         # Wrapped versions of pingcap/tidb with VOLUME directives
         # Source Dockerfiles: tests/endtoend/db-matrix/tidb-*.Dockerfile
-        - datadatdat/tidb:v8.5.6
-        - datadatdat/tidb:v8.1.2
+        - ditdotdev/tidb:v8.5.6
+        - ditdotdev/tidb:v8.1.2
 
         # TigerGraph
         # https://hub.docker.com/r/tigergraph/tigergraph
-        # https://hub.docker.com/r/datadatdat/tigergraph
+        # https://hub.docker.com/r/ditdotdev/tigergraph
         # Wrapped versions of tigergraph/tigergraph with VOLUME directives
         # Source Dockerfiles: tests/endtoend/db-matrix/tigergraph-*.Dockerfile
         # Note: previously we were using TigerGraph Enterprise Edition. The need to get updated license keys was causing problems.
-        # Moving to CE because it has the same functionality needed for datadatdat. Keeping the old Enterprise images around for now in case we need to revert.
-        # - datadatdat/tigergraph:latest
-        # - datadatdat/tigergraph:4.2.2
-        - datadatdat/tigergraph-ce:4.2.2
-        # - datadatdat/tigergraph:4.1.4
+        # Moving to CE because it has the same functionality needed for dit. Keeping the old Enterprise images around for now in case we need to revert.
+        # - ditdotdev/tigergraph:latest
+        # - ditdotdev/tigergraph:4.2.2
+        - ditdotdev/tigergraph-ce:4.2.2
+        # - ditdotdev/tigergraph:4.1.4
 
         # TimescaleDB
         # https://hub.docker.com/r/timescale/timescaledb
@@ -295,11 +295,11 @@ jobs:
 
         # Chroma
         # https://hub.docker.com/r/chromadb/chroma
-        # https://hub.docker.com/r/datadatdat/chroma
+        # https://hub.docker.com/r/ditdotdev/chroma
         # Wrapped version of chromadb/chroma with VOLUME directive
         # Source Dockerfile: tests/endtoend/db-matrix/chroma-*.Dockerfile
         # AI-native vector database for embeddings and RAG
-        - datadatdat/chroma:1.5.7
+        - ditdotdev/chroma:1.5.7
 
         # CrateDB
         # https://hub.docker.com/r/crate/crate
@@ -308,19 +308,19 @@ jobs:
 
         # InfluxDB
         # https://hub.docker.com/_/influxdb
-        # https://hub.docker.com/r/datadatdat/influxdb
+        # https://hub.docker.com/r/ditdotdev/influxdb
         # Wrapped version of influxdb with VOLUME directive
         # Source Dockerfile: tests/endtoend/db-matrix/influxdb-*.Dockerfile
         # Time-series database for monitoring and observability
-        - datadatdat/influxdb:3.9.1-core
+        - ditdotdev/influxdb:3.9.1-core
 
         # Meilisearch
         # https://hub.docker.com/r/getmeili/meilisearch
-        # https://hub.docker.com/r/datadatdat/meilisearch
+        # https://hub.docker.com/r/ditdotdev/meilisearch
         # Wrapped version of getmeili/meilisearch with VOLUME directive
         # Source Dockerfile: tests/endtoend/db-matrix/meilisearch-*.Dockerfile
         # Fast, typo-tolerant search engine
-        - datadatdat/meilisearch:v1.42.1
+        - ditdotdev/meilisearch:v1.42.1
 
         # MinIO
         # https://hub.docker.com/r/minio/minio
@@ -329,19 +329,19 @@ jobs:
 
         # NATS with JetStream
         # https://hub.docker.com/_/nats
-        # https://hub.docker.com/r/datadatdat/nats
+        # https://hub.docker.com/r/ditdotdev/nats
         # Wrapped version of nats with VOLUME directive
         # Source Dockerfile: tests/endtoend/db-matrix/nats-*.Dockerfile
         # Cloud-native messaging system with persistence
-        - datadatdat/nats:2.12.7
+        - ditdotdev/nats:2.12.7
 
         # QuestDB
         # https://hub.docker.com/r/questdb/questdb
-        # https://hub.docker.com/r/datadatdat/questdb
+        # https://hub.docker.com/r/ditdotdev/questdb
         # Wrapped version of questdb/questdb with VOLUME directive
         # Source Dockerfile: tests/endtoend/db-matrix/questdb-*.Dockerfile
         # High-performance time-series database
-        - datadatdat/questdb:9.3.5
+        - ditdotdev/questdb:9.3.5
 
         # RabbitMQ
         # https://hub.docker.com/_/rabbitmq
@@ -350,27 +350,27 @@ jobs:
 
         # StarRocks
         # https://hub.docker.com/r/starrocks/allin1-ubuntu
-        # https://hub.docker.com/r/datadatdat/starrocks
+        # https://hub.docker.com/r/ditdotdev/starrocks
         # Wrapped version of starrocks/allin1-ubuntu with VOLUME directive
         # Source Dockerfile: tests/endtoend/db-matrix/starrocks-*.Dockerfile
         # High-performance OLAP database
-        - datadatdat/starrocks:4.1.0
+        - ditdotdev/starrocks:4.1.0
 
         # Typesense
         # https://hub.docker.com/r/typesense/typesense
-        # https://hub.docker.com/r/datadatdat/typesense
+        # https://hub.docker.com/r/ditdotdev/typesense
         # Wrapped version of typesense/typesense with VOLUME directive
         # Source Dockerfile: tests/endtoend/db-matrix/typesense-*.Dockerfile
         # Open-source search engine alternative to Elasticsearch
-        - datadatdat/typesense:30.2
+        - ditdotdev/typesense:30.2
 
         # Weaviate
         # https://hub.docker.com/r/semitechnologies/weaviate
-        # https://hub.docker.com/r/datadatdat/weaviate
+        # https://hub.docker.com/r/ditdotdev/weaviate
         # Wrapped version of semitechnologies/weaviate with VOLUME directive
         # Source Dockerfile: tests/endtoend/db-matrix/weaviate-*.Dockerfile
         # AI-native vector database for semantic search
-        - datadatdat/weaviate:1.37.0
+        - ditdotdev/weaviate:1.37.0
 
         # Snowflake
         # Snowflake is a managed cloud service; no official DB server image on Docker Hub (only third-party/local solutions and Snowflake’s own OCI registry for app images).
@@ -382,7 +382,7 @@ jobs:
         # Same as SQLite — embedded/in-process database with no server container to version.
 
         # SQLite
-        # SQLite is fundamentally incompatible with datadatdat's model of versioning database servers with persistent storage.
+        # SQLite is fundamentally incompatible with dit's model of versioning database servers with persistent storage.
 
     steps:
       - name: Checkout code
@@ -409,27 +409,27 @@ jobs:
 
       - name: Configure Go for private repos
         run: |
-          go env -w GOPRIVATE=github.com/datadatdat/*
-          go env -w GONOPROXY=github.com/datadatdat/*
-          go env -w GONOSUMDB=github.com/datadatdat/*
+          go env -w GOPRIVATE=github.com/ditdotdev/*
+          go env -w GONOPROXY=github.com/ditdotdev/*
+          go env -w GONOSUMDB=github.com/ditdotdev/*
           go env -w GOPROXY=https://proxy.golang.org,direct
         shell: bash
         env:
-          GOPRIVATE: github.com/datadatdat/*
-          GONOPROXY: github.com/datadatdat/*
-          GONOSUMDB: github.com/datadatdat/*
+          GOPRIVATE: github.com/ditdotdev/*
+          GONOPROXY: github.com/ditdotdev/*
+          GONOSUMDB: github.com/ditdotdev/*
 
       - name: Output Kernel Info
         run: |
           docker pull busybox
           docker run busybox uname -a
 
-      - name: Build Datadatdat from source
+      - name: Build Dit from source
         run: |
           VERSION=$(gh release view --json tagName -q .tagName)
           echo "Building with version: $VERSION"
           make build VERSION=$VERSION
-          build/d3 --version
+          build/dit --version
         shell: bash
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -478,21 +478,21 @@ jobs:
           sudo npm install -g bats
           bats --version
           
-          # Copy build/d3 to d3
-          cp build/d3 d3
+          # Copy build/dit to dit
+          cp build/dit dit
       
-      - name: Install Datadatdat infrastructure
+      - name: Install Dit infrastructure
         run: |
           export PATH=$GITHUB_WORKSPACE/build:$PATH
-          build/d3 install --verbose
+          build/dit install --verbose
 
-      - name: Wait for Datadatdat server to be ready
+      - name: Wait for Dit server to be ready
         run: |
-          echo "Waiting for datadatdat-docker-server container to start..."
-          timeout 120 bash -c 'until docker inspect datadatdat-docker-server --format "{{.State.Running}}" 2>/dev/null | grep -q true; do sleep 1; done'
+          echo "Waiting for dit-docker-server container to start..."
+          timeout 120 bash -c 'until docker inspect dit-docker-server --format "{{.State.Running}}" 2>/dev/null | grep -q true; do sleep 1; done'
           echo "Container is up, waiting for Java server on port 5001..."
-          timeout 120 bash -c 'until docker exec datadatdat-docker-server nc -z localhost 5001 2>/dev/null; do sleep 1; done'
-          echo "Datadatdat server is ready"
+          timeout 120 bash -c 'until docker exec dit-docker-server nc -z localhost 5001 2>/dev/null; do sleep 1; done'
+          echo "Dit server is ready"
 
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v6
@@ -528,7 +528,7 @@ jobs:
           VERSION="${DB_VERSION#*:}"
           SAFE_VERSION="${VERSION//\//-}"
           SAFE_VERSION="${SAFE_VERSION//:/-}"
-          S3_PATH="s3://datadatdat-testdata/e2etest/run-${{ github.run_id }}-${{ github.run_attempt }}/${DB}-${SAFE_VERSION}"
+          S3_PATH="s3://dit-testdata/e2etest/run-${{ github.run_id }}-${{ github.run_attempt }}/${DB}-${SAFE_VERSION}"
           echo "Cleaning up S3 path: $S3_PATH"
           aws s3 rm "$S3_PATH" --recursive || true
         env:
@@ -540,7 +540,7 @@ jobs:
         if: failure()
         run: |
           export PATH=$GITHUB_WORKSPACE/build:$PATH
-          build/d3 uninstall --force || true
+          build/dit uninstall --force || true
       
       - name: Cleanup Docker resources
         if: always()

@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	k8s "datadatdat/internal/app/providers/kubernetes"
+	k8s "github.com/ditdotdev/dit/internal/app/providers/kubernetes"
 )
 
 func TestKubernetes_Constructor(t *testing.T) {
@@ -127,7 +127,7 @@ func TestKubernetes_AllDelegators_CoverDispatch(t *testing.T) {
 			p2 := Kubernetes("ctx", "h", startMockServer(t, func(w http.ResponseWriter, r *http.Request) {
 				w.Header().Set("Content-Type", "application/json")
 				if strings.HasSuffix(r.URL.Path, "/remotes") {
-					_, _ = w.Write([]byte(`[{"provider":"datadatdat","name":"origin","properties":{"host":"example.com","org":"o","repo":"r"}}]`))
+					_, _ = w.Write([]byte(`[{"provider":"dit","name":"origin","properties":{"host":"example.com","org":"o","repo":"r"}}]`))
 					return
 				}
 				_, _ = w.Write([]byte("[]"))

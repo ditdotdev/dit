@@ -236,7 +236,7 @@ func TestUninstall_TeardownErrorIsWarning(t *testing.T) {
 	})
 
 	d := &fakeDocker{
-		datadatdatServerAvailable: true,
+		ditServerAvailable: true,
 		teardownErr:               errors.New("zfs pool busy"),
 	}
 

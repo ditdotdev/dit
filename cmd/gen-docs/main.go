@@ -4,7 +4,7 @@
 // CI runs the same target and then `git diff --exit-code` against the generated
 // directory — so a CLI flag or help-text change must ship with regenerated
 // reference docs, or the PR fails. This keeps the public reference at
-// datadatdat.com/docs/cli in sync with the actual CLI.
+// dit.dev/docs/cli in sync with the actual CLI.
 package main
 
 import (
@@ -17,7 +17,7 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/spf13/cobra/doc"
 
-	"datadatdat/internal/app/commands"
+	"github.com/ditdotdev/dit/internal/app/commands"
 )
 
 const defaultOutDir = "docs/src/cli/cmd"
@@ -26,8 +26,8 @@ const defaultOutDir = "docs/src/cli/cmd"
 // reports progress to stdout. Pulled out of main() so it's testable.
 //
 // Uses GenMarkdownTreeCustom so the SEE ALSO cross-reference links land
-// as `[d3](d3)` instead of `[d3](d3.md)` — the Next.js renderer at
-// datadatdat.com/docs routes by clean slug (/docs/cli/cmd/d3), and the
+// as `[dit](dit)` instead of `[dit](dit.md)` — the Next.js renderer at
+// dit.dev/docs routes by clean slug (/docs/cli/cmd/dit), and the
 // default `.md` suffix 404s.
 func generate(root *cobra.Command, outDir string, stdout io.Writer) error {
 	if err := os.MkdirAll(outDir, 0o750); err != nil {

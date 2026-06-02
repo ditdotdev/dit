@@ -1,9 +1,9 @@
 package providers
 
 import (
-	"datadatdat/internal/app"
-	cmn "datadatdat/internal/app/providers/common"
-	k8s "datadatdat/internal/app/providers/kubernetes"
+	"github.com/ditdotdev/dit/internal/app"
+	cmn "github.com/ditdotdev/dit/internal/app/providers/common"
+	k8s "github.com/ditdotdev/dit/internal/app/providers/kubernetes"
 	"fmt"
 )
 
@@ -11,7 +11,7 @@ type kubernetes struct {
 	contextName             string
 	host                    string
 	portNum                 int
-	datadatdatServerVersion string
+	ditServerVersion string
 	dockerRegistryUrl       string
 }
 
@@ -81,7 +81,7 @@ func (k kubernetes) Delete(repo string, commit string, tags []string) {
 }
 
 func (k kubernetes) Install(properties []string, verbose bool) {
-	k8s.Install(k.datadatdatServerVersion, k.dockerRegistryUrl, verbose, k.portNum, k.contextName)
+	k8s.Install(k.ditServerVersion, k.dockerRegistryUrl, verbose, k.portNum, k.contextName)
 }
 
 func (k kubernetes) List(context string) {
@@ -155,7 +155,7 @@ func (k kubernetes) Upgrade(force bool, version string, finalize bool, path stri
 	// and the CSI driver lifecycle. None of that is wired up. Fail with a
 	// clear message instead of the previous `panic("implement me")` which
 	// dumped a Go stack trace at users.
-	fmt.Println("upgrade is not supported in kubernetes context; redeploy the datadatdat-server manifest with the new image tag instead")
+	fmt.Println("upgrade is not supported in kubernetes context; redeploy the dit-server manifest with the new image tag instead")
 	osExit(1)
 }
 
@@ -164,7 +164,7 @@ func Kubernetes(contextName string, host string, port int) Provider {
 		contextName:             contextName,
 		host:                    host,
 		portNum:                 port,
-		datadatdatServerVersion: app.DatadatdatVersion,
+		ditServerVersion: app.DitVersion,
 		dockerRegistryUrl:       defaultDockerRegistry,
 	}
 }

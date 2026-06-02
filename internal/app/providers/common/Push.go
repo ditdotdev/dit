@@ -1,14 +1,17 @@
 package common
 
 import (
-	util "datadatdat/internal/app/utils"
+	util "github.com/ditdotdev/dit/internal/app/utils"
 	"fmt"
 	"net/http"
 	"os"
 	"strconv"
 
-	datadatdatclient "github.com/datadatdat/datadatdat-client-go"
+	ditclient "github.com/ditdotdev/dit-client-go"
 )
+
+// providerDit is the remote provider name for the dit-hosted backend.
+const providerDit = "dit"
 
 func ensureRemoteRepoExists(properties map[string]interface{}) error {
 	apiBaseURL, _ := properties["api_base_url"].(string)
@@ -18,9 +21,9 @@ func ensureRemoteRepoExists(properties map[string]interface{}) error {
 		return fmt.Errorf("missing api_base_url, org, or repo in remote properties")
 	}
 	// Allow overriding the host-visible gateway URL. Needed in environments where
-	// the remote URL uses a Docker-internal hostname (e.g. datadatdat-api-gateway)
-	// that isn't resolvable from the host process running d3.
-	if hostGateway := os.Getenv("DATADATDAT_HOST_GATEWAY"); hostGateway != "" {
+	// the remote URL uses a Docker-internal hostname (e.g. dit-api-gateway)
+	// that isn't resolvable from the host process running dit.
+	if hostGateway := os.Getenv("DIT_HOST_GATEWAY"); hostGateway != "" {
 		apiBaseURL = hostGateway
 	}
 	url := fmt.Sprintf("%s/api/v1/repos/%s/%s", apiBaseURL, org, repo)
@@ -28,7 +31,7 @@ func ensureRemoteRepoExists(properties map[string]interface{}) error {
 	// Check if repo already exists before creating. Creating an existing repo
 	// overwrites its manifest with an empty one, destroying commit history.
 	if getReq, err := http.NewRequest(http.MethodGet, url, nil); err == nil { // #nosec G704 -- URL built from configured remote properties, not untrusted input
-		if apiKey := os.Getenv("DATADATDAT_API_KEY"); apiKey != "" {
+		if apiKey := os.Getenv("DIT_API_KEY"); apiKey != "" {
 			getReq.Header.Set("Authorization", "Bearer "+apiKey)
 		}
 		if getResp, err := http.DefaultClient.Do(getReq); err == nil { // #nosec G704 -- request uses validated URL from remote config
@@ -43,7 +46,7 @@ func ensureRemoteRepoExists(properties map[string]interface{}) error {
 	if err != nil {
 		return err
 	}
-	if apiKey := os.Getenv("DATADATDAT_API_KEY"); apiKey != "" {
+	if apiKey := os.Getenv("DIT_API_KEY"); apiKey != "" {
 		req.Header.Set("Authorization", "Bearer "+apiKey)
 	}
 	resp, err := http.DefaultClient.Do(req) // #nosec G704 -- URL from configured remote properties
@@ -78,13 +81,13 @@ func Push(repoName string, guid string, remoteName string, tags []string, metada
 	}
 	remote, _, err := remotesApi.GetRemote(ctx, repoName, name).Execute()
 	if err != nil || remote.Provider == "" {
-		fmt.Printf("remote '%s' not found for repository '%s', run 'd3 remote add' first\n", name, repoName)
+		fmt.Printf("remote '%s' not found for repository '%s', run 'dit remote add' first\n", name, repoName)
 		osExit(1)
 	}
-	commit := datadatdatclient.Commit{
+	commit := ditclient.Commit{
 		Id: "id",
 	}
-	if remote.Provider == "datadatdat" {
+	if remote.Provider == providerDit {
 		if err := ensureRemoteRepoExists(remote.Properties); err != nil {
 			fmt.Printf("failed to create remote repository: %s\n", err)
 			osExit(1)
@@ -96,7 +99,7 @@ func Push(repoName string, guid string, remoteName string, tags []string, metada
 		osExit(1)
 	}
 	p, _ := provider.GetParameters(remote.Properties)
-	params := datadatdatclient.RemoteParameters{
+	params := ditclient.RemoteParameters{
 		Provider:   remote.Provider,
 		Properties: p,
 	}
@@ -131,7 +134,7 @@ func Push(repoName string, guid string, remoteName string, tags []string, metada
 	// Check if commit already exists in the remote to prevent duplicate pushes.
 	// Skip for metadata-only pushes (--update-only), which re-push to sync tags.
 	if !metadataOnly {
-		remoteCommits, _, listErr := remotesApi.ListRemoteCommits(ctx, repoName, name).RemoteParameters(datadatdatclient.RemoteParameters{
+		remoteCommits, _, listErr := remotesApi.ListRemoteCommits(ctx, repoName, name).RemoteParameters(ditclient.RemoteParameters{
 			Provider:   remote.Provider,
 			Properties: p,
 		}).Execute()

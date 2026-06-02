@@ -9,12 +9,12 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"datadatdat/internal/app/commands"
+	"github.com/ditdotdev/dit/internal/app/commands"
 )
 
 // generate walks the live Cobra root and writes one .md per command. We
 // point it at a temp dir to keep the test hermetic, and assert the files
-// that downstream tooling depends on (d3.md as the root and d3_clone.md
+// that downstream tooling depends on (dit.md as the root and dit_clone.md
 // as a representative subcommand) actually show up with the expected
 // flag/synopsis content.
 func TestGenerate_LiveRoot(t *testing.T) {
@@ -25,14 +25,14 @@ func TestGenerate_LiveRoot(t *testing.T) {
 		t.Fatalf("generate: %v", err)
 	}
 
-	for _, name := range []string{"d3.md", "d3_clone.md"} {
+	for _, name := range []string{"dit.md", "dit_clone.md"} {
 		path := filepath.Join(outDir, name)
 		data, err := os.ReadFile(path) // #nosec G304 -- test-controlled temp dir
 		if err != nil {
 			t.Fatalf("expected %s to exist: %v", name, err)
 		}
-		if !strings.HasPrefix(string(data), "## d3") {
-			t.Errorf("%s should start with '## d3', got %q", name, firstLine(string(data)))
+		if !strings.HasPrefix(string(data), "## dit") {
+			t.Errorf("%s should start with '## dit', got %q", name, firstLine(string(data)))
 		}
 	}
 
@@ -54,7 +54,7 @@ func TestGenerate_MkdirError(t *testing.T) {
 	}
 	bogus := filepath.Join(file, "child")
 
-	err := generate(&cobra.Command{Use: "d3"}, bogus, new(bytes.Buffer))
+	err := generate(&cobra.Command{Use: "dit"}, bogus, new(bytes.Buffer))
 	if err == nil {
 		t.Fatal("expected error when outDir cannot be created")
 	}

@@ -7,7 +7,7 @@ import (
 // deleteCmd represents the delete command
 var deleteCmd = &cobra.Command{
 	Use:   "delete [REPOSITORY]",
-	Short: "Delete objects from datadatdat",
+	Short: "Delete objects from dit",
 	Args:  cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
 		repo := args[0]

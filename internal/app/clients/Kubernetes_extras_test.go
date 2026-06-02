@@ -8,7 +8,7 @@ import (
 	"testing"
 	"time"
 
-	datadatdatclient "github.com/datadatdat/datadatdat-client-go"
+	ditclient "github.com/ditdotdev/dit-client-go"
 	v1Apps "k8s.io/api/apps/v1"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -43,8 +43,8 @@ func TestPortForwardPidDir_NonEmpty(t *testing.T) {
 	if dir == "" {
 		t.Error("portForwardPidDir returned empty string")
 	}
-	if !strings.Contains(dir, ".datadatdat") {
-		t.Errorf("expected .datadatdat in path, got %q", dir)
+	if !strings.Contains(dir, ".dit") {
+		t.Errorf("expected .dit in path, got %q", dir)
 	}
 }
 
@@ -63,7 +63,7 @@ func TestPortForwardPidFilePath_IncludesRepoAndPort(t *testing.T) {
 }
 
 func TestWritePortForwardPid_AndReadBack(t *testing.T) {
-	// Redirect HOME so we don't write into the real ~/.datadatdat.
+	// Redirect HOME so we don't write into the real ~/.dit.
 	tmpHome := t.TempDir()
 	origHome := os.Getenv("HOME")
 	origUserProfile := os.Getenv("USERPROFILE")
@@ -137,7 +137,7 @@ func TestPortForwardPidFilesFor_NoDir_ReturnsNil(t *testing.T) {
 		_ = os.Setenv("HOME", origHome)
 		_ = os.Setenv("USERPROFILE", origUserProfile)
 	}()
-	// No .datadatdat dir exists -> ReadDir errors -> returns nil.
+	// No .dit dir exists -> ReadDir errors -> returns nil.
 	out := portForwardPidFilesFor("any-repo")
 	// Whether out is nil depends on platform's HomeDir resolution; we
 	// just verify it doesn't panic.
@@ -253,7 +253,7 @@ func TestUpdateStatefulSetVolumes_NoVolumes_ReturnsEarly(t *testing.T) {
 			t.Fatalf("panic: %v", r)
 		}
 	}()
-	k.UpdateStatefulSetVolumes("myrepo", []datadatdatclient.Volume{})
+	k.UpdateStatefulSetVolumes("myrepo", []ditclient.Volume{})
 }
 
 // ---------------------------------------------------------------------------
@@ -288,8 +288,8 @@ func TestStartPortForwarding_NoService_PollsThenReturns(t *testing.T) {
 // To avoid actually leaking a kubectl child process, we redirect HOME so
 // any pid file lands in a tmp dir that gets cleaned up.
 func TestStartPortForwarding_ReadyEndpointsWithPort(t *testing.T) {
-	if os.Getenv("CI") == "" && os.Getenv("DATADATDAT_TEST_KUBECTL") == "" {
-		t.Skip("skipping kubectl-spawning test; set DATADATDAT_TEST_KUBECTL=1 to run")
+	if os.Getenv("CI") == "" && os.Getenv("DIT_TEST_KUBECTL") == "" {
+		t.Skip("skipping kubectl-spawning test; set DIT_TEST_KUBECTL=1 to run")
 	}
 	tmpHome := t.TempDir()
 	t.Setenv("HOME", tmpHome)
@@ -424,7 +424,7 @@ func TestUpdateStatefulSetVolumes_WithMatchingVolume_DoesNotPanic(t *testing.T) 
 			t.Fatalf("panic: %v", r)
 		}
 	}()
-	k.UpdateStatefulSetVolumes("myrepo", []datadatdatclient.Volume{
+	k.UpdateStatefulSetVolumes("myrepo", []ditclient.Volume{
 		{Name: "data", Config: map[string]interface{}{"pvc": "myrepo-data-v2"}},
 	})
 }
@@ -597,7 +597,7 @@ func TestCreateStatefulSet_VolumeMissingPVC_Errors(t *testing.T) {
 	defer restore()
 	k := kubernetes{namespace: testNamespace}
 	err := k.CreateStatefulSet("myrepo", "img:1", []int{5432},
-		[]datadatdatclient.Volume{
+		[]ditclient.Volume{
 			{Name: "data", Properties: map[string]interface{}{"path": "/data"}, Config: map[string]interface{}{}},
 		}, nil)
 	if err == nil {
@@ -618,7 +618,7 @@ func TestCreateStatefulSet_DuplicateNamespaceDiff(t *testing.T) {
 
 	k := kubernetes{namespace: testNamespace}
 	err := k.CreateStatefulSet("demo", "img:1", []int{},
-		[]datadatdatclient.Volume{{
+		[]ditclient.Volume{{
 			Name:       "data",
 			Properties: map[string]interface{}{"path": "/data"},
 			Config:     map[string]interface{}{"pvc": "demo-data-v1"},

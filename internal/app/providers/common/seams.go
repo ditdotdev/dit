@@ -1,7 +1,7 @@
 package common
 
 import (
-	"datadatdat/internal/app/clients"
+	"github.com/ditdotdev/dit/internal/app/clients"
 	"os"
 )
 
@@ -25,7 +25,7 @@ var newDocker = func(context string, port int) dockerClient {
 var osExit = os.Exit
 
 // SetOsExitForTesting swaps the package-level osExit seam. Callers from
-// outside this package (notably tests in datadatdat/internal/app/providers
+// outside this package (notably tests in github.com/ditdotdev/dit/internal/app/providers
 // that drive the local + kubernetes delegators) can intercept osExit
 // without having to live inside this package. Returns the previous value
 // so callers can restore it on cleanup.

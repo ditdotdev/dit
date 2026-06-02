@@ -12,7 +12,7 @@ Tags are structured as a `key=value` map, where each key must be unique.
 For example, creating a commit with `build=nightly` and later updating it
 to be `build=archive` will overwrite the previous value. As a convenience,
 the value can be omitted, in which case the empty string will be used. This
-lets tags be used as labels, such as `d3 commit -t nightly ...`.
+lets tags be used as labels, such as `dit commit -t nightly ...`.
 
 ## Local Tags
 
@@ -23,7 +23,7 @@ and removed by cli_cmd_delete.
 Tags are displayed as part of cli_cmd_log
 
 ```bash
-$ d3 log postgres
+$ dit log postgres
 commit 428f81caf63d4314b8f41a31aad2e8b1
 User: Eric Schrock
 Email: Eric.Schrock@delphix.com
@@ -65,7 +65,7 @@ tag creation, this allows the value to be optional, treating the tags more
 like labels with no explicit value
 
 ```bash
-$ d3 log -t baz -t foo=bar postgres
+$ dit log -t baz -t foo=bar postgres
 commit 428f81caf63d4314b8f41a31aad2e8b1
 User: Eric Schrock
 Email: Eric.Schrock@delphix.com

@@ -6,7 +6,7 @@ import (
 	"strconv"
 	"strings"
 
-	datadatdatclient "github.com/datadatdat/datadatdat-client-go"
+	ditclient "github.com/ditdotdev/dit-client-go"
 )
 
 func getLocalSrcFromPath(path string, mounts []mount) string {
@@ -55,8 +55,8 @@ func Migrate(container string, name string, user string, email string, commit Co
 	}
 	fmt.Println("Creating repository " + name)
 	var args []string
-	args = append(args, "-d", "--label", "com.datadatdat.datadatdat")
-	repo := datadatdatclient.Repository{
+	args = append(args, "-d", "--label", "dev.dit.dit")
+	repo := ditclient.Repository{
 		Name:       name,
 		Properties: make(map[string]interface{}),
 	}
@@ -96,7 +96,7 @@ func Migrate(container string, name string, user string, email string, commit Co
 				fmt.Printf("Warning: Failed to deactivate volume %s: %v\n", v, err)
 			}
 		}
-		args = append(args, "--mount", "type=volume,src="+volName+",dst="+path+",volume-driver=datadatdat-"+docker.GetIdentity())
+		args = append(args, "--mount", "type=volume,src="+volName+",dst="+path+",volume-driver=dit-"+docker.GetIdentity())
 	}
 
 	e := docker.GetSliceFromContainer(container, "Config", "Env")
@@ -130,7 +130,7 @@ func Migrate(container string, name string, user string, email string, commit Co
 	metadata["container"] = repoDigest
 	metadata["runtime"] = strings.Join(args, " ")
 
-	updateRepo := datadatdatclient.Repository{
+	updateRepo := ditclient.Repository{
 		Name:       name,
 		Properties: metadata,
 	}

@@ -3,7 +3,7 @@ name: End to End Test
 on:
   schedule:
     # Weekly on Sunday at 03:30 UTC (was daily — #144). The CLI E2E pulls
-    # the datadatdat/datadatdat server image which only changes on
+    # the ditdotdev/dit server image which only changes on
     # tagged releases; daily cadence was over-spending vs the regression
     # signal it produced. Manual dispatch still available for ad-hoc runs.
     - cron: '30 3 * * 0'
@@ -36,29 +36,29 @@ jobs:
           go-version: '1.26.2'
       - name: Configure Go for private modules
         run: |
-          go env -w GOPRIVATE=github.com/datadatdat/*
-          go env -w GONOPROXY=github.com/datadatdat/*
-          go env -w GONOSUMDB=github.com/datadatdat/*
+          go env -w GOPRIVATE=github.com/ditdotdev/*
+          go env -w GONOPROXY=github.com/ditdotdev/*
+          go env -w GONOSUMDB=github.com/ditdotdev/*
           go env -w GOPROXY=https://proxy.golang.org,direct
         shell: bash
         env:
-          GOPRIVATE: github.com/datadatdat/*
-          GONOPROXY: github.com/datadatdat/*
-          GONOSUMDB: github.com/datadatdat/*
+          GOPRIVATE: github.com/ditdotdev/*
+          GONOPROXY: github.com/ditdotdev/*
+          GONOSUMDB: github.com/ditdotdev/*
       - name: Output Kernel Info
         run: |
          docker pull busybox
          docker run busybox uname -a
-      - name: Build Datadatdat
+      - name: Build Dit
         run: |
           VERSION=$(git describe --tags --abbrev=0)
-          echo "Building d3 CLI with version: $VERSION"
+          echo "Building dit CLI with version: $VERSION"
           make build VERSION=$VERSION
         shell: bash
         env:
-          GOPRIVATE: github.com/datadatdat/*
-          GONOPROXY: github.com/datadatdat/*
-          GONOSUMDB: github.com/datadatdat/*
+          GOPRIVATE: github.com/ditdotdev/*
+          GONOPROXY: github.com/ditdotdev/*
+          GONOSUMDB: github.com/ditdotdev/*
           GIT_TERMINAL_PROMPT: 0
       - name: Install OpenZFS
         run: |
@@ -104,8 +104,8 @@ jobs:
           sudo npm install -g bats
           bats --version
 
-          # Copy build/d3 to d3
-          cp build/d3 d3
+          # Copy build/dit to dit
+          cp build/dit dit
 
           # Generate SSH keys using the project's generateKey.sh script
           cd tests/endtoend/remotes/ssh
@@ -119,9 +119,9 @@ jobs:
       # driver=none (kubeadm directly on the runner host) instead of the
       # docker driver: the docker driver runs the apiserver inside a
       # container on minikube's private network (192.168.49.2:8443),
-      # which the d3 server container — running on its own docker bridge
+      # which the dit server container — running on its own docker bridge
       # — has no route to. CreateVolume / CreatePVC then fails with a
-      # 500 from inside the d3 server. driver=none puts the apiserver on
+      # 500 from inside the dit server. driver=none puts the apiserver on
       # the host network where every container can reach it.
       - name: Setup minikube
         uses: medyagh/setup-minikube@latest
@@ -134,7 +134,7 @@ jobs:
           kubectl get nodes
 
       # Enable CSI snapshot support so kubernetes-tests.bats can exercise
-      # `d3 commit` in the scheduled E2E. See pull-request.yml for the
+      # `dit commit` in the scheduled E2E. See pull-request.yml for the
       # longer rationale.
       - name: Enable CSI volume snapshots in minikube
         run: |
@@ -143,7 +143,7 @@ jobs:
           kubectl patch storageclass standard -p '{"metadata": {"annotations":{"storageclass.kubernetes.io/is-default-class":"false"}}}'
           kubectl patch storageclass csi-hostpath-sc -p '{"metadata": {"annotations":{"storageclass.kubernetes.io/is-default-class":"true"}}}'
           # csi-hostpath-snapclass also needs the default-class annotation
-          # for d3's commitVolume to find a snapshot class. See
+          # for dit's commitVolume to find a snapshot class. See
           # pull-request.yml for the longer rationale.
           kubectl patch volumesnapshotclass csi-hostpath-snapclass --type=merge -p '{"metadata":{"annotations":{"snapshot.storage.kubernetes.io/is-default-class":"true"}}}'
 
@@ -169,7 +169,7 @@ jobs:
       - name: Show container and k8s logs
         if: always()
         run: |
-          for c in $(docker ps -a --filter "name=datadatdat" --format '{{.Names}}'); do
+          for c in $(docker ps -a --filter "name=dit" --format '{{.Names}}'); do
             echo "=== docker logs $c ==="
             docker logs "$c" 2>&1 | tail -200 || true
           done
@@ -188,9 +188,9 @@ jobs:
       - name: Cleanup run-specific S3 prefixes
         if: always()
         run: |
-          aws s3 rm "s3://demo-datadatdat/simple-test/run-${{ github.run_id }}-${{ github.run_attempt }}" --recursive || true
-          aws s3 rm "s3://datadatdat-testdata/e2etest/run-${{ github.run_id }}-${{ github.run_attempt }}" --recursive || true
-          aws s3 rm "s3://datadatdat-testdata/e2etest-pushpull/run-${{ github.run_id }}-${{ github.run_attempt }}" --recursive || true
+          aws s3 rm "s3://demo-ditdotdev/simple-test/run-${{ github.run_id }}-${{ github.run_attempt }}" --recursive || true
+          aws s3 rm "s3://dit-testdata/e2etest/run-${{ github.run_id }}-${{ github.run_attempt }}" --recursive || true
+          aws s3 rm "s3://dit-testdata/e2etest-pushpull/run-${{ github.run_id }}-${{ github.run_attempt }}" --recursive || true
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}

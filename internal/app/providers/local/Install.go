@@ -1,8 +1,8 @@
 package local
 
 import (
-	"datadatdat/internal/app"
-	"datadatdat/internal/app/utils"
+	"github.com/ditdotdev/dit/internal/app"
+	"github.com/ditdotdev/dit/internal/app/utils"
 	"fmt"
 	"github.com/briandowns/spinner"
 	"strconv"
@@ -19,7 +19,7 @@ func Install(latest string, registry string, verbose bool, port int, context str
 	s := spinner.New(spinner.CharSets[9], 100*time.Millisecond)
 	s.HideCursor = true
 
-	fmt.Println("Initializing datadatdat infrastructure")
+	fmt.Println("Initializing dit infrastructure")
 
 	// On Windows, check WSL2 kernel compatibility before proceeding
 	utils.CheckWSL2AndAdvise()
@@ -32,59 +32,59 @@ func Install(latest string, registry string, verbose bool, port int, context str
 		osExit(1)
 	}
 
-	if !docker.DatadatdatLatestIsDownloaded(registry, app.Version{}.FromString(latest)) {
+	if !docker.DitLatestIsDownloaded(registry, app.Version{}.FromString(latest)) {
 		var pullRegistry = registry
 		if registry == "local" {
-			// If local registry specified but no local image, fall back to datadatdat
-			pullRegistry = "datadatdat"
+			// If local registry specified but no local image, fall back to dit
+			pullRegistry = "dit"
 		}
-		s.Prefix = "Pulling datadatdat docker image (may take a while) "
+		s.Prefix = "Pulling dit docker image (may take a while) "
 		s.FinalMSG = "Latest docker image downloaded"
 		s.Start()
-		pullImage := pullRegistry + "/datadatdat:" + latest
+		pullImage := pullRegistry + "/dit:" + latest
 		if _, err := docker.Pull(pullImage); err != nil {
 			fmt.Printf("Error pulling image %s: %v\n", pullImage, err)
 			osExit(1)
 		}
-		tagLatest := "datadatdat:" + latest
+		tagLatest := "dit:" + latest
 		if _, err := docker.Tag(pullImage, tagLatest); err != nil {
 			fmt.Printf("Error tagging image: %v\n", err)
 		}
-		if _, err := docker.Tag(pullImage, "datadatdat"); err != nil {
-			fmt.Printf("Error tagging image as datadatdat: %v\n", err)
+		if _, err := docker.Tag(pullImage, "dit"); err != nil {
+			fmt.Printf("Error tagging image as dit: %v\n", err)
 		}
 		s.Stop()
 		fmt.Println()
 	}
 
-	serverAvailable, _ := docker.DatadatdatServerIsAvailable()
+	serverAvailable, _ := docker.DitServerIsAvailable()
 	if serverAvailable {
-		s.Prefix = "Removing datadatdat server "
-		s.FinalMSG = "Old datadatdat server removed"
+		s.Prefix = "Removing dit server "
+		s.FinalMSG = "Old dit server removed"
 		s.Start()
-		if _, err := docker.Remove("datadatdat-"+context+"-server", true); err != nil {
-			fmt.Printf("Warning: Failed to remove datadatdat server: %v\n", err)
+		if _, err := docker.Remove("dit-"+context+"-server", true); err != nil {
+			fmt.Printf("Warning: Failed to remove dit server: %v\n", err)
 		}
 		s.Stop()
 	}
 
-	launchAvailable, _ := docker.DatadatdatLaunchIsAvailable()
+	launchAvailable, _ := docker.DitLaunchIsAvailable()
 	if launchAvailable {
-		s.Prefix = "Removing stale datadatdat-launch container "
-		s.FinalMSG = "Stale datadatdat-launch container removed"
+		s.Prefix = "Removing stale dit-launch container "
+		s.FinalMSG = "Stale dit-launch container removed"
 		s.Start()
-		if _, err := docker.Remove("datadatdat-"+context+"-launch", true); err != nil {
-			fmt.Printf("Warning: Failed to remove datadatdat launch container: %v\n", err)
+		if _, err := docker.Remove("dit-"+context+"-launch", true); err != nil {
+			fmt.Printf("Warning: Failed to remove dit launch container: %v\n", err)
 		}
 		s.Stop()
 	}
 
 	//TODO messages don't persist once spinner is closed
 
-	s.Prefix = "Starting datadatdat server docker containers "
-	s.FinalMSG = "Datadatdat CLI successfully installed, happy data versioning :)\n"
+	s.Prefix = "Starting dit server docker containers "
+	s.FinalMSG = "Dit CLI successfully installed, happy data versioning :)\n"
 	s.Start()
-	out, err := docker.LaunchDatadatdatServers()
+	out, err := docker.LaunchDitServers()
 	if err != nil {
 		panic(out)
 	}

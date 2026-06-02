@@ -8,15 +8,15 @@ import (
 	"strings"
 	"testing"
 
-	datadatdatclient "github.com/datadatdat/datadatdat-client-go"
+	ditclient "github.com/ditdotdev/dit-client-go"
 )
 
-// newGenericOpenAPIErrorForTest produces a real datadatdatclient.GenericOpenAPIError
-// by spinning up an httptest server that mimics the datadatdat API returning the
+// newGenericOpenAPIErrorForTest produces a real ditclient.GenericOpenAPIError
+// by spinning up an httptest server that mimics the dit API returning the
 // given HTTP status and JSON body, then invoking operationsApi.Pull against it.
 // GenericOpenAPIError's fields are unexported, so this is the only reliable
 // way to construct one in a test outside the client-go package.
-func newGenericOpenAPIErrorForTest(t *testing.T, status int, apiErr datadatdatclient.ApiError) error {
+func newGenericOpenAPIErrorForTest(t *testing.T, status int, apiErr ditclient.ApiError) error {
 	t.Helper()
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
@@ -26,10 +26,10 @@ func newGenericOpenAPIErrorForTest(t *testing.T, status int, apiErr datadatdatcl
 	}))
 	t.Cleanup(srv.Close)
 
-	c := datadatdatclient.NewConfiguration()
+	c := ditclient.NewConfiguration()
 	c.Servers[0].URL = srv.URL
-	client := datadatdatclient.NewAPIClient(c)
-	params := datadatdatclient.RemoteParameters{Provider: "s3", Properties: map[string]any{}}
+	client := ditclient.NewAPIClient(c)
+	params := ditclient.RemoteParameters{Provider: "s3", Properties: map[string]any{}}
 	_, _, err := client.OperationsApi.Pull(context.Background(), "repo", "origin", "commit").RemoteParameters(params).Execute()
 	if err == nil {
 		t.Fatalf("expected non-nil error from mock server")
@@ -51,7 +51,7 @@ func TestHandleOperationError_Nil(t *testing.T) {
 }
 
 func TestHandleOperationError_ApiErrorMessage(t *testing.T) {
-	apiErr := datadatdatclient.ApiError{
+	apiErr := ditclient.ApiError{
 		Message: "commit 'abc123' already exists in repository 'myrepo'",
 	}
 	apiErr.SetCode("CommitExists")
@@ -90,7 +90,7 @@ func TestHandleOperationError_GenericError(t *testing.T) {
 }
 
 func TestHandleOperationError_ApiErrorEmptyMessage(t *testing.T) {
-	apiErr := datadatdatclient.ApiError{}
+	apiErr := ditclient.ApiError{}
 	apiErr.SetCode("Unknown")
 	err := newGenericOpenAPIErrorForTest(t, http.StatusInternalServerError, apiErr)
 

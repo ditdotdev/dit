@@ -1,7 +1,7 @@
 package commands
 
 import (
-	"datadatdat/internal/app/providers"
+	"github.com/ditdotdev/dit/internal/app/providers"
 
 	"github.com/spf13/cobra"
 )
@@ -9,16 +9,16 @@ import (
 // uninstallCmd represents the uninstall command
 var uninstallCmd = &cobra.Command{
 	Use:   subcmdUninstall,
-	Short: "Uninstall datadatdat infrastructure",
+	Short: "Uninstall dit infrastructure",
 
 	Run: func(cmd *cobra.Command, args []string) {
-		// `d3 uninstall --context X` targets only X. Without the flag, the
-		// natural reading is "remove datadatdat from this machine," not
+		// `dit uninstall --context X` targets only X. Without the flag, the
+		// natural reading is "remove dit from this machine," not
 		// "remove the default context" — so iterate every configured
-		// context. See #110: prior to this, a single `d3 uninstall` left
+		// context. See #110: prior to this, a single `dit uninstall` left
 		// non-default contexts (their server containers, ZFS pools, data
 		// volumes) behind, which also blocked image removal because the
-		// orphaned containers held references to datadatdat:latest.
+		// orphaned containers held references to dit:latest.
 		if context != "" {
 			provider.Uninstall(force, removeImages)
 			providers.Remove(provider.GetName())
@@ -42,5 +42,5 @@ var uninstallCmd = &cobra.Command{
 func init() {
 	rootCmd.AddCommand(uninstallCmd)
 	uninstallCmd.Flags().BoolVarP(&force, "force", "f", false, "destroy all repositories")
-	uninstallCmd.Flags().BoolVar(&removeImages, "remove-images", false, "remove datadatdat docker images")
+	uninstallCmd.Flags().BoolVar(&removeImages, "remove-images", false, "remove dit docker images")
 }

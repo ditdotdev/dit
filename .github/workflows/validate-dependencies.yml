@@ -25,7 +25,7 @@ jobs:
       - name: Check for version conflicts
         run: |
           echo "Checking remote-sdk-go version alignment..."
-          go mod graph | grep datadatdat | awk '$NF ~ /remote-sdk-go/ {print}' | tee /tmp/sdk-versions.txt
+          go mod graph | grep dit | awk '$NF ~ /remote-sdk-go/ {print}' | tee /tmp/sdk-versions.txt
 
           SDK_VERSIONS=$(awk '{print $NF}' /tmp/sdk-versions.txt | sort -u | wc -l)
 

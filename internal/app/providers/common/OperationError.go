@@ -3,7 +3,7 @@ package common
 import (
 	"fmt"
 
-	datadatdatclient "github.com/datadatdat/datadatdat-client-go"
+	ditclient "github.com/ditdotdev/dit-client-go"
 )
 
 // handleOperationError prints a user-facing error message when an operations
@@ -22,8 +22,8 @@ func handleOperationError(err error) bool {
 	if err == nil {
 		return false
 	}
-	if e, ok := err.(*datadatdatclient.GenericOpenAPIError); ok {
-		if m, ok := e.Model().(datadatdatclient.ApiError); ok && m.Message != "" {
+	if e, ok := err.(*ditclient.GenericOpenAPIError); ok {
+		if m, ok := e.Model().(ditclient.ApiError); ok && m.Message != "" {
 			fmt.Println(m.Message)
 			return true
 		}

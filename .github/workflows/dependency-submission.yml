@@ -28,14 +28,14 @@ jobs:
 
       - name: Configure Go for private modules
         run: |
-          go env -w GOPRIVATE=github.com/datadatdat/*
-          go env -w GONOPROXY=github.com/datadatdat/*
-          go env -w GONOSUMDB=github.com/datadatdat/*
+          go env -w GOPRIVATE=github.com/ditdotdev/*
+          go env -w GONOPROXY=github.com/ditdotdev/*
+          go env -w GONOSUMDB=github.com/ditdotdev/*
 
       - name: Submit dependency graph
         uses: actions/go-dependency-submission@v2
         env:
-          GOPRIVATE: github.com/datadatdat/*
-          GONOSUMCHECK: github.com/datadatdat/*
+          GOPRIVATE: github.com/ditdotdev/*
+          GONOSUMCHECK: github.com/ditdotdev/*
         with:
           go-build-target: ./...

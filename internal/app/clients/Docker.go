@@ -1,7 +1,7 @@
 package clients
 
 import (
-	"datadatdat/internal/app"
+	"github.com/ditdotdev/dit/internal/app"
 	"fmt"
 	"github.com/buger/jsonparser"
 	"os"
@@ -13,9 +13,9 @@ import (
 const EOL = "\n"
 
 // defaultDockerHubRegistry is the upstream Docker Hub namespace where the
-// official datadatdat images live. Used as the fallback when no registry
-// is configured and as the literal "datadatdat" image-name lookup target.
-const defaultDockerHubRegistry = "datadatdat"
+// official dit images live. Used as the fallback when no registry
+// is configured and as the literal "dit" image-name lookup target.
+const defaultDockerHubRegistry = "ditdotdev"
 
 // dockerCmd is the name of the docker CLI binary that this client shells
 // out to. Extracted so goconst doesn't flag the literal across the dozen
@@ -102,11 +102,11 @@ func (d docker) getLocalLaunchArgs() []string {
 		"--network=host",
 		"-d",
 		"--restart", "always",
-		"--name=datadatdat-" + d.identity + "-launch",
+		"--name=dit-" + d.identity + "-launch",
 		"-v", "/var/lib:/var/lib",
 		"-v", "/run/docker:/run/docker",
-		"-v", "/lib:/var/lib/datadatdat-" + d.identity + "/system",
-		"-v", "datadatdat-" + d.identity + "-data:/var/lib/datadatdat-" + d.identity + "/data",
+		"-v", "/lib:/var/lib/dit-" + d.identity + "/system",
+		"-v", "dit-" + d.identity + "-data:/var/lib/dit-" + d.identity + "/data",
 		"-v", "/var/run/docker.sock:/var/run/docker.sock",
 	}
 }
@@ -224,18 +224,18 @@ func (d docker) FetchLogs(container string) []string {
 	return lines
 }
 
-func (d docker) DatadatdatLatestIsDownloaded(registry string, latest app.Version) bool {
-	// If registry is the local sentinel, check for local datadatdat:latest first
+func (d docker) DitLatestIsDownloaded(registry string, latest app.Version) bool {
+	// If registry is the local sentinel, check for local dit:latest first
 	if registry == localRegistry {
 		localOut, _ := ce.Exec(dockerCmd, "images", defaultDockerHubRegistry, "--format", `"{{.Repository}}:{{.Tag}}"`)
-		if strings.Contains(localOut, "datadatdat:latest") {
-			return true // Use local datadatdat:latest image
+		if strings.Contains(localOut, "dit:latest") {
+			return true // Use local dit:latest image
 		}
-		// If no local image found, fall back to checking datadatdat registry
+		// If no local image found, fall back to checking dit registry
 		registry = defaultDockerHubRegistry
 	}
 
-	image := registry + "/datadatdat"
+	image := registry + "/dit"
 	out, _ := ce.Exec(dockerCmd, "images", image, "--format", `"{{.Tag}}"`)
 	tags := strings.Split(string(out), EOL)
 	hasVersionTag := false
@@ -272,65 +272,65 @@ func (d docker) ContainerIsRunning(container string) (bool, error) {
 	return len(out) > 0, err
 }
 
-func (d docker) DatadatdatServerIsAvailable() (bool, error) {
-	return d.ContainerIsRunning("datadatdat-" + d.identity + "-server")
+func (d docker) DitServerIsAvailable() (bool, error) {
+	return d.ContainerIsRunning("dit-" + d.identity + "-server")
 }
 
-func (d docker) DatadatdatLaunchIsAvailable() (bool, error) {
-	return d.ContainerIsRunning("datadatdat-" + d.identity + "-launch")
+func (d docker) DitLaunchIsAvailable() (bool, error) {
+	return d.ContainerIsRunning("dit-" + d.identity + "-launch")
 }
 
-func (d docker) LaunchDatadatdatServers() (string, error) {
-	datadatdatImage := d.getImageName("datadatdat:latest")
+func (d docker) LaunchDitServers() (string, error) {
+	ditImage := d.getImageName("dit:latest")
 	args := d.getLocalLaunchArgs()
 	args = append(
 		args,
 		"-e",
-		"DATADATDAT_PORT="+strconv.Itoa(d.port),
+		"DIT_PORT="+strconv.Itoa(d.port),
 		"-e",
-		"DATADATDAT_IMAGE="+datadatdatImage,
+		"DIT_IMAGE="+ditImage,
 		"-e",
-		"DATADATDAT_IDENTITY=datadatdat-"+d.identity,
+		"DIT_IDENTITY=dit-"+d.identity,
 	)
-	return d.Run(datadatdatImage, "/bin/bash /datadatdat/launch", args)
+	return d.Run(ditImage, "/bin/bash /dit/launch", args)
 }
 
 func (d docker) getKubernetesLaunchArgs() ([]string, error) {
 	home, _ := os.UserHomeDir()
 	srcKubeconfig := home + "/.kube/config"
-	flatKubeconfig := home + "/.datadatdat/kubeconfig-" + d.identity
+	flatKubeconfig := home + "/.dit/kubeconfig-" + d.identity
 	if err := FlattenKubeconfigToFile(srcKubeconfig, flatKubeconfig); err != nil {
 		return nil, fmt.Errorf("preparing kubeconfig for server container: %w", err)
 	}
 	return []string{
 		"-d",
 		"--restart", "always",
-		"--name=datadatdat-" + d.identity + "-server",
+		"--name=dit-" + d.identity + "-server",
 		"-v", flatKubeconfig + ":/root/.kube/config:ro",
-		"-v", "datadatdat-" + d.identity + "-data:/var/lib/" + d.identity,
-		"-e", "DATADATDAT_CONTEXT=kubernetes-csi",
-		"-e", "DATADATDAT_IDENTITY=datadatdat-" + d.identity,
+		"-v", "dit-" + d.identity + "-data:/var/lib/" + d.identity,
+		"-e", "DIT_CONTEXT=kubernetes-csi",
+		"-e", "DIT_IDENTITY=dit-" + d.identity,
 		"-p", strconv.Itoa(d.port) + ":5001",
 	}, nil
 }
 
-func (d docker) LaunchDatadatdatKubernetesServers() (string, error) {
-	datadatdatImage := d.getImageName("datadatdat:latest")
+func (d docker) LaunchDitKubernetesServers() (string, error) {
+	ditImage := d.getImageName("dit:latest")
 	args, err := d.getKubernetesLaunchArgs()
 	if err != nil {
 		return "", err
 	}
-	// Forward DATADATDAT_* env vars from the CLI process to the server
+	// Forward DIT_* env vars from the CLI process to the server
 	// container so operators can plumb server-side configuration (e.g.
-	// DATADATDAT_K8S_POD_HOST_ALIASES for clusters where the remote
+	// DIT_K8S_POD_HOST_ALIASES for clusters where the remote
 	// hostname isn't resolvable from inside pods) without needing a
 	// dedicated CLI flag for every knob. Skip server-internal vars that
 	// the launch args already set explicitly to avoid clobbering them.
 	skip := map[string]bool{
-		"DATADATDAT_PORT":     true,
-		"DATADATDAT_IMAGE":    true,
-		"DATADATDAT_IDENTITY": true,
-		"DATADATDAT_CONTEXT":  true,
+		"DIT_PORT":     true,
+		"DIT_IMAGE":    true,
+		"DIT_IDENTITY": true,
+		"DIT_CONTEXT":  true,
 	}
 	for _, kv := range os.Environ() {
 		eq := strings.Index(kv, "=")
@@ -338,56 +338,56 @@ func (d docker) LaunchDatadatdatKubernetesServers() (string, error) {
 			continue
 		}
 		k := kv[:eq]
-		if !strings.HasPrefix(k, "DATADATDAT_") || skip[k] {
+		if !strings.HasPrefix(k, "DIT_") || skip[k] {
 			continue
 		}
 		args = append(args, "-e", kv)
 	}
-	return d.Run(datadatdatImage, "/bin/bash /datadatdat/run", args)
+	return d.Run(ditImage, "/bin/bash /dit/run", args)
 }
 
 func (d docker) FetchLaunchLogs() []string {
-	return d.FetchLogs("datadatdat-" + d.identity + "-launch")
+	return d.FetchLogs("dit-" + d.identity + "-launch")
 }
 
-func (d docker) TeardownDatadatdatServers() (string, error) {
-	datadatdatImage := d.getImageName("datadatdat:latest")
+func (d docker) TeardownDitServers() (string, error) {
+	ditImage := d.getImageName("dit:latest")
 	args := d.getLocalLaunchArgs()
 	args = RemoveFromSlice(args, "-d")
 	args = RemoveFromSlice(args, "--restart")
 	args = RemoveFromSlice(args, "always")
-	args = RemoveFromSlice(args, "--name=datadatdat-"+d.identity+"-launch")
-	args = append(args, "-e", "DATADATDAT_IDENTITY=datadatdat-"+d.identity, "--rm")
-	return d.Run(datadatdatImage, "/bin/bash /datadatdat/teardown", args)
+	args = RemoveFromSlice(args, "--name=dit-"+d.identity+"-launch")
+	args = append(args, "-e", "DIT_IDENTITY=dit-"+d.identity, "--rm")
+	return d.Run(ditImage, "/bin/bash /dit/teardown", args)
 }
 
-func (d docker) RemoveDatadatdatImages(version string) (string, error) {
-	var imageId, _ = ce.Exec(dockerCmd, "images", "datadatdat:"+version, "--format", "{{.ID}}")
+func (d docker) RemoveDitImages(version string) (string, error) {
+	var imageId, _ = ce.Exec(dockerCmd, "images", "dit:"+version, "--format", "{{.ID}}")
 	imageId = strings.TrimSuffix(imageId, "\n")
 	return ce.Exec(dockerCmd, "rmi", imageId, "-f")
 }
 
-func (d docker) RemoveDatadatdatServer() (string, error) {
-	return d.Remove("datadatdat-"+d.identity+"-server", true)
+func (d docker) RemoveDitServer() (string, error) {
+	return d.Remove("dit-"+d.identity+"-server", true)
 }
 
-func (d docker) RemoveDatadatdatLaunch() (string, error) {
-	return d.Remove("datadatdat-"+d.identity+"-launch", true)
+func (d docker) RemoveDitLaunch() (string, error) {
+	return d.Remove("dit-"+d.identity+"-launch", true)
 }
 
-func (d docker) RemoveDatadatdatVolume() (string, error) {
-	return d.RemoveVolume("datadatdat-"+d.identity+"-data", false)
+func (d docker) RemoveDitVolume() (string, error) {
+	return d.RemoveVolume("dit-"+d.identity+"-data", false)
 }
 
 func (d docker) CreateVolume(name string, path string) (string, error) {
-	return ce.Exec(dockerCmd, "volume", "create", "-d", "datadatdat-"+d.identity, "-o", "path="+path, name)
+	return ce.Exec(dockerCmd, "volume", "create", "-d", "dit-"+d.identity, "-o", "path="+path, name)
 }
 
 func (d docker) ListVolumes(repo string) []string {
 	var args []string
 	var r []string
 	args = append(args,
-		"volume", "ls", "-f", "driver=datadatdat-docker", "-f", "name="+repo,
+		"volume", "ls", "-f", "driver=dit-docker", "-f", "name="+repo,
 		"--format", "{{.Name}}",
 	)
 	s, err := ce.Exec(dockerCmd, args...)
@@ -417,5 +417,5 @@ func (d docker) Cp(source string, target string) (string, error) {
 	if runtime.GOOS == "windows" && len(source) >= 3 && source[0] == '/' && source[2] == '/' {
 		source = strings.ToUpper(string(source[1])) + ":" + source[2:]
 	}
-	return ce.Exec(dockerCmd, "cp", "-a", source+"/.", "datadatdat-"+d.identity+"-server:"+target)
+	return ce.Exec(dockerCmd, "cp", "-a", source+"/.", "dit-"+d.identity+"-server:"+target)
 }

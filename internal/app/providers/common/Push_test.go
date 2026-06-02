@@ -11,7 +11,7 @@ import (
 // Tests can override individual responses via the opts struct.
 func pushServerHandler(t *testing.T, apiBase string, opts pushOpts) http.HandlerFunc {
 	t.Helper()
-	remoteJSON := `{"provider":"datadatdat","name":"origin","properties":{"host":"example.com","org":"o","repo":"r","api_base_url":"` + apiBase + `"}}`
+	remoteJSON := `{"provider":"dit","name":"origin","properties":{"host":"example.com","org":"o","repo":"r","api_base_url":"` + apiBase + `"}}`
 	return func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		switch {

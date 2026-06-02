@@ -13,7 +13,7 @@ func TestK8sInstall_DockerNotAvailable(t *testing.T) {
 	output := captureStdout(func() {
 		didExit, code = captureExit(t, func() {
 			with(t, d, &fakeK8s{}, func() {
-				Install("v1.0.0", "datadatdat", false, 9999, "ctx")
+				Install("v1.0.0", "dit", false, 9999, "ctx")
 			})
 		})
 	})
@@ -33,7 +33,7 @@ func TestK8sInstall_TriggersPullWhenNotDownloaded(t *testing.T) {
 	_ = captureStdout(func() {
 		_, _ = captureExit(t, func() {
 			with(t, d, &fakeK8s{}, func() {
-				Install("v1.0.0", "datadatdat", false, 9999, "ctx")
+				Install("v1.0.0", "dit", false, 9999, "ctx")
 			})
 		})
 	})
@@ -53,7 +53,7 @@ func TestK8sInstall_PullErrorExits(t *testing.T) {
 	output := captureStdout(func() {
 		didExit, code = captureExit(t, func() {
 			with(t, d, &fakeK8s{}, func() {
-				Install("v1.0.0", "datadatdat", false, 9999, "ctx")
+				Install("v1.0.0", "dit", false, 9999, "ctx")
 			})
 		})
 	})
@@ -77,7 +77,7 @@ func TestK8sInstall_HappyPathRemovesStaleAndLaunches(t *testing.T) {
 	output := captureStdout(func() {
 		_, _ = captureExit(t, func() {
 			with(t, d, &fakeK8s{}, func() {
-				Install("v1.0.0", "datadatdat", true, 9999, "ctx")
+				Install("v1.0.0", "dit", true, 9999, "ctx")
 			})
 		})
 	})
@@ -85,7 +85,7 @@ func TestK8sInstall_HappyPathRemovesStaleAndLaunches(t *testing.T) {
 	if d.RemoveCalls < 2 {
 		t.Errorf("expected docker.Remove calls for stale server + launch, got %d", d.RemoveCalls)
 	}
-	if !strings.Contains(output, "Initializing datadatdat infrastructure") {
+	if !strings.Contains(output, "Initializing dit infrastructure") {
 		t.Errorf("expected initial banner, got %q", output)
 	}
 }
@@ -106,13 +106,13 @@ func TestK8sInstall_LaunchFailurePanics(t *testing.T) {
 			}()
 			_, _ = captureExit(t, func() {
 				with(t, d, &fakeK8s{}, func() {
-					Install("v1.0.0", "datadatdat", false, 9999, "ctx")
+					Install("v1.0.0", "dit", false, 9999, "ctx")
 				})
 			})
 		}()
 	})
 	if !panicked {
-		t.Errorf("expected panic on LaunchDatadatdatKubernetesServers failure")
+		t.Errorf("expected panic on LaunchDitKubernetesServers failure")
 	}
 }
 
@@ -124,7 +124,7 @@ func TestK8sInstall_TagWarningsAreNonFatal(t *testing.T) {
 	output := captureStdout(func() {
 		_, _ = captureExit(t, func() {
 			with(t, d, &fakeK8s{}, func() {
-				Install("v1.0.0", "datadatdat", false, 9999, "ctx")
+				Install("v1.0.0", "dit", false, 9999, "ctx")
 			})
 		})
 	})

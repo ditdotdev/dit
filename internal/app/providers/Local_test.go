@@ -12,9 +12,9 @@ import (
 	"testing"
 	"time"
 
-	cmn "datadatdat/internal/app/providers/common"
-	k8s "datadatdat/internal/app/providers/kubernetes"
-	lcl "datadatdat/internal/app/providers/local"
+	cmn "github.com/ditdotdev/dit/internal/app/providers/common"
+	k8s "github.com/ditdotdev/dit/internal/app/providers/kubernetes"
+	lcl "github.com/ditdotdev/dit/internal/app/providers/local"
 )
 
 // captureExit swaps osExit (the package-level indirection) for a recorder
@@ -151,11 +151,11 @@ func TestLocal_RemoteList_Dispatches(t *testing.T) {
 
 func TestLocal_RemoteLog_Dispatches(t *testing.T) {
 	// RemoteLog osExit(1)s if the remote list is empty, so return a single
-	// datadatdat-style remote that ResolveProvider can recognize.
+	// dit-style remote that ResolveProvider can recognize.
 	port := startMockServer(t, func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		if strings.HasSuffix(r.URL.Path, "/remotes") {
-			_, _ = w.Write([]byte(`[{"provider":"datadatdat","name":"origin","properties":{"host":"example.com","org":"o","repo":"r"}}]`))
+			_, _ = w.Write([]byte(`[{"provider":"dit","name":"origin","properties":{"host":"example.com","org":"o","repo":"r"}}]`))
 			return
 		}
 		_, _ = w.Write([]byte("[]"))
@@ -208,10 +208,10 @@ func TestParseRegistryFromProperties(t *testing.T) {
 		def   string
 		want  string
 	}{
-		{"no match returns default", []string{"other=value"}, "datadatdat", "datadatdat"},
-		{"match overrides default", []string{"registry=my.reg"}, "datadatdat", "my.reg"},
+		{"no match returns default", []string{"other=value"}, "dit", "dit"},
+		{"match overrides default", []string{"registry=my.reg"}, "dit", "my.reg"},
 		{"first registry wins", []string{"registry=first", "registry=second"}, "x", "first"},
-		{"empty props returns default", nil, "datadatdat", "datadatdat"},
+		{"empty props returns default", nil, "dit", "dit"},
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {

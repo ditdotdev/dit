@@ -1,8 +1,8 @@
 package commands
 
 import (
-	"datadatdat/internal/app"
-	"datadatdat/internal/app/providers"
+	"github.com/ditdotdev/dit/internal/app"
+	"github.com/ditdotdev/dit/internal/app/providers"
 	"fmt"
 	"os"
 	"os/user"
@@ -10,11 +10,11 @@ import (
 	"github.com/spf13/cobra"
 
 	// Import remote providers to register them
-	_ "github.com/datadatdat/datadatdat-remote-go/datadatdat"
-	_ "github.com/datadatdat/nop-remote-go/nop"
-	_ "github.com/datadatdat/s3-remote-go/s3"
-	_ "github.com/datadatdat/s3web-remote-go/s3web"
-	_ "github.com/datadatdat/ssh-remote-go/ssh"
+	_ "github.com/ditdotdev/dit-remote-go/dit"
+	_ "github.com/ditdotdev/nop-remote-go/nop"
+	_ "github.com/ditdotdev/s3-remote-go/s3"
+	_ "github.com/ditdotdev/s3web-remote-go/s3web"
+	_ "github.com/ditdotdev/ssh-remote-go/ssh"
 )
 
 var (
@@ -36,14 +36,17 @@ var (
 )
 
 // Version will be set at build time via -ldflags
-// This is an alias to app.DatadatdatVersion for backwards compatibility
-var Version = app.DatadatdatVersion
+// This is an alias to app.DitVersion for backwards compatibility
+var Version = app.DitVersion
+
+// cliName is the binary/command name used throughout the CLI.
+const cliName = "dit"
 
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
-	Use:   "d3",
-	Short: "Datadatdat CLI",
-	Long:  `Datadatdat CLI`,
+	Use:   cliName,
+	Short: "Dit CLI",
+	Long:  `Dit CLI`,
 	PersistentPreRun: func(cmd *cobra.Command, args []string) {
 		initProvider()
 	},
@@ -68,29 +71,29 @@ func init() {
 	cobra.OnInitialize(initConfig)
 
 	//Global params
-	rootCmd.PersistentFlags().StringVar(&context, "context", "", "Datadatdat Provider Context")
+	rootCmd.PersistentFlags().StringVar(&context, "context", "", "Dit Provider Context")
 	rootCmd.Version = Version // Use dynamic version set at build time
 }
 
 // initConfig reads in config file and ENV variables if set.
 func initConfig() {
 	u, _ := user.Current()
-	datadatdatConfig := u.HomeDir + "/.datadatdat/config"
-	if _, err := os.Stat(datadatdatConfig); os.IsNotExist(err) {
+	ditConfig := u.HomeDir + "/.dit/config"
+	if _, err := os.Stat(ditConfig); os.IsNotExist(err) {
 		// #nosec G304 -- Creating config file in user's home directory, path is controlled
-		if _, err := os.Create(datadatdatConfig); err != nil {
+		if _, err := os.Create(ditConfig); err != nil {
 			fmt.Printf("Error creating config file: %v\n", err)
 		}
 	}
 }
 
-// classifyCommand inspects os.Args for the d3 invocation and returns
+// classifyCommand inspects os.Args for the dit invocation and returns
 // whether the command can run without a resolved provider, plus the
-// default context name to use when one is needed (only `d3 install`
+// default context name to use when one is needed (only `dit install`
 // uses this — it creates the first context).
 //
 // Pre-fix this logic scanned os.Args for "ls" or "install" anywhere in
-// the slice, which made `d3 remote ls <repo>` falsely qualify as
+// the slice, which made `dit remote ls <repo>` falsely qualify as
 // "provider-optional" and panic with SIGSEGV when remote.go tried to
 // dereference the nil provider. The fix: only consider the position
 // directly after the binary name (the top-level subcommand), and
@@ -121,7 +124,7 @@ func classifyCommand(args []string) (providerOptional bool, defaultContextName s
 func initProvider() {
 	ctx := context
 	if ctx == "" {
-		ctx = os.Getenv("DATADATDAT_CONTEXT")
+		ctx = os.Getenv("DIT_CONTEXT")
 	}
 	if ctx != "" {
 		p, ok := providers.List()[ctx]
@@ -136,7 +139,7 @@ func initProvider() {
 	if optional, defaultCtx := classifyCommand(os.Args); optional {
 		// First-time install may have no contexts yet; default the
 		// context name without resolving a provider (providers.Default()
-		// would panic). For `d3 ls` and `d3 context ...`, leave both
+		// would panic). For `dit ls` and `dit context ...`, leave both
 		// `context` and `provider` empty — the relevant command handlers
 		// iterate providers.List() or otherwise don't need a resolved
 		// provider.

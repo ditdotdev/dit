@@ -13,7 +13,7 @@ func TestInstall_DockerNotAvailableExits(t *testing.T) {
 	output := captureStdout(func() {
 		didExit, code = captureExit(t, func() {
 			withDocker(t, d, func() {
-				Install("v1.0.0", "datadatdat", false, 9999, "ctx")
+				Install("v1.0.0", "dit", false, 9999, "ctx")
 			})
 		})
 	})
@@ -28,14 +28,14 @@ func TestInstall_DockerNotAvailableExits(t *testing.T) {
 
 func TestInstall_LatestNotDownloadedTriggersPull(t *testing.T) {
 	d := &fakeDocker{
-		datadatdatLatestIsDownloaded: false,
+		ditLatestIsDownloaded: false,
 		fetchLaunchLogs:              []string{"DATADATDAT START 2024-01-01 00:00:00 hello", "DATADATDAT FINISHED"},
 		launchOut:                    "ok",
 	}
 	output := captureStdout(func() {
 		_, _ = captureExit(t, func() {
 			withDocker(t, d, func() {
-				Install("v1.0.0", "datadatdat", true, 9999, "ctx")
+				Install("v1.0.0", "dit", true, 9999, "ctx")
 			})
 		})
 	})
@@ -47,7 +47,7 @@ func TestInstall_LatestNotDownloadedTriggersPull(t *testing.T) {
 
 func TestInstall_LatestNotDownloadedLocalFallback(t *testing.T) {
 	d := &fakeDocker{
-		datadatdatLatestIsDownloaded: false,
+		ditLatestIsDownloaded: false,
 		fetchLaunchLogs:              []string{"DATADATDAT FINISHED"},
 		launchOut:                    "ok",
 	}
@@ -60,22 +60,22 @@ func TestInstall_LatestNotDownloadedLocalFallback(t *testing.T) {
 	})
 
 	if d.PullCalls < 1 {
-		t.Errorf("expected Pull from local fallback to datadatdat, got %d", d.PullCalls)
+		t.Errorf("expected Pull from local fallback to dit, got %d", d.PullCalls)
 	}
 }
 
 func TestInstall_RemovesPreexistingServer(t *testing.T) {
 	d := &fakeDocker{
-		datadatdatLatestIsDownloaded: true,
-		datadatdatServerAvailable:    true,
-		datadatdatLaunchAvailable:    true,
+		ditLatestIsDownloaded: true,
+		ditServerAvailable:    true,
+		ditLaunchAvailable:    true,
 		fetchLaunchLogs:              []string{"DATADATDAT FINISHED"},
 		launchOut:                    "ok",
 	}
 	_ = captureStdout(func() {
 		_, _ = captureExit(t, func() {
 			withDocker(t, d, func() {
-				Install("v1.0.0", "datadatdat", false, 9999, "ctx")
+				Install("v1.0.0", "dit", false, 9999, "ctx")
 			})
 		})
 	})
@@ -87,7 +87,7 @@ func TestInstall_RemovesPreexistingServer(t *testing.T) {
 
 func TestInstall_LaunchFailurePanics(t *testing.T) {
 	d := &fakeDocker{
-		datadatdatLatestIsDownloaded: true,
+		ditLatestIsDownloaded: true,
 		launchErr:                    errors.New("docker daemon down"),
 		launchOut:                    "boom",
 	}
@@ -101,12 +101,12 @@ func TestInstall_LaunchFailurePanics(t *testing.T) {
 			}()
 			_, _ = captureExit(t, func() {
 				withDocker(t, d, func() {
-					Install("v1.0.0", "datadatdat", false, 9999, "ctx")
+					Install("v1.0.0", "dit", false, 9999, "ctx")
 				})
 			})
 		}()
 	})
 	if !panicked {
-		t.Errorf("expected panic on LaunchDatadatdatServers failure")
+		t.Errorf("expected panic on LaunchDitServers failure")
 	}
 }

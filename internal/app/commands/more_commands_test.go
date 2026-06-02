@@ -6,7 +6,7 @@ import (
 	"strings"
 	"testing"
 
-	"datadatdat/internal/app/providers"
+	"github.com/ditdotdev/dit/internal/app/providers"
 
 	"github.com/spf13/viper"
 )
@@ -339,16 +339,16 @@ func TestInitProvider_NamedContext(t *testing.T) {
 	}
 }
 
-func TestInitProvider_DATADATDAT_CONTEXT_Env(t *testing.T) {
+func TestInitProvider_DIT_CONTEXT_Env(t *testing.T) {
 	resetGlobalFlags()
 	fp := withFakeProvider(t)
 	context = ""
-	t.Setenv("DATADATDAT_CONTEXT", "test-ctx")
+	t.Setenv("DIT_CONTEXT", "test-ctx")
 
 	provider = nil
 	initProvider()
 	if provider != fp {
-		t.Errorf("initProvider should resolve DATADATDAT_CONTEXT env var; got %v", provider)
+		t.Errorf("initProvider should resolve DIT_CONTEXT env var; got %v", provider)
 	}
 }
 
@@ -358,15 +358,15 @@ func TestInitProvider_LsCommand_NoProviderResolution(t *testing.T) {
 	context = ""
 
 	origArgs := os.Args
-	os.Args = []string{"d3", "ls"}
+	os.Args = []string{"dit", "ls"}
 	defer func() { os.Args = origArgs }()
-	t.Setenv("DATADATDAT_CONTEXT", "")
-	_ = os.Unsetenv("DATADATDAT_CONTEXT")
+	t.Setenv("DIT_CONTEXT", "")
+	_ = os.Unsetenv("DIT_CONTEXT")
 
 	provider = nil
 	initProvider()
 	if provider != nil {
-		t.Errorf("initProvider for `d3 ls` should leave provider nil; got %v", provider)
+		t.Errorf("initProvider for `dit ls` should leave provider nil; got %v", provider)
 	}
 }
 
@@ -375,11 +375,11 @@ func TestInitProvider_FallsThroughToDefault(t *testing.T) {
 	fp := withFakeProvider(t)
 	setupViperWithTestCtx(t)
 	context = ""
-	t.Setenv("DATADATDAT_CONTEXT", "")
-	_ = os.Unsetenv("DATADATDAT_CONTEXT")
+	t.Setenv("DIT_CONTEXT", "")
+	_ = os.Unsetenv("DIT_CONTEXT")
 
 	origArgs := os.Args
-	os.Args = []string{"d3", "status", "myrepo"} // not an "optional" command
+	os.Args = []string{"dit", "status", "myrepo"} // not an "optional" command
 	defer func() { os.Args = origArgs }()
 
 	provider = nil
@@ -395,10 +395,10 @@ func TestInitProvider_InstallCommand_SetsDefaultContext(t *testing.T) {
 	context = ""
 
 	origArgs := os.Args
-	os.Args = []string{"d3", "install"}
+	os.Args = []string{"dit", "install"}
 	defer func() { os.Args = origArgs }()
-	t.Setenv("DATADATDAT_CONTEXT", "")
-	_ = os.Unsetenv("DATADATDAT_CONTEXT")
+	t.Setenv("DIT_CONTEXT", "")
+	_ = os.Unsetenv("DIT_CONTEXT")
 
 	provider = nil
 	initProvider()
@@ -439,7 +439,7 @@ func TestExecute_SuccessPath(t *testing.T) {
 	// Drive rootCmd through Execute() with --help so the command tree
 	// resolves but no real Run handler fires.
 	origArgs := os.Args
-	os.Args = []string{"d3", "--help"}
+	os.Args = []string{"dit", "--help"}
 	defer func() { os.Args = origArgs }()
 
 	rootCmd.SetArgs(os.Args[1:])

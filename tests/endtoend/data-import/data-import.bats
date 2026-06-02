@@ -1,7 +1,7 @@
 #!/usr/bin/env bats
 
 # E2E Data Import Tests
-# Tests d3 cp (copy) and d3 migrate commands
+# Tests dit cp (copy) and dit migrate commands
 
 # Load shared test helpers
 load '../test_helper'
@@ -14,7 +14,7 @@ teardown_file() {
 }
 
 # ========================================
-# d3 cp tests
+# dit cp tests
 # ========================================
 
 @test "run mongo for cp test" {
@@ -24,8 +24,8 @@ teardown_file() {
   sleep 5
 }
 
-@test "d3 cp copies directory into repository" {
-  # d3 cp copies a directory's contents into a volume mount.
+@test "dit cp copies directory into repository" {
+  # dit cp copies a directory's contents into a volume mount.
   # Use repo-relative path since Git Bash /tmp is not visible to Docker Desktop on Windows.
   mkdir -p "${REPO_ROOT}/cptest_data"
   echo "test content for cp" > "${REPO_ROOT}/cptest_data/cptest_file.txt"
@@ -39,13 +39,13 @@ teardown_file() {
   assert_success
 }
 
-@test "d3 commit after cp succeeds" {
+@test "dit commit after cp succeeds" {
   run "$D3" commit -m "After file copy" cp-test
   assert_success
   assert_output --partial "Commit"
 }
 
-@test "d3 cp on non-existent repo fails" {
+@test "dit cp on non-existent repo fails" {
   echo "test" > "$BATS_TMPDIR/cptest_file2.txt"
   run "$D3" cp -s "$BATS_TMPDIR/cptest_file2.txt" -d /tmp/ nonexistent-cp-xyz
   assert_failure
@@ -57,7 +57,7 @@ teardown_file() {
 }
 
 # ========================================
-# d3 migrate tests
+# dit migrate tests
 # ========================================
 
 @test "run unmanaged docker container for migrate" {
@@ -71,24 +71,24 @@ teardown_file() {
   assert_success
 }
 
-@test "d3 migrate captures unmanaged container" {
+@test "dit migrate captures unmanaged container" {
   run "$D3" migrate -s migrate-src migrate-dest
   assert_success
 }
 
-@test "d3 ls shows migrated repository" {
+@test "dit ls shows migrated repository" {
   run "$D3" ls
   assert_success
   assert_output --partial "migrate-dest"
 }
 
-@test "d3 status on migrated repo shows running" {
+@test "dit status on migrated repo shows running" {
   run "$D3" status migrate-dest
   assert_success
   assert_output --partial "running"
 }
 
-@test "d3 commit on migrated repo succeeds" {
+@test "dit commit on migrated repo succeeds" {
   run "$D3" commit -m "Migrated repo commit" migrate-dest
   assert_success
   assert_output --partial "Commit"

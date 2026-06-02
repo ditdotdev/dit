@@ -103,7 +103,7 @@ func CheckWSL2AndAdvise() {
 		fmt.Println()
 		fmt.Println("  wsl --update")
 		fmt.Println()
-		fmt.Println("Then restart and retry: d3 install")
+		fmt.Println("Then restart and retry: dit install")
 		fmt.Println()
 	}
 }

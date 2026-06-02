@@ -7,7 +7,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"datadatdat/internal/app/providers/common"
+	"github.com/ditdotdev/dit/internal/app/providers/common"
 )
 
 // resetAuthFlags clears flag state between tests since cobra retains values.

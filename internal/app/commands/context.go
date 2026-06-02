@@ -1,7 +1,7 @@
 package commands
 
 import (
-	"datadatdat/internal/app/providers"
+	"github.com/ditdotdev/dit/internal/app/providers"
 	"fmt"
 	"github.com/spf13/cobra"
 	"os"
@@ -13,7 +13,7 @@ var contextName string
 // contextCmd represents the context command
 var contextCmd = &cobra.Command{
 	Use:   subcmdContext,
-	Short: "Manage datadatdat contexts",
+	Short: "Manage dit contexts",
 }
 
 // contextInstallCmd represents the contextInstall command

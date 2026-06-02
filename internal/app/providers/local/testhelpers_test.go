@@ -1,7 +1,7 @@
 package local
 
 import (
-	"datadatdat/internal/app"
+	"github.com/ditdotdev/dit/internal/app"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -67,9 +67,9 @@ type fakeDocker struct {
 	containerExistsErr           error
 	cpErr                        error
 	createVolumeErr              error
-	datadatdatLatestIsDownloaded bool
-	datadatdatLaunchAvailable    bool
-	datadatdatServerAvailable    bool
+	ditLatestIsDownloaded bool
+	ditLaunchAvailable    bool
+	ditServerAvailable    bool
 	fetchLaunchLogs              []string
 	formatVolumeName             func(string, string) string
 	identity                     string
@@ -87,10 +87,10 @@ type fakeDocker struct {
 	listVolumes                  []string
 	pullErr                      error
 	removeErr                    error
-	removeDatadatdatImagesErr    error
-	removeDatadatdatLaunchErr    error
-	removeDatadatdatServerErr    error
-	removeDatadatdatVolumeErr    error
+	removeDitImagesErr    error
+	removeDitLaunchErr    error
+	removeDitServerErr    error
+	removeDitVolumeErr    error
 	removeStoppedErr             error
 	removeVolumeErr              error
 	runOut                       string
@@ -116,14 +116,14 @@ func (f *fakeDocker) ContainerIsRunning(c string) (bool, error) {
 }
 func (f *fakeDocker) Cp(s, t string) (string, error)           { return "", f.cpErr }
 func (f *fakeDocker) CreateVolume(n, p string) (string, error) { return "", f.createVolumeErr }
-func (f *fakeDocker) DatadatdatLatestIsDownloaded(string, app.Version) bool {
-	return f.datadatdatLatestIsDownloaded
+func (f *fakeDocker) DitLatestIsDownloaded(string, app.Version) bool {
+	return f.ditLatestIsDownloaded
 }
-func (f *fakeDocker) DatadatdatLaunchIsAvailable() (bool, error) {
-	return f.datadatdatLaunchAvailable, nil
+func (f *fakeDocker) DitLaunchIsAvailable() (bool, error) {
+	return f.ditLaunchAvailable, nil
 }
-func (f *fakeDocker) DatadatdatServerIsAvailable() (bool, error) {
-	return f.datadatdatServerAvailable, nil
+func (f *fakeDocker) DitServerIsAvailable() (bool, error) {
+	return f.ditServerAvailable, nil
 }
 func (f *fakeDocker) FetchLaunchLogs() []string { return f.fetchLaunchLogs }
 func (f *fakeDocker) FormatVolumeName(repo, vol string) string {
@@ -152,16 +152,16 @@ func (f *fakeDocker) InspectContainer(string) (string, error) {
 func (f *fakeDocker) InspectImage(string) (string, error) {
 	return f.inspectImageOut, f.inspectImageErr
 }
-func (f *fakeDocker) LaunchDatadatdatServers() (string, error) { return f.launchOut, f.launchErr }
+func (f *fakeDocker) LaunchDitServers() (string, error) { return f.launchOut, f.launchErr }
 func (f *fakeDocker) ListVolumes(string) []string              { return f.listVolumes }
 func (f *fakeDocker) Pull(string) (string, error)              { f.PullCalls++; return "", f.pullErr }
 func (f *fakeDocker) Remove(string, bool) (string, error)      { f.RemoveCalls++; return "", f.removeErr }
-func (f *fakeDocker) RemoveDatadatdatImages(string) (string, error) {
-	return "", f.removeDatadatdatImagesErr
+func (f *fakeDocker) RemoveDitImages(string) (string, error) {
+	return "", f.removeDitImagesErr
 }
-func (f *fakeDocker) RemoveDatadatdatLaunch() (string, error) { return "", f.removeDatadatdatLaunchErr }
-func (f *fakeDocker) RemoveDatadatdatServer() (string, error) { return "", f.removeDatadatdatServerErr }
-func (f *fakeDocker) RemoveDatadatdatVolume() (string, error) { return "", f.removeDatadatdatVolumeErr }
+func (f *fakeDocker) RemoveDitLaunch() (string, error) { return "", f.removeDitLaunchErr }
+func (f *fakeDocker) RemoveDitServer() (string, error) { return "", f.removeDitServerErr }
+func (f *fakeDocker) RemoveDitVolume() (string, error) { return "", f.removeDitVolumeErr }
 func (f *fakeDocker) RemoveStopped(string) (string, error)    { return "", f.removeStoppedErr }
 func (f *fakeDocker) RemoveVolume(string, bool) (string, error) {
 	return "", f.removeVolumeErr
@@ -173,7 +173,7 @@ func (f *fakeDocker) Run(string, string, []string) (string, error) {
 func (f *fakeDocker) Start(string) (string, error)               { f.StartCalls++; return "", f.startErr }
 func (f *fakeDocker) Stop(string) (string, error)                { f.StopCalls++; return "", f.stopErr }
 func (f *fakeDocker) Tag(string, string) (string, error)         { return "", f.tagErr }
-func (f *fakeDocker) TeardownDatadatdatServers() (string, error) { return "", f.teardownErr }
+func (f *fakeDocker) TeardownDitServers() (string, error) { return "", f.teardownErr }
 func (f *fakeDocker) Version() (string, error)                   { return "", f.versionErr }
 func (f *fakeDocker) VolumeExists(name string) bool              { return f.volumeExists[name] }
 
