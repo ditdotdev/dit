@@ -95,22 +95,22 @@ test-ssh-workflow:
 	bats tests/endtoend/remotes/ssh/ssh-workflow.bats
 
 test-dit-workflow:
-	ENV=$(ENV) bats tests/endtoend/remotes/ditdotdev/dit-workflow.bats
+	ENV=$(ENV) bats tests/endtoend/remotes/dit/dit-workflow.bats
 
 test-auth-workflow:
-	ENV=$(ENV) bats tests/endtoend/remotes/ditdotdev/auth-workflow.bats
+	ENV=$(ENV) bats tests/endtoend/remotes/dit/auth-workflow.bats
 
 test-org-workflow:
-	ENV=$(ENV) bats tests/endtoend/remotes/ditdotdev/org-workflow.bats
+	ENV=$(ENV) bats tests/endtoend/remotes/dit/org-workflow.bats
 
 test-clone-commit-workflow:
-	ENV=$(ENV) bats tests/endtoend/remotes/ditdotdev/clone-commit-workflow.bats
+	ENV=$(ENV) bats tests/endtoend/remotes/dit/clone-commit-workflow.bats
 
 test-billing-workflow:
-	ENV=$(ENV) bats tests/endtoend/remotes/ditdotdev/billing-workflow.bats
+	ENV=$(ENV) bats tests/endtoend/remotes/dit/billing-workflow.bats
 
 test-stripe-integration:
-	ENV=$(ENV) bats tests/endtoend/remotes/ditdotdev/stripe-integration.bats
+	ENV=$(ENV) bats tests/endtoend/remotes/dit/stripe-integration.bats
 
 test-multi-context:
 	bats tests/endtoend/multi-context/multi-context.bats
@@ -137,25 +137,25 @@ test-push-pull-options:
 	bats tests/endtoend/push-pull/push-pull-options.bats
 
 test-abort-workflow:
-	ENV=$(ENV) bats tests/endtoend/remotes/ditdotdev/abort-workflow.bats
+	ENV=$(ENV) bats tests/endtoend/remotes/dit/abort-workflow.bats
 
 test-auth-status:
-	ENV=$(ENV) bats tests/endtoend/remotes/ditdotdev/auth-status.bats
+	ENV=$(ENV) bats tests/endtoend/remotes/dit/auth-status.bats
 
 test-push-pull-tags-remote:
-	ENV=$(ENV) bats tests/endtoend/remotes/ditdotdev/push-pull-tags-remote.bats
+	ENV=$(ENV) bats tests/endtoend/remotes/dit/push-pull-tags-remote.bats
 
 test-fork-workflow:
-	ENV=$(ENV) bats tests/endtoend/remotes/ditdotdev/fork-workflow.bats
+	ENV=$(ENV) bats tests/endtoend/remotes/dit/fork-workflow.bats
 
 test-fork-cross-user:
-	ENV=$(ENV) bats tests/endtoend/remotes/ditdotdev/fork-cross-user.bats
+	ENV=$(ENV) bats tests/endtoend/remotes/dit/fork-cross-user.bats
 
 test-whitelist-approval:
-	ENV=$(ENV) bats tests/endtoend/remotes/ditdotdev/whitelist-approval.bats
+	ENV=$(ENV) bats tests/endtoend/remotes/dit/whitelist-approval.bats
 
 test-public-repo-permissions:
-	ENV=$(ENV) bats tests/endtoend/remotes/ditdotdev/public-repo-permissions.bats
+	ENV=$(ENV) bats tests/endtoend/remotes/dit/public-repo-permissions.bats
 
 # Kubernetes provider tests. Both targets self-skip when no k8s cluster is
 # reachable (kubectl cluster-info), so they are safe to include in `e2e` /

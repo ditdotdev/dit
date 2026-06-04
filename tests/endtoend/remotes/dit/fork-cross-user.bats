@@ -7,9 +7,9 @@
 # Related: https://github.com/ditdotdev/dit-remote-server/issues/560
 #
 # Test users (seeded by 015-seed-e2e-test-users.xml):
-#   - dit-ghtest1: repo owner (creates and pushes source repo)
-#   - dit-ghtest2: forker (forks the repo to their namespace)
-#   - dit-ghtest3: third-party verifier (clones the fork)
+#   - d3-ghtest1: repo owner (creates and pushes source repo)
+#   - d3-ghtest2: forker (forks the repo to their namespace)
+#   - d3-ghtest3: third-party verifier (clones the fork)
 
 load '../../test_helper'
 load 'env'
@@ -20,8 +20,8 @@ GHTEST2_KEY="d3ghtest2_aaaa1111bbbb2222cccc3333dddd4444eeee5555ffff6666aaaa1111b
 GHTEST3_KEY="d3ghtest3_aaaa1111bbbb2222cccc3333dddd4444eeee5555ffff6666aaaa1111bbbb"
 ADMIN_KEY="${DIT_API_KEY}"
 
-OWNER_NS="dit-ghtest1"
-FORKER_NS="dit-ghtest2"
+OWNER_NS="d3-ghtest1"
+FORKER_NS="d3-ghtest2"
 SOURCE_REPO="xuser-fork-src"
 
 setup_file() {
@@ -59,10 +59,10 @@ teardown_file() {
   );" 2>/dev/null || true
 }
 
-# ===== Setup: dit-ghtest1 creates and populates a source repo =====
+# ===== Setup: d3-ghtest1 creates and populates a source repo =====
 
-@test "xfork: create source repo as dit-ghtest1" {
-  # Use admin key to create the repo in dit-ghtest1's namespace.
+@test "xfork: create source repo as d3-ghtest1" {
+  # Use admin key to create the repo in d3-ghtest1's namespace.
   # Repo creation requires write permission; the fork (cross-user read) is what we're testing.
   run env DIT_API_KEY="$ADMIN_KEY" "$D3" repo create "${OWNER_NS}" "${SOURCE_REPO}" --server "$GATEWAY"
   assert_success
@@ -76,7 +76,7 @@ teardown_file() {
     "INSERT INTO repositories (namespace, name, full_name, is_private, owner_type, owner_id, created_by)
      SELECT '${OWNER_NS}', '${SOURCE_REPO}', '${OWNER_NS}/${SOURCE_REPO}', false,
             'user', u.id, u.id
-     FROM users u WHERE u.github_login = 'dit-ghtest1'
+     FROM users u WHERE u.github_login = 'd3-ghtest1'
      ON CONFLICT (full_name) DO UPDATE SET is_private = false;"
   assert_success
 }
@@ -161,9 +161,9 @@ teardown_file() {
   assert_output --partial "$COMMIT_3"
 }
 
-# ===== Test: dit-ghtest2 forks dit-ghtest1's public repo =====
+# ===== Test: d3-ghtest2 forks d3-ghtest1's public repo =====
 
-@test "xfork: dit-ghtest2 forks dit-ghtest1's repo via API" {
+@test "xfork: d3-ghtest2 forks d3-ghtest1's repo via API" {
   # This is the core reproduction of issue #560:
   # A different user forks another user's public repo.
   # Expected: 201 Created with fork metadata
@@ -189,7 +189,7 @@ teardown_file() {
   assert_output --partial "t"
 }
 
-@test "xfork: verify forked repo has all commits via dit-ghtest2's key" {
+@test "xfork: verify forked repo has all commits via d3-ghtest2's key" {
   COMMIT_1=$(cat "$BATS_TMPDIR/xfork_commit_1.txt")
   COMMIT_2=$(cat "$BATS_TMPDIR/xfork_commit_2.txt")
   COMMIT_3=$(cat "$BATS_TMPDIR/xfork_commit_3.txt")
@@ -225,7 +225,7 @@ teardown_file() {
 
 # ===== Test: fork with custom name =====
 
-@test "xfork: dit-ghtest2 forks with custom name" {
+@test "xfork: d3-ghtest2 forks with custom name" {
   run curl -X POST -f \
     -H "Authorization: Bearer $GHTEST2_KEY" \
     -H "Content-Type: application/json" \
@@ -298,7 +298,7 @@ teardown_file() {
   assert_success
 }
 
-# ===== Test: dit-ghtest3 can read the fork (public) =====
+# ===== Test: d3-ghtest3 can read the fork (public) =====
 
 @test "xfork: re-fork after orphan cleanup succeeds" {
   is_dev || skip "Depends on MinIO orphan cleanup in DEV"
@@ -311,7 +311,7 @@ teardown_file() {
   assert_output --partial "forkedFrom"
 }
 
-@test "xfork: dit-ghtest3 can read forked repo commits" {
+@test "xfork: d3-ghtest3 can read forked repo commits" {
   # In PROD, orphan tests are skipped and the fork was cleaned up in test 21.
   # Re-fork if needed so this test has a repo to read.
   local count
@@ -325,7 +325,7 @@ teardown_file() {
     assert_success
   fi
 
-  # Register the fork as public so dit-ghtest3 can read it
+  # Register the fork as public so d3-ghtest3 can read it
   run run_sql_cmd \
     "UPDATE repositories SET is_private = false
      WHERE full_name = '${FORKER_NS}/${SOURCE_REPO}';"

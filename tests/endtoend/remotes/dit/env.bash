@@ -76,8 +76,8 @@ else
   export AUTH_TEST_ORG="authtest"
   export APIKEY_TEST_ORG="apikeytest"
 
-  # Download API test version
-  export DOWNLOAD_TEST_VERSION="${DOWNLOAD_TEST_VERSION:-v1.9.2}"
+  # Download API test version (local dev releases bucket is seeded with v1.9.3)
+  export DOWNLOAD_TEST_VERSION="${DOWNLOAD_TEST_VERSION:-v1.9.3}"
 
   # Helper: execute SQL against local postgres container
   run_sql() {

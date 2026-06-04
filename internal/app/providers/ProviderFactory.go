@@ -16,7 +16,7 @@ const (
 	// defaultDockerRegistry is the Docker Hub namespace where the
 	// official dit images live. Used as the per-provider fallback
 	// registry when no override is specified.
-	defaultDockerRegistry = "dit"
+	defaultDockerRegistry = "ditdotdev"
 
 	// defaultHost is the loopback host every provider binds to. The
 	// dit-server API is intentionally not reachable from off-box.
