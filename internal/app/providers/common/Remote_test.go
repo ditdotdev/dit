@@ -6,15 +6,15 @@ import (
 	"testing"
 )
 
-// datadatdatRemoteJSON references the datadatdat provider, one of several
-// registered in providers/common via blank-imports in RemoteAdd.go (datadatdat,
+// ditRemoteJSON references the dit provider, one of several
+// registered in providers/common via blank-imports in RemoteAdd.go (dit,
 // ssh, s3, s3web, nop).
-const datadatdatRemoteJSON = `{"provider":"datadatdat","name":"origin","properties":{"host":"example.com","org":"o","repo":"r"}}`
+const ditRemoteJSON = `{"provider":"dit","name":"origin","properties":{"host":"example.com","org":"o","repo":"r"}}`
 
 func TestRemoteList_Success(t *testing.T) {
 	port := startMockServer(t, func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
-		_, _ = w.Write([]byte(`[` + datadatdatRemoteJSON + `]`))
+		_, _ = w.Write([]byte(`[` + ditRemoteJSON + `]`))
 	})
 
 	var didExit bool
@@ -123,7 +123,7 @@ func TestRemoteLog_ListRemoteCommitsError(t *testing.T) {
 		w.Header().Set("Content-Type", "application/json")
 		switch {
 		case strings.HasSuffix(r.URL.Path, "/remotes"):
-			_, _ = w.Write([]byte(`[` + datadatdatRemoteJSON + `]`))
+			_, _ = w.Write([]byte(`[` + ditRemoteJSON + `]`))
 		default:
 			w.WriteHeader(http.StatusInternalServerError)
 			_, _ = w.Write([]byte(`{"code":"X","message":"err","details":""}`))
@@ -144,7 +144,7 @@ func TestRemoteLog_PrintsCommits(t *testing.T) {
 		w.Header().Set("Content-Type", "application/json")
 		switch {
 		case strings.HasSuffix(r.URL.Path, "/remotes"):
-			_, _ = w.Write([]byte(`[` + datadatdatRemoteJSON + `]`))
+			_, _ = w.Write([]byte(`[` + ditRemoteJSON + `]`))
 		case strings.Contains(r.URL.Path, "/commits"):
 			_, _ = w.Write([]byte(`[
 				{"id":"c1","properties":{"author":"alice","tags":{"v1":"","env":"prod"},"message":"first"}},
@@ -167,7 +167,7 @@ func TestRemoteLog_PrintsCommits(t *testing.T) {
 func TestRemoteAdd_AlreadyExistsExits(t *testing.T) {
 	port := startMockServer(t, func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
-		_, _ = w.Write([]byte(datadatdatRemoteJSON))
+		_, _ = w.Write([]byte(ditRemoteJSON))
 	})
 
 	var didExit bool
@@ -219,7 +219,7 @@ func TestRemoteAdd_HappyPath(t *testing.T) {
 			_, _ = w.Write([]byte(`{"code":"NotFound","message":"x","details":""}`))
 		case r.Method == http.MethodPost && strings.HasSuffix(r.URL.Path, "/remotes"):
 			createdRemote = true
-			_, _ = w.Write([]byte(datadatdatRemoteJSON))
+			_, _ = w.Write([]byte(ditRemoteJSON))
 		case r.Method == http.MethodGet && strings.HasSuffix(r.URL.Path, "/repositories/repo"):
 			_, _ = w.Write([]byte(`{"name":"repo","properties":{}}`))
 		case r.Method == http.MethodPost && strings.HasSuffix(r.URL.Path, "/repositories/repo"):
@@ -285,7 +285,7 @@ func TestRemoteAdd_CustomRemoteName(t *testing.T) {
 			w.WriteHeader(http.StatusNotFound)
 			_, _ = w.Write([]byte(`{"code":"NotFound","message":"x","details":""}`))
 		case r.Method == http.MethodPost && strings.HasSuffix(r.URL.Path, "/remotes"):
-			_, _ = w.Write([]byte(`{"provider":"datadatdat","name":"upstream","properties":{"host":"example.com","org":"o","repo":"r"}}`))
+			_, _ = w.Write([]byte(`{"provider":"dit","name":"upstream","properties":{"host":"example.com","org":"o","repo":"r"}}`))
 		case r.Method == http.MethodGet && strings.HasSuffix(r.URL.Path, "/repositories/repo"):
 			_, _ = w.Write([]byte(`{"name":"repo","properties":{"existing":"prop"}}`))
 		case r.Method == http.MethodPost && strings.HasSuffix(r.URL.Path, "/repositories/repo"):

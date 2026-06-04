@@ -6,7 +6,7 @@ import (
 	"strconv"
 	"strings"
 
-	client "github.com/datadatdat/datadatdat-client-go"
+	client "github.com/ditdotdev/dit-client-go"
 	"net/http"
 )
 
@@ -15,7 +15,7 @@ import (
 //
 // Pre-fix the package directly imported and called local.Run / local.Checkout /
 // local.Remove regardless of which provider's Clone() invoked common.Clone —
-// so `d3 clone --context k8s ...` was silently routed through the docker code
+// so `dit clone --context k8s ...` was silently routed through the docker code
 // path, surfacing as "Creating docker volume hello-clone-s3web_v0" mid-run on
 // kubernetes contexts and failing immediately. Surfaced by
 // kubernetes-remote-tests.bats tests 9-10. Routing through caller-supplied
@@ -168,9 +168,9 @@ func Clone(uri string, repo string, guid string, params []string, args []string,
 func handleRemoteError(err error, resp *http.Response, uri string) {
 	if resp != nil && resp.StatusCode == http.StatusUnauthorized {
 		if uri != "" {
-			fmt.Printf("authentication required: run 'd3 auth login --server %s --api-key <KEY>' to authenticate\n", uri)
+			fmt.Printf("authentication required: run 'dit auth login --server %s --api-key <KEY>' to authenticate\n", uri)
 		} else {
-			fmt.Println("authentication required: run 'd3 auth login --api-key <KEY>' to authenticate")
+			fmt.Println("authentication required: run 'dit auth login --api-key <KEY>' to authenticate")
 		}
 	} else {
 		fmt.Printf("error communicating with remote: %v\n", err)

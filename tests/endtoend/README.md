@@ -8,7 +8,7 @@ On a fresh dev box (native Linux or WSL2), provision the host ZFS pools once:
 bash scripts/setup-zfs-pools.sh
 ```
 
-This creates the loop-backed ZFS pools that the Datadatdat containers require. Pass `--clean` to destroy and recreate them.
+This creates the loop-backed ZFS pools that the Dit containers require. Pass `--clean` to destroy and recreate them.
 
 ### Running Tests
 
@@ -26,7 +26,7 @@ make test-ssh-workflow
 ## Prerequisites
 
 *   Install BATS: `npm install -g bats`
-*   Make sure datadatdat (d3) and docker are both in PATH
+*   Make sure dit (dit) and docker are both in PATH
 
 ## Getting Started Tests
 ```bash

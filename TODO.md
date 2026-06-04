@@ -1,7 +1,7 @@
-# Datadatdat Project TODO - Dependency Migration & Infrastructure Updates
+# Dit Project TODO - Dependency Migration & Infrastructure Updates
 
 ## Project Overview
-We have successfully migrated the Datadatdat infrastructure from the `t1t4n-data` GitHub organization to `datadatdat` for both Docker images and Go module dependencies, and fixed ZFS kernel module loading issues in WSL2 environments.
+We have successfully migrated the Dit infrastructure from the `t1t4n-data` GitHub organization to `dit` for both Docker images and Go module dependencies, and fixed ZFS kernel module loading issues in WSL2 environments.
 
 ## Completed Work ✅
 
@@ -18,30 +18,30 @@ We have successfully migrated the Datadatdat infrastructure from the `t1t4n-data
 - **Documentation**: Created upgrade process documentation for other repositories
 
 ### 2. Go Module Dependency Migration (September 17, 2025)
-- **Complete Migration**: Successfully migrated all 6 Go dependencies from `github.com/t1t4n-data/*` to `github.com/datadatdat/*`
+- **Complete Migration**: Successfully migrated all 6 Go dependencies from `github.com/t1t4n-data/*` to `github.com/ditdotdev/*`
 - **Repositories Updated**:
   - `remote-sdk-go` → v0.2.4 (corrected module paths and internal imports)
-  - `s3-remote-go` → v0.2.2 (updated to use datadatdat/remote-sdk-go v0.2.4)  
-  - `ssh-remote-go` → v0.2.1 (updated to use datadatdat/remote-sdk-go v0.2.4)
-  - `nop-remote-go` → v0.2.2 (updated to use datadatdat/remote-sdk-go v0.2.4)
-  - `s3web-remote-go` → v0.2.1 (updated to use datadatdat/remote-sdk-go v0.2.4)
-  - `datadatdat-client-go` → v0.1.2 (module path updated to datadatdat)
-- **Datadatdat CLI Updated**: All go.mod dependencies and Go source import statements migrated
+  - `s3-remote-go` → v0.2.2 (updated to use ditdotdev/remote-sdk-go v0.2.4)  
+  - `ssh-remote-go` → v0.2.1 (updated to use ditdotdev/remote-sdk-go v0.2.4)
+  - `nop-remote-go` → v0.2.2 (updated to use ditdotdev/remote-sdk-go v0.2.4)
+  - `s3web-remote-go` → v0.2.1 (updated to use ditdotdev/remote-sdk-go v0.2.4)
+  - `dit-client-go` → v0.1.2 (module path updated to dit)
+- **Dit CLI Updated**: All go.mod dependencies and Go source import statements migrated
 - **Protobuf Conflict Resolution**: Fixed namespace conflicts by migrating all dependencies simultaneously
-- **Windows Compatibility**: Added d3.exe for proper Windows executable recognition
+- **Windows Compatibility**: Added dit.exe for proper Windows executable recognition
 - **Verification**: All builds successful with `make build` and e2e tests passing with `make e2e`
-- **Version Control**: All changes committed and pushed to datadatdat/d3 repository
+- **Version Control**: All changes committed and pushed to ditdotdev/dit repository
 
 ### 2. Docker Registry Migration
-- **d3 CLI**: Updated `internal/app/clients/Docker.go` with registry-aware Docker client
+- **dit CLI**: Updated `internal/app/clients/Docker.go` with registry-aware Docker client
   - Added `DockerWithRegistry()` constructor
   - Added `getImageName()` method for registry prefixing
   - Updated `Launcht1t4nServers()` and `Teardownt1t4nServers()` to use registry-prefixed images
-- **d3 CLI**: Updated `internal/app/providers/local/Install.go` to use registry parameter
-- **d3 CLI**: Reverted `internal/app/providers/Local.go` t1t4nServerVersion from "latest" to "0.8.7"
-- **Docker Images**: Successfully tagged and pushed to `datadatdat` organization:
-  - `datadatdat/t1t4n:0.8.7` and `datadatdat/t1t4n:latest`
-  - `datadatdat/zfs-builder:latest`
+- **dit CLI**: Updated `internal/app/providers/local/Install.go` to use registry parameter
+- **dit CLI**: Reverted `internal/app/providers/Local.go` t1t4nServerVersion from "latest" to "0.8.7"
+- **Docker Images**: Successfully tagged and pushed to `dit` organization:
+  - `ditdotdev/t1t4n:0.8.7` and `ditdotdev/t1t4n:latest`
+  - `ditdotdev/zfs-builder:latest`
 - **Verification**: Confirmed images pull correctly from new registry via debug logging
 
 ### 3. ZFS WSL2 Kernel Compatibility
@@ -56,18 +56,18 @@ We have successfully migrated the Datadatdat infrastructure from the `t1t4n-data
   fi
   ```
 - **Test Updates**: Updated shell tests in `t1t4n-server/src/scripts-test/test-zfs.sh` to mock grep calls
-- **Container Build**: Successfully built and pushed `datadatdat/t1t4n:0.8.7` with ZFS fixes
+- **Container Build**: Successfully built and pushed `ditdotdev/t1t4n:0.8.7` with ZFS fixes
 
 ## Current Status 🚧
 
 ### Working Components
 - ✅ **Go module dependency migration complete and functional** (NEW)
-- ✅ All 6 dependencies successfully migrated to datadatdat organization  
+- ✅ All 6 dependencies successfully migrated to dit organization  
 - ✅ Protobuf namespace conflicts resolved through simultaneous migration
 - ✅ Docker registry migration complete and functional
 - ✅ ZFS built-in kernel detection implemented 
 - ✅ Updated containers deployed to Docker Hub
-- ✅ Registry-aware d3 CLI built and tested
+- ✅ Registry-aware dit CLI built and tested
 - ✅ **Complete workspace validation** - All 29 repositories building and testing successfully
 - ✅ **Cross-platform compatibility** - Windows/Unix compatibility issues resolved
 
@@ -82,11 +82,11 @@ We have successfully migrated the Datadatdat infrastructure from the `t1t4n-data
 - ⚠️ **delphix-remote Pull Request Build Checks** - RESOLVED for main workflows, some Dependabot issues remain
 - 🔄 **Go Version Upgrade Investigation** - INVESTIGATE Go 1.25.1 compilation upgrade across all repositories (Added September 25, 2025)
 - ⚠️ **zfs-releases Kernel Compatibility** - Ongoing kernel testing issues (non-blocking)
-- 🔄 **URGENT: Regenerate datadatdat-client-go with OpenAPI Generator** (Added October 14, 2025)
-  - **Issue**: Manual titan→datadatdat rename applied to autogenerated client files
+- 🔄 **URGENT: Regenerate dit-client-go with OpenAPI Generator** (Added October 14, 2025)
+  - **Issue**: Manual titan→dit rename applied to autogenerated client files
   - **Action Required**: Run OpenAPI generator to properly regenerate all client files from updated openapi.yaml
   - **Files to regenerate**: All .go files, docs/*.md files, model files, and API files
-  - **Dependencies**: datadatdat-server must have updated openapi/datadatdat.yml first
+  - **Dependencies**: dit-server must have updated openapi/dit.yml first
    - **Priority**: HIGH - These files should not be manually edited as they are autogenerated
 
 ## Repository Consolidation Investigation 🔄 **NEW**
@@ -102,7 +102,7 @@ We have successfully migrated the Datadatdat infrastructure from the `t1t4n-data
 - **Investigation Needed**:
   - **Historical Context**: Why were both Go and Kotlin versions created?
   - **Feature Parity**: Do both versions implement the same functionality?
-  - **Usage Patterns**: Which versions are actively used by Datadatdat CLI vs server?
+  - **Usage Patterns**: Which versions are actively used by Dit CLI vs server?
   - **Performance Comparison**: Are there performance differences between Go and Kotlin implementations?
   - **Maintenance Overhead**: Cost of maintaining duplicate codebases with similar functionality
   - **Client vs Server**: Do Go versions serve CLI clients while Kotlin serves server-side operations?
@@ -244,17 +244,17 @@ All core repositories now show successful Pull Request workflow execution:
 - Dependabot PRs receive proper CI checks before merging
 
 ### GitHub Release Mirroring Issue 🔄 **NEW**
-- **Issue**: datadatdat releases are not mirroring t1t4n-data releases properly
+- **Issue**: dit releases are not mirroring t1t4n-data releases properly
 - **Comparison**:
   - **t1t4n-data releases**: https://github.com/t1t4n-data/remote-sdk/releases
-  - **datadatdat releases**: https://github.com/datadatdat/remote-sdk/releases
+  - **dit releases**: https://github.com/ditdotdev/remote-sdk/releases
 - **Impact**: Release inconsistency between organizations, potential confusion for users and developers
 - **Root Cause**: Need to investigate automated release mirroring process or manual release creation workflow
 - **Priority**: Medium - affects release management and organization consistency
 - **Action Required**: 
-  - Compare release histories between t1t4n-data and datadatdat organizations
+  - Compare release histories between t1t4n-data and dit organizations
   - Determine if releases should be manually created or automatically mirrored
-  - Document proper release process for datadatdat organization
+  - Document proper release process for dit organization
   - Consider GitHub Actions workflow to auto-create releases from tags
 
 ### Affected Repositories ✅ ALL RESOLVED
@@ -299,22 +299,22 @@ All core repositories now show successful Pull Request workflow execution:
    - **Issue**: Docker containers need to be rebuilt and released with updated Maven dependencies
    - **Action Required**: Build and push new Docker container versions after Maven releases
    - **Containers Needing Updates**:
-     - `datadatdat/t1t4n-server` - Update with latest plugin-launcher and remote dependencies
-     - `datadatdat/t1t4n` - Update CLI container with latest server version
+     - `ditdotdev/t1t4n-server` - Update with latest plugin-launcher and remote dependencies
+     - `ditdotdev/t1t4n` - Update CLI container with latest server version
      - Remote provider containers using updated Kotlin dependencies
    - **Priority**: High - Required for complete dependency update chain
 
 3. **Maven Repository URL Migration** ✅ COMPLETED (September 21, 2025)
-   - **Issue**: Multiple references to old `maven.datadatdat.com` repository URL throughout codebase
-   - **Action Taken**: Updated all Maven repository URLs from `maven.datadatdat.com` to direct S3 access `datadatdat-maven.s3.amazonaws.com`
+   - **Issue**: Multiple references to old `maven.dit.dev` repository URL throughout codebase
+   - **Action Taken**: Updated all Maven repository URLs from `maven.dit.dev` to direct S3 access `dit-maven.s3.amazonaws.com`
    - **Files Updated**: 
      - All `build.gradle.kts` files in Kotlin repositories (s3-remote, ssh-remote, s3web-remote, nop-remote, delphix-remote, remote-sdk, plugin-launcher)
-   - **Pattern Changed**: `url = uri("https://maven.datadatdat.com")` → `url = uri("https://datadatdat-maven.s3.amazonaws.com")`
+   - **Pattern Changed**: `url = uri("https://maven.dit.dev")` → `url = uri("https://dit-maven.s3.amazonaws.com")`
    - **Status**: ✅ COMPLETED - All repositories now use direct S3 access
    - **Priority**: High - Required for proper dependency resolution after organization migration
 
 4. **Dependency Version Updates**
-   - **Action Required**: Update Maven and Docker references throughout d3 repositories
+   - **Action Required**: Update Maven and Docker references throughout dit repositories
    - **After**: Maven releases and Docker builds are complete
    - **Files to Update**: All pom.xml, build.gradle.kts, and Docker references to use new versions
    - **Priority**: Medium - Final step in dependency update process
@@ -324,7 +324,7 @@ All core repositories now show successful Pull Request workflow execution:
    - **Current State**: Mixed Go versions across repositories
      - **nop-remote-go**: Testing Go 1.21, 1.22, 1.23 in CI matrix
      - **Other Go repos**: Various version configurations
-     - **Datadatdat CLI**: Using older Go versions in workflows
+     - **Dit CLI**: Using older Go versions in workflows
    - **Target**: Upgrade to **Go 1.25.1** (latest stable as of September 2025)
    - **Benefits**:
      - **Performance**: Latest Go runtime optimizations embedded in binaries
@@ -333,14 +333,14 @@ All core repositories now show successful Pull Request workflow execution:
      - **Compatibility**: Future-proofing for Go ecosystem evolution
    - **Investigation Areas**:
      - **Binary Runtime Impact**: Since Go binaries embed the runtime, users get the Go 1.25.1 runtime automatically
-     - **Dependency Compatibility**: Verify all d3 dependencies work with Go 1.25.1
+     - **Dependency Compatibility**: Verify all dit dependencies work with Go 1.25.1
      - **CI/CD Workflows**: Update GitHub Actions matrix testing to include/focus on 1.25.1
      - **Build Performance**: Measure compilation speed improvements with latest Go version
      - **Breaking Changes**: Review Go 1.24 → 1.25 release notes for breaking changes
    - **Repositories to Evaluate**:
      - `t1t4n` (CLI) - Core binary compilation
      - `t1t4n-server` - Server binary compilation  
-     - `datadatdat-client-go` - Client library compilation
+     - `dit-client-go` - Client library compilation
      - `remote-sdk-go` - Remote SDK compilation
      - `s3-remote-go`, `ssh-remote-go`, `nop-remote-go`, `s3web-remote-go` - Remote provider binaries
    - **Risk Assessment**: Low-Medium (Go maintains excellent backward compatibility)
@@ -410,7 +410,7 @@ All core repositories now show successful Pull Request workflow execution:
    - **Repositories Updated**:
      - ✅ **t1t4n** - Updated with new token
      - ✅ **t1t4n-server** - Added new token
-     - ✅ **datadatdat-client-go** - Added new token
+     - ✅ **dit-client-go** - Added new token
      - ✅ **s3-remote-go** - Updated with new token
      - ✅ **s3web-remote-go** - Updated with new token
      - ✅ **ssh-remote-go** - Updated with new token
@@ -464,7 +464,7 @@ dependencies {
 
 ### Immediate (High Priority) ✅ COMPLETED
 1. ✅ **Test Complete Installation Flow** - RESOLVED
-   - Datadatdat CLI builds successfully with `make build`
+   - Dit CLI builds successfully with `make build`
    - End-to-end tests pass with `make e2e`
    - All dependency conflicts resolved
 
@@ -477,17 +477,17 @@ dependencies {
 3. **Validate All Test Suites** - PARTIALLY COMPLETED
    ```bash
    # End-to-end tests ✅ PASSING
-   cd /c/dev/d3 && make e2e
+   cd /c/dev/dit && make e2e
    
    # Unit tests - ⚠️ NO UNIT TESTS FOUND
-   cd /c/dev/d3 && go test ./...  # Returns "no test files"
+   cd /c/dev/dit && go test ./...  # Returns "no test files"
    
    # Integration tests - TBD 
    cd /c/dev/t1t4n/tests/integration && make test
    ```
 
-4. **Add Unit Test Coverage to Datadatdat CLI** - NEW PRIORITY
-   - **Issue**: Datadatdat CLI repository has no Go unit tests (*_test.go files)
+4. **Add Unit Test Coverage to Dit CLI** - NEW PRIORITY
+   - **Issue**: Dit CLI repository has no Go unit tests (*_test.go files)
    - **Current State**: Only end-to-end tests exist and are passing
    - **Need**: Add unit test coverage for core functionality:
      - `internal/app/clients/` - Docker client functionality
@@ -521,12 +521,12 @@ dependencies {
        - `t1t4n-server.tf` - Server deployment resources
        - `t1t4n-test.tf` - Test environment setup
        - `zfs-releases.tf` - ZFS build artifacts storage
-   - **Critical**: CDN configuration in `download.tf` needs to point to `datadatdat` organization
-   - **Impact**: Core infrastructure supporting all Datadatdat services
+   - **Critical**: CDN configuration in `download.tf` needs to point to `dit` organization
+   - **Impact**: Core infrastructure supporting all Dit services
 
 6. **Repository Build/Test Validation** - ✅ COMPLETED
    - **Completed**: 29/29 repositories successfully validated ✅
-     - **Core Go**: t1t4n, t1t4n-server, datadatdat-client-go, remote-sdk-go
+     - **Core Go**: t1t4n, t1t4n-server, dit-client-go, remote-sdk-go
      - **Remote Go**: s3-remote-go, ssh-remote-go, nop-remote-go, s3web-remote-go  
      - **Docker Infrastructure**: t1t4n-docker-proxy (fixed volume naming), zfs-builder, zfs-releases
      - **Testing Infrastructure**: ssh-test-server, localstack, dynamodb-local (now using BATS)
@@ -536,13 +536,13 @@ dependencies {
    - **Cross-Platform Fixes Applied**:
      - Fixed POSIX file permissions issues on Windows (ssh-remote, remote-sdk)
      - Fixed path separator compatibility (Windows backslash vs Unix forward slash)
-     - Resolved Go module proxy caching for datadatdat dependencies
+     - Resolved Go module proxy caching for dit dependencies
      - Updated volume naming format from slash to underscore format
    - **Success Metrics**: 552+ tests passing across entire ecosystem, 100% build success rate
 
 ### Future Improvements
 7. **Documentation Updates**
-   - Update installation docs to reference `datadatdat` registry
+   - Update installation docs to reference `dit` registry
    - Document WSL2 ZFS compatibility improvements
    - Update any hardcoded registry references in docs
 
@@ -551,11 +551,11 @@ dependencies {
    - Update any remaining references in other repositories
 
 9. **CDN Infrastructure Recreation** (Long-term)
-   - **Issue**: Currently using direct S3 access (`datadatdat-maven.s3.amazonaws.com`) instead of CDN
-   - **Goal**: Recreate CDN infrastructure to serve Maven repository via `maven.datadatdat.com` 
+   - **Issue**: Currently using direct S3 access (`dit-maven.s3.amazonaws.com`) instead of CDN
+   - **Goal**: Recreate CDN infrastructure to serve Maven repository via `maven.dit.dev` 
    - **Requirements**:
      - Update Terraform configuration in `community-aws/community/maven.tf`
-     - Point CloudFront distribution to `datadatdat-maven` S3 bucket (already configured)
+     - Point CloudFront distribution to `dit-maven` S3 bucket (already configured)
      - Update DNS records to point to new CloudFront distribution
      - Test CDN functionality and performance
    - **Benefits**: Improved performance, caching, and professional URL structure
@@ -563,7 +563,7 @@ dependencies {
    - **Timeline**: Future enhancement when time permits
 
 10. **Maven Repository Security Investigation** (Medium Priority)
-   - **Issue**: S3 bucket `datadatdat-maven` configured for public read access for Maven repository functionality
+   - **Issue**: S3 bucket `dit-maven` configured for public read access for Maven repository functionality
    - **Current State**: Public read access required for Gradle builds to access Maven artifacts via HTTPS
    - **Security Concerns**: 
      - Public bucket allows anyone to download Maven artifacts
@@ -585,15 +585,15 @@ dependencies {
 
 ### Key Files Modified
 - **Go Module Migration (NEW)**:
-  - `t1t4n/go.mod` - Updated all 6 dependencies to datadatdat organization
+  - `t1t4n/go.mod` - Updated all 6 dependencies to dit organization
   - `t1t4n/go.sum` - Updated checksums for new dependency versions
   - All Go source files (`internal/app/**/*.go`) - Updated import statements
-  - `d3.exe` - Added Windows executable for compatibility
+  - `dit.exe` - Added Windows executable for compatibility
 - **Docker Registry Migration**:
   - `t1t4n/internal/app/clients/Docker.go` - Registry-aware Docker client
   - `t1t4n/internal/app/providers/local/Install.go` - Registry parameter support
   - `t1t4n/internal/app/providers/Local.go` - Version management
-  - `t1t4n/Dockerfile` - Updated to use `datadatdat` registry
+  - `t1t4n/Dockerfile` - Updated to use `dit` registry
 - **ZFS WSL2 Compatibility**:
   - `t1t4n-server/src/scripts/zfs.sh` - ZFS built-in kernel detection
 
@@ -605,22 +605,22 @@ dependencies {
 
 ### Registry Migration Details
 - **Old**: `t1t4ndata/t1t4n:0.8.7`, `t1t4ndata/zfs-builder:latest`
-- **New**: `datadatdat/t1t4n:0.8.7`, `datadatdat/zfs-builder:latest`
+- **New**: `ditdotdev/t1t4n:0.8.7`, `ditdotdev/zfs-builder:latest`
 - **CLI Support**: Registry parameter passed through Docker client chain
 - **Backward Compatibility**: Default registry can be overridden via CLI flag
 
 ## Success Criteria 🎯
-- [x] **Go module dependencies migrated to datadatdat organization** ✅ COMPLETED
+- [x] **Go module dependencies migrated to dit organization** ✅ COMPLETED
 - [x] **All builds and e2e tests pass with new dependencies** ✅ COMPLETED  
 - [x] **Protobuf namespace conflicts resolved** ✅ COMPLETED
-- [x] **Datadatdat CLI builds successfully** ✅ COMPLETED
+- [x] **Dit CLI builds successfully** ✅ COMPLETED
 - [x] **End-to-end test suite passes** ✅ COMPLETED
 - [x] **Complete workspace validation** ✅ COMPLETED - All 29 repositories tested
 - [x] **Cross-platform compatibility** ✅ COMPLETED - Windows/Unix issues resolved
-- [ ] **Unit test coverage added to Datadatdat CLI** - NEW REQUIREMENT
-- [ ] Complete d3 installation works in WSL2 without ZFS errors
+- [ ] **Unit test coverage added to Dit CLI** - NEW REQUIREMENT
+- [ ] Complete dit installation works in WSL2 without ZFS errors
 - [ ] All unit and integration tests pass
-- [ ] Docker images pull from `datadatdat` registry successfully
+- [ ] Docker images pull from `dit` registry successfully
 - [ ] ZFS operations function correctly in WSL2 environment
 - [ ] No regressions in existing functionality
 
@@ -636,18 +636,18 @@ If issues arise, revert to previous working state:
 
 ### Current Status - MAJOR PROGRESS ✅
 - ✅ **Infrastructure Tests PASSED** - Registry migration and ZFS WSL2 fixes working perfectly
-- ✅ **Dependency Migration COMPLETED** - All Go modules successfully migrated to datadatdat
+- ✅ **Dependency Migration COMPLETED** - All Go modules successfully migrated to dit
 - ✅ **Build System WORKING** - `make build` and `make e2e` both successful
 - ✅ `can install t1t4n: PASSED`
-- ✅ `d3 server is running: PASSED` 
-- ✅ `d3 launch is running: PASSED`
+- ✅ `dit server is running: PASSED` 
+- ✅ `dit launch is running: PASSED`
 
 ### Issues to Address
 
 #### 1. **PostgreSQL Demo Data Corruption** (High Priority)
-- **Problem**: `d3 clone s3web://demo.datadatdat.com/hello-world/postgres` fails with schema error
+- **Problem**: `dit clone s3web://demo.dit.dev/hello-world/postgres` fails with schema error
 - **Error**: `ERROR: column "timestamp" is of type timestamp without time zone but expression is of type character varying`
-- **Root Cause**: Remote demo data at `s3web://demo.datadatdat.com/hello-world/postgres` has corrupted/incompatible SQL
+- **Root Cause**: Remote demo data at `s3web://demo.dit.dev/hello-world/postgres` has corrupted/incompatible SQL
 - **Impact**: Breaks `can clone hello-world/postgres` and `can get contents of hello-world/postgres` tests
 - **Solution Needed**: 
   - Create new clean hello-world/postgres demo data
@@ -656,27 +656,27 @@ If issues arise, revert to previous working state:
 
 #### 2. **MongoDB Checkout Test Logic** (Medium Priority)  
 - **Problem**: `mongo-test checkout was successful` test fails
-- **Error**: After `d3 checkout`, both Ada Lovelace and Grace Hopper records present, but test expects Grace to be missing
-- **Root Cause**: Either `d3 checkout` not working properly, or test assertion logic incorrect
+- **Error**: After `dit checkout`, both Ada Lovelace and Grace Hopper records present, but test expects Grace to be missing
+- **Root Cause**: Either `dit checkout` not working properly, or test assertion logic incorrect
 - **Impact**: False negative test failure
 - **Investigation Needed**: Verify if checkout functionality or test expectations are wrong
 
 ### Next Steps 📋
 1. **Fix PostgreSQL Demo Data** - Create clean hello-world/postgres dataset
-2. **Debug MongoDB Checkout** - Verify d3 checkout functionality  
+2. **Debug MongoDB Checkout** - Verify dit checkout functionality  
 3. **Re-run Tests** - Validate all e2e tests pass after fixes
-4. **Update CDN Configuration** - Update `download.datadatdat.com` CDN to point to `datadatdat` organization instead of `t1t4n-data`
-   - Currently docker-volume-proxy downloads directly from S3: `https://datadatdat-maven.s3.amazonaws.com/t1t4n-docker-proxy/docker-volume-proxy`
-   - Should be updated to use CDN: `https://download.datadatdat.com/t1t4n-docker-proxy/docker-volume-proxy`
+4. **Update CDN Configuration** - Update `download.dit.dev` CDN to point to `dit` organization instead of `t1t4n-data`
+   - Currently docker-volume-proxy downloads directly from S3: `https://dit-maven.s3.amazonaws.com/t1t4n-docker-proxy/docker-volume-proxy`
+   - Should be updated to use CDN: `https://download.dit.dev/t1t4n-docker-proxy/docker-volume-proxy`
    - See `t1t4n-server/server/docker/server.Dockerfile` for current S3 workaround
 
 ---
 **Last Updated**: October 9, 2025  
 **Status**: Infrastructure, dependency migration, complete workspace validation, and GitHub Actions workflows ✅ COMPLETED - All core CI/CD issues resolved
 - ��� **Hardcoded Version String** - NEEDS RESOLUTION
-  - **Issue**: Datadatdat CLI version is hardcoded to "0.7.1" in `internal/app/commands/root.go`
+  - **Issue**: Dit CLI version is hardcoded to "0.7.1" in `internal/app/commands/root.go`
   - **Impact**: Binary reports incorrect version regardless of release tag or build VERSION parameter
-  - **Current**: `d3 --version` shows "d3 version 0.7.1" even for v0.5.0 release
+  - **Current**: `dit --version` shows "dit version 0.7.1" even for v0.5.0 release
   - **Solution Needed**: Make version dynamic based on build-time parameter or git tag
   - **Location**: `internal/app/commands/root.go` line with `rootCmd.Version = "0.7.1"`
   - **Priority**: Medium - cosmetic issue but affects user experience and support

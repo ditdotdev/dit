@@ -2,12 +2,11 @@ package commands
 
 import (
 	"bytes"
-	"datadatdat/internal/app/providers/common"
 	"encoding/json"
 	"fmt"
+	"github.com/ditdotdev/dit/internal/app/providers/common"
 	"io"
 	"net/http"
-	"os"
 	"time"
 
 	"github.com/spf13/cobra"
@@ -16,10 +15,10 @@ import (
 var orgCmd = &cobra.Command{
 	Use:   subcmdOrg,
 	Short: "Manage organizations",
-	Long:  `Manage organizations on a datadatdat remote server.`,
+	Long:  `Manage organizations on a dit remote server.`,
 	PersistentPreRun: func(cmd *cobra.Command, args []string) {
 		// Override root's PersistentPreRun to skip provider initialization.
-		// Org commands talk directly to the remote server, not the local d3 provider.
+		// Org commands talk directly to the remote server, not the local dit provider.
 	},
 }
 
@@ -80,7 +79,7 @@ var orgListCmd = &cobra.Command{
 var orgCreateCmd = &cobra.Command{
 	Use:   "create <name>",
 	Short: "Create an organization",
-	Long:  `Create a new organization on a datadatdat remote server.`,
+	Long:  `Create a new organization on a dit remote server.`,
 	Args:  cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		orgName := args[0]
@@ -135,7 +134,7 @@ var orgCreateCmd = &cobra.Command{
 var orgInfoCmd = &cobra.Command{
 	Use:   "info <org-name>",
 	Short: "Show organization details",
-	Long:  `Display details for an organization on a datadatdat remote server.`,
+	Long:  `Display details for an organization on a dit remote server.`,
 	Args:  cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		orgName := args[0]
@@ -190,7 +189,7 @@ var orgInfoCmd = &cobra.Command{
 var orgMembersCmd = &cobra.Command{
 	Use:   "members <org-name>",
 	Short: "List organization members",
-	Long:  `List all members of an organization on a datadatdat remote server.`,
+	Long:  `List all members of an organization on a dit remote server.`,
 	Args:  cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		orgName := args[0]
@@ -250,17 +249,10 @@ var orgMembersCmd = &cobra.Command{
 func resolveOrgAuth(server string) (string, string, error) {
 	credsPath := getCredentialsPath()
 
-	apiKey := os.Getenv("DATADATDAT_API_KEY")
-	if apiKey == "" {
-		if server != "" {
-			apiKey = common.GetAPIKeyForServer(credsPath, server)
-		} else {
-			apiKey = common.GetAPIKey(credsPath)
-		}
-	}
+	apiKey := common.GetAPIKey(credsPath, server)
 
 	if apiKey == "" {
-		return "", "", fmt.Errorf("not authenticated; run 'd3 auth login' or set DATADATDAT_API_KEY")
+		return "", "", fmt.Errorf("not authenticated; run 'dit auth login' or set DIT_API_KEY")
 	}
 
 	if server == "" {
@@ -270,7 +262,7 @@ func resolveOrgAuth(server string) (string, string, error) {
 		}
 	}
 	if server == "" {
-		return "", "", fmt.Errorf("no server configured; use --server or run 'd3 auth login --server <url>'")
+		return "", "", fmt.Errorf("no server configured; use --server or run 'dit auth login --server <url>'")
 	}
 
 	return apiKey, server, nil

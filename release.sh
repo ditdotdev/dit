@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 #
-# Datadatdat Ecosystem Release Automation
+# Dit Ecosystem Release Automation
 #
-# Automates the full multi-repo release process for all datadatdat components.
+# Automates the full multi-repo release process for all dit components.
 # Each repo has GitHub Actions that build/test/publish on tag push - this script
 # orchestrates the dependency order, waits for CI, merges PRs, and verifies artifacts.
 #
@@ -23,11 +23,11 @@
 #   0  Pre-flight checks
 #   1  Go foundation (remote-sdk-go + 5 Go providers)
 #   2  Kotlin foundation (command-executor + remote-sdk + 6 Kotlin providers)
-#   3  datadatdat-client-go
-#   4  datadatdat-docker-proxy
-#   5  datadatdat-server
-#   6  datadatdat CLI
-#   7  datadatdat-remote-server
+#   3  dit-client-go
+#   4  dit-docker-proxy
+#   5  dit-server
+#   6  dit CLI
+#   7  dit-remote-server
 #   8  AWS ECS production deployment
 #   9  Post-release validation
 
@@ -37,24 +37,24 @@ set -euo pipefail
 # Configuration
 # ============================================================================
 
-WORKSPACE="/c/dev/datadatdat"
-ORG="datadatdat"
-MAVEN_BUCKET="datadatdat-maven"
-PROD_RELEASES_BUCKET="datadatdat-releases-prod"
-DEV_RELEASES_BUCKET="datadatdat-releases"
+WORKSPACE="/c/dev/dit"
+ORG="dit"
+MAVEN_BUCKET="dit-maven"
+PROD_RELEASES_BUCKET="dit-releases-prod"
+DEV_RELEASES_BUCKET="dit-releases"
 DEV_MINIO_ENDPOINT="localhost:9000"
 ECR_REGION="us-west-2"
-ECS_CLUSTER="datadatdat-prod"
-STATE_DIR="$WORKSPACE/datadatdat/.release-state"
+ECS_CLUSTER="dit-prod"
+STATE_DIR="$WORKSPACE/ditdotdev/.release-state"
 
-GO_PROVIDERS=(s3-remote-go ssh-remote-go s3web-remote-go nop-remote-go datadatdat-remote-go)
-KOTLIN_PROVIDERS=(s3-remote ssh-remote s3web-remote nop-remote delphix-remote datadatdat-remote)
+GO_PROVIDERS=(s3-remote-go ssh-remote-go s3web-remote-go nop-remote-go dit-remote-go)
+KOTLIN_PROVIDERS=(s3-remote ssh-remote s3web-remote nop-remote delphix-remote dit-remote)
 COMMAND_EXECUTOR_DEPENDENTS=(ssh-remote delphix-remote)
 
-GO_MOD_REPOS=(datadatdat datadatdat-remote-go datadatdat-remote-server nop-remote-go s3-remote-go s3web-remote-go ssh-remote-go)
+GO_MOD_REPOS=(dit dit-remote-go dit-remote-server nop-remote-go s3-remote-go s3web-remote-go ssh-remote-go)
 
-ECR_SERVICES=(auth-server api-gateway api-repo-manifest api-ingest api-download datadatdat-repo-web worker web)
-PROD_URL="https://datadatdat.com"
+ECR_SERVICES=(auth-server api-gateway api-repo-manifest api-ingest api-download dit-repo-web worker web)
+PROD_URL="https://dit.dev"
 
 # ============================================================================
 # Globals (set by parse_args)
@@ -165,7 +165,7 @@ update_go_dep() {
         return 0
     fi
     cd "$repo_path"
-    go env -w GOPRIVATE=github.com/datadatdat/*
+    go env -w GOPRIVATE=github.com/ditdotdev/*
     go env -w GOPROXY=direct
     go get "$module@$version"
     go mod tidy
@@ -317,7 +317,7 @@ verify_maven_pom() {
         return 0
     fi
 
-    local pom_path="com/datadatdat/$artifact/$version/$artifact-$version.pom"
+    local pom_path="dev/dit/$artifact/$version/$artifact-$version.pom"
     local tmp_pom
     tmp_pom=$(mktemp)
     if aws s3 cp "s3://$MAVEN_BUCKET/$pom_path" "$tmp_pom" 2>/dev/null; then
@@ -376,7 +376,7 @@ get_completed_phase() {
 detect_prev_version() {
     # Auto-detect previous version from go.mod
     local prev
-    prev=$(grep 'github.com/datadatdat/remote-sdk-go' "$WORKSPACE/datadatdat/go.mod" | awk '{print $2}' | sed 's/^v//')
+    prev=$(grep 'github.com/ditdotdev/remote-sdk-go' "$WORKSPACE/ditdotdev/go.mod" | awk '{print $2}' | sed 's/^v//')
     echo "$prev"
 }
 
@@ -415,7 +415,7 @@ phase_preflight() {
 
     # Check all repos exist and are on master with clean state.
     #
-    # The clean-tree check is load-bearing for datadatdat-remote-server in
+    # The clean-tree check is load-bearing for dit-remote-server in
     # particular: Phase 8 step 0 runs `terraform apply` against that repo's
     # deploy/terraform/ directory (issue #137). An uncommitted change in
     # that subtree would mean what we apply diverges from what's on master
@@ -424,8 +424,8 @@ phase_preflight() {
     local all_repos=(
         remote-sdk-go "${GO_PROVIDERS[@]}"
         command-executor remote-sdk "${KOTLIN_PROVIDERS[@]}"
-        datadatdat-client-go datadatdat-docker-proxy datadatdat-server
-        datadatdat datadatdat-remote-server
+        dit-client-go dit-docker-proxy dit-server
+        dit dit-remote-server
     )
     for repo in "${all_repos[@]}"; do
         local repo_path="$WORKSPACE/$repo"
@@ -559,13 +559,13 @@ phase_go_foundation() {
     # 8. Verify provider alignment — all must resolve to same remote-sdk-go version
     if ! $DRY_RUN; then
         log_step "Verifying Go provider alignment..."
-        cd "$WORKSPACE/datadatdat"
+        cd "$WORKSPACE/dit"
         for provider in "${GO_PROVIDERS[@]}"; do
-            go get "github.com/datadatdat/$provider@v$VERSION" 2>/dev/null || true
+            go get "github.com/ditdotdev/$provider@v$VERSION" 2>/dev/null || true
         done
         go mod tidy 2>/dev/null || true
         local sdk_versions
-        sdk_versions=$(go mod graph | awk '$2 ~ /datadatdat\/remote-sdk-go@/ {print $2}' | sort -u)
+        sdk_versions=$(go mod graph | awk '$2 ~ /dit\/remote-sdk-go@/ {print $2}' | sort -u)
         local sdk_count
         sdk_count=$(echo "$sdk_versions" | grep -c . || echo "0")
         if [ "$sdk_count" -gt 1 ]; then
@@ -593,13 +593,13 @@ phase_kotlin_foundation() {
     # 1. Tag and release command-executor
     tag_and_push "$WORKSPACE/command-executor" "$VERSION"
     wait_for_workflow "command-executor" "release.yml"
-    verify_s3_artifact "$MAVEN_BUCKET" "com/datadatdat/command-executor/$VERSION/"
+    verify_s3_artifact "$MAVEN_BUCKET" "dev/dit/command-executor/$VERSION/"
 
     # Update command-executor dependency in all downstream repos BEFORE tagging them
     log_step "Updating command-executor dependency to $VERSION in downstream repos..."
     local ce_downstream_files=(
         "$WORKSPACE/remote-sdk/build.gradle.kts"
-        "$WORKSPACE/datadatdat-server/server/build.gradle.kts"
+        "$WORKSPACE/dit-server/server/build.gradle.kts"
         "$WORKSPACE/ssh-remote/server/build.gradle.kts"
         "$WORKSPACE/delphix-remote/server/build.gradle.kts"
     )
@@ -633,7 +633,7 @@ phase_kotlin_foundation() {
     wait_for_workflow "remote-sdk" "release.yml"
 
     # 3. Verify remote-sdk published to Maven (existence + POM content)
-    verify_s3_artifact "$MAVEN_BUCKET" "com/datadatdat/remote-sdk/$VERSION/"
+    verify_s3_artifact "$MAVEN_BUCKET" "dev/dit/remote-sdk/$VERSION/"
     verify_maven_pom "remote-sdk" "$VERSION" "command-executor" "$VERSION"
 
     # 4. Update build.gradle.kts in all 6 Kotlin providers
@@ -683,8 +683,8 @@ phase_kotlin_foundation() {
     log_step "Verifying Maven artifacts..."
     for provider in "${KOTLIN_PROVIDERS[@]}"; do
         # Server artifact
-        verify_s3_artifact "$MAVEN_BUCKET" "com/datadatdat/${provider}-server/$VERSION/" || \
-        verify_s3_artifact "$MAVEN_BUCKET" "com/datadatdat/${provider}/$VERSION/" || true
+        verify_s3_artifact "$MAVEN_BUCKET" "dev/dit/${provider}-server/$VERSION/" || \
+        verify_s3_artifact "$MAVEN_BUCKET" "dev/dit/${provider}/$VERSION/" || true
         # Verify POM references correct remote-sdk version
         verify_maven_pom "${provider}-server" "$VERSION" "remote-sdk" "$VERSION" || \
         verify_maven_pom "${provider}" "$VERSION" "remote-sdk" "$VERSION" || true
@@ -697,9 +697,9 @@ phase_kotlin_foundation() {
         if ! $DRY_RUN; then
             cd "$pl_path"
             # Update Go dependency
-            go env -w GOPRIVATE=github.com/datadatdat/*
+            go env -w GOPRIVATE=github.com/ditdotdev/*
             go env -w GOPROXY=direct
-            go get "github.com/datadatdat/remote-sdk-go@v$VERSION"
+            go get "github.com/ditdotdev/remote-sdk-go@v$VERSION"
             go mod tidy
             if [ -n "$(git status --porcelain)" ]; then
                 commit_and_push "$pl_path" "Update remote-sdk-go to v$VERSION" go.mod go.sum
@@ -707,7 +707,7 @@ phase_kotlin_foundation() {
         fi
         tag_and_push "$pl_path" "$VERSION"
         wait_for_workflow "plugin-launcher" "release.yml"
-        verify_s3_artifact "$MAVEN_BUCKET" "com/datadatdat/plugin-launcher/$VERSION/"
+        verify_s3_artifact "$MAVEN_BUCKET" "dev/dit/plugin-launcher/$VERSION/"
         log_success "plugin-launcher released at $VERSION"
     else
         log_warn "plugin-launcher not found at $pl_path - skipping"
@@ -722,14 +722,14 @@ phase_kotlin_foundation() {
 # ============================================================================
 
 phase_client() {
-    log_phase 3 "datadatdat-client-go"
+    log_phase 3 "dit-client-go"
 
-    tag_and_push "$WORKSPACE/datadatdat-client-go" "v$VERSION"
-    wait_for_workflow "datadatdat-client-go" "release.yml"
-    verify_gh_release "datadatdat-client-go" "v$VERSION"
+    tag_and_push "$WORKSPACE/dit-client-go" "v$VERSION"
+    wait_for_workflow "dit-client-go" "release.yml"
+    verify_gh_release "dit-client-go" "v$VERSION"
 
     save_phase_state 3
-    log_success "Phase 3 complete: datadatdat-client-go released at v$VERSION"
+    log_success "Phase 3 complete: dit-client-go released at v$VERSION"
 }
 
 # ============================================================================
@@ -737,30 +737,30 @@ phase_client() {
 # ============================================================================
 
 phase_docker_proxy() {
-    log_phase 4 "datadatdat-docker-proxy"
+    log_phase 4 "dit-docker-proxy"
 
-    local repo_path="$WORKSPACE/datadatdat-docker-proxy"
+    local repo_path="$WORKSPACE/dit-docker-proxy"
 
     # Update client-go dependency
-    update_go_dep "$repo_path" "github.com/datadatdat/datadatdat-client-go" "v$VERSION"
+    update_go_dep "$repo_path" "github.com/ditdotdev/dit-client-go" "v$VERSION"
 
     # Commit and push
     if ! $DRY_RUN; then
         cd "$repo_path"
         if [ -n "$(git status --porcelain)" ]; then
-            commit_and_push "$repo_path" "Update datadatdat-client-go to v$VERSION" go.mod go.sum
+            commit_and_push "$repo_path" "Update dit-client-go to v$VERSION" go.mod go.sum
         fi
     fi
 
     # Tag and release
     tag_and_push "$repo_path" "v$VERSION"
-    wait_for_workflow "datadatdat-docker-proxy" "release.yml"
+    wait_for_workflow "dit-docker-proxy" "release.yml"
 
     # Verify binary uploaded to S3
-    verify_s3_artifact "$MAVEN_BUCKET" "datadatdat-docker-proxy/docker-volume-proxy"
+    verify_s3_artifact "$MAVEN_BUCKET" "dit-docker-proxy/docker-volume-proxy"
 
     save_phase_state 4
-    log_success "Phase 4 complete: datadatdat-docker-proxy released at v$VERSION"
+    log_success "Phase 4 complete: dit-docker-proxy released at v$VERSION"
 }
 
 # ============================================================================
@@ -768,23 +768,23 @@ phase_docker_proxy() {
 # ============================================================================
 
 phase_server() {
-    log_phase 5 "datadatdat-server"
+    log_phase 5 "dit-server"
 
-    local repo_path="$WORKSPACE/datadatdat-server"
+    local repo_path="$WORKSPACE/dit-server"
     local gradle_file="$repo_path/server/build.gradle.kts"
 
     # Update all Kotlin dependencies in build.gradle.kts
-    log_step "Updating datadatdat-server dependencies..."
+    log_step "Updating dit-server dependencies..."
     if ! $DRY_RUN; then
         # Only update command-executor if it was actually released at $VERSION
-        if aws s3 ls "s3://$MAVEN_BUCKET/com/datadatdat/command-executor/$VERSION/" > /dev/null 2>&1; then
+        if aws s3 ls "s3://$MAVEN_BUCKET/dev/dit/command-executor/$VERSION/" > /dev/null 2>&1; then
             sed -i "s/command-executor:[0-9][0-9.]*/command-executor:${VERSION}/g" "$gradle_file"
         else
             log_info "command-executor:$VERSION not in Maven — keeping existing version"
         fi
         sed -i "s/remote-sdk:[0-9][0-9.]*/remote-sdk:${VERSION}/g" "$gradle_file"
-        sed -i "s/datadatdat-remote-client:[0-9][0-9.]*/datadatdat-remote-client:${VERSION}/g" "$gradle_file"
-        sed -i "s/datadatdat-remote-server:[0-9][0-9.]*/datadatdat-remote-server:${VERSION}/g" "$gradle_file"
+        sed -i "s/dit-remote-client:[0-9][0-9.]*/dit-remote-client:${VERSION}/g" "$gradle_file"
+        sed -i "s/dit-remote-server:[0-9][0-9.]*/dit-remote-server:${VERSION}/g" "$gradle_file"
         sed -i "s/nop-remote-server:[0-9][0-9.]*/nop-remote-server:${VERSION}/g" "$gradle_file"
         sed -i "s/ssh-remote-server:[0-9][0-9.]*/ssh-remote-server:${VERSION}/g" "$gradle_file"
         sed -i "s/s3-remote-server:[0-9][0-9.]*/s3-remote-server:${VERSION}/g" "$gradle_file"
@@ -792,7 +792,7 @@ phase_server() {
     fi
 
     # Update Go dependency
-    update_go_dep "$repo_path" "github.com/datadatdat/datadatdat-client-go" "v$VERSION"
+    update_go_dep "$repo_path" "github.com/ditdotdev/dit-client-go" "v$VERSION"
 
     # Commit and push
     if ! $DRY_RUN; then
@@ -805,9 +805,9 @@ phase_server() {
     # Verify deps updated (at least 6; 7 if command-executor was also released)
     if ! $DRY_RUN; then
         local dep_count
-        dep_count=$(grep -c "com.datadatdat:.*:${VERSION}" "$gradle_file" || echo "0")
+        dep_count=$(grep -c "dev.dit:.*:${VERSION}" "$gradle_file" || echo "0")
         if [ "$dep_count" -lt 6 ]; then
-            log_error "Only $dep_count datadatdat dependencies updated in $gradle_file (expected at least 6)"
+            log_error "Only $dep_count dit dependencies updated in $gradle_file (expected at least 6)"
             exit 1
         fi
         log_success "Verified $dep_count Kotlin dependencies at $VERSION"
@@ -815,10 +815,10 @@ phase_server() {
 
     # Tag and release
     tag_and_push "$repo_path" "v$VERSION"
-    wait_for_workflow "datadatdat-server" "release.yml"
+    wait_for_workflow "dit-server" "release.yml"
 
     save_phase_state 5
-    log_success "Phase 5 complete: datadatdat-server released at v$VERSION"
+    log_success "Phase 5 complete: dit-server released at v$VERSION"
 }
 
 # ============================================================================
@@ -826,9 +826,9 @@ phase_server() {
 # ============================================================================
 
 phase_cli() {
-    log_phase 6 "datadatdat CLI"
+    log_phase 6 "dit CLI"
 
-    local repo_path="$WORKSPACE/datadatdat"
+    local repo_path="$WORKSPACE/dit"
 
     # Remove any replace directives
     if ! $DRY_RUN; then
@@ -841,8 +841,8 @@ phase_cli() {
 
     # Update all internal Go dependencies
     log_step "Updating CLI Go dependencies to v$VERSION..."
-    for dep in remote-sdk-go s3-remote-go ssh-remote-go s3web-remote-go nop-remote-go datadatdat-remote-go datadatdat-client-go; do
-        update_go_dep "$repo_path" "github.com/datadatdat/$dep" "v$VERSION"
+    for dep in remote-sdk-go s3-remote-go ssh-remote-go s3web-remote-go nop-remote-go dit-remote-go dit-client-go; do
+        update_go_dep "$repo_path" "github.com/ditdotdev/$dep" "v$VERSION"
     done
 
     # Verify dependency alignment
@@ -850,7 +850,7 @@ phase_cli() {
         cd "$repo_path"
         log_step "Verifying dependency alignment..."
         local sdk_versions
-        sdk_versions=$(go mod graph | awk '$2 ~ /datadatdat\/remote-sdk-go@/ {print $2}' | sort -u)
+        sdk_versions=$(go mod graph | awk '$2 ~ /dit\/remote-sdk-go@/ {print $2}' | sort -u)
         local sdk_count
         sdk_count=$(echo "$sdk_versions" | wc -l)
         if [ "$sdk_count" -gt 1 ]; then
@@ -863,16 +863,16 @@ phase_cli() {
 
     # Update BATS test version expectations
     log_step "Updating BATS test version expectations..."
-    local bats_file="$repo_path/tests/endtoend/remotes/datadatdat/datadatdat-workflow.bats"
+    local bats_file="$repo_path/tests/endtoend/remotes/ditdotdev/dit-workflow.bats"
     if [ -f "$bats_file" ] && ! $DRY_RUN; then
         sed -i "s/v${PREV_VERSION}/v${VERSION}/g" "$bats_file"
-        log_success "Updated datadatdat-workflow.bats versions"
+        log_success "Updated dit-workflow.bats versions"
     fi
 
     # Update DOWNLOAD_TEST_VERSION in both PROD and DEV sections of env.bash
     # This must happen BEFORE tagging so the tag includes these changes,
-    # since datadatdat-remote-server E2E checks out the CLI at this tag.
-    local env_file="$repo_path/tests/endtoend/remotes/datadatdat/env.bash"
+    # since dit-remote-server E2E checks out the CLI at this tag.
+    local env_file="$repo_path/tests/endtoend/remotes/ditdotdev/env.bash"
     log_step "Updating DOWNLOAD_TEST_VERSION (PROD + DEV) to v$VERSION..."
     if ! $DRY_RUN; then
         sed -i "s/DOWNLOAD_TEST_VERSION:-v[0-9.]*}/DOWNLOAD_TEST_VERSION:-v$VERSION}/g" "$env_file"
@@ -883,9 +883,9 @@ phase_cli() {
     if ! $DRY_RUN; then
         cd "$repo_path"
         if [ -n "$(git status --porcelain)" ]; then
-            local files_to_add=(go.mod go.sum tests/endtoend/remotes/datadatdat/env.bash)
-            if [ -f "$bats_file" ] && git diff --name-only | grep -q "datadatdat-workflow.bats"; then
-                files_to_add+=(tests/endtoend/remotes/datadatdat/datadatdat-workflow.bats)
+            local files_to_add=(go.mod go.sum tests/endtoend/remotes/ditdotdev/env.bash)
+            if [ -f "$bats_file" ] && git diff --name-only | grep -q "dit-workflow.bats"; then
+                files_to_add+=(tests/endtoend/remotes/ditdotdev/dit-workflow.bats)
             fi
             commit_and_push "$repo_path" "Release v$VERSION: Update all dependencies" "${files_to_add[@]}"
         fi
@@ -901,11 +901,11 @@ phase_cli() {
     # succeeded. Double the wait for this one phase so the script doesn't
     # bail before the real workflow has finished.
     log_info "CLI release workflow typically takes 10-15 minutes (timeout doubled to ~60 min for headroom)..."
-    WORKFLOW_TIMEOUT=$((WORKFLOW_TIMEOUT * 2)) wait_for_workflow "datadatdat" "release.yml"
-    verify_gh_release "datadatdat" "v$VERSION"
+    WORKFLOW_TIMEOUT=$((WORKFLOW_TIMEOUT * 2)) wait_for_workflow "dit" "release.yml"
+    verify_gh_release "dit" "v$VERSION"
 
     # Upload CLI binaries to production S3 + local dev MinIO
-    local upload_script="$WORKSPACE/datadatdat-remote-server/scripts/upload-release-to-minio.sh"
+    local upload_script="$WORKSPACE/dit-remote-server/scripts/upload-release-to-minio.sh"
     if [ -f "$upload_script" ]; then
         log_step "Uploading CLI binaries to production S3..."
         if $DRY_RUN; then
@@ -948,7 +948,7 @@ phase_cli() {
     fi
 
     save_phase_state 6
-    log_success "Phase 6 complete: datadatdat CLI released at v$VERSION"
+    log_success "Phase 6 complete: dit CLI released at v$VERSION"
 }
 
 # ============================================================================
@@ -956,9 +956,9 @@ phase_cli() {
 # ============================================================================
 
 phase_remote_server() {
-    log_phase 7 "datadatdat-remote-server"
+    log_phase 7 "dit-remote-server"
 
-    local repo_path="$WORKSPACE/datadatdat-remote-server"
+    local repo_path="$WORKSPACE/dit-remote-server"
 
     # Remove replace directives
     if ! $DRY_RUN; then
@@ -970,9 +970,9 @@ phase_remote_server() {
         fi
     fi
 
-    # Check if go.mod has datadatdat deps to update
-    if grep -q "github.com/datadatdat/" "$repo_path/go.mod" 2>/dev/null; then
-        update_go_dep "$repo_path" "github.com/datadatdat/remote-sdk-go" "v$VERSION"
+    # Check if go.mod has dit deps to update
+    if grep -q "github.com/ditdotdev/" "$repo_path/go.mod" 2>/dev/null; then
+        update_go_dep "$repo_path" "github.com/ditdotdev/remote-sdk-go" "v$VERSION"
     fi
 
     # Commit if changes
@@ -987,11 +987,11 @@ phase_remote_server() {
     tag_and_push "$repo_path" "v$VERSION"
 
     log_info "Remote server workflow builds 8 Docker images + runs E2E tests. This takes 15-20 minutes..."
-    wait_for_workflow "datadatdat-remote-server" "release.yml"
-    verify_gh_release "datadatdat-remote-server" "v$VERSION"
+    wait_for_workflow "dit-remote-server" "release.yml"
+    verify_gh_release "dit-remote-server" "v$VERSION"
 
     save_phase_state 7
-    log_success "Phase 7 complete: datadatdat-remote-server released at v$VERSION"
+    log_success "Phase 7 complete: dit-remote-server released at v$VERSION"
 }
 
 # ============================================================================
@@ -1013,9 +1013,9 @@ phase_ecs_deploy() {
     # small. ECS service `task_definition` fields carry lifecycle
     # ignore_changes in the TF module, so apply won't try to roll back
     # task definitions registered by the bash deploy in step 3 below.
-    # The Phase 0 pre-flight verified datadatdat-remote-server's working
+    # The Phase 0 pre-flight verified dit-remote-server's working
     # tree is clean, so what we apply matches what's checked in on master.
-    local tf_dir="$WORKSPACE/datadatdat-remote-server/deploy/terraform"
+    local tf_dir="$WORKSPACE/dit-remote-server/deploy/terraform"
     if [ ! -d "$tf_dir" ]; then
         log_error "Terraform directory not found at $tf_dir"
         exit 1
@@ -1037,8 +1037,8 @@ phase_ecs_deploy() {
 
     # 1. Run Liquibase migrations against production database via EC2
     log_step "Running Liquibase migrations against production..."
-    local liquibase_dir="$WORKSPACE/datadatdat-remote-server/deploy/liquibase"
-    local ssh_key="$WORKSPACE/datadatdat-remote-server/datadatdat-ecs-host.pem"
+    local liquibase_dir="$WORKSPACE/dit-remote-server/deploy/liquibase"
+    local ssh_key="$WORKSPACE/dit-remote-server/dit-ecs-host.pem"
     local ec2_ip
 
     if [ ! -d "$liquibase_dir" ]; then
@@ -1058,12 +1058,12 @@ phase_ecs_deploy() {
     else
         # Find the production EC2 instance IP
         ec2_ip=$(aws ec2 describe-instances \
-            --filters "Name=tag:Name,Values=datadatdat-ecs-host-prod" "Name=instance-state-name,Values=running" \
+            --filters "Name=tag:Name,Values=dit-ecs-host-prod" "Name=instance-state-name,Values=running" \
             --query 'Reservations[0].Instances[0].PublicIpAddress' \
             --output text --region "$ECR_REGION" 2>/dev/null || echo "")
 
         if [ -z "$ec2_ip" ] || [ "$ec2_ip" = "None" ]; then
-            log_error "Could not find running EC2 instance 'datadatdat-ecs-host-prod'"
+            log_error "Could not find running EC2 instance 'dit-ecs-host-prod'"
             exit 1
         fi
         log_info "EC2 instance IP: $ec2_ip"
@@ -1079,12 +1079,12 @@ phase_ecs_deploy() {
         log_info "Fetching DB credentials from SSM Parameter Store..."
         local db_url db_password db_host
         db_url=$(aws ssm get-parameter \
-            --name "/datadatdat/prod/database/url" \
+            --name "/ditdotdev/prod/database/url" \
             --with-decryption --region "$ECR_REGION" \
             --query 'Parameter.Value' --output text)
 
         db_password=$(aws ssm get-parameter \
-            --name "/datadatdat/prod/db/password" \
+            --name "/ditdotdev/prod/db/password" \
             --with-decryption --region "$ECR_REGION" \
             --query 'Parameter.Value' --output text)
 
@@ -1109,8 +1109,8 @@ phase_ecs_deploy() {
                 -v /tmp/liquibase:/liquibase/changelog \
                 liquibase/liquibase:4.20 \
                 --changeLogFile=changelog-master.xml \
-                --url="jdbc:postgresql://${DB_HOST}:5432/datadatdat?sslmode=require" \
-                --username="datadatdat" \
+                --url="jdbc:postgresql://${DB_HOST}:5432/dit?sslmode=require" \
+                --username="dit" \
                 --password="$DB_PASSWORD" \
                 update
 
@@ -1129,7 +1129,7 @@ REMOTE_SCRIPT
         log_dry "ECR registry: $ecr_registry"
     else
         ecr_registry=$(aws ecr describe-repositories --region "$ECR_REGION" \
-            --repository-names datadatdat/api-gateway \
+            --repository-names ditdotdev/api-gateway \
             --query 'repositories[0].repositoryUri' --output text | cut -d'/' -f1)
         log_success "ECR registry: $ecr_registry"
     fi
@@ -1144,14 +1144,14 @@ REMOTE_SCRIPT
         else
             local digest
             digest=$(aws ecr describe-images \
-                --repository-name "datadatdat/$service" \
+                --repository-name "ditdotdev/$service" \
                 --region "$ECR_REGION" \
                 --image-ids "imageTag=v$VERSION" \
                 --query 'imageDetails[0].imageDigest' \
                 --output text 2>/dev/null || echo "NOT_FOUND")
 
             if [ "$digest" = "NOT_FOUND" ] || [ "$digest" = "None" ]; then
-                log_error "Image not found in ECR: datadatdat/$service:v$VERSION"
+                log_error "Image not found in ECR: ditdotdev/$service:v$VERSION"
                 exit 1
             fi
             DIGESTS[$service]=$digest
@@ -1160,7 +1160,7 @@ REMOTE_SCRIPT
     done
 
     # 4. Update task definitions script with new digests
-    local task_def_script="$WORKSPACE/datadatdat-remote-server/update-task-definitions-with-digests.sh"
+    local task_def_script="$WORKSPACE/dit-remote-server/update-task-definitions-with-digests.sh"
     if [ -f "$task_def_script" ]; then
         log_step "Updating task definition digests..."
         if ! $DRY_RUN; then
@@ -1175,7 +1175,7 @@ REMOTE_SCRIPT
             # Use perl for multi-line replacement
             perl -i -0pe "s/declare -A SERVICES=\(.*?\)/$(echo -e "$services_block")/s" "$task_def_script"
 
-            cd "$WORKSPACE/datadatdat-remote-server"
+            cd "$WORKSPACE/dit-remote-server"
             git add update-task-definitions-with-digests.sh
             git commit -m "Update task definition digests for v$VERSION"
             git push origin master
@@ -1234,7 +1234,7 @@ phase_validate() {
     echo "--------------------------------------------------------"
 
     # Go components
-    local go_repos=(remote-sdk-go "${GO_PROVIDERS[@]}" datadatdat-client-go datadatdat-docker-proxy datadatdat datadatdat-remote-server)
+    local go_repos=(remote-sdk-go "${GO_PROVIDERS[@]}" dit-client-go dit-docker-proxy dit dit-remote-server)
     for repo in "${go_repos[@]}"; do
         local status="..."
         if $DRY_RUN; then
@@ -1270,9 +1270,9 @@ phase_validate() {
     # Docker images
     echo ""
     echo "Docker Images:"
-    echo "  datadatdat-server -> datadatdat/datadatdat:v$VERSION (DockerHub)"
+    echo "  dit-server -> ditdotdev/dit:v$VERSION (DockerHub)"
     for svc in "${ECR_SERVICES[@]}"; do
-        echo "  datadatdat-remote-server -> datadatdat/$svc:v$VERSION (ECR)"
+        echo "  dit-remote-server -> ditdotdev/$svc:v$VERSION (ECR)"
     done
 
     echo ""
@@ -1281,8 +1281,8 @@ phase_validate() {
     # Verify dependency alignment in CLI
     if ! $DRY_RUN; then
         log_step "Verifying CLI dependency alignment..."
-        cd "$WORKSPACE/datadatdat"
-        go mod graph | grep datadatdat | grep remote-sdk-go || true
+        cd "$WORKSPACE/dit"
+        go mod graph | grep dit | grep remote-sdk-go || true
     fi
 
     # Production smoke test
@@ -1294,7 +1294,7 @@ phase_validate() {
             log_dry "curl -sfSo /dev/null -w '%{http_code}' $PROD_URL/health"
             log_dry "curl -sfSo /dev/null -w '%{http_code}' $PROD_URL/"
             log_dry "curl -sfSo /dev/null -w '%{http_code}' $PROD_URL/auth/login"
-            log_dry "openssl s_client -connect datadatdat.com:443 (cert expiry check)"
+            log_dry "openssl s_client -connect dit.dev:443 (cert expiry check)"
         else
             # 1. Health check - API gateway
             local http_code
@@ -1335,7 +1335,7 @@ phase_validate() {
 
             # 5. SSL certificate expiry check
             local cert_expiry
-            cert_expiry=$(echo | openssl s_client -servername datadatdat.com -connect datadatdat.com:443 2>/dev/null | \
+            cert_expiry=$(echo | openssl s_client -servername dit.dev -connect dit.dev:443 2>/dev/null | \
                 openssl x509 -noout -enddate 2>/dev/null | sed 's/notAfter=//')
             if [ -n "$cert_expiry" ]; then
                 local expiry_epoch
@@ -1370,9 +1370,9 @@ phase_validate() {
     if ! $SKIP_ECS; then
         log_step "Running ENV=PROD E2E test suite against production..."
         if $DRY_RUN; then
-            log_dry "cd $WORKSPACE/datadatdat && ENV=PROD make e2e-server"
+            log_dry "cd $WORKSPACE/dit && ENV=PROD make e2e-server"
         else
-            cd "$WORKSPACE/datadatdat"
+            cd "$WORKSPACE/dit"
             if ENV=PROD make e2e-server; then
                 log_success "Production E2E tests passed"
             else
@@ -1460,7 +1460,7 @@ parse_args() {
     fi
 
     echo ""
-    echo "Datadatdat Release Automation"
+    echo "Dit Release Automation"
     echo "------------------------------------------------"
     echo "  Target version:   v$VERSION (Go) / $VERSION (Kotlin)"
     echo "  Previous version: v$PREV_VERSION"

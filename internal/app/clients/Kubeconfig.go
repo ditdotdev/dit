@@ -14,7 +14,7 @@ import (
 // as their base64-encoded *-data counterparts, and writes the result to
 // dstPath (creating parent directories as needed).
 //
-// The datadatdat server container only mounts ~/.kube/ from the host and
+// The dit server container only mounts ~/.kube/ from the host and
 // has no access to the ~/.minikube/ (or equivalent) directory holding the
 // referenced cert files. On Windows, those references are host-absolute
 // paths that a Linux container cannot resolve regardless. Flattening makes

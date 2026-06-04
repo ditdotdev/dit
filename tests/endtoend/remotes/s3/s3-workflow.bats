@@ -6,9 +6,9 @@ load '../../test_helper'
 # Test parameters
 REMOTE="s3"
 # Unique S3 path per run to avoid collisions between concurrent runs.
-# See issue datadatdat/datadatdat-server#118.
+# See issue ditdotdev/dit-server#118.
 RUN_SUFFIX="${E2E_RUN_SUFFIX:-local}"
-URI="s3://demo-datadatdat/simple-test/${RUN_SUFFIX}"
+URI="s3://demo-dit/simple-test/${RUN_SUFFIX}"
 REPO="hello-world"
 
 # Ensure API is ready (upgrade test may have restarted infrastructure)
@@ -22,7 +22,7 @@ setup_file() {
 }
 
 @test "can clone hello-world/postgres" {
-  run "$D3" clone -n hello-world s3web://demo-datadatdat.s3-website-us-west-2.amazonaws.com/hello-world/postgres
+  run "$D3" clone -n hello-world s3web://demo-dit.s3-website-us-west-2.amazonaws.com/hello-world/postgres
   assert_success
   assert_output --partial "Running controlled container hello-world"
   assert_output --partial "Starting container hello-world"

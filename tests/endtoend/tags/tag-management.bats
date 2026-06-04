@@ -1,7 +1,7 @@
 #!/usr/bin/env bats
 
 # E2E Tag Management Tests
-# Tests standalone d3 tag, d3 delete --tags, d3 log --tags, d3 checkout --tags
+# Tests standalone dit tag, dit delete --tags, dit log --tags, dit checkout --tags
 
 # Load shared test helpers
 load '../test_helper'
@@ -49,10 +49,10 @@ teardown_file() {
 }
 
 # ========================================
-# Standalone d3 tag
+# Standalone dit tag
 # ========================================
 
-@test "d3 tag adds env=prod tag to first commit" {
+@test "dit tag adds env=prod tag to first commit" {
   [ -f "$BATS_TMPDIR/tag_commit_one.txt" ] || skip "COMMIT_ONE not saved"
   COMMIT_ONE=$(cat "$BATS_TMPDIR/tag_commit_one.txt")
 
@@ -60,7 +60,7 @@ teardown_file() {
   assert_success
 }
 
-@test "d3 tag adds env=staging tag to second commit" {
+@test "dit tag adds env=staging tag to second commit" {
   [ -f "$BATS_TMPDIR/tag_commit_two.txt" ] || skip "COMMIT_TWO not saved"
   COMMIT_TWO=$(cat "$BATS_TMPDIR/tag_commit_two.txt")
 
@@ -69,10 +69,10 @@ teardown_file() {
 }
 
 # ========================================
-# d3 log --tags filtering
+# dit log --tags filtering
 # ========================================
 
-@test "d3 log --tags env=prod shows only first commit" {
+@test "dit log --tags env=prod shows only first commit" {
   [ -f "$BATS_TMPDIR/tag_commit_one.txt" ] || skip "COMMIT_ONE not saved"
   [ -f "$BATS_TMPDIR/tag_commit_two.txt" ] || skip "COMMIT_TWO not saved"
   COMMIT_ONE=$(cat "$BATS_TMPDIR/tag_commit_one.txt")
@@ -89,7 +89,7 @@ teardown_file() {
   fi
 }
 
-@test "d3 log --tags env=staging shows only second commit" {
+@test "dit log --tags env=staging shows only second commit" {
   [ -f "$BATS_TMPDIR/tag_commit_one.txt" ] || skip "COMMIT_ONE not saved"
   [ -f "$BATS_TMPDIR/tag_commit_two.txt" ] || skip "COMMIT_TWO not saved"
   COMMIT_ONE=$(cat "$BATS_TMPDIR/tag_commit_one.txt")
@@ -107,10 +107,10 @@ teardown_file() {
 }
 
 # ========================================
-# d3 checkout --tags
+# dit checkout --tags
 # ========================================
 
-@test "d3 checkout --tags env=prod checks out first commit" {
+@test "dit checkout --tags env=prod checks out first commit" {
   [ -f "$BATS_TMPDIR/tag_commit_one.txt" ] || skip "COMMIT_ONE not saved"
   COMMIT_ONE=$(cat "$BATS_TMPDIR/tag_commit_one.txt")
 
@@ -120,7 +120,7 @@ teardown_file() {
   sleep 5
 }
 
-@test "d3 checkout --tags env=staging checks out second commit" {
+@test "dit checkout --tags env=staging checks out second commit" {
   [ -f "$BATS_TMPDIR/tag_commit_two.txt" ] || skip "COMMIT_TWO not saved"
   COMMIT_TWO=$(cat "$BATS_TMPDIR/tag_commit_two.txt")
 
@@ -131,10 +131,10 @@ teardown_file() {
 }
 
 # ========================================
-# d3 delete --tags (tag removal)
+# dit delete --tags (tag removal)
 # ========================================
 
-@test "d3 delete --tags removes env=prod from first commit" {
+@test "dit delete --tags removes env=prod from first commit" {
   [ -f "$BATS_TMPDIR/tag_commit_one.txt" ] || skip "COMMIT_ONE not saved"
   COMMIT_ONE=$(cat "$BATS_TMPDIR/tag_commit_one.txt")
 
@@ -142,7 +142,7 @@ teardown_file() {
   assert_success
 }
 
-@test "d3 log --tags env=prod no longer returns first commit" {
+@test "dit log --tags env=prod no longer returns first commit" {
   [ -f "$BATS_TMPDIR/tag_commit_one.txt" ] || skip "COMMIT_ONE not saved"
   run "$D3" log -t env=prod tag-mgmt
   COMMIT_ONE=$(cat "$BATS_TMPDIR/tag_commit_one.txt")
@@ -157,7 +157,7 @@ teardown_file() {
 # Error paths
 # ========================================
 
-@test "d3 checkout --tags with no matching tag fails" {
+@test "dit checkout --tags with no matching tag fails" {
   run "$D3" checkout -t env=nonexistent tag-mgmt
   assert_failure
 }

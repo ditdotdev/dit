@@ -12,7 +12,7 @@ import (
 	"testing"
 	"time"
 
-	datadatdatclient "github.com/datadatdat/datadatdat-client-go"
+	ditclient "github.com/ditdotdev/dit-client-go"
 )
 
 func TestOperationMonitor_IsTerminal(t *testing.T) {
@@ -211,7 +211,7 @@ func TestCommandExecutor_Constructor(t *testing.T) {
 // ---------------------------------------------------------------------------
 
 func TestOperationMonitor_Constructor(t *testing.T) {
-	op := datadatdatclient.Operation{Id: "op-1", Type: "PUSH"}
+	op := ditclient.Operation{Id: "op-1", Type: "PUSH"}
 	om := OperationMonitor("myrepo", op)
 	if om.repo != "myrepo" {
 		t.Errorf("repo = %q, want myrepo", om.repo)
@@ -268,7 +268,7 @@ func TestMonitor_CompleteState_PushReturnsTrue(t *testing.T) {
 	// Server returns a single entry with COMPLETE type, which is terminal.
 	port := startMonitorMock(t, `[{"id":1,"type":"COMPLETE","message":"all done"}]`)
 
-	om := OperationMonitor("repo", datadatdatclient.Operation{Id: "op-x", Type: "PUSH"})
+	om := OperationMonitor("repo", ditclient.Operation{Id: "op-x", Type: "PUSH"})
 	var ok bool
 	out := captureStdout(func() { ok = om.Monitor(port) })
 
@@ -284,7 +284,7 @@ func TestMonitor_FailedState_PullReturnsFalse(t *testing.T) {
 	shortPolling(t)
 	port := startMonitorMock(t, `[{"id":1,"type":"FAILED","message":"bad"}]`)
 
-	om := OperationMonitor("repo", datadatdatclient.Operation{Id: "op-x", Type: "PULL"})
+	om := OperationMonitor("repo", ditclient.Operation{Id: "op-x", Type: "PULL"})
 	var ok bool
 	out := captureStdout(func() { ok = om.Monitor(port) })
 
@@ -300,7 +300,7 @@ func TestMonitor_AbortState_PrintsAbortedMessage(t *testing.T) {
 	shortPolling(t)
 	port := startMonitorMock(t, `[{"id":1,"type":"ABORT","message":"by user"}]`)
 
-	om := OperationMonitor("repo", datadatdatclient.Operation{Id: "op-x", Type: "PUSH"})
+	om := OperationMonitor("repo", ditclient.Operation{Id: "op-x", Type: "PUSH"})
 	out := captureStdout(func() { om.Monitor(port) })
 
 	if !strings.Contains(out, "Push aborted") {
@@ -318,7 +318,7 @@ func TestMonitor_ProgressThenComplete_PrintsProgressLines(t *testing.T) {
 		{"id":2,"type":"MESSAGE","message":"info"},
 		{"id":3,"type":"COMPLETE","message":"done"}
 	]`)
-	om := OperationMonitor("repo", datadatdatclient.Operation{Id: "op-x", Type: "PUSH"})
+	om := OperationMonitor("repo", ditclient.Operation{Id: "op-x", Type: "PUSH"})
 	out := captureStdout(func() { om.Monitor(port) })
 	if !strings.Contains(out, "step 1") {
 		t.Errorf("expected progress line in output, got %q", out)
@@ -338,7 +338,7 @@ func TestMonitor_HTTPError_BreaksLoop(t *testing.T) {
 	u, _ := url.Parse(srv.URL)
 	port, _ := strconv.Atoi(u.Port())
 
-	om := OperationMonitor("repo", datadatdatclient.Operation{Id: "op-x", Type: "PUSH"})
+	om := OperationMonitor("repo", ditclient.Operation{Id: "op-x", Type: "PUSH"})
 	var ok bool
 	out := captureStdout(func() { ok = om.Monitor(port) })
 
@@ -356,7 +356,7 @@ func TestMonitor_IdleTimeout_BreaksLoop(t *testing.T) {
 	// (50ms above) elapses without progress, which prints "No progress
 	// from server" and breaks.
 	port := startMonitorMock(t, `[]`)
-	om := OperationMonitor("repo", datadatdatclient.Operation{Id: "op-x", Type: "PUSH"})
+	om := OperationMonitor("repo", ditclient.Operation{Id: "op-x", Type: "PUSH"})
 	out := captureStdout(func() { om.Monitor(port) })
 	if !strings.Contains(out, "No progress from server") {
 		t.Errorf("expected idle-timeout message, got %q", out)

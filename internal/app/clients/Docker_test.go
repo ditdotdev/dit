@@ -4,7 +4,7 @@ import (
 	"strings"
 	"testing"
 
-	"datadatdat/internal/app"
+	"github.com/ditdotdev/dit/internal/app"
 )
 
 func TestDocker_DefaultsAppliedWhenEmpty(t *testing.T) {
@@ -15,8 +15,8 @@ func TestDocker_DefaultsAppliedWhenEmpty(t *testing.T) {
 	if d.port != 5001 {
 		t.Errorf("port = %d, want 5001", d.port)
 	}
-	if d.registry != "datadatdat" {
-		t.Errorf("registry = %q, want datadatdat", d.registry)
+	if d.registry != "ditdotdev" {
+		t.Errorf("registry = %q, want ditdotdev", d.registry)
 	}
 }
 
@@ -38,8 +38,8 @@ func TestDockerWithRegistry_DefaultsAppliedWhenEmpty(t *testing.T) {
 	if d.port != 5001 {
 		t.Errorf("port = %d, want 5001", d.port)
 	}
-	if d.registry != "datadatdat" {
-		t.Errorf("registry = %q, want datadatdat (default)", d.registry)
+	if d.registry != "ditdotdev" {
+		t.Errorf("registry = %q, want ditdotdev (default)", d.registry)
 	}
 }
 
@@ -71,10 +71,10 @@ func TestDocker_GetImageName(t *testing.T) {
 		image    string
 		want     string
 	}{
-		{"local registry returns image as-is", "local", "datadatdat:latest", "datadatdat:latest"},
-		{"image with slash returns as-is", "datadatdat", "foo/bar:1.0", "foo/bar:1.0"},
-		{"plain image gets registry prefix", "datadatdat", "datadatdat:latest", "datadatdat/datadatdat:latest"},
-		{"custom registry prefixes plain image", "my.reg.example.com", "datadatdat:latest", "my.reg.example.com/datadatdat:latest"},
+		{"local registry returns image as-is", "local", "dit:latest", "dit:latest"},
+		{"image with slash returns as-is", "dit", "foo/bar:1.0", "foo/bar:1.0"},
+		{"plain image gets registry prefix", "dit", "dit:latest", "dit/dit:latest"},
+		{"custom registry prefixes plain image", "my.reg.example.com", "dit:latest", "my.reg.example.com/dit:latest"},
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
@@ -131,10 +131,10 @@ func TestDocker_GetLocalLaunchArgs_ContainsKeyArgs(t *testing.T) {
 		"--privileged",
 		"--pid=host",
 		"--network=host",
-		"--name=datadatdat-test-id-launch",
+		"--name=dit-test-id-launch",
 		"-v",
 		"/var/run/docker.sock:/var/run/docker.sock",
-		"datadatdat-test-id-data:/var/lib/datadatdat-test-id/data",
+		"dit-test-id-data:/var/lib/dit-test-id/data",
 	}
 	for _, want := range wants {
 		if !strings.Contains(joined, want) {
@@ -219,18 +219,18 @@ func TestDocker_ShellOuts_DoNotPanic(t *testing.T) {
 		{"Run with entry", func() { _, _ = d.Run("nope:nope", "echo hi", []string{"-it"}) }},
 		{"FetchLogs", func() { _ = d.FetchLogs("nope") }},
 		{"ContainerIsRunning", func() { _, _ = d.ContainerIsRunning("nope") }},
-		{"DatadatdatServerIsAvailable", func() { _, _ = d.DatadatdatServerIsAvailable() }},
-		{"DatadatdatLaunchIsAvailable", func() { _, _ = d.DatadatdatLaunchIsAvailable() }},
+		{"DitServerIsAvailable", func() { _, _ = d.DitServerIsAvailable() }},
+		{"DitLaunchIsAvailable", func() { _, _ = d.DitLaunchIsAvailable() }},
 		{"FetchLaunchLogs", func() { _ = d.FetchLaunchLogs() }},
 		{"CreateVolume", func() { _, _ = d.CreateVolume("nope", "/tmp") }},
 		{"ListVolumes", func() { _ = d.ListVolumes("nope") }},
 		{"Stop", func() { _, _ = d.Stop("nope") }},
 		{"Start", func() { _, _ = d.Start("nope") }},
 		{"Cp", func() { _, _ = d.Cp("/some/source", "/some/target") }},
-		{"RemoveDatadatdatImages", func() { _, _ = d.RemoveDatadatdatImages("0.0.0") }},
-		{"RemoveDatadatdatServer", func() { _, _ = d.RemoveDatadatdatServer() }},
-		{"RemoveDatadatdatLaunch", func() { _, _ = d.RemoveDatadatdatLaunch() }},
-		{"RemoveDatadatdatVolume", func() { _, _ = d.RemoveDatadatdatVolume() }},
+		{"RemoveDitImages", func() { _, _ = d.RemoveDitImages("0.0.0") }},
+		{"RemoveDitServer", func() { _, _ = d.RemoveDitServer() }},
+		{"RemoveDitLaunch", func() { _, _ = d.RemoveDitLaunch() }},
+		{"RemoveDitVolume", func() { _, _ = d.RemoveDitVolume() }},
 	}
 
 	for _, c := range calls {
@@ -246,11 +246,11 @@ func TestDocker_ShellOuts_DoNotPanic(t *testing.T) {
 	}
 }
 
-// DatadatdatLatestIsDownloaded has interesting branches (local vs registry,
+// DitLatestIsDownloaded has interesting branches (local vs registry,
 // version comparison, RepoDigests check). The result depends on what's
 // actually present in the runner's local docker — we only care here
 // that the function doesn't panic.
-func TestDocker_DatadatdatLatestIsDownloaded_DoesNotPanic(t *testing.T) {
+func TestDocker_DitLatestIsDownloaded_DoesNotPanic(t *testing.T) {
 	withFakeCE(t, &fakeCE{})
 	d := Docker("test-id", 5001)
 	v := app.Version{}.FromString("1.0.0")
@@ -259,14 +259,14 @@ func TestDocker_DatadatdatLatestIsDownloaded_DoesNotPanic(t *testing.T) {
 			t.Fatalf("panic: %v", r)
 		}
 	}()
-	_ = d.DatadatdatLatestIsDownloaded("datadatdat", v)
-	_ = d.DatadatdatLatestIsDownloaded("local", v)
+	_ = d.DitLatestIsDownloaded("dit", v)
+	_ = d.DitLatestIsDownloaded("local", v)
 }
 
-// DatadatdatLatestIsDownloaded happy path: fakeCE returns a matching
+// DitLatestIsDownloaded happy path: fakeCE returns a matching
 // version tag plus a non-null RepoDigests, exercising the matching loop
 // and the "registry-pulled image — treat as stale" final return.
-func TestDocker_DatadatdatLatestIsDownloaded_MatchingTag_Stale(t *testing.T) {
+func TestDocker_DitLatestIsDownloaded_MatchingTag_Stale(t *testing.T) {
 	// Override ce to return "1.0.0" for the docker images call.
 	withFakeCE(t, &fakeCE{out: "\"1.0.0\"\n"})
 	d := Docker("test-id", 5001)
@@ -274,21 +274,21 @@ func TestDocker_DatadatdatLatestIsDownloaded_MatchingTag_Stale(t *testing.T) {
 	// fakeCE returns the same `out` for InspectImage too — the
 	// jsonparser path will fail to extract RepoDigests cleanly, but the
 	// branch we want covered (the tag-match loop) IS exercised here.
-	_ = d.DatadatdatLatestIsDownloaded("datadatdat", v)
+	_ = d.DitLatestIsDownloaded("dit", v)
 }
 
-// Local-registry hit: a non-empty datadatdat:latest in the images list
+// Local-registry hit: a non-empty dit:latest in the images list
 // returns true early (no version-comparison loop).
-func TestDocker_DatadatdatLatestIsDownloaded_LocalImagePresent(t *testing.T) {
-	withFakeCE(t, &fakeCE{out: "\"datadatdat:latest\"\n"})
+func TestDocker_DitLatestIsDownloaded_LocalImagePresent(t *testing.T) {
+	withFakeCE(t, &fakeCE{out: "\"dit:latest\"\n"})
 	d := Docker("test-id", 5001)
 	v := app.Version{}.FromString("1.0.0")
-	if !d.DatadatdatLatestIsDownloaded("local", v) {
-		t.Error("expected true when local datadatdat:latest is present")
+	if !d.DitLatestIsDownloaded("local", v) {
+		t.Error("expected true when local dit:latest is present")
 	}
 }
 
-// LaunchDatadatdatServers / LaunchDatadatdatKubernetesServers / Teardown
+// LaunchDitServers / LaunchDitKubernetesServers / Teardown
 // also wrap ce.Exec but build up bigger arg slices first; touch them so
 // the construction code is covered.
 func TestDocker_LaunchTeardown_DoNotPanic(t *testing.T) {
@@ -299,8 +299,8 @@ func TestDocker_LaunchTeardown_DoNotPanic(t *testing.T) {
 			t.Fatalf("panic: %v", r)
 		}
 	}()
-	_, _ = d.LaunchDatadatdatServers()
-	_, _ = d.TeardownDatadatdatServers()
+	_, _ = d.LaunchDitServers()
+	_, _ = d.TeardownDitServers()
 }
 
 func TestDocker_LaunchKubernetes_HandlesMissingKubeconfig(t *testing.T) {
@@ -311,5 +311,5 @@ func TestDocker_LaunchKubernetes_HandlesMissingKubeconfig(t *testing.T) {
 			t.Fatalf("panic: %v", r)
 		}
 	}()
-	_, _ = d.LaunchDatadatdatKubernetesServers()
+	_, _ = d.LaunchDitKubernetesServers()
 }

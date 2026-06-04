@@ -1,9 +1,9 @@
 package kubernetes
 
 import (
-	"datadatdat/internal/app"
-	"datadatdat/internal/app/utils"
-	datadatdatclient "github.com/datadatdat/datadatdat-client-go"
+	ditclient "github.com/ditdotdev/dit-client-go"
+	"github.com/ditdotdev/dit/internal/app"
+	"github.com/ditdotdev/dit/internal/app/utils"
 
 	"bytes"
 	"io"
@@ -91,12 +91,12 @@ type fakeDocker struct {
 	RemoveCalls int
 }
 
-func (f *fakeDocker) DatadatdatLatestIsDownloaded(string, app.Version) bool {
+func (f *fakeDocker) DitLatestIsDownloaded(string, app.Version) bool {
 	return f.latestDownloaded
 }
-func (f *fakeDocker) DatadatdatLaunchIsAvailable() (bool, error) { return f.launchAvailable, nil }
-func (f *fakeDocker) DatadatdatServerIsAvailable() (bool, error) { return f.serverAvailable, nil }
-func (f *fakeDocker) FetchLaunchLogs() []string                  { return f.fetchLaunchLogs }
+func (f *fakeDocker) DitLaunchIsAvailable() (bool, error) { return f.launchAvailable, nil }
+func (f *fakeDocker) DitServerIsAvailable() (bool, error) { return f.serverAvailable, nil }
+func (f *fakeDocker) FetchLaunchLogs() []string           { return f.fetchLaunchLogs }
 func (f *fakeDocker) GetSliceFromImage(i string, k ...string) []string {
 	return f.getSliceFromImage[i+":"+joinKeys(k)]
 }
@@ -109,16 +109,16 @@ func (f *fakeDocker) GetValFromImage(i string, k ...string) string {
 func (f *fakeDocker) InspectImage(string) (string, error) {
 	return f.inspectImageOut, f.inspectImageErr
 }
-func (f *fakeDocker) LaunchDatadatdatKubernetesServers() (string, error) {
+func (f *fakeDocker) LaunchDitKubernetesServers() (string, error) {
 	return f.launchK8sOut, f.launchK8sErr
 }
-func (f *fakeDocker) Pull(string) (string, error)                   { f.PullCalls++; return "", f.pullErr }
-func (f *fakeDocker) Remove(string, bool) (string, error)           { f.RemoveCalls++; return "", f.removeErr }
-func (f *fakeDocker) RemoveDatadatdatImages(string) (string, error) { return "", f.removeImagesErr }
-func (f *fakeDocker) RemoveVolume(string, bool) (string, error)     { return "", f.removeVolumeErr }
-func (f *fakeDocker) Tag(string, string) (string, error)            { return "", f.tagErr }
-func (f *fakeDocker) Version() (string, error)                      { return "", f.versionErr }
-func (f *fakeDocker) VolumeExists(name string) bool                 { return f.volumeExists[name] }
+func (f *fakeDocker) Pull(string) (string, error)               { f.PullCalls++; return "", f.pullErr }
+func (f *fakeDocker) Remove(string, bool) (string, error)       { f.RemoveCalls++; return "", f.removeErr }
+func (f *fakeDocker) RemoveDitImages(string) (string, error)    { return "", f.removeImagesErr }
+func (f *fakeDocker) RemoveVolume(string, bool) (string, error) { return "", f.removeVolumeErr }
+func (f *fakeDocker) Tag(string, string) (string, error)        { return "", f.tagErr }
+func (f *fakeDocker) Version() (string, error)                  { return "", f.versionErr }
+func (f *fakeDocker) VolumeExists(name string) bool             { return f.volumeExists[name] }
 
 func joinKeys(k []string) string {
 	out := ""
@@ -147,7 +147,7 @@ type fakeK8s struct {
 	StartStatefulSetCalls        int
 }
 
-func (f *fakeK8s) CreateStatefulSet(repoName, imageId string, ports []int, volumes []datadatdatclient.Volume, environment []string) error {
+func (f *fakeK8s) CreateStatefulSet(repoName, imageId string, ports []int, volumes []ditclient.Volume, environment []string) error {
 	f.CreateStatefulSetCalls++
 	return f.createStatefulSetErr
 }
@@ -157,7 +157,7 @@ func (f *fakeK8s) GetStatefulSetStatus(repoName string) (string, error) {
 func (f *fakeK8s) WaitForStatefulSet(string)  { f.WaitForStatefulSetCalls++ }
 func (f *fakeK8s) StartPortForwarding(string) { f.StartPortForwardingCalls++ }
 func (f *fakeK8s) StopPortForwarding(string)  { f.StopPortForwardingCalls++ }
-func (f *fakeK8s) UpdateStatefulSetVolumes(string, []datadatdatclient.Volume) {
+func (f *fakeK8s) UpdateStatefulSetVolumes(string, []ditclient.Volume) {
 	f.UpdateStatefulSetVolumesCall++
 }
 func (f *fakeK8s) DeleteStatefulSpec(string) { f.DeleteStatefulSpecCalls++ }

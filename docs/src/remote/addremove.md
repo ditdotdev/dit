@@ -8,7 +8,7 @@ Each repository can have zero or more remotes configured. To add a remote,
 use cli_cmd_remote_add
 
 ```bash
-$ d3 remote add s3://bucket/path myrepo
+$ dit remote add s3://bucket/path myrepo
 ```
 
 Remotes are specified as URIs, with the first portion defining the provider
@@ -21,7 +21,7 @@ can optionally use an `sshKey` parameter instead of the password in the URI.
 To get a list of remotes, use cli_cmd_remote_ls
 
 ```bash
-$ d3 remote ls hello-world
+$ dit remote ls hello-world
 REMOTE                PROVIDER
 origin                s3
 ```

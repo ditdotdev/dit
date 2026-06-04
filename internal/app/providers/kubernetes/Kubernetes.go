@@ -2,12 +2,12 @@ package kubernetes
 
 import (
 	"context"
-	client "github.com/datadatdat/datadatdat-client-go"
+	client "github.com/ditdotdev/dit-client-go"
 	"os"
 )
 
 func init() {
-	_, d := os.LookupEnv("DATADATDAT_DEBUG")
+	_, d := os.LookupEnv("DIT_DEBUG")
 	cfg.Debug = d
 }
 

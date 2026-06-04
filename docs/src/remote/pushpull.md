@@ -13,7 +13,7 @@ Exactly how each provider transfers data varies. Some, like S3, only do full
 transfers of data as a single archive. Others, like SSH, will use rsync to
 hopefully transfer only incremental data.
 
-Each push and pull runs asynchronously in the context of the d3 container,
+Each push and pull runs asynchronously in the context of the dit container,
 but progress is streamed to the command line while it's being run. In rare
 cases, it's possible to exit the CLI while the operation is ongoing. In this
 case, you may get a message that an operation is in progress. You can either
@@ -24,5 +24,5 @@ specific to each remote), you can get a list of remote commits using the
 cli_cmd_remote_log command.
 
 > **Note:**
-> Datadatdat doesn't currently retry after network errors or other interruptions.
+> Dit doesn't currently retry after network errors or other interruptions.
 > This capabilities will be added in a future release.

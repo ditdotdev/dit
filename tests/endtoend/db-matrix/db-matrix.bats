@@ -4,15 +4,15 @@
 load '../test_helper'
 
 # S3 URI base for testing — unique per run to avoid collisions between
-# concurrent runs. See issue datadatdat/datadatdat-server#118.
+# concurrent runs. See issue ditdotdev/dit-server#118.
 RUN_SUFFIX="${E2E_RUN_SUFFIX:-local}"
-URI_BASE="s3://datadatdat-testdata/e2etest/${RUN_SUFFIX}"
+URI_BASE="s3://dit-testdata/e2etest/${RUN_SUFFIX}"
 
 # Helper to run tests for a specific database version
 test_database() {
   local db_version="$1"
   
-  # Extract database name - handle registry paths like datadatdat/mssql-server:2017
+  # Extract database name - handle registry paths like ditdotdev/mssql-server:2017
   local db
   if [[ "$db_version" == *"/"* ]]; then
     # Has registry path - extract just the image name
@@ -155,12 +155,12 @@ test_database() {
   local elapsed=0
   while true; do
     # Check PostgreSQL directly for the repository
-    if docker exec datadatdat-docker-server psql -U postgres -d datadatdat -tAc "SELECT name FROM repositories WHERE name='$repo_name';" | grep -q "$repo_name"; then
+    if docker exec dit-docker-server psql -U postgres -d dit -tAc "SELECT name FROM repositories WHERE name='$repo_name';" | grep -q "$repo_name"; then
       echo "DEBUG: Repository $repo_name still exists in PostgreSQL after ${elapsed}s"
       if [ $elapsed -ge $timeout ]; then
         echo "ERROR: Timeout waiting for repository $repo_name metadata to be removed from server (waited ${timeout}s)"
         echo "DEBUG: Current repositories in PostgreSQL:"
-        docker exec datadatdat-docker-server psql -U postgres -d datadatdat -c "SELECT name FROM repositories;"
+        docker exec dit-docker-server psql -U postgres -d dit -c "SELECT name FROM repositories;"
         return 1
       fi
       sleep 1
@@ -173,7 +173,7 @@ test_database() {
 
   # Final check right before clone
   echo "DEBUG: [$(date +%H:%M:%S.%3N)] Final PostgreSQL check before clone..."
-  if docker exec datadatdat-docker-server psql -U postgres -d datadatdat -tAc "SELECT name FROM repositories WHERE name='$repo_name';" | grep -q "$repo_name"; then
+  if docker exec dit-docker-server psql -U postgres -d dit -tAc "SELECT name FROM repositories WHERE name='$repo_name';" | grep -q "$repo_name"; then
     echo "ERROR: [$(date +%H:%M:%S.%3N)] Repository $repo_name EXISTS in PostgreSQL right before clone!"
   else
     echo "DEBUG: [$(date +%H:%M:%S.%3N)] Repository $repo_name NOT in PostgreSQL - proceeding with clone"

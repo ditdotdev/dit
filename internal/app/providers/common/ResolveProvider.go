@@ -3,7 +3,7 @@ package common
 import (
 	"fmt"
 
-	"github.com/datadatdat/remote-sdk-go/remote"
+	"github.com/ditdotdev/remote-sdk-go/remote"
 )
 
 // ResolveProvider looks up a registered remote provider by name. If no provider has been registered for the given

@@ -1,9 +1,9 @@
 package kubernetes
 
 import (
-	"datadatdat/internal/app"
-	"datadatdat/internal/app/clients"
-	datadatdatclient "github.com/datadatdat/datadatdat-client-go"
+	ditclient "github.com/ditdotdev/dit-client-go"
+	"github.com/ditdotdev/dit/internal/app"
+	"github.com/ditdotdev/dit/internal/app/clients"
 	"os"
 )
 
@@ -11,18 +11,18 @@ import (
 // Exists so package functions can be unit-tested with a mock instead of a real
 // docker daemon.
 type dockerClient interface {
-	DatadatdatLatestIsDownloaded(registry string, latest app.Version) bool
-	DatadatdatLaunchIsAvailable() (bool, error)
-	DatadatdatServerIsAvailable() (bool, error)
+	DitLatestIsDownloaded(registry string, latest app.Version) bool
+	DitLaunchIsAvailable() (bool, error)
+	DitServerIsAvailable() (bool, error)
 	FetchLaunchLogs() []string
 	GetSliceFromImage(image string, key ...string) []string
 	GetValFromContainer(c string, key ...string) (string, error)
 	GetValFromImage(image string, key ...string) string
 	InspectImage(image string) (string, error)
-	LaunchDatadatdatKubernetesServers() (string, error)
+	LaunchDitKubernetesServers() (string, error)
 	Pull(image string) (string, error)
 	Remove(container string, force bool) (string, error)
-	RemoveDatadatdatImages(version string) (string, error)
+	RemoveDitImages(version string) (string, error)
 	RemoveVolume(name string, force bool) (string, error)
 	Tag(source string, target string) (string, error)
 	Version() (string, error)
@@ -33,12 +33,12 @@ type dockerClient interface {
 // providers/kubernetes. Exists so package functions can be unit-tested with a
 // mock kubernetes client.
 type kubernetesClient interface {
-	CreateStatefulSet(repoName string, imageId string, ports []int, volumes []datadatdatclient.Volume, environment []string) error
+	CreateStatefulSet(repoName string, imageId string, ports []int, volumes []ditclient.Volume, environment []string) error
 	GetStatefulSetStatus(repoName string) (string, error)
 	WaitForStatefulSet(repoName string)
 	StartPortForwarding(repoName string)
 	StopPortForwarding(repoName string)
-	UpdateStatefulSetVolumes(repoName string, volumes []datadatdatclient.Volume)
+	UpdateStatefulSetVolumes(repoName string, volumes []ditclient.Volume)
 	DeleteStatefulSpec(repoName string)
 	StopStatefulSet(repoName string)
 	StartStatefulSet(repoName string)
@@ -84,16 +84,16 @@ const noopK8sRunningStatus = "running"
 
 type noopK8s struct{}
 
-func (noopK8s) CreateStatefulSet(string, string, []int, []datadatdatclient.Volume, []string) error {
+func (noopK8s) CreateStatefulSet(string, string, []int, []ditclient.Volume, []string) error {
 	return nil
 }
 func (noopK8s) GetStatefulSetStatus(string) (string, error) {
 	return noopK8sRunningStatus, nil
 }
-func (noopK8s) WaitForStatefulSet(string)                                  {}
-func (noopK8s) StartPortForwarding(string)                                 {}
-func (noopK8s) StopPortForwarding(string)                                  {}
-func (noopK8s) UpdateStatefulSetVolumes(string, []datadatdatclient.Volume) {}
-func (noopK8s) DeleteStatefulSpec(string)                                  {}
-func (noopK8s) StopStatefulSet(string)                                     {}
-func (noopK8s) StartStatefulSet(string)                                    {}
+func (noopK8s) WaitForStatefulSet(string)                           {}
+func (noopK8s) StartPortForwarding(string)                          {}
+func (noopK8s) StopPortForwarding(string)                           {}
+func (noopK8s) UpdateStatefulSetVolumes(string, []ditclient.Volume) {}
+func (noopK8s) DeleteStatefulSpec(string)                           {}
+func (noopK8s) StopStatefulSet(string)                              {}
+func (noopK8s) StartStatefulSet(string)                             {}

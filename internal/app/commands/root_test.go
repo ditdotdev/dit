@@ -11,21 +11,21 @@ func TestRootCmd(t *testing.T) {
 	if cmd == nil {
 		t.Fatal("RootCmd() returned nil")
 	}
-	if cmd.Use != "d3" {
-		t.Errorf("RootCmd().Use = %q, want \"d3\"", cmd.Use)
+	if cmd.Use != "dit" {
+		t.Errorf("RootCmd().Use = %q, want \"dit\"", cmd.Use)
 	}
 	if !cmd.HasSubCommands() {
-		t.Error("RootCmd() has no subcommands; gen-docs would emit only d3.md")
+		t.Error("RootCmd() has no subcommands; gen-docs would emit only dit.md")
 	}
 }
 
 // classifyCommand says whether a command can run without a resolved
 // provider, and what default context name the install path should use.
 // Regression-driven by:
-//   - `d3 ls` (provider-iterating, optional)
-//   - `d3 install` (creates the first context, defaults to "docker")
-//   - `d3 context <anything>` (manages providers/config directly)
-//   - `d3 remote ls <repo>` MUST NOT match — it needs a real provider,
+//   - `dit ls` (provider-iterating, optional)
+//   - `dit install` (creates the first context, defaults to "docker")
+//   - `dit context <anything>` (manages providers/config directly)
+//   - `dit remote ls <repo>` MUST NOT match — it needs a real provider,
 //     but pre-fix the matching scanned the whole args slice for "ls"
 //     and treated this case as optional, leaving provider==nil and
 //     panicking with SIGSEGV at remote.go:45.
@@ -36,23 +36,23 @@ func TestClassifyCommand(t *testing.T) {
 		wantOptional bool
 		wantDefault  string
 	}{
-		{"d3 ls", []string{"d3", "ls"}, true, ""},
-		{"d3 ls --context foo", []string{"d3", "ls", "--context", "foo"}, true, ""},
-		{"d3 install", []string{"d3", "install"}, true, "docker"},
-		{"d3 context ls", []string{"d3", "context", "ls"}, true, ""},
-		{"d3 context install", []string{"d3", "context", "install", "-n", "x", "-t", "kubernetes"}, true, ""},
-		{"d3 context uninstall", []string{"d3", "context", "uninstall", "-f", "x"}, true, ""},
-		{"d3 context default", []string{"d3", "context", "default"}, true, ""},
-		// Regression: pre-fix "d3 remote ls" matched isLs because "ls" appeared
+		{"dit ls", []string{"dit", "ls"}, true, ""},
+		{"dit ls --context foo", []string{"dit", "ls", "--context", "foo"}, true, ""},
+		{"dit install", []string{"dit", "install"}, true, "docker"},
+		{"dit context ls", []string{"dit", "context", "ls"}, true, ""},
+		{"dit context install", []string{"dit", "context", "install", "-n", "x", "-t", "kubernetes"}, true, ""},
+		{"dit context uninstall", []string{"dit", "context", "uninstall", "-f", "x"}, true, ""},
+		{"dit context default", []string{"dit", "context", "default"}, true, ""},
+		// Regression: pre-fix "dit remote ls" matched isLs because "ls" appeared
 		// anywhere in args. It needs a real provider; should NOT be optional.
-		{"d3 remote ls", []string{"d3", "remote", "ls", "myrepo"}, false, ""},
-		{"d3 remote add", []string{"d3", "remote", "add", "uri", "repo"}, false, ""},
-		{"d3 run postgres", []string{"d3", "run", "postgres:latest", "-n", "demo"}, false, ""},
-		{"d3 status", []string{"d3", "status", "demo"}, false, ""},
-		{"d3 rm", []string{"d3", "rm", "-f", "demo"}, false, ""},
+		{"dit remote ls", []string{"dit", "remote", "ls", "myrepo"}, false, ""},
+		{"dit remote add", []string{"dit", "remote", "add", "uri", "repo"}, false, ""},
+		{"dit run postgres", []string{"dit", "run", "postgres:latest", "-n", "demo"}, false, ""},
+		{"dit status", []string{"dit", "status", "demo"}, false, ""},
+		{"dit rm", []string{"dit", "rm", "-f", "demo"}, false, ""},
 		// Edge: empty args (shouldn't happen, but be defensive)
 		{"empty", []string{}, false, ""},
-		{"just binary", []string{"d3"}, false, ""},
+		{"just binary", []string{"dit"}, false, ""},
 	}
 
 	for _, c := range cases {

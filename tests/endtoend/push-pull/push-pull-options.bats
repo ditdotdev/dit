@@ -1,15 +1,15 @@
 #!/usr/bin/env bats
 
 # E2E Push/Pull Options Tests
-# Tests d3 push --update-only and d3 pull --update-only via S3
+# Tests dit push --update-only and dit pull --update-only via S3
 
 # Load shared test helpers
 load '../test_helper'
 
 # Unique S3 path per run to avoid collisions between concurrent runs.
-# See issue datadatdat/datadatdat-server#118.
+# See issue ditdotdev/dit-server#118.
 RUN_SUFFIX="${E2E_RUN_SUFFIX:-local}"
-S3_BUCKET="s3://datadatdat-testdata/e2etest-pushpull/${RUN_SUFFIX}"
+S3_BUCKET="s3://dit-testdata/e2etest-pushpull/${RUN_SUFFIX}"
 
 # Cleanup after all tests
 teardown_file() {
@@ -69,7 +69,7 @@ teardown_file() {
   assert_success
 }
 
-@test "d3 push --update-only syncs tags without re-uploading data" {
+@test "dit push --update-only syncs tags without re-uploading data" {
   run "$D3" push -u pushpull-test
   assert_success
 }

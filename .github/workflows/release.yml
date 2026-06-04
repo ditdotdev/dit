@@ -18,13 +18,13 @@ name: Release
 #
 #       The dry run defaults VERSION to the latest reachable tag
 #       (`git describe --tags --abbrev=0`) so the CLI binary's image
-#       pulls (`datadatdat/datadatdat:$VERSION`) hit a tag that's
+#       pulls (`ditdotdev/dit:$VERSION`) hit a tag that's
 #       actually published on Docker Hub. Override only when you need
 #       to test a specific published version:
 #           gh workflow run release.yml --ref master -f version=v1.9.0
 #
 #       (Picking a version that is NOT published will fail E2E at
-#       `d3 install` time when it tries to pull the missing image.)
+#       `dit install` time when it tries to pull the missing image.)
 #
 #       Built binaries appear in the workflow run's artifacts panel
 #       (1-day retention) for inspection. No Release entry is created
@@ -47,7 +47,7 @@ permissions:
 
 jobs:
   health:
-    uses: datadatdat/.github/.github/workflows/repo-health.yml@master
+    uses: ditdotdev/.github/.github/workflows/repo-health.yml@master
     with:
       language: go
       coverage-floor: 90
@@ -78,17 +78,17 @@ jobs:
       
       - name: Configure Go for private modules
         run: |
-          go env -w GOPRIVATE=github.com/datadatdat/*
-          go env -w GONOPROXY=github.com/datadatdat/*
-          go env -w GONOSUMDB=github.com/datadatdat/*
+          go env -w GOPRIVATE=github.com/ditdotdev/*
+          go env -w GONOPROXY=github.com/ditdotdev/*
+          go env -w GONOSUMDB=github.com/ditdotdev/*
           go env -w GOPROXY=https://proxy.golang.org,direct
       
       - name: Build cross-platform releases
         run: |
           # On tag push, derive VERSION from the tag. On workflow_dispatch
           # (dry run), use the version input or fall back to the latest
-          # reachable tag — the latter ensures `datadatdat/datadatdat:$VERSION`
-          # is a real Docker Hub tag that the E2E `d3 install` step can pull.
+          # reachable tag — the latter ensures `ditdotdev/dit:$VERSION`
+          # is a real Docker Hub tag that the E2E `dit install` step can pull.
           # See top-of-file header for the dry-run trigger model.
           if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
             VERSION="${{ inputs.version }}"
@@ -139,12 +139,12 @@ jobs:
             VERSION=${GITHUB_REF#refs/tags/}
           fi
           cd release/linux-amd64
-          tar -xf datadatdat-cli-$VERSION-linux_amd64.tar
-          chmod +x d3
-          ./d3 --version
-          # Create symlink in repo root for tests (they expect $REPO_ROOT/d3)
+          tar -xf dit-cli-$VERSION-linux_amd64.tar
+          chmod +x dit
+          ./dit --version
+          # Create symlink in repo root for tests (they expect $REPO_ROOT/dit)
           cd ../..
-          ln -s release/linux-amd64/d3 d3
+          ln -s release/linux-amd64/dit dit
       
       - name: Free up disk space
         run: |
@@ -186,9 +186,9 @@ jobs:
       # driver=none (kubeadm directly on the runner host) instead of the
       # docker driver: the docker driver runs the apiserver inside a
       # container on minikube's private network (192.168.49.2:8443),
-      # which the d3 server container — running on its own docker bridge
+      # which the dit server container — running on its own docker bridge
       # — has no route to. CreateVolume / CreatePVC then fails with a
-      # 500 from inside the d3 server. driver=none puts the apiserver on
+      # 500 from inside the dit server. driver=none puts the apiserver on
       # the host network where every container can reach it.
       - name: Setup minikube
         uses: medyagh/setup-minikube@latest
@@ -201,7 +201,7 @@ jobs:
           kubectl get nodes
 
       # Enable CSI snapshot support so kubernetes-tests.bats can exercise
-      # `d3 commit` against the release artifacts. See pull-request.yml
+      # `dit commit` against the release artifacts. See pull-request.yml
       # for the longer rationale.
       - name: Enable CSI volume snapshots in minikube
         run: |
@@ -210,7 +210,7 @@ jobs:
           kubectl patch storageclass standard -p '{"metadata": {"annotations":{"storageclass.kubernetes.io/is-default-class":"false"}}}'
           kubectl patch storageclass csi-hostpath-sc -p '{"metadata": {"annotations":{"storageclass.kubernetes.io/is-default-class":"true"}}}'
           # csi-hostpath-snapclass also needs the default-class annotation
-          # for d3's commitVolume to find a snapshot class. See
+          # for dit's commitVolume to find a snapshot class. See
           # pull-request.yml for the longer rationale.
           kubectl patch volumesnapshotclass csi-hostpath-snapclass --type=merge -p '{"metadata":{"annotations":{"snapshot.storage.kubernetes.io/is-default-class":"true"}}}'
 
@@ -233,7 +233,7 @@ jobs:
       - name: Show container and k8s logs
         if: always()
         run: |
-          for c in $(docker ps -a --filter "name=datadatdat" --format '{{.Names}}'); do
+          for c in $(docker ps -a --filter "name=dit" --format '{{.Names}}'); do
             echo "=== docker logs $c ==="
             docker logs "$c" 2>&1 | tail -200 || true
           done
@@ -241,8 +241,8 @@ jobs:
           echo "=== Docker containers ==="
           docker ps -a || true
           echo ""
-          echo "=== d3 config ==="
-          cat ~/.datadatdat/config 2>/dev/null || echo "No config found"
+          echo "=== dit config ==="
+          cat ~/.dit/config 2>/dev/null || echo "No config found"
           if kubectl cluster-info >/dev/null 2>&1; then
             echo "=== kubectl get all -A ==="
             kubectl get all -A || true
@@ -284,10 +284,10 @@ jobs:
           draft: false
           generate_release_notes: true
           files: |
-            release/darwin-amd64/datadatdat-cli-${{ github.ref_name }}-darwin_amd64.zip
-            release/darwin-arm64/datadatdat-cli-${{ github.ref_name }}-darwin_arm64.zip
-            release/linux-amd64/datadatdat-cli-${{ github.ref_name }}-linux_amd64.tar
-            release/linux-arm64/datadatdat-cli-${{ github.ref_name }}-linux_arm64.tar
-            release/windows/datadatdat-cli-${{ github.ref_name }}-windows_amd64.zip
+            release/darwin-amd64/dit-cli-${{ github.ref_name }}-darwin_amd64.zip
+            release/darwin-arm64/dit-cli-${{ github.ref_name }}-darwin_arm64.zip
+            release/linux-amd64/dit-cli-${{ github.ref_name }}-linux_amd64.tar
+            release/linux-arm64/dit-cli-${{ github.ref_name }}-linux_arm64.tar
+            release/windows/dit-cli-${{ github.ref_name }}-windows_amd64.zip
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

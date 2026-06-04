@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Local coverage that matches the CI repo-health gate.
 #
-# The CI workflow (datadatdat/.github/.github/workflows/repo-health.yml)
+# The CI workflow (ditdotdev/.github/.github/workflows/repo-health.yml)
 # filters generated and non-library files out of the coverage profile
 # before computing the scored %. `go test -cover ./...` does not, so the
 # raw local number is usually 15-25 points lower than what the gate sees.
@@ -42,7 +42,7 @@ fi
 raw_pct=$(go tool cover -func="$profile" | tail -1 | awk '{print $3}')
 
 # Scored coverage — same exclude regex as the CI gate. Keep in sync with
-# datadatdat/.github/.github/workflows/repo-health.yml: any change to the
+# ditdotdev/.github/.github/workflows/repo-health.yml: any change to the
 # exclude regex there must be mirrored here.
 exclude_re='(\.pb\.go|_gen\.go|_generated\.go|mock_[^/]+\.go|/cmd/[^/]+/main\.go):'
 

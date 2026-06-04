@@ -7,7 +7,7 @@ import (
 // tagCmd represents the tag command
 var tagCmd = &cobra.Command{
 	Use:   "tag [REPOSITORY]",
-	Short: "Tag objects in datadatdat",
+	Short: "Tag objects in dit",
 	Args:  cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
 		repo := args[0]

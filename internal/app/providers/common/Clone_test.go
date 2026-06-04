@@ -34,8 +34,8 @@ func TestHandleRemoteError_UnauthorizedWithoutServer(t *testing.T) {
 	if !strings.Contains(output, "--api-key") {
 		t.Errorf("auth error message should include --api-key flag, got %q", output)
 	}
-	if !strings.Contains(output, "d3 auth login") {
-		t.Errorf("auth error message should include 'd3 auth login', got %q", output)
+	if !strings.Contains(output, "dit auth login") {
+		t.Errorf("auth error message should include 'dit auth login', got %q", output)
 	}
 }
 

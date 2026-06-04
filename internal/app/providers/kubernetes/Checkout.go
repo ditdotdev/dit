@@ -33,7 +33,7 @@ func Checkout(repoName string, guid string, tags []string, port int) {
 		} else {
 			status, _, _ := repositoriesApi.GetRepositoryStatus(ctx, repoName).Execute()
 			if status.GetSourceCommit() == "" {
-				fmt.Println("no commits present, run 'd3 commit' first")
+				fmt.Println("no commits present, run 'dit commit' first")
 				osExit(1)
 			}
 			sourceCommit = status.GetSourceCommit()
@@ -79,7 +79,7 @@ func Checkout(repoName string, guid string, tags []string, port int) {
 	// rolls pods on changes to spec.template.spec.containers (image, env,
 	// etc.), not on volume claim name updates. Without the stop/start
 	// dance the running pod keeps the OLD PVC mounted, postgres serves
-	// the pre-checkout state, and `d3 checkout` returns success without
+	// the pre-checkout state, and `dit checkout` returns success without
 	// actually restoring data. Surfaced by kubernetes-tests.bats test 19
 	// on PR #113 — checkout returned in 2s, table still missing.
 	fmt.Println("Stopping deployment to release old PVC")

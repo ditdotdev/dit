@@ -10,7 +10,7 @@ func Remove(repo string, force bool, port int) {
 
 	// TODO check running  & force
 
-	// Kill any kubectl port-forward spawned by an earlier `d3 run` so the
+	// Kill any kubectl port-forward spawned by an earlier `dit run` so the
 	// local port is released before we tear down the Service.
 	k8s.StopPortForwarding(repo)
 

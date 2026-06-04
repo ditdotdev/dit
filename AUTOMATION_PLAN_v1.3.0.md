@@ -27,18 +27,18 @@ jobs:
           - ssh-remote-go
           - s3web-remote-go
           - nop-remote-go
-          - datadatdat-remote-go
+          - dit-remote-go
     steps:
       - name: Update go.mod in ${{ matrix.repo }}
         run: |
           VERSION=${GITHUB_REF#refs/tags/}
           
           # Clone provider repo
-          git clone https://${{ secrets.GO_MODULES_TOKEN }}@github.com/datadatdat/${{ matrix.repo }}.git
+          git clone https://${{ secrets.GO_MODULES_TOKEN }}@github.com/ditdotdev/${{ matrix.repo }}.git
           cd ${{ matrix.repo }}
           
           # Update dependency
-          go get github.com/datadatdat/remote-sdk-go@$VERSION
+          go get github.com/ditdotdev/remote-sdk-go@$VERSION
           go mod tidy
           go test ./...
           
@@ -94,8 +94,8 @@ jobs:
 
 ## Phase 2: CLI Release Automation
 
-### 2.1 Datadatdat CLI Release Workflow
-**Location**: `datadatdat/.github/workflows/release.yml`
+### 2.1 Dit CLI Release Workflow
+**Location**: `ditdotdev/.github/workflows/release.yml`
 
 ```yaml
 name: Release
@@ -129,11 +129,11 @@ jobs:
         with:
           draft: true
           files: |
-            release/darwin-amd64/datadatdat-cli-${{ github.ref_name }}-darwin_amd64.zip
-            release/darwin-arm64/datadatdat-cli-${{ github.ref_name }}-darwin_arm64.zip
-            release/linux-amd64/datadatdat-cli-${{ github.ref_name }}-linux_amd64.tar
-            release/linux-arm64/datadatdat-cli-${{ github.ref_name }}-linux_arm64.tar
-            release/windows/datadatdat-cli-${{ github.ref_name }}-windows_amd64.zip
+            release/darwin-amd64/dit-cli-${{ github.ref_name }}-darwin_amd64.zip
+            release/darwin-arm64/dit-cli-${{ github.ref_name }}-darwin_arm64.zip
+            release/linux-amd64/dit-cli-${{ github.ref_name }}-linux_amd64.tar
+            release/linux-arm64/dit-cli-${{ github.ref_name }}-linux_arm64.tar
+            release/windows/dit-cli-${{ github.ref_name }}-windows_amd64.zip
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
   
@@ -146,9 +146,9 @@ jobs:
       - name: Download release artifacts
         run: |
           VERSION=${GITHUB_REF#refs/tags/}
-          gh release download $VERSION --pattern "datadatdat-cli-$VERSION-linux_amd64.tar"
-          tar -xf datadatdat-cli-$VERSION-linux_amd64.tar
-          chmod +x d3
+          gh release download $VERSION --pattern "dit-cli-$VERSION-linux_amd64.tar"
+          tar -xf dit-cli-$VERSION-linux_amd64.tar
+          chmod +x dit
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       
@@ -186,7 +186,7 @@ jobs:
 ## Phase 3: Version Validation
 
 ### 3.1 Dependency Alignment Check
-**Location**: `datadatdat/.github/workflows/validate-dependencies.yml`
+**Location**: `ditdotdev/.github/workflows/validate-dependencies.yml`
 
 ```yaml
 name: Validate Dependencies
@@ -205,7 +205,7 @@ jobs:
       - name: Check for version conflicts
         run: |
           # Check all providers use same remote-sdk-go version
-          go mod graph | grep datadatdat | grep remote-sdk-go | tee /tmp/sdk-versions.txt
+          go mod graph | grep dit | grep remote-sdk-go | tee /tmp/sdk-versions.txt
           
           # Count unique versions
           SDK_VERSIONS=$(cat /tmp/sdk-versions.txt | awk '{print $NF}' | sort -u | wc -l)
@@ -236,7 +236,7 @@ jobs:
 ## Phase 4: Master Release Coordinator (Future)
 
 ### 4.1 Orchestrated Release Pipeline
-**Location**: `datadatdat/.github/workflows/orchestrate-release.yml`
+**Location**: `ditdotdev/.github/workflows/orchestrate-release.yml`
 
 ```yaml
 name: Orchestrate Full Release
@@ -265,7 +265,7 @@ jobs:
       - name: Release remote-sdk-go
         run: |
           # Tag and trigger remote-sdk-go release
-          gh workflow run release.yml --repo datadatdat/remote-sdk-go --ref master
+          gh workflow run release.yml --repo ditdotdev/remote-sdk-go --ref master
   
   wait-for-providers:
     needs: release-sdk
@@ -280,7 +280,7 @@ jobs:
     needs: wait-for-providers
     runs-on: ubuntu-latest
     steps:
-      - name: Release datadatdat CLI
+      - name: Release dit CLI
         run: |
           # Update dependencies and tag
   

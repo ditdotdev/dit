@@ -3,13 +3,13 @@
 
 # IntelliJ files
 /.idea
-/datadatdat.iml
+/dit.iml
 
 # Generated files
 target
 bin
 coverage
-/datadatdat*.zip
+/dit*.zip
 release
 build
 

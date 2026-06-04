@@ -65,7 +65,7 @@ fi
 # Set up common paths for all tests
 # Get the repository root (two levels up from test_helper.bash location: tests/endtoend)
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
-D3="${REPO_ROOT}/d3"
+D3="${REPO_ROOT}/dit"
 
 # Helper function to get Docker-compatible path (works on Windows and Linux)
 get_docker_path() {
