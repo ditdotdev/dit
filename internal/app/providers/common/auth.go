@@ -66,10 +66,14 @@ func SaveCredentials(path string, creds Credentials) error {
 	return os.WriteFile(path, data, 0600)
 }
 
-// GetAPIKey returns the API key to use, checking:
-// 1. DIT_API_KEY environment variable (highest priority)
-// 2. Stored credentials for the default server
-func GetAPIKey(credsPath string) string {
+// GetAPIKey resolves the API key to use for a request, in priority order:
+//  1. DIT_API_KEY environment variable (highest priority — a global override)
+//  2. stored credentials for serverURL, when serverURL is non-empty
+//  3. stored credentials for the default server, when serverURL is empty
+//
+// serverURL may be "" to mean "use the configured default server". Returns ""
+// if no key can be resolved.
+func GetAPIKey(credsPath, serverURL string) string {
 	if envKey := os.Getenv("DIT_API_KEY"); envKey != "" {
 		return envKey
 	}
@@ -79,25 +83,15 @@ func GetAPIKey(credsPath string) string {
 		return ""
 	}
 
-	if creds.DefaultServer == "" {
+	target := serverURL
+	if target == "" {
+		target = creds.DefaultServer
+	}
+	if target == "" {
 		return ""
 	}
 
-	if server, ok := creds.Servers[creds.DefaultServer]; ok {
-		return server.APIKey
-	}
-
-	return ""
-}
-
-// GetAPIKeyForServer returns the API key for a specific server.
-func GetAPIKeyForServer(credsPath string, serverURL string) string {
-	creds, err := LoadCredentials(credsPath)
-	if err != nil {
-		return ""
-	}
-
-	if server, ok := creds.Servers[serverURL]; ok {
+	if server, ok := creds.Servers[target]; ok {
 		return server.APIKey
 	}
 
