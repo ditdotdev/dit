@@ -40,7 +40,7 @@ create_and_register_repo() {
   run_sql_cmd \
     "INSERT INTO repositories (namespace, name, full_name, is_private, owner_type, owner_id, created_by)
      SELECT '${org}', '${repo}', '${org}/${repo}', ${is_private},
-            'organization', o.id, (SELECT id FROM users WHERE github_login = 'dit-ghtest1')
+            'organization', o.id, (SELECT id FROM users WHERE github_login = 'd3-ghtest1')
      FROM organizations o WHERE o.name = '${org}'
      ON CONFLICT (full_name) DO UPDATE SET is_private = ${is_private};" >/dev/null 2>&1
 }
@@ -53,21 +53,21 @@ delete_repo() {
   run_sql_cmd "DELETE FROM repositories WHERE full_name = '${org}/${repo}';" >/dev/null 2>&1 || true
 }
 
-# Helper: set dit-ghtest2's collaborator permission on a repo (or remove it)
+# Helper: set d3-ghtest2's collaborator permission on a repo (or remove it)
 set_collab() {
   local repo_full="$1" permission="$2"
-  run_sql_cmd "DELETE FROM repo_collaborators WHERE repo_id = (SELECT id FROM repositories WHERE full_name = '${repo_full}') AND user_id = (SELECT id FROM users WHERE github_login = 'dit-ghtest2');" >/dev/null 2>&1
+  run_sql_cmd "DELETE FROM repo_collaborators WHERE repo_id = (SELECT id FROM repositories WHERE full_name = '${repo_full}') AND user_id = (SELECT id FROM users WHERE github_login = 'd3-ghtest2');" >/dev/null 2>&1
   if [[ -n "$permission" ]]; then
-    run_sql_cmd "INSERT INTO repo_collaborators (repo_id, user_id, permission) VALUES ((SELECT id FROM repositories WHERE full_name = '${repo_full}'), (SELECT id FROM users WHERE github_login = 'dit-ghtest2'), '${permission}');" >/dev/null 2>&1
+    run_sql_cmd "INSERT INTO repo_collaborators (repo_id, user_id, permission) VALUES ((SELECT id FROM repositories WHERE full_name = '${repo_full}'), (SELECT id FROM users WHERE github_login = 'd3-ghtest2'), '${permission}');" >/dev/null 2>&1
   fi
 }
 
-# Helper: set dit-ghtest2's org membership role (or remove it)
+# Helper: set d3-ghtest2's org membership role (or remove it)
 set_org_role() {
   local role="$1"
-  run_sql_cmd "DELETE FROM org_memberships WHERE org_id = (SELECT id FROM organizations WHERE name = '${PERM_ORG}') AND user_id = (SELECT id FROM users WHERE github_login = 'dit-ghtest2');" >/dev/null 2>&1
+  run_sql_cmd "DELETE FROM org_memberships WHERE org_id = (SELECT id FROM organizations WHERE name = '${PERM_ORG}') AND user_id = (SELECT id FROM users WHERE github_login = 'd3-ghtest2');" >/dev/null 2>&1
   if [[ -n "$role" ]]; then
-    run_sql_cmd "INSERT INTO org_memberships (org_id, user_id, role) VALUES ((SELECT id FROM organizations WHERE name = '${PERM_ORG}'), (SELECT id FROM users WHERE github_login = 'dit-ghtest2'), '${role}');" >/dev/null 2>&1
+    run_sql_cmd "INSERT INTO org_memberships (org_id, user_id, role) VALUES ((SELECT id FROM organizations WHERE name = '${PERM_ORG}'), (SELECT id FROM users WHERE github_login = 'd3-ghtest2'), '${role}');" >/dev/null 2>&1
   fi
 }
 
@@ -140,7 +140,7 @@ teardown_file() {
   assert_success
 }
 
-@test "perms: create org owned by dit-ghtest1" {
+@test "perms: create org owned by d3-ghtest1" {
   run curl -s -w "\n%{http_code}" -X POST \
     -H "X-API-Key: $GHTEST1_KEY" \
     -H "Content-Type: application/json" \
@@ -193,7 +193,7 @@ teardown_file() {
 }
 
 # ========================================
-# 2. AUTHENTICATED (no relation to repo) - dit-ghtest3
+# 2. AUTHENTICATED (no relation to repo) - d3-ghtest3
 # ========================================
 
 @test "perms: authed-stranger - CAN read public repo" {
@@ -239,7 +239,7 @@ teardown_file() {
 }
 
 # ========================================
-# 3. ORG MEMBER (member role) - dit-ghtest2
+# 3. ORG MEMBER (member role) - d3-ghtest2
 # ========================================
 
 @test "perms: org-member - setup role" {
@@ -247,7 +247,7 @@ teardown_file() {
   set_collab "${PERM_ORG}/${PRIV_REPO}" ""
   set_org_role "member"
 
-  run run_sql_raw "SELECT role FROM org_memberships WHERE org_id = (SELECT id FROM organizations WHERE name = '${PERM_ORG}') AND user_id = (SELECT id FROM users WHERE github_login = 'dit-ghtest2');"
+  run run_sql_raw "SELECT role FROM org_memberships WHERE org_id = (SELECT id FROM organizations WHERE name = '${PERM_ORG}') AND user_id = (SELECT id FROM users WHERE github_login = 'd3-ghtest2');"
   assert_success
   assert_output "member"
 }
@@ -295,7 +295,7 @@ teardown_file() {
 }
 
 # ========================================
-# 4. COLLABORATOR (read) - dit-ghtest2
+# 4. COLLABORATOR (read) - d3-ghtest2
 # ========================================
 
 @test "perms: collab-read - setup role" {
@@ -303,7 +303,7 @@ teardown_file() {
   set_collab "${PERM_ORG}/${PUB_REPO}" "read"
   set_collab "${PERM_ORG}/${PRIV_REPO}" "read"
 
-  run run_sql_raw "SELECT permission FROM repo_collaborators WHERE repo_id = (SELECT id FROM repositories WHERE full_name = '${PERM_ORG}/${PUB_REPO}') AND user_id = (SELECT id FROM users WHERE github_login = 'dit-ghtest2');"
+  run run_sql_raw "SELECT permission FROM repo_collaborators WHERE repo_id = (SELECT id FROM repositories WHERE full_name = '${PERM_ORG}/${PUB_REPO}') AND user_id = (SELECT id FROM users WHERE github_login = 'd3-ghtest2');"
   assert_success
   assert_output "read"
 }
@@ -351,14 +351,14 @@ teardown_file() {
 }
 
 # ========================================
-# 5. COLLABORATOR (write) - dit-ghtest2
+# 5. COLLABORATOR (write) - d3-ghtest2
 # ========================================
 
 @test "perms: collab-write - setup role" {
   set_collab "${PERM_ORG}/${PUB_REPO}" "write"
   set_collab "${PERM_ORG}/${PRIV_REPO}" "write"
 
-  run run_sql_raw "SELECT permission FROM repo_collaborators WHERE repo_id = (SELECT id FROM repositories WHERE full_name = '${PERM_ORG}/${PUB_REPO}') AND user_id = (SELECT id FROM users WHERE github_login = 'dit-ghtest2');"
+  run run_sql_raw "SELECT permission FROM repo_collaborators WHERE repo_id = (SELECT id FROM repositories WHERE full_name = '${PERM_ORG}/${PUB_REPO}') AND user_id = (SELECT id FROM users WHERE github_login = 'd3-ghtest2');"
   assert_success
   assert_output "write"
 }
@@ -411,7 +411,7 @@ teardown_file() {
 }
 
 # ========================================
-# 6. COLLABORATOR (admin) - dit-ghtest2
+# 6. COLLABORATOR (admin) - d3-ghtest2
 # ========================================
 
 @test "perms: collab-admin - setup role" {
@@ -420,7 +420,7 @@ teardown_file() {
   set_collab "${PERM_ORG}/${PUB_REPO}" "admin"
   set_collab "${PERM_ORG}/${PRIV_REPO}" "admin"
 
-  run run_sql_raw "SELECT permission FROM repo_collaborators WHERE repo_id = (SELECT id FROM repositories WHERE full_name = '${PERM_ORG}/${PUB_REPO}') AND user_id = (SELECT id FROM users WHERE github_login = 'dit-ghtest2');"
+  run run_sql_raw "SELECT permission FROM repo_collaborators WHERE repo_id = (SELECT id FROM repositories WHERE full_name = '${PERM_ORG}/${PUB_REPO}') AND user_id = (SELECT id FROM users WHERE github_login = 'd3-ghtest2');"
   assert_success
   assert_output "admin"
 }
@@ -471,7 +471,7 @@ teardown_file() {
 }
 
 # ========================================
-# 7. ORG ADMIN (admin role) - dit-ghtest2
+# 7. ORG ADMIN (admin role) - d3-ghtest2
 # ========================================
 
 @test "perms: org-admin - setup role" {
@@ -481,7 +481,7 @@ teardown_file() {
   set_collab "${PERM_ORG}/${PRIV_REPO}" ""
   set_org_role "admin"
 
-  run run_sql_raw "SELECT role FROM org_memberships WHERE org_id = (SELECT id FROM organizations WHERE name = '${PERM_ORG}') AND user_id = (SELECT id FROM users WHERE github_login = 'dit-ghtest2');"
+  run run_sql_raw "SELECT role FROM org_memberships WHERE org_id = (SELECT id FROM organizations WHERE name = '${PERM_ORG}') AND user_id = (SELECT id FROM users WHERE github_login = 'd3-ghtest2');"
   assert_success
   assert_output "admin"
 }
@@ -532,13 +532,13 @@ teardown_file() {
 }
 
 # ========================================
-# 8. ORG OWNER - dit-ghtest1
+# 8. ORG OWNER - d3-ghtest1
 # ========================================
 
 @test "perms: org-owner - setup repos" {
   ensure_repo "$PERM_ORG" "$PUB_REPO" "false"
   ensure_repo "$PERM_ORG" "$PRIV_REPO" "true"
-  # dit-ghtest2 cleanup
+  # d3-ghtest2 cleanup
   set_collab "${PERM_ORG}/${PUB_REPO}" ""
   set_collab "${PERM_ORG}/${PRIV_REPO}" ""
   set_org_role ""

@@ -8,7 +8,7 @@ REMOTE="s3"
 # Unique S3 path per run to avoid collisions between concurrent runs.
 # See issue ditdotdev/dit-server#118.
 RUN_SUFFIX="${E2E_RUN_SUFFIX:-local}"
-URI="s3://demo-ditdotdev/simple-test/${RUN_SUFFIX}"
+URI="s3://demo-dit/simple-test/${RUN_SUFFIX}"
 REPO="hello-world"
 
 # Ensure API is ready (upgrade test may have restarted infrastructure)

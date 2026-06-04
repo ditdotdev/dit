@@ -22,19 +22,24 @@ STRIPE_USER_KEY="ee11111122223333444455556666777788889999aaaabbbbccccddddeeeefff
 
 setup_file() {
   # Try env vars first, then fall back to reading from .env.auth
-  if [[ -z "$STRIPE_SECRET_KEY" ]]; then
-    ENV_AUTH="/c/dev/ditdotdev/dit-remote-server/.env.auth"
-    if [[ -f "$ENV_AUTH" ]]; then
-      STRIPE_SECRET_KEY=$(grep '^STRIPE_SECRET_KEY=' "$ENV_AUTH" | cut -d= -f2)
-      export STRIPE_SECRET_KEY
-    fi
+  # Locate the remote-server .env.auth. Supports both the current workspace layout
+  # (datadatdat/datadatdat-remote-server) and the post-rename layout
+  # (ditdotdev/dit-remote-server).
+  local env_auth_candidates=(
+    "/c/dev/datadatdat/datadatdat-remote-server/.env.auth"
+    "/c/dev/ditdotdev/dit-remote-server/.env.auth"
+  )
+  ENV_AUTH=""
+  for cand in "${env_auth_candidates[@]}"; do
+    if [[ -f "$cand" ]]; then ENV_AUTH="$cand"; break; fi
+  done
+  if [[ -z "$STRIPE_SECRET_KEY" && -n "$ENV_AUTH" ]]; then
+    STRIPE_SECRET_KEY=$(grep '^STRIPE_SECRET_KEY=' "$ENV_AUTH" | cut -d= -f2)
+    export STRIPE_SECRET_KEY
   fi
-  if [[ -z "$STRIPE_WEBHOOK_SECRET" ]]; then
-    ENV_AUTH="/c/dev/ditdotdev/dit-remote-server/.env.auth"
-    if [[ -f "$ENV_AUTH" ]]; then
-      STRIPE_WEBHOOK_SECRET=$(grep '^STRIPE_WEBHOOK_SECRET=' "$ENV_AUTH" | cut -d= -f2)
-      export STRIPE_WEBHOOK_SECRET
-    fi
+  if [[ -z "$STRIPE_WEBHOOK_SECRET" && -n "$ENV_AUTH" ]]; then
+    STRIPE_WEBHOOK_SECRET=$(grep '^STRIPE_WEBHOOK_SECRET=' "$ENV_AUTH" | cut -d= -f2)
+    export STRIPE_WEBHOOK_SECRET
   fi
 
   if [[ -z "$STRIPE_SECRET_KEY" || -z "$STRIPE_WEBHOOK_SECRET" ]]; then
