@@ -248,6 +248,14 @@ jobs:
       - name: Install postgresql-client (for psql port-forward test)
         run: sudo apt-get install -y postgresql-client
 
+      # Authenticate to Docker Hub so 'dit install' can pull ditdotdev/* images
+      # without hitting the anonymous pull rate-limit on shared runner IPs (#167).
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v4
+        with:
+          username: ${{ secrets.DOCKER_USER }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
       - name: Run Test Suite
         run: |
           export PATH=$GITHUB_WORKSPACE/build:$PATH
