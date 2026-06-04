@@ -21,7 +21,7 @@ func Checkout(repo string, guid string, tags []string, port int, context string)
 		} else {
 			status, _, _ := repositoriesApi.GetRepositoryStatus(ctx, repo).Execute()
 			if status.GetSourceCommit() == "" {
-				fmt.Println("no commits present, run 'd3 commit' first")
+				fmt.Println("no commits present, run 'dit commit' first")
 				osExit(1)
 			}
 			sourceCommit = status.GetSourceCommit()

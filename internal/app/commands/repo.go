@@ -1,12 +1,11 @@
 package commands
 
 import (
-	"datadatdat/internal/app/providers/common"
 	"encoding/json"
 	"fmt"
+	"github.com/ditdotdev/dit/internal/app/providers/common"
 	"io"
 	"net/http"
-	"os"
 	"time"
 
 	"github.com/spf13/cobra"
@@ -15,17 +14,17 @@ import (
 var repoCmd = &cobra.Command{
 	Use:   subcmdRepo,
 	Short: "Manage server-side repositories",
-	Long:  `Create, delete, and list repositories on a datadatdat remote server.`,
+	Long:  `Create, delete, and list repositories on a dit remote server.`,
 	PersistentPreRun: func(cmd *cobra.Command, args []string) {
 		// Override root's PersistentPreRun to skip provider initialization.
-		// Repo commands talk directly to the remote server, not the local d3 provider.
+		// Repo commands talk directly to the remote server, not the local dit provider.
 	},
 }
 
 var repoCreateCmd = &cobra.Command{
 	Use:   "create <org> <repo>",
 	Short: "Create a repository on the server",
-	Long:  `Create a new repository in the specified organization on a datadatdat remote server.`,
+	Long:  `Create a new repository in the specified organization on a dit remote server.`,
 	Args:  cobra.ExactArgs(2),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		org := args[0]
@@ -70,7 +69,7 @@ var repoCreateCmd = &cobra.Command{
 var repoDeleteCmd = &cobra.Command{
 	Use:   "delete <org> <repo>",
 	Short: "Delete a repository from the server",
-	Long:  `Delete a repository from the specified organization on a datadatdat remote server.`,
+	Long:  `Delete a repository from the specified organization on a dit remote server.`,
 	Args:  cobra.ExactArgs(2),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		org := args[0]
@@ -116,7 +115,7 @@ var repoListCmd = &cobra.Command{
 	Use:     subcmdList,
 	Aliases: []string{"ls"},
 	Short:   "List repositories on the server",
-	Long:    `List all repositories on a datadatdat remote server. Use --org to filter by organization.`,
+	Long:    `List all repositories on a dit remote server. Use --org to filter by organization.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		server, _ := cmd.Flags().GetString("server")
 		org, _ := cmd.Flags().GetString("org")
@@ -176,17 +175,10 @@ var repoListCmd = &cobra.Command{
 func resolveRepoAuth(server string) (string, string, error) {
 	credsPath := getCredentialsPath()
 
-	apiKey := os.Getenv("DATADATDAT_API_KEY")
-	if apiKey == "" {
-		if server != "" {
-			apiKey = common.GetAPIKeyForServer(credsPath, server)
-		} else {
-			apiKey = common.GetAPIKey(credsPath)
-		}
-	}
+	apiKey := common.GetAPIKey(credsPath, server)
 
 	if apiKey == "" {
-		return "", "", fmt.Errorf("not authenticated; run 'd3 auth login' or set DATADATDAT_API_KEY")
+		return "", "", fmt.Errorf("not authenticated; run 'dit auth login' or set DIT_API_KEY")
 	}
 
 	if server == "" {
@@ -196,7 +188,7 @@ func resolveRepoAuth(server string) (string, string, error) {
 		}
 	}
 	if server == "" {
-		return "", "", fmt.Errorf("no server configured; use --server or run 'd3 auth login --server <url>'")
+		return "", "", fmt.Errorf("no server configured; use --server or run 'dit auth login --server <url>'")
 	}
 
 	return apiKey, server, nil

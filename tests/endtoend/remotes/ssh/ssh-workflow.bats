@@ -5,13 +5,13 @@ load '../../test_helper'
 
 # Setup: Pull SSH test server image and start it
 setup_file() {
-  docker pull datadatdat/ssh-test-server:latest
+  docker pull ditdotdev/ssh-test-server:latest
   
   # Use MSYS_NO_PATHCONV to prevent Git Bash from auto-converting paths
   # This ensures Docker receives the correct path format on both Windows and Linux
-  # Windows: /c/dev/datadatdat stays as-is (Docker Desktop handles the conversion)
+  # Windows: /c/dev/dit stays as-is (Docker Desktop handles the conversion)
   # Linux: paths work normally
-  MSYS_NO_PATHCONV=1 docker run -v "${REPO_ROOT}:/workdir" --workdir /workdir --network datadatdat-docker -d --name sshHost datadatdat/ssh-test-server:latest
+  MSYS_NO_PATHCONV=1 docker run -v "${REPO_ROOT}:/workdir" --workdir /workdir --network dit-docker -d --name sshHost ditdotdev/ssh-test-server:latest
   docker exec sshHost mkdir -p /test
   
   # Get SSH host IP and save it
@@ -188,7 +188,7 @@ teardown_file() {
   assert_failure
 }
 
-# Disabled due to Windows path accessibility issue - see https://github.com/datadatdat/datadatdat/issues/30
+# Disabled due to Windows path accessibility issue - see https://github.com/ditdotdev/ditdotdev/issues/30
 # @test "push commit with ssh key succeeds" {
 #   [ -f "$BATS_TMPDIR/ssh_key_commit_guid.txt" ] || skip "KEY_COMMIT_GUID not saved"
 #   KEY_COMMIT_GUID=$(cat "$BATS_TMPDIR/ssh_key_commit_guid.txt")
@@ -199,7 +199,7 @@ teardown_file() {
 #   assert_output --partial "Push completed successfully"
 # }
 
-# Disabled due to Windows path accessibility issue - see https://github.com/datadatdat/datadatdat/issues/30
+# Disabled due to Windows path accessibility issue - see https://github.com/ditdotdev/ditdotdev/issues/30
 # @test "list remote commits with ssh key returns pushed commit" {
 #   [ -f "$BATS_TMPDIR/ssh_key_commit_guid.txt" ] || skip "KEY_COMMIT_GUID not saved"
 #   KEY_COMMIT_GUID=$(cat "$BATS_TMPDIR/ssh_key_commit_guid.txt")
@@ -210,7 +210,7 @@ teardown_file() {
 #   assert_output --partial "ssh-test key Commit"
 # }
 
-# Disabled due to Windows path accessibility issue - see https://github.com/datadatdat/datadatdat/issues/30
+# Disabled due to Windows path accessibility issue - see https://github.com/ditdotdev/ditdotdev/issues/30
 # @test "push of same commit with ssh key fails" {
 #   [ -f "$BATS_TMPDIR/ssh_key_commit_guid.txt" ] || skip "KEY_COMMIT_GUID not saved"
 #   KEY_COMMIT_GUID=$(cat "$BATS_TMPDIR/ssh_key_commit_guid.txt")
@@ -234,7 +234,7 @@ teardown_file() {
   assert_success
 }
 
-# Disabled due to Windows path accessibility issue - see https://github.com/datadatdat/datadatdat/issues/30
+# Disabled due to Windows path accessibility issue - see https://github.com/ditdotdev/ditdotdev/issues/30
 # @test "pull original commit with ssh key succeeds" {
 #   [ -f "$BATS_TMPDIR/ssh_key_commit_guid.txt" ] || skip "KEY_COMMIT_GUID not saved"
 #   KEY_COMMIT_GUID=$(cat "$BATS_TMPDIR/ssh_key_commit_guid.txt")
@@ -245,7 +245,7 @@ teardown_file() {
 #   assert_output --partial "Pull completed successfully"
 # }
 
-# Disabled due to Windows path accessibility issue - see https://github.com/datadatdat/datadatdat/issues/30
+# Disabled due to Windows path accessibility issue - see https://github.com/ditdotdev/ditdotdev/issues/30
 # @test "checkout key commit succeeds" {
 #   [ -f "$BATS_TMPDIR/ssh_key_commit_guid.txt" ] || skip "KEY_COMMIT_GUID not saved"
 #   KEY_COMMIT_GUID=$(cat "$BATS_TMPDIR/ssh_key_commit_guid.txt")

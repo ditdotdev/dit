@@ -5,7 +5,7 @@ import (
 	"strconv"
 	"strings"
 
-	client "github.com/datadatdat/datadatdat-client-go"
+	client "github.com/ditdotdev/dit-client-go"
 	"github.com/google/uuid"
 )
 

@@ -32,7 +32,7 @@ func TestUninstall_ReposExistRequiresForce(t *testing.T) {
 		_, _ = w.Write([]byte(`[{"name":"r1","properties":{}}]`))
 	})
 
-	d := &fakeDocker{datadatdatServerAvailable: true}
+	d := &fakeDocker{ditServerAvailable: true}
 	var didExit bool
 	var code int
 	output := captureStdout(func() {
@@ -63,9 +63,9 @@ func TestUninstall_FullFlow(t *testing.T) {
 	})
 
 	d := &fakeDocker{
-		datadatdatServerAvailable: true,
-		datadatdatLaunchAvailable: true,
-		volumeExists:              map[string]bool{"datadatdat-ctx-data": true},
+		ditServerAvailable: true,
+		ditLaunchAvailable: true,
+		volumeExists:       map[string]bool{"dit-ctx-data": true},
 	}
 
 	output := captureStdout(func() {
@@ -76,7 +76,7 @@ func TestUninstall_FullFlow(t *testing.T) {
 		})
 	})
 
-	if !strings.Contains(output, "Uninstalled datadatdat infrastructure") {
+	if !strings.Contains(output, "Uninstalled dit infrastructure") {
 		t.Errorf("expected uninstalled summary, got %q", output)
 	}
 	if !strings.Contains(output, "server container") {

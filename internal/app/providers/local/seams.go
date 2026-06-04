@@ -1,8 +1,8 @@
 package local
 
 import (
-	"datadatdat/internal/app"
-	"datadatdat/internal/app/clients"
+	"github.com/ditdotdev/dit/internal/app"
+	"github.com/ditdotdev/dit/internal/app/clients"
 	"os"
 )
 
@@ -15,9 +15,9 @@ type dockerClient interface {
 	ContainerIsRunning(container string) (bool, error)
 	Cp(source string, target string) (string, error)
 	CreateVolume(name string, path string) (string, error)
-	DatadatdatLatestIsDownloaded(registry string, latest app.Version) bool
-	DatadatdatLaunchIsAvailable() (bool, error)
-	DatadatdatServerIsAvailable() (bool, error)
+	DitLatestIsDownloaded(registry string, latest app.Version) bool
+	DitLaunchIsAvailable() (bool, error)
+	DitServerIsAvailable() (bool, error)
 	FetchLaunchLogs() []string
 	FormatVolumeName(repoName, volumeName string) string
 	GetIdentity() string
@@ -27,21 +27,21 @@ type dockerClient interface {
 	GetValFromImage(image string, key ...string) string
 	InspectContainer(container string) (string, error)
 	InspectImage(image string) (string, error)
-	LaunchDatadatdatServers() (string, error)
+	LaunchDitServers() (string, error)
 	ListVolumes(repo string) []string
 	Pull(image string) (string, error)
 	Remove(container string, force bool) (string, error)
-	RemoveDatadatdatImages(version string) (string, error)
-	RemoveDatadatdatLaunch() (string, error)
-	RemoveDatadatdatServer() (string, error)
-	RemoveDatadatdatVolume() (string, error)
+	RemoveDitImages(version string) (string, error)
+	RemoveDitLaunch() (string, error)
+	RemoveDitServer() (string, error)
+	RemoveDitVolume() (string, error)
 	RemoveStopped(repo string) (string, error)
 	RemoveVolume(name string, force bool) (string, error)
 	Run(image string, entry string, args []string) (string, error)
 	Start(repo string) (string, error)
 	Stop(repo string) (string, error)
 	Tag(source string, target string) (string, error)
-	TeardownDatadatdatServers() (string, error)
+	TeardownDitServers() (string, error)
 	Version() (string, error)
 	VolumeExists(name string) bool
 }

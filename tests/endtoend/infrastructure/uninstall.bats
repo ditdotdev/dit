@@ -3,37 +3,37 @@
 # Load shared test helpers
 load '../test_helper'
 
-@test "can uninstall datadatdat" {
+@test "can uninstall dit" {
   run "$D3" uninstall
   assert_success
-  assert_output --partial "Uninstalled datadatdat infrastructure"
+  assert_output --partial "Uninstalled dit infrastructure"
 }
 
-@test "d3 server is not running" {
-  run docker inspect --type container --format='{{.State.Status}}' datadatdat-docker-server
+@test "dit server is not running" {
+  run docker inspect --type container --format='{{.State.Status}}' dit-docker-server
   assert_failure
-  assert_output --partial "Error response from daemon: No such container: datadatdat-docker-server"
+  assert_output --partial "Error response from daemon: No such container: dit-docker-server"
 }
 
-@test "d3 launch is not running" {
-  run docker inspect --type container --format='{{.State.Status}}' datadatdat-docker-launch
+@test "dit launch is not running" {
+  run docker inspect --type container --format='{{.State.Status}}' dit-docker-launch
   assert_failure
-  assert_output --partial "Error response from daemon: No such container: datadatdat-docker-launch"
+  assert_output --partial "Error response from daemon: No such container: dit-docker-launch"
 }
 
-@test "d3 docker images not removed" {
-  run docker inspect --type image --format='{{.RepoTags}}' datadatdat:latest
+@test "dit docker images not removed" {
+  run docker inspect --type image --format='{{.RepoTags}}' dit:latest
   assert_success
-  assert_output --partial "datadatdat:latest"
+  assert_output --partial "dit:latest"
 }
 
 @test "ZFS pool destroyed after uninstall" {
-  # TODO: https://github.com/datadatdat/datadatdat/issues/90
+  # TODO: https://github.com/ditdotdev/ditdotdev/issues/90
   # Skipped: uninstall does not destroy ZFS pools that have datasets or
   # were not created by the current install. Needs investigation into
   # whether uninstall should force-destroy or leave pools intact.
   skip "ZFS pool destruction behavior under investigation"
-  run sudo zpool list datadatdat-docker
+  run sudo zpool list dit-docker
   assert_failure
 }
 
@@ -44,23 +44,23 @@ load '../test_helper'
   run "$D3" uninstall
   assert_success
   # Should NOT contain the teardown failure warning
-  refute_output --partial "Failed to teardown datadatdat servers"
+  refute_output --partial "Failed to teardown dit servers"
 }
 
-@test "re-install datadatdat" {
+@test "re-install dit" {
   run "$D3" install
   assert_success
 }
 
-@test "can uninstall d3 and remove docker images" {
+@test "can uninstall dit and remove docker images" {
   run "$D3" uninstall --remove-images
   assert_success
-  assert_output --partial "Removing Datadatdat Docker image"
+  assert_output --partial "Removing Dit Docker image"
 }
 
 # This test is commented out in the original YAML as it sometimes fails
-# @test "d3 docker images removed" {
-#   run docker inspect --type image --format='{{.RepoTags}}' datadatdat:latest
+# @test "dit docker images removed" {
+#   run docker inspect --type image --format='{{.RepoTags}}' dit:latest
 #   assert_failure
-#   assert_output --partial "Error: No such image: datadatdat:latest"
+#   assert_output --partial "Error: No such image: dit:latest"
 # }

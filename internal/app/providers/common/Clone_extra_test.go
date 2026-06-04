@@ -212,7 +212,7 @@ func TestClone_GetRemoteCommitErrorRemovesRepo(t *testing.T) {
 // cloneRemoteJSON includes the api_base_url so the inner Pull call from Clone
 // can hit ensureRemoteRepoExists (which Push uses, not Pull — but the field
 // is harmless to include here).
-const cloneRemoteJSON = `{"provider":"datadatdat","name":"origin","properties":{"host":"example.com","org":"o","repo":"myrepo"}}`
+const cloneRemoteJSON = `{"provider":"dit","name":"origin","properties":{"host":"example.com","org":"o","repo":"myrepo"}}`
 
 // cloneHandlerWithCommitError reuses statefulClone(true) but injects an
 // error response specifically for the GetRemoteCommit endpoint so callers

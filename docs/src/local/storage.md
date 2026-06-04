@@ -4,27 +4,27 @@ nav_label: Storage
 nav_order: 270
 ---
 
-All of the local d3 storage, including the data stored on repositories,
-is kept in a single docker volume `d3`. This volume will persist
-even across restarts of the d3 infrastructure, upgrades of docker, and
+All of the local dit storage, including the data stored on repositories,
+is kept in a single docker volume `dit`. This volume will persist
+even across restarts of the dit infrastructure, upgrades of docker, and
 other changes on the host.
 
-By default, the `d3` volume is created as a vanilla docker volume,
+By default, the `dit` volume is created as a vanilla docker volume,
 which uses storage locally on the host system. If you want to use different
-storage for your d3 work, you can manually create the `d3`
+storage for your dit work, you can manually create the `dit`
 volume yourself prior to running cli_cmd_install.
 
 > **Warning:**
-> Do not manually change the contents of the `d3` volume, and do
-> not change the volume on a running system; use `d3 uninstall` first.
+> Do not manually change the contents of the `dit` volume, and do
+> not change the volume on a running system; use `dit uninstall` first.
 > Changing the contents of this volume can have unpredictable effects on
-> Datadatdat.
+> Dit.
 >
 
 > **Warning:**
-> If you do create your own `d3` volume, be aware that it will
-> automatically destroyed when `d3 uninstall` is run. There is not
-> currently a way to uninstall d3 while preserving the underlying
+> If you do create your own `dit` volume, be aware that it will
+> automatically destroyed when `dit uninstall` is run. There is not
+> currently a way to uninstall dit while preserving the underlying
 > volume.
 >
 
@@ -34,7 +34,7 @@ To view the amount of space consumed by a repository, run the
 cli_cmd_status command. This will display output similar to
 
 ```bash
-$ d3 status hello-world
+$ dit status hello-world
             Status:  running
  Uncompressed Size:  526.5 KiB
    Compressed Size:  254 KiB

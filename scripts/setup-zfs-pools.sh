@@ -1,13 +1,13 @@
 #!/bin/bash
-# ZFS Pool Setup for Datadatdat Linux Development
+# ZFS Pool Setup for Dit Linux Development
 #
-# Provisions the loop-backed ZFS pools that the d3 server expects
-# (datadatdat-docker, datadatdat, datadatdat-one, datadatdat-two) on
+# Provisions the loop-backed ZFS pools that the dit server expects
+# (dit-docker, dit, dit-one, dit-two) on
 # a fresh native-Linux or WSL2 development box.
 #
-# Moved from cleanslate/ to scripts/ as part of datadatdat#129. The
+# Moved from cleanslate/ to scripts/ as part of dit#129. The
 # "clean slate testing" workflow it was part of has been retired; this
-# script remains the canonical way to provision host ZFS pools for d3
+# script remains the canonical way to provision host ZFS pools for dit
 # development.
 #
 # Usage:
@@ -42,7 +42,7 @@ CYAN='\033[0;36m'
 WHITE='\033[1;37m'
 NC='\033[0m' # No Color
 
-echo -e "${GREEN}Setting up ZFS pools for Datadatdat...${NC}"
+echo -e "${GREEN}Setting up ZFS pools for Dit...${NC}"
 
 # Detect environment (GitHub Actions, WSL, or native Linux). Must run
 # before any block that uses $ZFS_CMD.
@@ -66,14 +66,14 @@ if [ "$CLEAN" = true ]; then
 
     # Remove existing pools (ignore errors if pools don't exist)
     echo "Destroying existing ZFS pools..."
-    $ZFS_CMD zpool destroy datadatdat-docker 2>/dev/null || true
-    $ZFS_CMD zpool destroy datadatdat 2>/dev/null || true
-    $ZFS_CMD zpool destroy datadatdat-one 2>/dev/null || true
-    $ZFS_CMD zpool destroy datadatdat-two 2>/dev/null || true
+    $ZFS_CMD zpool destroy dit-docker 2>/dev/null || true
+    $ZFS_CMD zpool destroy dit 2>/dev/null || true
+    $ZFS_CMD zpool destroy dit-one 2>/dev/null || true
+    $ZFS_CMD zpool destroy dit-two 2>/dev/null || true
 
     # Remove pool image files
     echo "Removing pool image files..."
-    $ZFS_CMD rm -rf /datadatdat-pools
+    $ZFS_CMD rm -rf /dit-pools
 
     # Remove loop devices
     echo "Removing loop devices..."
@@ -120,115 +120,115 @@ if [ -n "$existing_pools" ] && ! [[ "$existing_pools" =~ no\ pools\ available ]]
 
     # Handle hostid mismatches
     echo "Fixing any hostid mismatches..."
-    $ZFS_CMD zpool export datadatdat 2>/dev/null || true
-    $ZFS_CMD zpool export datadatdat-docker 2>/dev/null || true
-    $ZFS_CMD zpool export datadatdat-one 2>/dev/null || true
-    $ZFS_CMD zpool export datadatdat-two 2>/dev/null || true
+    $ZFS_CMD zpool export dit 2>/dev/null || true
+    $ZFS_CMD zpool export dit-docker 2>/dev/null || true
+    $ZFS_CMD zpool export dit-one 2>/dev/null || true
+    $ZFS_CMD zpool export dit-two 2>/dev/null || true
     sleep 2
-    $ZFS_CMD zpool import datadatdat 2>/dev/null || true
-    $ZFS_CMD zpool import datadatdat-docker 2>/dev/null || true
-    $ZFS_CMD zpool import datadatdat-one 2>/dev/null || true
-    $ZFS_CMD zpool import datadatdat-two 2>/dev/null || true
+    $ZFS_CMD zpool import dit 2>/dev/null || true
+    $ZFS_CMD zpool import dit-docker 2>/dev/null || true
+    $ZFS_CMD zpool import dit-one 2>/dev/null || true
+    $ZFS_CMD zpool import dit-two 2>/dev/null || true
 fi
 
 # Create pool storage directory
 echo "Creating pool storage directory..."
-$ZFS_CMD mkdir -p /datadatdat-pools
+$ZFS_CMD mkdir -p /dit-pools
 
-# Create datadatdat-docker pool if it does not exist
-echo "Checking for datadatdat-docker pool..."
-datadatdat_docker_exists=$($ZFS_CMD zpool list datadatdat-docker 2>/dev/null || true)
-if [ -z "$datadatdat_docker_exists" ]; then
-    echo -e "${YELLOW}Creating datadatdat-docker pool (2GB)...${NC}"
+# Create dit-docker pool if it does not exist
+echo "Checking for dit-docker pool..."
+dit_docker_exists=$($ZFS_CMD zpool list dit-docker 2>/dev/null || true)
+if [ -z "$dit_docker_exists" ]; then
+    echo -e "${YELLOW}Creating dit-docker pool (2GB)...${NC}"
 
     # Create image file (2GB = 2048MB)
-    $ZFS_CMD dd if=/dev/zero of=/datadatdat-pools/datadatdat-docker.img bs=1M count=2048 2>/dev/null
+    $ZFS_CMD dd if=/dev/zero of=/dit-pools/dit-docker.img bs=1M count=2048 2>/dev/null
 
     # Create loop device and get its path
-    loop_device=$($ZFS_CMD losetup --show -f /datadatdat-pools/datadatdat-docker.img)
+    loop_device=$($ZFS_CMD losetup --show -f /dit-pools/dit-docker.img)
 
     if [ -n "$loop_device" ]; then
         # Create the pool
-        $ZFS_CMD zpool create datadatdat-docker "$loop_device"
-        echo -e "${GREEN}OK datadatdat-docker pool created successfully${NC}"
+        $ZFS_CMD zpool create dit-docker "$loop_device"
+        echo -e "${GREEN}OK dit-docker pool created successfully${NC}"
     else
-        echo -e "${RED}X Failed to create loop device for datadatdat-docker${NC}"
+        echo -e "${RED}X Failed to create loop device for dit-docker${NC}"
         exit 1
     fi
 else
-    echo -e "${GREEN}OK datadatdat-docker pool already exists${NC}"
+    echo -e "${GREEN}OK dit-docker pool already exists${NC}"
 fi
 
-# Create main datadatdat pool if it does not exist
-echo "Checking for datadatdat pool..."
-datadatdat_exists=$($ZFS_CMD zpool list datadatdat 2>/dev/null || true)
-if [ -z "$datadatdat_exists" ]; then
-    echo -e "${YELLOW}Creating datadatdat pool (2GB)...${NC}"
+# Create main dit pool if it does not exist
+echo "Checking for dit pool..."
+dit_exists=$($ZFS_CMD zpool list dit 2>/dev/null || true)
+if [ -z "$dit_exists" ]; then
+    echo -e "${YELLOW}Creating dit pool (2GB)...${NC}"
 
     # Create image file (2GB = 2048MB)
-    $ZFS_CMD dd if=/dev/zero of=/datadatdat-pools/datadatdat.img bs=1M count=2048 2>/dev/null
+    $ZFS_CMD dd if=/dev/zero of=/dit-pools/dit.img bs=1M count=2048 2>/dev/null
 
     # Create loop device and get its path
-    loop_device=$($ZFS_CMD losetup --show -f /datadatdat-pools/datadatdat.img)
+    loop_device=$($ZFS_CMD losetup --show -f /dit-pools/dit.img)
 
     if [ -n "$loop_device" ]; then
         # Create the pool
-        $ZFS_CMD zpool create datadatdat "$loop_device"
-        echo -e "${GREEN}OK datadatdat pool created successfully${NC}"
+        $ZFS_CMD zpool create dit "$loop_device"
+        echo -e "${GREEN}OK dit pool created successfully${NC}"
     else
-        echo -e "${RED}X Failed to create loop device for datadatdat${NC}"
+        echo -e "${RED}X Failed to create loop device for dit${NC}"
         exit 1
     fi
 else
-    echo -e "${GREEN}OK datadatdat pool already exists${NC}"
+    echo -e "${GREEN}OK dit pool already exists${NC}"
 fi
 
-# Create datadatdat-one pool if it does not exist (for multi-context tests)
-echo "Checking for datadatdat-one pool..."
-datadatdat_one_exists=$($ZFS_CMD zpool list datadatdat-one 2>/dev/null || true)
-if [ -z "$datadatdat_one_exists" ]; then
-    echo -e "${YELLOW}Creating datadatdat-one pool (2GB for multi-context tests)...${NC}"
+# Create dit-one pool if it does not exist (for multi-context tests)
+echo "Checking for dit-one pool..."
+dit_one_exists=$($ZFS_CMD zpool list dit-one 2>/dev/null || true)
+if [ -z "$dit_one_exists" ]; then
+    echo -e "${YELLOW}Creating dit-one pool (2GB for multi-context tests)...${NC}"
 
     # Create image file (2GB = 2048MB)
-    $ZFS_CMD dd if=/dev/zero of=/datadatdat-pools/datadatdat-one.img bs=1M count=2048 2>/dev/null
+    $ZFS_CMD dd if=/dev/zero of=/dit-pools/dit-one.img bs=1M count=2048 2>/dev/null
 
     # Create loop device and get its path
-    loop_device=$($ZFS_CMD losetup --show -f /datadatdat-pools/datadatdat-one.img)
+    loop_device=$($ZFS_CMD losetup --show -f /dit-pools/dit-one.img)
 
     if [ -n "$loop_device" ]; then
         # Create the pool
-        $ZFS_CMD zpool create datadatdat-one "$loop_device"
-        echo -e "${GREEN}OK datadatdat-one pool created successfully${NC}"
+        $ZFS_CMD zpool create dit-one "$loop_device"
+        echo -e "${GREEN}OK dit-one pool created successfully${NC}"
     else
-        echo -e "${RED}X Failed to create loop device for datadatdat-one${NC}"
+        echo -e "${RED}X Failed to create loop device for dit-one${NC}"
         exit 1
     fi
 else
-    echo -e "${GREEN}OK datadatdat-one pool already exists${NC}"
+    echo -e "${GREEN}OK dit-one pool already exists${NC}"
 fi
 
-# Create datadatdat-two pool if it does not exist (for multi-context tests)
-echo "Checking for datadatdat-two pool..."
-datadatdat_two_exists=$($ZFS_CMD zpool list datadatdat-two 2>/dev/null || true)
-if [ -z "$datadatdat_two_exists" ]; then
-    echo -e "${YELLOW}Creating datadatdat-two pool (2GB for multi-context tests)...${NC}"
+# Create dit-two pool if it does not exist (for multi-context tests)
+echo "Checking for dit-two pool..."
+dit_two_exists=$($ZFS_CMD zpool list dit-two 2>/dev/null || true)
+if [ -z "$dit_two_exists" ]; then
+    echo -e "${YELLOW}Creating dit-two pool (2GB for multi-context tests)...${NC}"
 
     # Create image file (2GB = 2048MB)
-    $ZFS_CMD dd if=/dev/zero of=/datadatdat-pools/datadatdat-two.img bs=1M count=2048 2>/dev/null
+    $ZFS_CMD dd if=/dev/zero of=/dit-pools/dit-two.img bs=1M count=2048 2>/dev/null
 
     # Create loop device and get its path
-    loop_device=$($ZFS_CMD losetup --show -f /datadatdat-pools/datadatdat-two.img)
+    loop_device=$($ZFS_CMD losetup --show -f /dit-pools/dit-two.img)
 
     if [ -n "$loop_device" ]; then
         # Create the pool
-        $ZFS_CMD zpool create datadatdat-two "$loop_device"
-        echo -e "${GREEN}OK datadatdat-two pool created successfully${NC}"
+        $ZFS_CMD zpool create dit-two "$loop_device"
+        echo -e "${GREEN}OK dit-two pool created successfully${NC}"
     else
-        echo -e "${RED}X Failed to create loop device for datadatdat-two${NC}"
+        echo -e "${RED}X Failed to create loop device for dit-two${NC}"
         exit 1
     fi
 else
-    echo -e "${GREEN}OK datadatdat-two pool already exists${NC}"
+    echo -e "${GREEN}OK dit-two pool already exists${NC}"
 fi
 
 # Final verification
@@ -241,9 +241,9 @@ echo -e "${GREEN}Pool health check:${NC}"
 $ZFS_CMD zpool status
 
 echo ""
-echo -e "${GREEN}ZFS pools are ready for Datadatdat${NC}"
-echo -e "${CYAN}Standard pools: datadatdat, datadatdat-docker${NC}"
-echo -e "${CYAN}Multi-context test pools: datadatdat-one, datadatdat-two${NC}"
-echo -e "${CYAN}You can now run: d3 install${NC}"
+echo -e "${GREEN}ZFS pools are ready for Dit${NC}"
+echo -e "${CYAN}Standard pools: dit, dit-docker${NC}"
+echo -e "${CYAN}Multi-context test pools: dit-one, dit-two${NC}"
+echo -e "${CYAN}You can now run: dit install${NC}"
 echo ""
 echo -e "${WHITE}For a full reset, run: bash setup-zfs-pools.sh --clean${NC}"

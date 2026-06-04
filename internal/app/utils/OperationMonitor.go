@@ -3,7 +3,7 @@ package utils
 import (
 	"context"
 	"fmt"
-	datadatdatclient "github.com/datadatdat/datadatdat-client-go"
+	ditclient "github.com/ditdotdev/dit-client-go"
 	"os"
 	"os/signal"
 	"strconv"
@@ -18,8 +18,8 @@ const (
 	OperationStateAbort    = "ABORT"
 )
 
-var cfg = datadatdatclient.NewConfiguration()
-var apiClient = datadatdatclient.NewAPIClient(cfg)
+var cfg = ditclient.NewConfiguration()
+var apiClient = ditclient.NewAPIClient(cfg)
 var operationsApi = apiClient.OperationsApi
 var ctx = context.Background()
 
@@ -39,10 +39,10 @@ var MonitorIdleTimeout = 10 * time.Minute
 
 type operationMonitor struct {
 	repo      string
-	operation datadatdatclient.Operation
+	operation ditclient.Operation
 }
 
-func OperationMonitor(r string, o datadatdatclient.Operation) operationMonitor {
+func OperationMonitor(r string, o ditclient.Operation) operationMonitor {
 	return operationMonitor{
 		repo:      r,
 		operation: o,

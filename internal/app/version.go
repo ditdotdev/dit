@@ -5,9 +5,9 @@ import (
 	"strings"
 )
 
-// DatadatdatVersion will be set at build time via -ldflags
+// DitVersion will be set at build time via -ldflags
 // This is the version used for both the CLI and the server Docker image
-var DatadatdatVersion = "dev"
+var DitVersion = "dev"
 
 type Version struct {
 	major int

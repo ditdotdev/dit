@@ -10,9 +10,9 @@ permissions:
 
 env:
   GO_VERSION: '1.26.2'
-  GOPRIVATE: github.com/datadatdat/*
-  GONOPROXY: github.com/datadatdat/*
-  GONOSUMDB: github.com/datadatdat/*
+  GOPRIVATE: github.com/ditdotdev/*
+  GONOPROXY: github.com/ditdotdev/*
+  GONOSUMDB: github.com/ditdotdev/*
   GOPROXY: https://proxy.golang.org,direct
   GIT_TERMINAL_PROMPT: 0
 
@@ -121,9 +121,9 @@ jobs:
 
       - name: Configure Go for private modules
         run: |
-          go env -w GOPRIVATE=github.com/datadatdat/*
-          go env -w GONOPROXY=github.com/datadatdat/*
-          go env -w GONOSUMDB=github.com/datadatdat/*
+          go env -w GOPRIVATE=github.com/ditdotdev/*
+          go env -w GONOPROXY=github.com/ditdotdev/*
+          go env -w GONOSUMDB=github.com/ditdotdev/*
           go env -w GOPROXY=https://proxy.golang.org,direct
         shell: bash
 
@@ -160,18 +160,18 @@ jobs:
 
       - name: Configure Go for private modules
         run: |
-          go env -w GOPRIVATE=github.com/datadatdat/*
-          go env -w GONOPROXY=github.com/datadatdat/*
-          go env -w GONOSUMDB=github.com/datadatdat/*
+          go env -w GOPRIVATE=github.com/ditdotdev/*
+          go env -w GONOPROXY=github.com/ditdotdev/*
+          go env -w GONOSUMDB=github.com/ditdotdev/*
           go env -w GOPROXY=https://proxy.golang.org,direct
 
-      - name: Build Datadatdat
+      - name: Build Dit
         run: |
           VERSION=$(git describe --tags --abbrev=0)
-          echo "Building d3 CLI with version: $VERSION"
+          echo "Building dit CLI with version: $VERSION"
           make build VERSION=$VERSION
-          cp build/d3 d3
-          echo "d3 binary copied to root directory"
+          cp build/dit dit
+          echo "dit binary copied to root directory"
 
       - name: Install OpenZFS
         run: |
@@ -216,21 +216,21 @@ jobs:
           kubectl get nodes
 
       # Enable CSI snapshot support so kubernetes-tests.bats can exercise
-      # `d3 commit` (each commit becomes a VolumeSnapshot via the CSI
+      # `dit commit` (each commit becomes a VolumeSnapshot via the CSI
       # snapshotter). Minikube ships these addons disabled by default;
       # without enabling them, the snapshot CRDs aren't installed and any
-      # `d3 commit` against the kubernetes context fails with "no matches
+      # `dit commit` against the kubernetes context fails with "no matches
       # for kind VolumeSnapshot in version snapshot.storage.k8s.io/v1".
       - name: Enable CSI volume snapshots in minikube
         run: |
           minikube addons enable volumesnapshots
           minikube addons enable csi-hostpath-driver
           # Default storage class needs to point at the CSI driver so PVCs
-          # created by d3 are snapshot-capable. Hostpath CSI registers as
+          # created by dit are snapshot-capable. Hostpath CSI registers as
           # `csi-hostpath-sc`; promote it and demote `standard`.
           kubectl patch storageclass standard -p '{"metadata": {"annotations":{"storageclass.kubernetes.io/is-default-class":"false"}}}'
           kubectl patch storageclass csi-hostpath-sc -p '{"metadata": {"annotations":{"storageclass.kubernetes.io/is-default-class":"true"}}}'
-          # Same dance for VolumeSnapshotClass: d3's commitVolume YAML
+          # Same dance for VolumeSnapshotClass: dit's commitVolume YAML
           # omits `volumeSnapshotClassName` (it relies on the cluster
           # default), but the csi-hostpath-driver addon installs
           # `csi-hostpath-snapclass` without the default annotation. Without
@@ -267,7 +267,7 @@ jobs:
       - name: Show container and k8s logs
         if: always()
         run: |
-          for c in $(docker ps -a --filter "name=datadatdat" --format '{{.Names}}'); do
+          for c in $(docker ps -a --filter "name=dit" --format '{{.Names}}'); do
             echo "=== docker logs $c ==="
             docker logs "$c" 2>&1 | tail -200 || true
           done
@@ -289,9 +289,9 @@ jobs:
       - name: Cleanup run-specific S3 prefixes
         if: always()
         run: |
-          aws s3 rm "s3://demo-datadatdat/simple-test/${E2E_RUN_SUFFIX}" --recursive || true
-          aws s3 rm "s3://datadatdat-testdata/e2etest/${E2E_RUN_SUFFIX}" --recursive || true
-          aws s3 rm "s3://datadatdat-testdata/e2etest-pushpull/${E2E_RUN_SUFFIX}" --recursive || true
+          aws s3 rm "s3://demo-ditdotdev/simple-test/${E2E_RUN_SUFFIX}" --recursive || true
+          aws s3 rm "s3://dit-testdata/e2etest/${E2E_RUN_SUFFIX}" --recursive || true
+          aws s3 rm "s3://dit-testdata/e2etest-pushpull/${E2E_RUN_SUFFIX}" --recursive || true
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}

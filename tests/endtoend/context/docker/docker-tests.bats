@@ -5,8 +5,8 @@ load '../../test_helper'
 
 # Setup: Pull and tag nginx-test image before running tests
 setup_file() {
-  docker pull datadatdat/nginx-test:latest
-  docker tag datadatdat/nginx-test:latest nginx-test
+  docker pull ditdotdev/nginx-test:latest
+  docker tag ditdotdev/nginx-test:latest nginx-test
 }
 
 @test "can run nginx-test" {

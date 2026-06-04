@@ -6,7 +6,7 @@ import (
 	"testing"
 )
 
-const datadatdatRemoteWithAPI = `{"provider":"datadatdat","name":"origin","properties":{"host":"example.com","org":"o","repo":"r","api_base_url":"http://api"}}`
+const ditRemoteWithAPI = `{"provider":"dit","name":"origin","properties":{"host":"example.com","org":"o","repo":"r","api_base_url":"http://api"}}`
 
 // pullServerHandler returns a handler covering the API surface Pull uses on
 // the happy path. Tests can override individual paths by composing.
@@ -21,14 +21,14 @@ func pullServerHandler(t *testing.T, opts pullOpts) http.HandlerFunc {
 				_, _ = w.Write([]byte(`{"code":"X","message":"err","details":""}`))
 				return
 			}
-			_, _ = w.Write([]byte(`[` + datadatdatRemoteWithAPI + `]`))
+			_, _ = w.Write([]byte(`[` + ditRemoteWithAPI + `]`))
 		case r.Method == http.MethodGet && strings.HasSuffix(r.URL.Path, "/remotes/origin"):
 			if opts.getRemoteStatus != 0 {
 				w.WriteHeader(opts.getRemoteStatus)
 				_, _ = w.Write([]byte(`{"code":"X","message":"err","details":""}`))
 				return
 			}
-			_, _ = w.Write([]byte(datadatdatRemoteWithAPI))
+			_, _ = w.Write([]byte(ditRemoteWithAPI))
 		case r.Method == http.MethodPost && strings.HasSuffix(r.URL.Path, "/remotes/origin/commits"):
 			if opts.listRemoteCommitsStatus != 0 {
 				w.WriteHeader(opts.listRemoteCommitsStatus)
@@ -205,7 +205,7 @@ func TestPull_PullOperationError(t *testing.T) {
 func TestPull_CustomRemoteName(t *testing.T) {
 	port := startMockServer(t, func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
-		remoteJSON := `{"provider":"datadatdat","name":"upstream","properties":{"host":"x","org":"o","repo":"r","api_base_url":"http://api"}}`
+		remoteJSON := `{"provider":"dit","name":"upstream","properties":{"host":"x","org":"o","repo":"r","api_base_url":"http://api"}}`
 		switch {
 		case r.Method == http.MethodGet && strings.HasSuffix(r.URL.Path, "/remotes"):
 			_, _ = w.Write([]byte(`[` + remoteJSON + `]`))

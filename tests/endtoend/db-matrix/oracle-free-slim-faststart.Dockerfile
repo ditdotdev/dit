@@ -1,9 +1,9 @@
-# Oracle Free slim-faststart with VOLUME directive for datadatdat compatibility
+# Oracle Free slim-faststart with VOLUME directive for dit compatibility
 # Base image from Docker Hub
 FROM gvenzl/oracle-free:slim-faststart
 
 # Declare volume for Oracle data directory
-# This allows datadatdat to detect and manage the data path
+# This allows dit to detect and manage the data path
 VOLUME ["/opt/oracle/oradata"]
 
 # Use the default command from base image

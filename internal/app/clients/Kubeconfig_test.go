@@ -10,7 +10,7 @@ import (
 // TestFlattenKubeconfigInlinesFileReferences verifies the fix for issue #108:
 // when the source kubeconfig references certificate-authority / client-certificate /
 // client-key by file path, the flattened copy must inline them as *-data fields
-// so the file references disappear. This is required because the datadatdat
+// so the file references disappear. This is required because the dit
 // server container does not have access to the ~/.minikube/ directory holding
 // the referenced certs, and on Windows the paths are host-absolute and
 // non-resolvable inside a Linux container.

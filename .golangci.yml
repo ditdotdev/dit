@@ -1,4 +1,4 @@
-# golangci-lint configuration for datadatdat
+# golangci-lint configuration for dit
 # Configuration compatible with golangci-lint v7
 version: "2"
 

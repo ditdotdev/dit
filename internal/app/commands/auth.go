@@ -1,8 +1,8 @@
 package commands
 
 import (
-	"datadatdat/internal/app/providers/common"
 	"fmt"
+	"github.com/ditdotdev/dit/internal/app/providers/common"
 
 	"github.com/spf13/cobra"
 )
@@ -21,17 +21,17 @@ func getCredentialsPath() string {
 var authCmd = &cobra.Command{
 	Use:   subcmdAuth,
 	Short: "Manage authentication credentials",
-	Long:  `Manage authentication credentials for datadatdat remote servers.`,
+	Long:  `Manage authentication credentials for dit remote servers.`,
 	PersistentPreRun: func(cmd *cobra.Command, args []string) {
 		// Override root's PersistentPreRun to skip provider initialization.
-		// Auth commands don't need a configured d3 provider context.
+		// Auth commands don't need a configured dit provider context.
 	},
 }
 
 var authLoginCmd = &cobra.Command{
 	Use:   subcmdLogin,
 	Short: "Store API key for a remote server",
-	Long:  `Store an API key for authenticating with a datadatdat remote server.`,
+	Long:  `Store an API key for authenticating with a dit remote server.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		apiKey, _ := cmd.Flags().GetString("api-key")
 		server, _ := cmd.Flags().GetString("server")
@@ -88,7 +88,7 @@ var authStatusCmd = &cobra.Command{
 var authLogoutCmd = &cobra.Command{
 	Use:   subcmdLogout,
 	Short: "Remove stored credentials for a server",
-	Long:  `Remove stored API key credentials for a datadatdat remote server.`,
+	Long:  `Remove stored API key credentials for a dit remote server.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		server, _ := cmd.Flags().GetString("server")
 		credsPath := getCredentialsPath()

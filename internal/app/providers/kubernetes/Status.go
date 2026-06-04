@@ -1,8 +1,8 @@
 package kubernetes
 
 import (
-	"datadatdat/internal/app/providers/common"
 	"fmt"
+	"github.com/ditdotdev/dit/internal/app/providers/common"
 	"strconv"
 )
 
@@ -13,7 +13,7 @@ import (
 // StatefulSet, not a top-level docker container). That fallback would
 // therefore print "Status: detached" even for a perfectly healthy repo.
 // Here we derive the runtime status from the StatefulSet directly via the
-// same logic that `d3 ls` uses, and then print the same header/volume
+// same logic that `dit ls` uses, and then print the same header/volume
 // layout as common.Status for consistency.
 func Status(repo string, port int, context string) {
 	cfg.Servers[0].URL = "http://localhost:" + strconv.Itoa(port)

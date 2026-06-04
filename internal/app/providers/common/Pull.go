@@ -1,12 +1,12 @@
 package common
 
 import (
-	util "datadatdat/internal/app/utils"
 	"fmt"
+	util "github.com/ditdotdev/dit/internal/app/utils"
 	"net/http"
 	"strconv"
 
-	datadatdatclient "github.com/datadatdat/datadatdat-client-go"
+	ditclient "github.com/ditdotdev/dit-client-go"
 )
 
 const (
@@ -29,10 +29,10 @@ func Pull(repoName string, guid string, remoteName string, tags []string, metada
 	}
 	remote, _, err := remotesApi.GetRemote(ctx, repoName, name).Execute()
 	if err != nil || remote.Provider == "" {
-		fmt.Printf("remote '%s' not found for repository '%s', run 'd3 remote add' first\n", name, repoName)
+		fmt.Printf("remote '%s' not found for repository '%s', run 'dit remote add' first\n", name, repoName)
 		osExit(1)
 	}
-	commit := datadatdatclient.Commit{
+	commit := ditclient.Commit{
 		Id: "id",
 	}
 	provider, err := ResolveProvider(remote.Provider)
@@ -41,7 +41,7 @@ func Pull(repoName string, guid string, remoteName string, tags []string, metada
 		osExit(1)
 	}
 	p, _ := provider.GetParameters(remote.Properties)
-	params := datadatdatclient.RemoteParameters{
+	params := ditclient.RemoteParameters{
 		Provider:   remote.Provider,
 		Properties: p,
 	}
@@ -51,7 +51,7 @@ func Pull(repoName string, guid string, remoteName string, tags []string, metada
 			osExit(1)
 		}
 		var resp *http.Response
-		var c *datadatdatclient.Commit
+		var c *ditclient.Commit
 		c, resp, err = remotesApi.GetRemoteCommit(ctx, repoName, remote.Name, guid).RemoteParameters(params).Execute()
 		if err != nil {
 			handleRemoteError(err, resp, "")

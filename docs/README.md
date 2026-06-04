@@ -1,7 +1,7 @@
-# Datadatdat Documentation
+# Dit Documentation
 
-Source-of-truth Markdown for the d3 documentation site published at
-[datadatdat.com/docs](https://datadatdat.com/docs).
+Source-of-truth Markdown for the dit documentation site published at
+[dit.dev/docs](https://dit.dev/docs).
 
 ## Layout
 
@@ -9,7 +9,7 @@ Source-of-truth Markdown for the d3 documentation site published at
 docs/src/
 ├── index.md             Home (Documentation root)
 ├── start.md             Getting Started
-├── lifecycle/           Installing, configuring, upgrading d3
+├── lifecycle/           Installing, configuring, upgrading dit
 ├── local/               Working with local Docker repositories
 ├── remote/              Push/pull, clone, remote providers
 └── cli/
@@ -18,7 +18,7 @@ docs/src/
 ```
 
 Every `.md` page starts with YAML frontmatter (`title`, `nav_label`,
-`nav_order`); the docs-rendering layer in `datadatdat-remote-server` uses
+`nav_order`); the docs-rendering layer in `dit-remote-server` uses
 this to build the sidebar nav.
 
 ## Editing the CLI reference
@@ -38,10 +38,10 @@ or subcommand change must ship with regenerated `cli/cmd/*.md`.
 
 Everything outside `cli/cmd/` is hand-written Markdown. Edit the `.md`
 files in place. To preview locally, see the renderer in
-[datadatdat-remote-server/services/web](https://github.com/datadatdat/datadatdat-remote-server/tree/master/services/web):
+[dit-remote-server/services/web](https://github.com/ditdotdev/dit-remote-server/tree/master/services/web):
 
 ```bash
-cd ../../datadatdat-remote-server/services/web
+cd ../../dit-remote-server/services/web
 npm run dev
 ```
 
@@ -50,7 +50,7 @@ npm run dev
 ## Publishing
 
 There is no separate docs-publish workflow. The rendered site is the
-`/docs` route inside the `datadatdat-remote-server` web app, which
+`/docs` route inside the `dit-remote-server` web app, which
 vendors a copy of this `docs/src/` tree under
 `services/web/content/docs/`. Updates land when the web service
 redeploys.

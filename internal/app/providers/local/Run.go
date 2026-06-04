@@ -5,7 +5,7 @@ import (
 	"strconv"
 	"strings"
 
-	client "github.com/datadatdat/datadatdat-client-go"
+	client "github.com/ditdotdev/dit-client-go"
 )
 
 func Run(container string, repository string, envVars []string, args []string, disablePortMap bool, privileged bool, createRepo bool, port int, context string) (string, error) {
@@ -81,7 +81,7 @@ func Run(container string, repository string, envVars []string, args []string, d
 		}
 	}
 
-	argList := []string{"-d", "--label", "com.datadatdat.datadatdat"}
+	argList := []string{"-d", "--label", "dev.dit.dit"}
 	var metaVols []map[string]string
 	for i, path := range vols {
 		volumeName := "v" + strconv.Itoa(i)

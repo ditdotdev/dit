@@ -1,7 +1,7 @@
 package kubernetes
 
 import (
-	client "github.com/datadatdat/datadatdat-client-go"
+	client "github.com/ditdotdev/dit-client-go"
 )
 
 // disablePortMappingFromRepo extracts the disablePortMapping flag from the

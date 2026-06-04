@@ -4,9 +4,9 @@
 load '../test_helper'
 
 # Unique S3 path per run to avoid collisions between concurrent runs.
-# See issue datadatdat/datadatdat-server#118.
+# See issue ditdotdev/dit-server#118.
 RUN_SUFFIX="${E2E_RUN_SUFFIX:-local}"
-S3_URI="s3://datadatdat-testdata/e2etest/${RUN_SUFFIX}"
+S3_URI="s3://dit-testdata/e2etest/${RUN_SUFFIX}"
 
 @test "can launch postgres" {
   run "$D3" run postgres

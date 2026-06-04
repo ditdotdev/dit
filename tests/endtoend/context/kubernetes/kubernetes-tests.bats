@@ -1,8 +1,8 @@
 #!/usr/bin/env bats
 
 # E2E Kubernetes context tests
-# These run as part of `make e2e` and exercise the full d3 lifecycle on a
-# kubernetes context WITHOUT requiring the datadatdat dev server to be up.
+# These run as part of `make e2e` and exercise the full dit lifecycle on a
+# kubernetes context WITHOUT requiring the dit dev server to be up.
 # Auto-skip when no kubernetes cluster is reachable (so `make e2e` on a
 # host without minikube no-ops these instead of failing).
 #
@@ -10,8 +10,8 @@
 #   494966a  #108: kubeconfig is mounted as a flattened single file
 #   3127780  --context flag actually routes to the named context
 #   8999994  StatefulSet ports / 698c43c PVC pulled from Volume.Config
-#   a76775e  d3 status reports k8s state, not docker fallback "detached"
-#   b7d040a  port-forward survives d3 exit and is killed by d3 rm
+#   a76775e  dit status reports k8s state, not docker fallback "detached"
+#   b7d040a  port-forward survives dit exit and is killed by dit rm
 #
 # Pre-existing host requirements (matches docker-tests.bats conventions):
 #   - kubectl in PATH and configured (e.g. minikube context)
@@ -91,20 +91,20 @@ setup_file() {
     return 0
   fi
 
-  # Pre-pull the test image so `d3 run` doesn't time out on a slow registry
+  # Pre-pull the test image so `dit run` doesn't time out on a slow registry
   docker pull postgres:latest >/dev/null 2>&1 || true
 
   # Best-effort cleanup of any prior run's state
   "$D3" rm -f "$REPO" --context "$CTX" 2>/dev/null || true
   "$D3" context uninstall -f "$CTX" 2>/dev/null || true
-  kubectl delete statefulset,svc -l "datadatdatRepository=$REPO" --ignore-not-found >/dev/null 2>&1 || true
-  rm -f "$HOME/.datadatdat/portforward-${REPO}-"*.pid 2>/dev/null || true
+  kubectl delete statefulset,svc -l "ditRepository=$REPO" --ignore-not-found >/dev/null 2>&1 || true
+  rm -f "$HOME/.dit/portforward-${REPO}-"*.pid 2>/dev/null || true
 
   "$D3" context install -n "$CTX" -t kubernetes
 
   # Wait for the embedded Ktor app to start serving /v1/.
   local server_port
-  server_port=$(awk -v ctx="$CTX:" '$0 ~ ctx{f=1} f && /port:/{print $2; exit}' "$HOME/.datadatdat/config")
+  server_port=$(awk -v ctx="$CTX:" '$0 ~ ctx{f=1} f && /port:/{print $2; exit}' "$HOME/.dit/config")
   for _ in $(seq 1 60); do
     if curl -s -o /dev/null -w "%{http_code}" "http://localhost:${server_port}/v1/repositories" 2>/dev/null | grep -q 200; then
       break
@@ -130,15 +130,15 @@ setup() {
 # ---------------------------------------------------------------
 
 @test "k8s context install: server container is running" {
-  run docker ps --filter "name=^datadatdat-${CTX}-server\$" --format '{{.Names}}'
+  run docker ps --filter "name=^dit-${CTX}-server\$" --format '{{.Names}}'
   assert_success
-  assert_output "datadatdat-${CTX}-server"
+  assert_output "dit-${CTX}-server"
 }
 
 @test "k8s context install: kubeconfig is bind-mounted as a single flat file (#108)" {
-  run docker inspect "datadatdat-${CTX}-server" --format '{{range .Mounts}}{{.Destination}}={{.Source}};{{end}}'
+  run docker inspect "dit-${CTX}-server" --format '{{range .Mounts}}{{.Destination}}={{.Source}};{{end}}'
   assert_success
-  # The fix mounts ~/.datadatdat/kubeconfig-<ctx> -> /root/.kube/config (file),
+  # The fix mounts ~/.dit/kubeconfig-<ctx> -> /root/.kube/config (file),
   # NOT the whole ~/.kube/ directory. If the regression returned, we'd see
   # /root/.kube=<dir> in the output instead.
   assert_output --partial "/root/.kube/config="
@@ -152,17 +152,17 @@ setup() {
   # marker here because the server's stdout is async vs the Ktor /v1
   # endpoint becoming reachable — that line may not have been flushed yet
   # when this test runs, even though the readiness probe already returned 200.
-  run docker logs "datadatdat-${CTX}-server"
+  run docker logs "dit-${CTX}-server"
   assert_success
   refute_output --partial "NoSuchFileException"
   refute_output --partial "Exception in thread"
 }
 
 # ---------------------------------------------------------------
-# d3 run: StatefulSet creation regressions
+# dit run: StatefulSet creation regressions
 # ---------------------------------------------------------------
 
-@test "d3 run --context: creates the repository and reports forwarding" {
+@test "dit run --context: creates the repository and reports forwarding" {
   run "$D3" run postgres:latest -n "$REPO" -e POSTGRES_HOST_AUTH_METHOD=trust --context "$CTX"
   assert_success
   assert_output --partial "Creating repository $REPO"
@@ -176,7 +176,7 @@ setup() {
 }
 
 @test "k8s resources: StatefulSet, Service, Pod present with the right labels" {
-  run kubectl get statefulset,svc,pod -l "datadatdatRepository=$REPO" -o name
+  run kubectl get statefulset,svc,pod -l "ditRepository=$REPO" -o name
   assert_success
   assert_output --partial "statefulset.apps/$REPO"
   assert_output --partial "service/$REPO"
@@ -196,8 +196,8 @@ setup() {
 }
 
 @test "k8s resources: at least one PVC bound" {
-  # PVCs created by the d3 server have GUID-style names and aren't labeled.
-  # Just verify *some* PVC is Bound in the namespace where d3 runs.
+  # PVCs created by the dit server have GUID-style names and aren't labeled.
+  # Just verify *some* PVC is Bound in the namespace where dit runs.
   run bash -c "kubectl get pvc -o jsonpath='{range .items[?(@.status.phase==\"Bound\")]}{.metadata.name}{\"\\n\"}{end}'"
   assert_success
   [ -n "$output" ] || {
@@ -208,10 +208,10 @@ setup() {
 }
 
 # ---------------------------------------------------------------
-# d3 status / d3 ls: regression guard for a76775e
+# dit status / dit ls: regression guard for a76775e
 # ---------------------------------------------------------------
 
-@test "d3 status --context returns 'running' (regression for a76775e)" {
+@test "dit status --context returns 'running' (regression for a76775e)" {
   # Pre-fix this returned "detached" because common.Status used docker.inspect
   # which can't see kubernetes pods.
   run "$D3" status "$REPO" --context "$CTX"
@@ -220,7 +220,7 @@ setup() {
   refute_output --partial "detached"
 }
 
-@test "d3 ls --context shows the repo running" {
+@test "dit ls --context shows the repo running" {
   run "$D3" ls --context "$CTX"
   assert_success
   assert_output --partial "$REPO"
@@ -232,7 +232,7 @@ setup() {
 # ---------------------------------------------------------------
 
 @test "port-forward: localhost:5432 is reachable (regression for b7d040a)" {
-  # Try for up to 30s. d3 spawns `kubectl port-forward` in the background;
+  # Try for up to 30s. dit spawns `kubectl port-forward` in the background;
   # on a busy CI runner it can race with the StatefulSet pod actually
   # opening its TCP listener. Observed test 13 (pid file recorded) pass
   # while this one fails on PR #113 run 25070315289 — the pid was
@@ -243,13 +243,13 @@ setup() {
     fi
     sleep 1
   done
-  echo "port 5432 never became reachable on 127.0.0.1 after d3 run; port-forward leaked or died"
+  echo "port 5432 never became reachable on 127.0.0.1 after dit run; port-forward leaked or died"
   netstat -an 2>/dev/null | head -20 || ss -tln 2>/dev/null | head -20
   return 1
 }
 
-@test "port-forward: pid file is recorded under ~/.datadatdat" {
-  run bash -c "ls $HOME/.datadatdat/portforward-${REPO}-*.pid 2>/dev/null"
+@test "port-forward: pid file is recorded under ~/.dit" {
+  run bash -c "ls $HOME/.dit/portforward-${REPO}-*.pid 2>/dev/null"
   assert_success
   assert_output --partial "portforward-${REPO}-"
 }
@@ -258,7 +258,7 @@ setup() {
 # Postgres connectivity end-to-end
 #
 # `wait_pod_ready` (test 5) returns when k8s says the pod's Ready
-# condition is True, but the d3 StatefulSet template has no readiness
+# condition is True, but the dit StatefulSet template has no readiness
 # probe configured for postgres — so "Ready" only means "the postgres
 # process started," not "postgres is accepting connections." On a fast
 # runner this race shows up as `psql: ... no such file or directory` on
@@ -300,7 +300,7 @@ setup() {
 # stop / start lifecycle (StatefulSet replica scaling)
 # ---------------------------------------------------------------
 
-@test "d3 stop scales the StatefulSet down" {
+@test "dit stop scales the StatefulSet down" {
   run "$D3" stop "$REPO" --context "$CTX"
   assert_success
   # StatefulSet replicas drops to 0; the pod transitions to Completed and
@@ -313,19 +313,19 @@ setup() {
     fi
     sleep 1
   done
-  echo "StatefulSet ${REPO} did not scale to 0 replicas within 30s of d3 stop"
+  echo "StatefulSet ${REPO} did not scale to 0 replicas within 30s of dit stop"
   kubectl get statefulset "$REPO"
   return 1
 }
 
-@test "d3 start scales it back up and pod becomes Ready" {
+@test "dit start scales it back up and pod becomes Ready" {
   run "$D3" start "$REPO" --context "$CTX"
   assert_success
   wait_pod_ready "pod/${REPO}-0"
 }
 
 # ---------------------------------------------------------------
-# d3 commit / d3 checkout: snapshot-backed time travel
+# dit commit / dit checkout: snapshot-backed time travel
 #
 # Each commit becomes a CSI VolumeSnapshot. These tests exercise the
 # whole arc — write data, commit, destructive change, checkout, verify
@@ -339,9 +339,9 @@ setup() {
 # persist across @tests, but writes to /tmp do.
 # ---------------------------------------------------------------
 
-COMMIT_STATE="/tmp/d3-k8s-bats-commit-${REPO}"
+COMMIT_STATE="/tmp/dit-k8s-bats-commit-${REPO}"
 
-@test "d3 commit: produces a VolumeSnapshot that becomes ReadyToUse" {
+@test "dit commit: produces a VolumeSnapshot that becomes ReadyToUse" {
   if ! kubectl get crd volumesnapshots.snapshot.storage.k8s.io >/dev/null 2>&1; then
     skip "VolumeSnapshot CRD not installed (enable minikube addons: volumesnapshots, csi-hostpath-driver)"
   fi
@@ -357,22 +357,22 @@ COMMIT_STATE="/tmp/d3-k8s-bats-commit-${REPO}"
 
   COMMIT_ID=$(echo "$output" | awk '/^Commit / {print $2; exit}')
   [ -n "$COMMIT_ID" ] || {
-    echo "could not parse commit id from d3 commit output"
+    echo "could not parse commit id from dit commit output"
     return 1
   }
   echo "$COMMIT_ID" > "$COMMIT_STATE"
 
   # The server names snapshots <volumeSet>-<volume>-<commitId> and labels
-  # them with datadatdatCommit; pick by label so we don't have to know
+  # them with ditCommit; pick by label so we don't have to know
   # the volumeSet UUID.
   for _ in $(seq 1 60); do
-    snap=$(kubectl get volumesnapshot -l "datadatdatCommit=$COMMIT_ID" \
+    snap=$(kubectl get volumesnapshot -l "ditCommit=$COMMIT_ID" \
       -o jsonpath='{.items[0].metadata.name}' 2>/dev/null)
     if [ -n "$snap" ]; then break; fi
     sleep 1
   done
   [ -n "$snap" ] || {
-    echo "no VolumeSnapshot with datadatdatCommit=$COMMIT_ID after 60s"
+    echo "no VolumeSnapshot with ditCommit=$COMMIT_ID after 60s"
     kubectl get volumesnapshot
     return 1
   }
@@ -397,7 +397,7 @@ COMMIT_STATE="/tmp/d3-k8s-bats-commit-${REPO}"
   fi
 }
 
-@test "d3 checkout: restores prior database state from snapshot" {
+@test "dit checkout: restores prior database state from snapshot" {
   if ! kubectl get crd volumesnapshots.snapshot.storage.k8s.io >/dev/null 2>&1; then
     skip "VolumeSnapshot CRD not installed (enable minikube addons: volumesnapshots, csi-hostpath-driver)"
   fi
@@ -412,7 +412,7 @@ COMMIT_STATE="/tmp/d3-k8s-bats-commit-${REPO}"
   assert_failure
 
   # Capture the pod's UID so we can assert checkout actually recreated
-  # it. d3 checkout has to swap the StatefulSet's PVC reference AND
+  # it. dit checkout has to swap the StatefulSet's PVC reference AND
   # force pod recreation — patching volumes alone doesn't roll a
   # StatefulSet. If the pod stays the same (same UID), the new PVC is
   # never mounted and postgres serves the stale state.
@@ -421,16 +421,16 @@ COMMIT_STATE="/tmp/d3-k8s-bats-commit-${REPO}"
 
   run "$D3" checkout "$REPO" -c "$COMMIT_ID" --context "$CTX"
   assert_success
-  # Print captured output so we can see what d3 checkout actually did
+  # Print captured output so we can see what dit checkout actually did
   # (assert_success swallows stdout on success otherwise).
-  echo "--- d3 checkout output ---"
+  echo "--- dit checkout output ---"
   echo "$output"
-  echo "--- end d3 checkout output ---"
+  echo "--- end dit checkout output ---"
 
   # Wait for the StatefulSet controller to recreate the pod. Same name,
-  # different UID. If UID never changes, d3 checkout didn't trigger
+  # different UID. If UID never changes, dit checkout didn't trigger
   # pod recreation and the new PVC is unused — fail loudly with the
-  # StatefulSet description so we can see what state d3 left it in.
+  # StatefulSet description so we can see what state dit left it in.
   for _ in $(seq 1 36); do
     new_uid=$(kubectl get "pod/${REPO}-0" -o jsonpath='{.metadata.uid}' 2>/dev/null || true)
     if [ -n "$new_uid" ] && [ "$new_uid" != "$old_uid" ]; then
@@ -439,7 +439,7 @@ COMMIT_STATE="/tmp/d3-k8s-bats-commit-${REPO}"
     sleep 5
   done
   if [ -z "$new_uid" ] || [ "$new_uid" = "$old_uid" ]; then
-    echo "pod UID did not change after d3 checkout"
+    echo "pod UID did not change after dit checkout"
     echo "  old: $old_uid"
     echo "  new: ${new_uid:-(no pod)}"
     echo "--- kubectl describe statefulset/${REPO} ---"
@@ -462,47 +462,47 @@ COMMIT_STATE="/tmp/d3-k8s-bats-commit-${REPO}"
 }
 
 # ---------------------------------------------------------------
-# d3 rm: cleans up cluster resources AND the port-forward
+# dit rm: cleans up cluster resources AND the port-forward
 # ---------------------------------------------------------------
 
-@test "d3 rm -f: removes StatefulSet and Service" {
+@test "dit rm -f: removes StatefulSet and Service" {
   run "$D3" rm -f "$REPO" --context "$CTX"
   assert_success
   for _ in $(seq 1 30); do
-    out=$(kubectl get statefulset,svc -l "datadatdatRepository=$REPO" -o name 2>/dev/null || true)
+    out=$(kubectl get statefulset,svc -l "ditRepository=$REPO" -o name 2>/dev/null || true)
     if [ -z "$out" ]; then
       return 0
     fi
     sleep 1
   done
-  echo "k8s resources for $REPO not cleaned up 30s after d3 rm"
-  kubectl get statefulset,svc -l "datadatdatRepository=$REPO"
+  echo "k8s resources for $REPO not cleaned up 30s after dit rm"
+  kubectl get statefulset,svc -l "ditRepository=$REPO"
   return 1
 }
 
-@test "d3 rm -f: releases localhost:5432 (regression for b7d040a)" {
+@test "dit rm -f: releases localhost:5432 (regression for b7d040a)" {
   for _ in $(seq 1 10); do
     if ! (echo > /dev/tcp/127.0.0.1/5432) 2>/dev/null; then
       return 0
     fi
     sleep 1
   done
-  echo "port 5432 still bound 10s after d3 rm; port-forward orphaned"
+  echo "port 5432 still bound 10s after dit rm; port-forward orphaned"
   return 1
 }
 
-@test "d3 rm -f: removes the port-forward pid file" {
-  run bash -c "ls $HOME/.datadatdat/portforward-${REPO}-*.pid 2>/dev/null || true"
+@test "dit rm -f: removes the port-forward pid file" {
+  run bash -c "ls $HOME/.dit/portforward-${REPO}-*.pid 2>/dev/null || true"
   refute_output --partial "portforward-${REPO}-"
 }
 
 # ---------------------------------------------------------------
-# Final teardown: explicit `d3 context uninstall` before the file's
+# Final teardown: explicit `dit context uninstall` before the file's
 # teardown_file runs (covers the "uninstall reports nothing if double
 # called" path implicitly).
 # ---------------------------------------------------------------
 
-@test "d3 context uninstall: succeeds and removes the context" {
+@test "dit context uninstall: succeeds and removes the context" {
   run "$D3" context uninstall -f "$CTX"
   assert_success
   run "$D3" context ls

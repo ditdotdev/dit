@@ -1,150 +1,150 @@
-# d3 demo: local development on minikube
+# dit demo: local development on minikube
 #
-# Companion to d3-demo.txt (which uses the docker context). This runs
+# Companion to dit-demo.txt (which uses the docker context). This runs
 # the same lifecycle on a kubernetes context — the use case is a
 # developer iterating on an app that runs in k8s and depends on a
 # database schema. They add a column / table to support a new feature,
 # commit the database state alongside the code change, and share both
-# with the team via `d3 push`. Teammates `d3 pull` and `d3 checkout`
+# with the team via `dit push`. Teammates `dit pull` and `dit checkout`
 # the matching commit so dev environments stay in sync.
 #
 # Prereqs:
 #   - minikube running (driver=hyperv on Windows, driver=docker
 #     elsewhere; driver=none on a CI runner). `kubectl cluster-info`
 #     must succeed before starting.
-#   - For `d3 commit` to work: `minikube addons enable volumesnapshots
+#   - For `dit commit` to work: `minikube addons enable volumesnapshots
 #     csi-hostpath-driver` (commits become VolumeSnapshot objects).
 
 ### install kubernetes context
 
-./d3 context install -n k8s-demo -t kubernetes
+./dit context install -n k8s-demo -t kubernetes
 
-./d3 context ls
+./dit context ls
 
 ### feature branch starts here — bring up postgres in k8s
 
-./d3 run postgres -n mydb -e POSTGRES_HOST_AUTH_METHOD=trust --context k8s-demo
+./dit run postgres -n mydb -e POSTGRES_HOST_AUTH_METHOD=trust --context k8s-demo
 
-# d3 created a StatefulSet, a headless Service, and a PVC. Pod is
+# dit created a StatefulSet, a headless Service, and a PVC. Pod is
 # named <repo>-0 by k8s convention.
 
-kubectl get statefulset,svc,pvc,pod -l datadatdatRepository=mydb
+kubectl get statefulset,svc,pvc,pod -l ditRepository=mydb
 
-./d3 status mydb --context k8s-demo
+./dit status mydb --context k8s-demo
 
-./d3 commit mydb -m "Initial commit"
+./dit commit mydb -m "Initial commit"
 
 # Each commit is a CSI VolumeSnapshot — proof:
 
 kubectl get volumesnapshot
 
-### authenticate to datadatdat.com
+### authenticate to dit.dev
 
-./d3 auth status
+./dit auth status
 
 # if needed
 
-./d3 auth login --server https://datadatdat.com --api-key ***REMOVED***
+./dit auth login --server https://dit.dev --api-key ***REMOVED***
 
-./d3 repo list
+./dit repo list
 
 # push to remote so teammates can pull
 
-./d3 remote add https://datadatdat.com/robertericreeves/mydb mydb
+./dit remote add https://dit.dev/robertericreeves/mydb mydb
 
-./d3 push mydb 
+./dit push mydb 
 
-./d3 remote log mydb
+./dit remote log mydb
 
-./d3 repo list
+./dit repo list
 
 ### feature work: app needs a users table — add it, commit, push
 
 kubectl exec mydb-0 -- psql -U postgres -c "CREATE TABLE users (id SERIAL PRIMARY KEY, name VARCHAR(100), email VARCHAR(100));"
 
-./d3 commit mydb -m "Added users table"
+./dit commit mydb -m "Added users table"
 
 kubectl get volumesnapshot
 
-./d3 push mydb
+./dit push mydb
 
 ### feature work: seed sample data, commit, push, tag the release
 
 kubectl exec mydb-0 -- psql -U postgres -c "INSERT INTO users (name, email) VALUES ('Alice', 'alice@example.com'), ('Bob', 'bob@example.com');"
 
-./d3 commit mydb -m "Added sample users" -t v2.3.4
+./dit commit mydb -m "Added sample users" -t v2.3.4
 
-./d3 push mydb
+./dit push mydb
 
 ### checkout history — verify the schema at each commit
 
 kubectl get volumesnapshot
 
-./d3 log mydb
+./dit log mydb
 
 # initial commit: no users table
 
-./d3 checkout mydb -c aad3f57903be45978ae402c79f80fbca
+./dit checkout mydb -c aad3f57903be45978ae402c79f80fbca
 
 kubectl exec mydb-0 -- psql -U postgres -c "\dt"
 
 # after CREATE TABLE: users table exists, no rows
 
-./d3 checkout mydb -c 38672f0fc7dd455ebc73a1f5c66694ee
+./dit checkout mydb -c 38672f0fc7dd455ebc73a1f5c66694ee
 
 kubectl exec mydb-0 -- psql -U postgres -c "\dt"
 
 # after INSERT: rows are back
 
-./d3 checkout mydb -c d8b43b33634147888ce395d65677d106
+./dit checkout mydb -c d8b43b33634147888ce395d65677d106
 
 kubectl exec mydb-0 -- psql -U postgres -c "SELECT * FROM users;"
 
 ### teammate flow: wipe local, clone from remote, pull specific commits
 
-./d3 stop mydb --context k8s-demo
+./dit stop mydb --context k8s-demo
 
-./d3 rm mydb --context k8s-demo
+./dit rm mydb --context k8s-demo
 
-kubectl get statefulset,svc,pvc,pod -l datadatdatRepository=mydb
+kubectl get statefulset,svc,pvc,pod -l ditRepository=mydb
 
-./d3 clone https://datadatdat.com/robertericreeves/mydb --context k8s-demo
+./dit clone https://dit.dev/robertericreeves/mydb --context k8s-demo
 
-kubectl get statefulset,svc,pvc,pod -l datadatdatRepository=mydb
+kubectl get statefulset,svc,pvc,pod -l ditRepository=mydb
 
-./d3 log mydb
+./dit log mydb
 
-./d3 remote log mydb
+./dit remote log mydb
 
 # pull initial commit only — bring up postgres at the empty-schema state
 
-./d3 pull mydb -c f09374af32df49e792192b2bd8046a0d
+./dit pull mydb -c f09374af32df49e792192b2bd8046a0d
 
-./d3 checkout mydb -c f09374af32df49e792192b2bd8046a0d
+./dit checkout mydb -c f09374af32df49e792192b2bd8046a0d
 
 # pull the schema commit, switch to it
 
-./d3 pull mydb -c 74452746c2a64535b962363e501e1976
+./dit pull mydb -c 74452746c2a64535b962363e501e1976
 
-./d3 checkout mydb -c 74452746c2a64535b962363e501e1976
+./dit checkout mydb -c 74452746c2a64535b962363e501e1976
 
 # checkout the tagged release directly
 
 kubectl exec mydb-0 -- psql -U postgres -c "SELECT * FROM users;"
 
-./d3 checkout mydb -t v2.3.4
+./dit checkout mydb -t v2.3.4
 
 kubectl exec mydb-0 -- psql -U postgres -c "SELECT * FROM users;"
 
 ### clean up
 
-./d3 rm mydb -f --context k8s-demo
+./dit rm mydb -f --context k8s-demo
 
-./d3 repo delete robertericreeves mydb
+./dit repo delete robertericreeves mydb
 
-./d3 context uninstall -f k8s-demo
+./dit context uninstall -f k8s-demo
 
-kubectl get statefulset,svc,pvc,pod -l datadatdatRepository=mydb
+kubectl get statefulset,svc,pvc,pod -l ditRepository=mydb
 
 kubectl delete volumesnapshot --all
 

@@ -7,7 +7,6 @@ import (
 	"io"
 	"net/http"
 	"net/url"
-	"os"
 	"strings"
 )
 
@@ -45,13 +44,10 @@ func Fork(uri string, org string, name string) {
 	// Build server base URL
 	serverBase := fmt.Sprintf("%s://%s", parsed.Scheme, parsed.Host)
 
-	// Get API key for authentication: env var > stored credentials
-	apiKey := os.Getenv("DATADATDAT_API_KEY")
+	// Get API key for authentication (env var > stored credentials for this server).
+	apiKey := GetAPIKey(getCredsPath(), serverBase)
 	if apiKey == "" {
-		apiKey = GetAPIKeyForServer(getCredsPath(), serverBase)
-	}
-	if apiKey == "" {
-		fmt.Printf("Error: not authenticated with %s. Run 'd3 auth login' first.\n", serverBase)
+		fmt.Printf("Error: not authenticated with %s. Run 'dit auth login' first.\n", serverBase)
 		return
 	}
 

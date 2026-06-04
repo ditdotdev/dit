@@ -6,7 +6,7 @@ import (
 	"strconv"
 	"strings"
 
-	client "github.com/datadatdat/datadatdat-client-go"
+	client "github.com/ditdotdev/dit-client-go"
 )
 
 // Metadata JSON keys used both here and in [Properties.go]; kept as
@@ -82,13 +82,13 @@ func Run(container string, repository string, envVars []string, args []string, d
 		}
 	}
 
-	var datadatdatVolumes []client.Volume
+	var ditVolumes []client.Volume
 	var metaVolumes []map[string]string
 	for i, path := range vols {
 		volName := "v" + strconv.Itoa(i)
 		path := strings.Split(path, ":")[0]
 		path = strings.ReplaceAll(path, `"`, "")
-		fmt.Println("Creating datadatdat volume " + volName + " with path " + path)
+		fmt.Println("Creating dit volume " + volName + " with path " + path)
 
 		v := client.Volume{
 			Name:       volName,
@@ -105,7 +105,7 @@ func Run(container string, repository string, envVars []string, args []string, d
 			panic(err)
 			//TODO REMOVE VOLUME AND EXIT
 		}
-		datadatdatVolumes = append(datadatdatVolumes, *vol)
+		ditVolumes = append(ditVolumes, *vol)
 		addVol := map[string]string{
 			"name": "v" + strconv.Itoa(i),
 			"path": path,
@@ -116,7 +116,7 @@ func Run(container string, repository string, envVars []string, args []string, d
 	ready := false
 	for !ready {
 		ready = true
-		for _, v := range datadatdatVolumes {
+		for _, v := range ditVolumes {
 			s, _, _ := volumesApi.GetVolumeStatus(ctx, repoName, v.Name).Execute()
 			if !s.Ready {
 				ready = false
@@ -196,7 +196,7 @@ func Run(container string, repository string, envVars []string, args []string, d
 	}
 
 	fmt.Println("Creating " + repoName + " deployment")
-	if err := k8s.CreateStatefulSet(repoName, imageId, ports, datadatdatVolumes, envVars); err != nil {
+	if err := k8s.CreateStatefulSet(repoName, imageId, ports, ditVolumes, envVars); err != nil {
 		// Errors from CreateStatefulSet are self-describing (e.g. the
 		// orphaned-resources recovery hint from issue #126 is multi-line
 		// and starts with its own header). Print as-is so the formatting

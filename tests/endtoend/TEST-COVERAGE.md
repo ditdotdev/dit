@@ -1,6 +1,6 @@
-# d3 CLI End-to-End Test Coverage
+# dit CLI End-to-End Test Coverage
 
-This document tracks E2E test coverage for every d3 CLI command and user path.
+This document tracks E2E test coverage for every dit CLI command and user path.
 
 ## Coverage Legend
 
@@ -14,64 +14,64 @@ This document tracks E2E test coverage for every d3 CLI command and user path.
 
 | Command | Status | Test File(s) | Notes |
 |---------|--------|-------------|-------|
-| `d3 install` | Covered | `infrastructure/install.bats` | |
-| `d3 uninstall` | Covered | `infrastructure/uninstall.bats` | `--force`, `--remove-images` tested |
-| `d3 upgrade` | Covered | `infrastructure/upgrade.bats` | Idempotent upgrade tested |
-| `d3 ls` | Covered | `getting-started/getting-started.bats`, `remotes/datadatdat/datadatdat-workflow.bats` | |
-| `d3 run` | Covered | `getting-started/getting-started.bats`, `context/docker/docker-tests.bats` | `-e`, `-P`, `-n` flags tested |
-| `d3 start` | Covered | `container-lifecycle/container-lifecycle.bats` | Start previously stopped container |
-| `d3 stop` | Covered | `container-lifecycle/container-lifecycle.bats` | Stop running container |
-| `d3 status` | Covered | `container-lifecycle/container-lifecycle.bats`, `remotes/datadatdat/datadatdat-workflow.bats` | Running and stopped states |
-| `d3 rm` | Covered | `getting-started/getting-started.bats`, `remotes/ssh/ssh-workflow.bats` | `-f` flag tested |
-| `d3 commit` | Covered | `getting-started/getting-started.bats`, `remotes/s3/s3-workflow.bats` | `-m`, `-t` flags tested |
-| `d3 checkout` | Covered | `getting-started/getting-started.bats`, `tags/tag-management.bats` | `--commit` and `--tags` tested |
-| `d3 log` | Covered | `remotes/ssh/ssh-workflow.bats`, `tags/tag-management.bats` | `--tags` filter tested |
-| `d3 clone` | Covered | `getting-started/getting-started.bats`, `remotes/datadatdat/clone-commit-workflow.bats` | `-c`, `-n`, `-P`, `-t` tested |
-| `d3 cp` | Covered | `data-import/data-import.bats` | `-s`, `-d` flags tested |
-| `d3 migrate` | Covered | `data-import/data-import.bats` | Unmanaged container migration |
-| `d3 tag` | Covered | `tags/tag-management.bats` | Standalone `d3 tag` with `-c`, `-t` |
-| `d3 delete` | Covered | `remotes/ssh/ssh-workflow.bats`, `tags/tag-management.bats` | Full delete and `--tags` removal |
+| `dit install` | Covered | `infrastructure/install.bats` | |
+| `dit uninstall` | Covered | `infrastructure/uninstall.bats` | `--force`, `--remove-images` tested |
+| `dit upgrade` | Covered | `infrastructure/upgrade.bats` | Idempotent upgrade tested |
+| `dit ls` | Covered | `getting-started/getting-started.bats`, `remotes/ditdotdev/dit-workflow.bats` | |
+| `dit run` | Covered | `getting-started/getting-started.bats`, `context/docker/docker-tests.bats` | `-e`, `-P`, `-n` flags tested |
+| `dit start` | Covered | `container-lifecycle/container-lifecycle.bats` | Start previously stopped container |
+| `dit stop` | Covered | `container-lifecycle/container-lifecycle.bats` | Stop running container |
+| `dit status` | Covered | `container-lifecycle/container-lifecycle.bats`, `remotes/ditdotdev/dit-workflow.bats` | Running and stopped states |
+| `dit rm` | Covered | `getting-started/getting-started.bats`, `remotes/ssh/ssh-workflow.bats` | `-f` flag tested |
+| `dit commit` | Covered | `getting-started/getting-started.bats`, `remotes/s3/s3-workflow.bats` | `-m`, `-t` flags tested |
+| `dit checkout` | Covered | `getting-started/getting-started.bats`, `tags/tag-management.bats` | `--commit` and `--tags` tested |
+| `dit log` | Covered | `remotes/ssh/ssh-workflow.bats`, `tags/tag-management.bats` | `--tags` filter tested |
+| `dit clone` | Covered | `getting-started/getting-started.bats`, `remotes/ditdotdev/clone-commit-workflow.bats` | `-c`, `-n`, `-P`, `-t` tested |
+| `dit cp` | Covered | `data-import/data-import.bats` | `-s`, `-d` flags tested |
+| `dit migrate` | Covered | `data-import/data-import.bats` | Unmanaged container migration |
+| `dit tag` | Covered | `tags/tag-management.bats` | Standalone `dit tag` with `-c`, `-t` |
+| `dit delete` | Covered | `remotes/ssh/ssh-workflow.bats`, `tags/tag-management.bats` | Full delete and `--tags` removal |
 
 ### Remote Commands
 
 | Command | Status | Test File(s) | Notes |
 |---------|--------|-------------|-------|
-| `d3 push` | Covered | `remotes/s3/s3-workflow.bats`, `remotes/ssh/ssh-workflow.bats`, `remotes/datadatdat/datadatdat-workflow.bats` | `-c`, `-r`, `-t` tested |
-| `d3 push --update-only` | Covered | `push-pull/push-pull-options.bats` | Tag-only sync via S3 |
-| `d3 pull` | Covered | `remotes/ssh/ssh-workflow.bats`, `remotes/datadatdat/datadatdat-workflow.bats` | |
-| `d3 pull --update-only` | Covered | `push-pull/push-pull-options.bats` | Tag-only sync via S3 |
-| `d3 push --tags` (datadatdat) | Covered | `remotes/datadatdat/push-pull-tags-remote.bats` | Tag-filtered push on datadatdat remote |
-| `d3 pull --tags` (datadatdat) | Covered | `remotes/datadatdat/push-pull-tags-remote.bats` | Tag-filtered pull on datadatdat remote |
-| `d3 clone` | Covered | `getting-started/getting-started.bats`, `tags/clone-tags.bats` | S3Web, S3, datadatdat remotes |
-| `d3 abort` | Covered | `remotes/datadatdat/abort-workflow.bats` | No-op abort and basic abort |
-| `d3 remote add` | Covered | `remotes/s3/s3-workflow.bats`, `remotes/ssh/ssh-workflow.bats` | S3, SSH, datadatdat remotes |
-| `d3 remote ls` | Covered | `remotes/s3/s3-workflow.bats`, `remotes/ssh/ssh-workflow.bats` | |
-| `d3 remote log` | Covered | `remotes/s3/s3-workflow.bats`, `remotes/ssh/ssh-workflow.bats` | |
-| `d3 remote rm` | Covered | `remotes/ssh/ssh-workflow.bats` | |
+| `dit push` | Covered | `remotes/s3/s3-workflow.bats`, `remotes/ssh/ssh-workflow.bats`, `remotes/ditdotdev/dit-workflow.bats` | `-c`, `-r`, `-t` tested |
+| `dit push --update-only` | Covered | `push-pull/push-pull-options.bats` | Tag-only sync via S3 |
+| `dit pull` | Covered | `remotes/ssh/ssh-workflow.bats`, `remotes/ditdotdev/dit-workflow.bats` | |
+| `dit pull --update-only` | Covered | `push-pull/push-pull-options.bats` | Tag-only sync via S3 |
+| `dit push --tags` (dit) | Covered | `remotes/ditdotdev/push-pull-tags-remote.bats` | Tag-filtered push on dit remote |
+| `dit pull --tags` (dit) | Covered | `remotes/ditdotdev/push-pull-tags-remote.bats` | Tag-filtered pull on dit remote |
+| `dit clone` | Covered | `getting-started/getting-started.bats`, `tags/clone-tags.bats` | S3Web, S3, dit remotes |
+| `dit abort` | Covered | `remotes/ditdotdev/abort-workflow.bats` | No-op abort and basic abort |
+| `dit remote add` | Covered | `remotes/s3/s3-workflow.bats`, `remotes/ssh/ssh-workflow.bats` | S3, SSH, dit remotes |
+| `dit remote ls` | Covered | `remotes/s3/s3-workflow.bats`, `remotes/ssh/ssh-workflow.bats` | |
+| `dit remote log` | Covered | `remotes/s3/s3-workflow.bats`, `remotes/ssh/ssh-workflow.bats` | |
+| `dit remote rm` | Covered | `remotes/ssh/ssh-workflow.bats` | |
 
 ### Context Commands
 
 | Command | Status | Test File(s) | Notes |
 |---------|--------|-------------|-------|
-| `d3 context install` | Covered | `multi-context/multi-context.bats` | Docker type |
-| `d3 context uninstall` | Covered | `multi-context/multi-context.bats` | With `--force` |
-| `d3 context default` | Covered | `multi-context/multi-context.bats`, `context/context-list.bats` | Get and set |
-| `d3 context ls` | Covered | `context/context-list.bats` | List contexts with headers |
+| `dit context install` | Covered | `multi-context/multi-context.bats` | Docker type |
+| `dit context uninstall` | Covered | `multi-context/multi-context.bats` | With `--force` |
+| `dit context default` | Covered | `multi-context/multi-context.bats`, `context/context-list.bats` | Get and set |
+| `dit context ls` | Covered | `context/context-list.bats` | List contexts with headers |
 
 ### Auth Commands
 
 | Command | Status | Test File(s) | Notes |
 |---------|--------|-------------|-------|
-| `d3 auth login` | Covered | `remotes/datadatdat/org-workflow.bats`, `remotes/datadatdat/auth-status.bats` | `--api-key`, `--server` |
-| `d3 auth status` | Covered | `remotes/datadatdat/auth-status.bats` | Before/after login/logout |
-| `d3 auth logout` | Covered | `remotes/datadatdat/org-workflow.bats`, `remotes/datadatdat/auth-status.bats` | |
+| `dit auth login` | Covered | `remotes/ditdotdev/org-workflow.bats`, `remotes/ditdotdev/auth-status.bats` | `--api-key`, `--server` |
+| `dit auth status` | Covered | `remotes/ditdotdev/auth-status.bats` | Before/after login/logout |
+| `dit auth logout` | Covered | `remotes/ditdotdev/org-workflow.bats`, `remotes/ditdotdev/auth-status.bats` | |
 
 ### Organization Commands
 
 | Command | Status | Test File(s) | Notes |
 |---------|--------|-------------|-------|
-| `d3 org list` | Covered | `remotes/datadatdat/org-workflow.bats` | Full CRUD lifecycle |
-| `d3 org ls` | Covered | `remotes/datadatdat/org-workflow.bats` | Alias verified |
+| `dit org list` | Covered | `remotes/ditdotdev/org-workflow.bats` | Full CRUD lifecycle |
+| `dit org ls` | Covered | `remotes/ditdotdev/org-workflow.bats` | Alias verified |
 
 ### Error Handling
 
@@ -86,7 +86,7 @@ This document tracks E2E test coverage for every d3 CLI command and user path.
 
 ### `make e2e` (local functionality)
 
-Requires: Docker, d3 binary, AWS credentials (for S3 tests), SSH key (for SSH tests)
+Requires: Docker, dit binary, AWS credentials (for S3 tests), SSH key (for SSH tests)
 
 | Target | BATS File |
 |--------|-----------|
@@ -107,19 +107,19 @@ Requires: Docker, d3 binary, AWS credentials (for S3 tests), SSH key (for SSH te
 
 ### `make e2e-server` (remote server functionality)
 
-Requires: Docker, d3 binary, datadatdat-remote-server running locally
+Requires: Docker, dit binary, dit-remote-server running locally
 
 | Target | BATS File |
 |--------|-----------|
 | `test-install` | `infrastructure/install.bats` |
-| `test-datadatdat-workflow` | `remotes/datadatdat/datadatdat-workflow.bats` |
-| `test-clone-commit-workflow` | `remotes/datadatdat/clone-commit-workflow.bats` |
-| `test-auth-workflow` | `remotes/datadatdat/auth-workflow.bats` |
-| `test-auth-status` | `remotes/datadatdat/auth-status.bats` |
-| `test-org-workflow` | `remotes/datadatdat/org-workflow.bats` |
-| `test-billing-workflow` | `remotes/datadatdat/billing-workflow.bats` |
-| `test-abort-workflow` | `remotes/datadatdat/abort-workflow.bats` |
-| `test-push-pull-tags-remote` | `remotes/datadatdat/push-pull-tags-remote.bats` |
+| `test-dit-workflow` | `remotes/ditdotdev/dit-workflow.bats` |
+| `test-clone-commit-workflow` | `remotes/ditdotdev/clone-commit-workflow.bats` |
+| `test-auth-workflow` | `remotes/ditdotdev/auth-workflow.bats` |
+| `test-auth-status` | `remotes/ditdotdev/auth-status.bats` |
+| `test-org-workflow` | `remotes/ditdotdev/org-workflow.bats` |
+| `test-billing-workflow` | `remotes/ditdotdev/billing-workflow.bats` |
+| `test-abort-workflow` | `remotes/ditdotdev/abort-workflow.bats` |
+| `test-push-pull-tags-remote` | `remotes/ditdotdev/push-pull-tags-remote.bats` |
 | `test-uninstall` | `infrastructure/uninstall.bats` |
 
 ### Standalone Targets (not in e2e or e2e-server)
@@ -128,9 +128,9 @@ Requires: Docker, d3 binary, datadatdat-remote-server running locally
 |--------|-----------|-------|
 | `test-multi-context` | `multi-context/multi-context.bats` | Excluded pending CI diagnosis |
 | `test-db-matrix` | `db-matrix/db-matrix.bats` | Excluded pending CI diagnosis |
-| `test-stripe-integration` | `remotes/datadatdat/stripe-integration.bats` | Requires Stripe API keys |
-| `test-datadatdat-workflow-prod` | `remotes/datadatdat/datadatdat-workflow-prod.bats` | Production environment |
-| `test-auth-workflow-prod` | `remotes/datadatdat/auth-workflow-prod.bats` | Production environment |
+| `test-stripe-integration` | `remotes/ditdotdev/stripe-integration.bats` | Requires Stripe API keys |
+| `test-dit-workflow-prod` | `remotes/ditdotdev/dit-workflow-prod.bats` | Production environment |
+| `test-auth-workflow-prod` | `remotes/ditdotdev/auth-workflow-prod.bats` | Production environment |
 
 ## Flag Coverage Detail
 
@@ -165,5 +165,5 @@ Requires: Docker, d3 binary, datadatdat-remote-server running locally
 | S3 | s3-workflow, clone-tags, push-pull-options | - | - | s3-workflow |
 | SSH | ssh-workflow | ssh-workflow | - | ssh-workflow |
 | S3Web | - | - | getting-started | - |
-| datadatdat | datadatdat-workflow | datadatdat-workflow | clone-commit-workflow | datadatdat-workflow |
+| dit | dit-workflow | dit-workflow | clone-commit-workflow | dit-workflow |
 | NOP | Not tested | Not tested | Not tested | Not tested |

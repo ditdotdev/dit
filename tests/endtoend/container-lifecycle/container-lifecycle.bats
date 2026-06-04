@@ -1,7 +1,7 @@
 #!/usr/bin/env bats
 
 # E2E Container Lifecycle Tests
-# Tests d3 start, stop, and status commands
+# Tests dit start, stop, and status commands
 
 # Load shared test helpers
 load '../test_helper'
@@ -22,43 +22,43 @@ teardown_file() {
   sleep 5
 }
 
-@test "d3 status shows running" {
+@test "dit status shows running" {
   run "$D3" status lifecycle-test
   assert_success
-  # d3 status shows "Status:  <state>" - check for the actual Docker state
+  # dit status shows "Status:  <state>" - check for the actual Docker state
   assert_output --partial "running"
 }
 
-@test "d3 stop stops the container" {
+@test "dit stop stops the container" {
   run "$D3" stop lifecycle-test
   assert_success
 }
 
-@test "docker confirms container is stopped after d3 stop" {
+@test "docker confirms container is stopped after dit stop" {
   run docker inspect --type container --format="{{.State.Status}}" lifecycle-test
   assert_success
   assert_output --partial "exited"
 }
 
-@test "d3 status shows exited after stop" {
+@test "dit status shows exited after stop" {
   run "$D3" status lifecycle-test
   assert_success
   assert_output --partial "exited"
 }
 
-@test "d3 start restarts the container" {
+@test "dit start restarts the container" {
   run "$D3" start lifecycle-test
   assert_success
   sleep 5
 }
 
-@test "docker confirms container is running after d3 start" {
+@test "docker confirms container is running after dit start" {
   run docker inspect --type container --format="{{.State.Status}}" lifecycle-test
   assert_success
   assert_output --partial "running"
 }
 
-@test "d3 status shows running after start" {
+@test "dit status shows running after start" {
   run "$D3" status lifecycle-test
   assert_success
   assert_output --partial "running"
@@ -68,7 +68,7 @@ teardown_file() {
 # Commit after stop/start cycle
 # ========================================
 
-@test "d3 commit works after stop/start cycle" {
+@test "dit commit works after stop/start cycle" {
   run "$D3" commit -m "Post-restart commit" lifecycle-test
   assert_success
   assert_output --partial "Commit"
@@ -82,12 +82,12 @@ teardown_file() {
 # Stop then checkout
 # ========================================
 
-@test "d3 stop before checkout" {
+@test "dit stop before checkout" {
   run "$D3" stop lifecycle-test
   assert_success
 }
 
-@test "d3 checkout from stopped state restarts container" {
+@test "dit checkout from stopped state restarts container" {
   [ -f "$BATS_TMPDIR/lifecycle_commit.txt" ] || skip "Commit GUID not saved"
   COMMIT_GUID=$(cat "$BATS_TMPDIR/lifecycle_commit.txt")
 
@@ -104,20 +104,20 @@ teardown_file() {
 }
 
 # ========================================
-# Error paths (d3 stop/start/status return exit 0 even for errors)
+# Error paths (dit stop/start/status return exit 0 even for errors)
 # ========================================
 
-@test "d3 stop on non-existent repo prints error" {
+@test "dit stop on non-existent repo prints error" {
   run "$D3" stop nonexistent-lifecycle-xyz
   assert_output --partial "Error"
 }
 
-@test "d3 start on non-existent repo prints error" {
+@test "dit start on non-existent repo prints error" {
   run "$D3" start nonexistent-lifecycle-xyz
   assert_output --partial "Error"
 }
 
-@test "d3 status on non-existent repo prints error" {
+@test "dit status on non-existent repo prints error" {
   run "$D3" status nonexistent-lifecycle-xyz
   assert_failure
   assert_output --partial "Error"

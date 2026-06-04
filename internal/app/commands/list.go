@@ -1,8 +1,8 @@
 package commands
 
 import (
-	"datadatdat/internal/app/providers"
 	"fmt"
+	"github.com/ditdotdev/dit/internal/app/providers"
 	"os"
 
 	"github.com/spf13/cobra"

@@ -5,7 +5,7 @@ import (
 	"strings"
 	"testing"
 
-	"datadatdat/internal/app/providers"
+	"github.com/ditdotdev/dit/internal/app/providers"
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"

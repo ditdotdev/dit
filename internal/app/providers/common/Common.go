@@ -3,21 +3,21 @@ package common
 import (
 	"context"
 	"fmt"
-	client "github.com/datadatdat/datadatdat-client-go"
+	client "github.com/ditdotdev/dit-client-go"
 	"os"
 	"strings"
 	"unicode"
 )
 
 func init() {
-	_, d := os.LookupEnv("DATADATDAT_DEBUG")
+	_, d := os.LookupEnv("DIT_DEBUG")
 	cfg.Debug = d
 
-	// If DATADATDAT_API_KEY is not set, load from stored credentials.
-	// This allows 'd3 auth login' to persist credentials for remote operations.
-	if _, hasKey := os.LookupEnv("DATADATDAT_API_KEY"); !hasKey {
-		if key := GetAPIKey(CredentialsPath()); key != "" {
-			_ = os.Setenv("DATADATDAT_API_KEY", key)
+	// If DIT_API_KEY is not set, load from stored credentials.
+	// This allows 'dit auth login' to persist credentials for remote operations.
+	if _, hasKey := os.LookupEnv("DIT_API_KEY"); !hasKey {
+		if key := GetAPIKey(CredentialsPath(), ""); key != "" {
+			_ = os.Setenv("DIT_API_KEY", key)
 		}
 	}
 }

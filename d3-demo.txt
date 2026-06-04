@@ -1,84 +1,84 @@
-./d3 run postgres -n mydb -e POSTGRES_PASSWORD=postgres
+./dit run postgres -n mydb -e POSTGRES_PASSWORD=postgres
 
-./d3 commit mydb -m "Initial commit"
+./dit commit mydb -m "Initial commit"
 
-### authenticate to datadatdat.com
+### authenticate to dit.dev
 
-./d3 auth status
+./dit auth status
 
 # if needed
 
-./d3 auth login --server https://datadatdat.com --api-key ***REMOVED***
+./dit auth login --server https://dit.dev --api-key ***REMOVED***
 
-./d3 repo list
+./dit repo list
 
 # push to remote
 
-./d3 remote add https://datadatdat.com/robertericreeves/mydb mydb
+./dit remote add https://dit.dev/robertericreeves/mydb mydb
 
-./d3 push mydb
+./dit push mydb
 
-./d3 remote log mydb
+./dit remote log mydb
 
-./d3 repo list
+./dit repo list
 
 # second commit
 
 docker exec mydb psql -U postgres -c "CREATE TABLE users (id SERIAL PRIMARY KEY, name VARCHAR(100), email VARCHAR(100));"
 
-./d3 commit mydb -m "Added users table"
+./dit commit mydb -m "Added users table"
 
-./d3 push mydb
+./dit push mydb
 
 # third commit
 
 docker exec mydb psql -U postgres -c "INSERT INTO users (name, email) VALUES ('Alice', 'alice@example.com'), ('Bob', 'bob@example.com');"
 
-./d3 commit mydb -m "Added sample users" -t v2.3.4
+./dit commit mydb -m "Added sample users" -t v2.3.4
 
-./d3 push mydb
+./dit push mydb
 
 # checkout and verify
 
-./d3 log mydb
+./dit log mydb
 
-./d3 checkout mydb -c 66a3bbea87934dbfa7f35fb6df12c21c
-
-docker exec mydb psql -U postgres -c "\dt"
-
-./d3 checkout mydb -c c84b493973a740eb993ca16a3f6664b3
+./dit checkout mydb -c 66a3bbea87934dbfa7f35fb6df12c21c
 
 docker exec mydb psql -U postgres -c "\dt"
 
-./d3 checkout mydb -c 9fc9513dca734118b0ef451e65979b1d
+./dit checkout mydb -c c84b493973a740eb993ca16a3f6664b3
+
+docker exec mydb psql -U postgres -c "\dt"
+
+./dit checkout mydb -c 9fc9513dca734118b0ef451e65979b1d
 
 docker exec mydb psql -U postgres -c "SELECT * FROM users;"
 
 # reset and clone from remote 
 
-./d3 uninstall -f 
+./dit uninstall -f 
 
-./d3 install
+./dit install
 
-./d3 clone https://datadatdat.com/robertericreeves/mydb
+./dit clone https://dit.dev/robertericreeves/mydb
 
-./d3 log mydb
+./dit log mydb
 
-./d3 remote log mydb
+./dit remote log mydb
 
-./d3 pull mydb -c 66a3bbea87934dbfa7f35fb6df12c21c
+./dit pull mydb -c 66a3bbea87934dbfa7f35fb6df12c21c
 
-./d3 checkout mydb -c 66a3bbea87934dbfa7f35fb6df12c21c
+./dit checkout mydb -c 66a3bbea87934dbfa7f35fb6df12c21c
 
-./d3 pull mydb -c c84b493973a740eb993ca16a3f6664b3 
+./dit pull mydb -c c84b493973a740eb993ca16a3f6664b3 
 
-./d3 checkout mydb -c c84b493973a740eb993ca16a3f6664b3 
+./dit checkout mydb -c c84b493973a740eb993ca16a3f6664b3 
 
-./d3 checkout mydb -t v2.3.4
+./dit checkout mydb -t v2.3.4
 
 # clean up
 
-./d3 rm mydb -f
+./dit rm mydb -f
 
-./d3 repo delete robertericreeves mydb
+./dit repo delete robertericreeves mydb
 

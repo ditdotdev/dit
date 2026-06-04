@@ -22,14 +22,14 @@ teardown_file() {
   sleep 20
 }
 
-@test "d3 server (context one) is running" {
-  run docker inspect --type container --format='{{.State.Status}}' datadatdat-one-server
+@test "dit server (context one) is running" {
+  run docker inspect --type container --format='{{.State.Status}}' dit-one-server
   assert_success
   assert_output --partial "running"
 }
 
-@test "d3 launch (context one) is running" {
-  run docker inspect --type container --format='{{.State.Status}}' datadatdat-one-launch
+@test "dit launch (context one) is running" {
+  run docker inspect --type container --format='{{.State.Status}}' dit-one-launch
   assert_success
   assert_output --partial "running"
 }
@@ -42,14 +42,14 @@ teardown_file() {
   sleep 20
 }
 
-@test "d3 server (context two) is running" {
-  run docker inspect --type container --format='{{.State.Status}}' datadatdat-two-server
+@test "dit server (context two) is running" {
+  run docker inspect --type container --format='{{.State.Status}}' dit-two-server
   assert_success
   assert_output --partial "running"
 }
 
-@test "d3 launch (context two) is running" {
-  run docker inspect --type container --format='{{.State.Status}}' datadatdat-two-launch
+@test "dit launch (context two) is running" {
+  run docker inspect --type container --format='{{.State.Status}}' dit-two-launch
   assert_success
   assert_output --partial "running"
 }
@@ -108,11 +108,11 @@ teardown_file() {
 @test "can uninstall context one" {
   run "$D3" uninstall -f --context one
   assert_success
-  assert_output --partial "Uninstalled datadatdat infrastructure"
+  assert_output --partial "Uninstalled dit infrastructure"
 }
 
 @test "can uninstall context two" {
   run "$D3" uninstall -f --context two
   assert_success
-  assert_output --partial "Uninstalled datadatdat infrastructure"
+  assert_output --partial "Uninstalled dit infrastructure"
 }

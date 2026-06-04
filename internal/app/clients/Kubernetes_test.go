@@ -5,7 +5,7 @@ import (
 	"testing"
 	"time"
 
-	datadatdatclient "github.com/datadatdat/datadatdat-client-go"
+	ditclient "github.com/ditdotdev/dit-client-go"
 	v1Apps "k8s.io/api/apps/v1"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -25,8 +25,8 @@ func swapClient(t *testing.T, replacement k8s.Interface) func() {
 }
 
 // TestDeleteStatefulSpecToleratesMissingStatefulSet covers the case where
-// `d3 rm -f` runs against a repository whose StatefulSet never finished
-// being created (e.g. an earlier failed `d3 run`). The function should NOT
+// `dit rm -f` runs against a repository whose StatefulSet never finished
+// being created (e.g. an earlier failed `dit run`). The function should NOT
 // panic; a missing StatefulSet is a valid no-op for deletion.
 func TestDeleteStatefulSpecToleratesMissingStatefulSet(t *testing.T) {
 	restore := swapClient(t, fake.NewSimpleClientset())
@@ -68,7 +68,7 @@ func TestDeleteStatefulSpecDeletesExistingResources(t *testing.T) {
 }
 
 // TestCreateStatefulSetReadsPVCNameFromVolumeConfig covers the case where
-// the datadatdat server returns volume metadata with the per-volume PVC
+// the dit server returns volume metadata with the per-volume PVC
 // name in `Config["pvc"]` (its actual server-generated location), not
 // `Properties["pvc"]`. The StatefulSet produced must reference the
 // server-provided PVC claim name.
@@ -82,13 +82,13 @@ func TestCreateStatefulSetReadsPVCNameFromVolumeConfig(t *testing.T) {
 
 	// Matches the server's actual response shape: path in Properties,
 	// pvc name in Config (see /v1/repositories/<repo>/volumes).
-	vol := datadatdatclient.Volume{
+	vol := ditclient.Volume{
 		Name:       "v0",
 		Properties: map[string]interface{}{"path": "/var/lib/postgresql"},
 		Config:     map[string]interface{}{"pvc": "5d2810f5-v0", "namespace": "default"},
 	}
 
-	err := k.CreateStatefulSet("demo-db", "postgres:latest", []int{5432}, []datadatdatclient.Volume{vol}, nil)
+	err := k.CreateStatefulSet("demo-db", "postgres:latest", []int{5432}, []ditclient.Volume{vol}, nil)
 	if err != nil {
 		t.Fatalf("CreateStatefulSet failed: %v", err)
 	}
@@ -110,10 +110,10 @@ func TestCreateStatefulSetReadsPVCNameFromVolumeConfig(t *testing.T) {
 }
 
 // TestWaitForStatefulSetReturnsWhenStatefulSetMissing covers the case
-// where d3 stop / d3 start runs against a repository whose StatefulSet
+// where dit stop / dit start runs against a repository whose StatefulSet
 // was never created (or was deleted out-of-band). Pre-fix, WaitForStatefulSet
 // busy-looped forever — the BATS suite hit the 10-min CI wall on
-// `d3 stop` because GetStatefulSetStatus returned "detached" and that
+// `dit stop` because GetStatefulSetStatus returned "detached" and that
 // wasn't recognized as terminal.
 func TestWaitForStatefulSetReturnsWhenStatefulSetMissing(t *testing.T) {
 	restore := swapClient(t, fake.NewSimpleClientset())
@@ -186,7 +186,7 @@ func TestPortFromPidFilename(t *testing.T) {
 		wantValid bool
 	}{
 		{"portforward-demo-db-5432.pid", 5432, true},
-		{"/c/Users/x/.datadatdat/portforward-my-repo-8080.pid", 8080, true},
+		{"/c/Users/x/.dit/portforward-my-repo-8080.pid", 8080, true},
 		{"portforward-repo-with-dashes-443.pid", 443, true},
 		{"portforward-demo-db.pid", 0, false}, // missing port
 		{"portforward-demo-db-notanum.pid", 0, false},
@@ -237,7 +237,7 @@ func TestGetStatefulSetStatusReportsRunning(t *testing.T) {
 
 // TestGetStatefulSetStatusWaitsForObservedGeneration covers the race that
 // caused `kubectl exec mydb-0` to fail with "pod does not have a host
-// assigned" right after `d3 checkout`. The flow:
+// assigned" right after `dit checkout`. The flow:
 //
 //  1. Checkout scales the StatefulSet to 0 (Stop), waits.
 //  2. Checkout patches the PVC, then scales back to 1 (Start), waits.
@@ -282,8 +282,8 @@ func TestGetStatefulSetStatusWaitsForObservedGeneration(t *testing.T) {
 }
 
 // TestCreateStatefulSetDetectsOrphanedService covers the case where a
-// previous d3 session left a Service of the same name behind (e.g. user
-// Ctrl-C'd before `d3 rm`). The next `d3 run -n <repo>` must not surface
+// previous dit session left a Service of the same name behind (e.g. user
+// Ctrl-C'd before `dit rm`). The next `dit run -n <repo>` must not surface
 // the raw k8s `services "<repo>" already exists` error; it must fail fast
 // with a recovery hint that tells the user how to clean up. See issue #126.
 func TestCreateStatefulSetDetectsOrphanedService(t *testing.T) {
@@ -296,13 +296,13 @@ func TestCreateStatefulSetDetectsOrphanedService(t *testing.T) {
 	defer restore()
 
 	k := kubernetes{namespace: ns}
-	vol := datadatdatclient.Volume{
+	vol := ditclient.Volume{
 		Name:       "v0",
 		Properties: map[string]interface{}{"path": "/var/lib/postgresql"},
 		Config:     map[string]interface{}{"pvc": "pvc-v0"},
 	}
 
-	err := k.CreateStatefulSet("mydb", "postgres:latest", []int{5432}, []datadatdatclient.Volume{vol}, nil)
+	err := k.CreateStatefulSet("mydb", "postgres:latest", []int{5432}, []ditclient.Volume{vol}, nil)
 	if err == nil {
 		t.Fatal("expected CreateStatefulSet to fail when a Service of the same name already exists, got nil")
 	}
@@ -312,8 +312,8 @@ func TestCreateStatefulSetDetectsOrphanedService(t *testing.T) {
 		"mydb",
 		ns,
 		"service/mydb",
-		"d3 rm",
-		"datadatdatRepository=mydb",
+		"dit rm",
+		"ditRepository=mydb",
 	} {
 		if !strings.Contains(msg, substr) {
 			t.Errorf("error message missing %q; got:\n%s", substr, msg)
@@ -337,13 +337,13 @@ func TestCreateStatefulSetDetectsOrphanedStatefulSet(t *testing.T) {
 	defer restore()
 
 	k := kubernetes{namespace: ns}
-	vol := datadatdatclient.Volume{
+	vol := ditclient.Volume{
 		Name:       "v0",
 		Properties: map[string]interface{}{"path": "/var/lib/postgresql"},
 		Config:     map[string]interface{}{"pvc": "pvc-v0"},
 	}
 
-	err := k.CreateStatefulSet("mydb", "postgres:latest", []int{5432}, []datadatdatclient.Volume{vol}, nil)
+	err := k.CreateStatefulSet("mydb", "postgres:latest", []int{5432}, []ditclient.Volume{vol}, nil)
 	if err == nil {
 		t.Fatal("expected CreateStatefulSet to fail when a StatefulSet of the same name already exists, got nil")
 	}
@@ -353,7 +353,7 @@ func TestCreateStatefulSetDetectsOrphanedStatefulSet(t *testing.T) {
 }
 
 // TestCreateStatefulSetDetectsOrphanedPVC covers the case where the
-// StatefulSet/Service were cleaned up but PVCs labelled with the d3
+// StatefulSet/Service were cleaned up but PVCs labelled with the dit
 // repository remain. Issue #126.
 func TestCreateStatefulSetDetectsOrphanedPVC(t *testing.T) {
 	ns := testNamespace
@@ -361,7 +361,7 @@ func TestCreateStatefulSetDetectsOrphanedPVC(t *testing.T) {
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "v0-mydb-0",
 			Namespace: ns,
-			Labels:    map[string]string{labelDatadatdatRepository: "mydb"},
+			Labels:    map[string]string{labelDitRepository: "mydb"},
 		},
 	}
 	fakeClient := fake.NewSimpleClientset(existingPVC)
@@ -369,13 +369,13 @@ func TestCreateStatefulSetDetectsOrphanedPVC(t *testing.T) {
 	defer restore()
 
 	k := kubernetes{namespace: ns}
-	vol := datadatdatclient.Volume{
+	vol := ditclient.Volume{
 		Name:       "v0",
 		Properties: map[string]interface{}{"path": "/var/lib/postgresql"},
 		Config:     map[string]interface{}{"pvc": "pvc-v0"},
 	}
 
-	err := k.CreateStatefulSet("mydb", "postgres:latest", []int{5432}, []datadatdatclient.Volume{vol}, nil)
+	err := k.CreateStatefulSet("mydb", "postgres:latest", []int{5432}, []ditclient.Volume{vol}, nil)
 	if err == nil {
 		t.Fatal("expected CreateStatefulSet to fail when a labelled PVC for the repo already exists, got nil")
 	}
@@ -388,10 +388,10 @@ func TestCreateStatefulSetDetectsOrphanedPVC(t *testing.T) {
 	}
 }
 
-// TestCreateStatefulSetIgnoresPVCWithoutLabel covers a non-d3 PVC happening
+// TestCreateStatefulSetIgnoresPVCWithoutLabel covers a non-dit PVC happening
 // to share the namespace. We must NOT block on PVCs that don't carry the
-// datadatdatRepository=<repo> label; otherwise random user PVCs would fail
-// d3 runs. Happy path with no orphans should succeed.
+// ditRepository=<repo> label; otherwise random user PVCs would fail
+// dit runs. Happy path with no orphans should succeed.
 func TestCreateStatefulSetIgnoresPVCWithoutLabel(t *testing.T) {
 	ns := testNamespace
 	unrelatedPVC := &v1.PersistentVolumeClaim{
@@ -405,15 +405,15 @@ func TestCreateStatefulSetIgnoresPVCWithoutLabel(t *testing.T) {
 	defer restore()
 
 	k := kubernetes{namespace: ns}
-	vol := datadatdatclient.Volume{
+	vol := ditclient.Volume{
 		Name:       "v0",
 		Properties: map[string]interface{}{"path": "/var/lib/postgresql"},
 		Config:     map[string]interface{}{"pvc": "pvc-v0"},
 	}
 
-	err := k.CreateStatefulSet("mydb", "postgres:latest", []int{5432}, []datadatdatclient.Volume{vol}, nil)
+	err := k.CreateStatefulSet("mydb", "postgres:latest", []int{5432}, []ditclient.Volume{vol}, nil)
 	if err != nil {
-		t.Fatalf("CreateStatefulSet should succeed when no d3-labelled resources exist; got: %v", err)
+		t.Fatalf("CreateStatefulSet should succeed when no dit-labelled resources exist; got: %v", err)
 	}
 }
 
