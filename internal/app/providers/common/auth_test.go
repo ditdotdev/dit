@@ -22,7 +22,7 @@ func TestGetAPIKey_EnvVarOverride(t *testing.T) {
 	data, _ := json.Marshal(creds)
 	_ = os.WriteFile(credsFile, data, 0600)
 
-	key := GetAPIKey(credsFile)
+	key := GetAPIKey(credsFile, "")
 	if key != "env-key-123" {
 		t.Errorf("GetAPIKey() = %q, want %q (env var should override stored)", key, "env-key-123")
 	}
@@ -45,7 +45,7 @@ func TestGetAPIKey_FallsBackToStored(t *testing.T) {
 	data, _ := json.Marshal(creds)
 	_ = os.WriteFile(credsFile, data, 0600)
 
-	key := GetAPIKey(credsFile)
+	key := GetAPIKey(credsFile, "")
 	if key != "stored-key-456" {
 		t.Errorf("GetAPIKey() = %q, want %q", key, "stored-key-456")
 	}
@@ -57,7 +57,7 @@ func TestGetAPIKey_NoCredentials(t *testing.T) {
 		t.Fatalf("failed to unset env: %v", err)
 	}
 
-	key := GetAPIKey("/nonexistent/credentials")
+	key := GetAPIKey("/nonexistent/credentials", "")
 	if key != "" {
 		t.Errorf("GetAPIKey() = %q, want empty string", key)
 	}
@@ -168,7 +168,12 @@ func TestCredentialsPath(t *testing.T) {
 	}
 }
 
-func TestGetAPIKeyForServer(t *testing.T) {
+func TestGetAPIKey_SpecificServer(t *testing.T) {
+	t.Setenv("DIT_API_KEY", "")
+	if err := os.Unsetenv("DIT_API_KEY"); err != nil {
+		t.Fatalf("failed to unset env: %v", err)
+	}
+
 	tmpDir := t.TempDir()
 	credsFile := filepath.Join(tmpDir, "credentials")
 	creds := Credentials{
@@ -193,11 +198,39 @@ func TestGetAPIKeyForServer(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			key := GetAPIKeyForServer(credsFile, tt.server)
+			key := GetAPIKey(credsFile, tt.server)
 			if key != tt.want {
-				t.Errorf("GetAPIKeyForServer(%q) = %q, want %q", tt.server, key, tt.want)
+				t.Errorf("GetAPIKey(%q) = %q, want %q", tt.server, key, tt.want)
 			}
 		})
+	}
+}
+
+// TestGetAPIKey_EnvOverridesSpecificServer verifies the DIT_API_KEY env var takes
+// priority even when a specific server URL is requested. This guards the
+// unified-lookup fix: the former GetAPIKeyForServer ignored the env var, so a
+// sparse credentials file could break auth despite DIT_API_KEY being set.
+func TestGetAPIKey_EnvOverridesSpecificServer(t *testing.T) {
+	t.Setenv("DIT_API_KEY", "env-key-wins")
+
+	tmpDir := t.TempDir()
+	credsFile := filepath.Join(tmpDir, "credentials")
+	creds := Credentials{
+		Servers: map[string]ServerCredential{
+			"http://server-a:8080": {APIKey: "key-a"},
+		},
+		DefaultServer: "http://server-a:8080",
+	}
+	data, _ := json.Marshal(creds)
+	_ = os.WriteFile(credsFile, data, 0600)
+
+	// Env wins for a server present in the file...
+	if key := GetAPIKey(credsFile, "http://server-a:8080"); key != "env-key-wins" {
+		t.Errorf("GetAPIKey(server-a) = %q, want %q (env should override stored)", key, "env-key-wins")
+	}
+	// ...and applies even for a server absent from the file.
+	if key := GetAPIKey(credsFile, "http://unknown:8080"); key != "env-key-wins" {
+		t.Errorf("GetAPIKey(unknown) = %q, want %q (env should apply to any server)", key, "env-key-wins")
 	}
 }
 
@@ -275,7 +308,7 @@ func TestGetAPIKey_NoDefaultServer(t *testing.T) {
 	data, _ := json.Marshal(creds)
 	_ = os.WriteFile(credsFile, data, 0600)
 
-	key := GetAPIKey(credsFile)
+	key := GetAPIKey(credsFile, "")
 	if key != "" {
 		t.Errorf("GetAPIKey() = %q, want empty (no default server)", key)
 	}
@@ -296,7 +329,7 @@ func TestGetAPIKey_DefaultServerNotInMap(t *testing.T) {
 	data, _ := json.Marshal(creds)
 	_ = os.WriteFile(credsFile, data, 0600)
 
-	key := GetAPIKey(credsFile)
+	key := GetAPIKey(credsFile, "")
 	if key != "" {
 		t.Errorf("GetAPIKey() = %q, want empty (default server not in map)", key)
 	}
@@ -312,20 +345,25 @@ func TestGetAPIKey_CorruptFile(t *testing.T) {
 	credsFile := filepath.Join(tmpDir, "credentials")
 	_ = os.WriteFile(credsFile, []byte("corrupt"), 0600)
 
-	key := GetAPIKey(credsFile)
+	key := GetAPIKey(credsFile, "")
 	if key != "" {
 		t.Errorf("GetAPIKey() = %q, want empty (corrupt file)", key)
 	}
 }
 
-func TestGetAPIKeyForServer_CorruptFile(t *testing.T) {
+func TestGetAPIKey_SpecificServerCorruptFile(t *testing.T) {
+	t.Setenv("DIT_API_KEY", "")
+	if err := os.Unsetenv("DIT_API_KEY"); err != nil {
+		t.Fatalf("failed to unset env: %v", err)
+	}
+
 	tmpDir := t.TempDir()
 	credsFile := filepath.Join(tmpDir, "credentials")
 	_ = os.WriteFile(credsFile, []byte("corrupt"), 0600)
 
-	key := GetAPIKeyForServer(credsFile, "http://localhost:8080")
+	key := GetAPIKey(credsFile, "http://localhost:8080")
 	if key != "" {
-		t.Errorf("GetAPIKeyForServer() = %q, want empty (corrupt file)", key)
+		t.Errorf("GetAPIKey() = %q, want empty (corrupt file)", key)
 	}
 }
 

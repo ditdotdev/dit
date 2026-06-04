@@ -6,7 +6,6 @@ import (
 	"github.com/ditdotdev/dit/internal/app/providers/common"
 	"io"
 	"net/http"
-	"os"
 	"time"
 
 	"github.com/spf13/cobra"
@@ -176,14 +175,7 @@ var repoListCmd = &cobra.Command{
 func resolveRepoAuth(server string) (string, string, error) {
 	credsPath := getCredentialsPath()
 
-	apiKey := os.Getenv("DIT_API_KEY")
-	if apiKey == "" {
-		if server != "" {
-			apiKey = common.GetAPIKeyForServer(credsPath, server)
-		} else {
-			apiKey = common.GetAPIKey(credsPath)
-		}
-	}
+	apiKey := common.GetAPIKey(credsPath, server)
 
 	if apiKey == "" {
 		return "", "", fmt.Errorf("not authenticated; run 'dit auth login' or set DIT_API_KEY")

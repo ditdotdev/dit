@@ -16,7 +16,7 @@ func init() {
 	// If DIT_API_KEY is not set, load from stored credentials.
 	// This allows 'dit auth login' to persist credentials for remote operations.
 	if _, hasKey := os.LookupEnv("DIT_API_KEY"); !hasKey {
-		if key := GetAPIKey(CredentialsPath()); key != "" {
+		if key := GetAPIKey(CredentialsPath(), ""); key != "" {
 			_ = os.Setenv("DIT_API_KEY", key)
 		}
 	}
