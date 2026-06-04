@@ -52,11 +52,6 @@ teardown_file() {
   DIT_API_KEY="$ADMIN_KEY" "$D3" repo delete "${FORKER_NS}" custom-fork-name --server "$GATEWAY" 2>/dev/null || true
 
   # Best-effort cleanup: DB repo records
-  run_sql_cmd "DELETE FROM repositories WHERE full_name IN (
-    '${OWNER_NS}/${SOURCE_REPO}',
-    '${FORKER_NS}/${SOURCE_REPO}',
-    '${FORKER_NS}/custom-fork-name'
-  );" 2>/dev/null || true
 }
 
 # ===== Setup: d3-ghtest1 creates and populates a source repo =====
@@ -69,15 +64,12 @@ teardown_file() {
   assert_output --partial "$SOURCE_REPO"
 }
 
-@test "xfork: register source repo as public in permissions DB" {
-  # The repo must be registered in the permissions DB so the auth gateway
-  # allows cross-user read access (fork requires read on source).
-  run run_sql_cmd \
-    "INSERT INTO repositories (namespace, name, full_name, is_private, owner_type, owner_id, created_by)
-     SELECT '${OWNER_NS}', '${SOURCE_REPO}', '${OWNER_NS}/${SOURCE_REPO}', false,
-            'user', u.id, u.id
-     FROM users u WHERE u.github_login = 'd3-ghtest1'
-     ON CONFLICT (full_name) DO UPDATE SET is_private = false;"
+@test "xfork: make source repo public" {
+  # The source repo is registered automatically on create; make it public via the
+  # API so cross-user read is allowed (fork requires read access on the source).
+  run curl -sf -X PATCH -H "Authorization: Bearer $ADMIN_KEY" -H "Content-Type: application/json" \
+    -d '{"isPrivate":false}' \
+    "$AUTH_SERVER/api/v1/repos/${OWNER_NS}/${SOURCE_REPO}/visibility"
   assert_success
 }
 
@@ -179,14 +171,14 @@ teardown_file() {
   assert_output --partial "forkedFrom"
 }
 
-@test "xfork: verify fork registered in permissions DB" {
-  run run_sql_raw \
-    "SELECT full_name, forked_from IS NOT NULL AS is_fork
-     FROM repositories
-     WHERE full_name = '${FORKER_NS}/${SOURCE_REPO}';"
+@test "xfork: verify fork registered (readable by the forker)" {
+  # Fork registration is what makes the new repo resolvable and readable to the
+  # forker; a successful authenticated GET as d3-ghtest2 confirms it (the fork's
+  # forked_from linkage was asserted in the fork response above).
+  run curl -s -o /dev/null -w "%{http_code}" -H "Authorization: Bearer $GHTEST2_KEY" \
+    "$GATEWAY/api/v1/repos/${FORKER_NS}/${SOURCE_REPO}"
   assert_success
-  assert_output --partial "${FORKER_NS}/${SOURCE_REPO}"
-  assert_output --partial "t"
+  assert_output "200"
 }
 
 @test "xfork: verify forked repo has all commits via d3-ghtest2's key" {
@@ -255,7 +247,6 @@ teardown_file() {
   # Delete the fork we created earlier (API + DB) but leave orphaned S3 data behind
   curl -X DELETE -sf -H "Authorization: Bearer $ADMIN_KEY" \
     "$GATEWAY/api/v1/repos/${FORKER_NS}/${SOURCE_REPO}" 2>/dev/null || true
-  run_sql_cmd "DELETE FROM repositories WHERE full_name = '${FORKER_NS}/${SOURCE_REPO}';" 2>/dev/null || true
 }
 
 @test "xfork: plant orphaned journal entry in target namespace" {
@@ -314,9 +305,10 @@ teardown_file() {
 @test "xfork: d3-ghtest3 can read forked repo commits" {
   # In PROD, orphan tests are skipped and the fork was cleaned up in test 21.
   # Re-fork if needed so this test has a repo to read.
-  local count
-  count=$(run_sql_raw "SELECT COUNT(*) FROM repositories WHERE full_name = '${FORKER_NS}/${SOURCE_REPO}';" | tr -d '[:space:]')
-  if [[ "$count" != "1" ]]; then
+  local code
+  code=$(curl -s -o /dev/null -w "%{http_code}" -H "X-API-Key: $ADMIN_KEY" \
+    "$GATEWAY/api/v1/repos/${FORKER_NS}/${SOURCE_REPO}")
+  if [[ "$code" != "200" ]]; then
     run curl -X POST -sf \
       -H "Authorization: Bearer $GHTEST2_KEY" \
       -H "Content-Type: application/json" \
@@ -325,10 +317,10 @@ teardown_file() {
     assert_success
   fi
 
-  # Register the fork as public so d3-ghtest3 can read it
-  run run_sql_cmd \
-    "UPDATE repositories SET is_private = false
-     WHERE full_name = '${FORKER_NS}/${SOURCE_REPO}';"
+  # Make the fork public so d3-ghtest3 can read it
+  run curl -sf -X PATCH -H "Authorization: Bearer $ADMIN_KEY" -H "Content-Type: application/json" \
+    -d '{"isPrivate":false}' \
+    "$AUTH_SERVER/api/v1/repos/${FORKER_NS}/${SOURCE_REPO}/visibility"
   assert_success
 
   COMMIT_1=$(cat "$BATS_TMPDIR/xfork_commit_1.txt")
@@ -349,10 +341,4 @@ teardown_file() {
   DIT_API_KEY="$ADMIN_KEY" "$D3" repo delete "${FORKER_NS}" "${SOURCE_REPO}" --server "$GATEWAY" 2>/dev/null || true
   run env DIT_API_KEY="$ADMIN_KEY" "$D3" repo delete "${OWNER_NS}" "${SOURCE_REPO}" --server "$GATEWAY"
   assert_success
-
-  run_sql_cmd "DELETE FROM repositories WHERE full_name IN (
-    '${OWNER_NS}/${SOURCE_REPO}',
-    '${FORKER_NS}/${SOURCE_REPO}',
-    '${FORKER_NS}/custom-fork-name'
-  );" 2>/dev/null || true
 }

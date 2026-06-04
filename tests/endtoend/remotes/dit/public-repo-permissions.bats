@@ -32,53 +32,107 @@ PERM_ORG="permtest-org"
 PUB_REPO="perm-public"
 PRIV_REPO="perm-private"
 
-# Helper: create a repo in the manifest store and register it in the permissions DB
+# NOTE: these tests drive the server through the dit CLI and the public HTTP API
+# only - no raw SQL. Repo create/delete use the CLI; visibility, collaborators and
+# org membership use the auth-server API because the CLI has no equivalent commands
+# yet (tracked in ditdotdev/dit#173 - replace these API calls with CLI as those
+# commands land).
+
+# Resolve a seeded test user's UUID. There is no user-lookup API, so authenticate
+# as the user against /api/me, which returns the caller's id.
+user_id_for_key() {
+  curl -sf -H "X-API-Key: $1" "$AUTH_SERVER/api/me" 2>/dev/null | jq -r '.id'
+}
+
+# Helper: create an org-owned repo via the CLI, then set its visibility via the API.
+# is_private is "true" or "false".
 create_and_register_repo() {
   local org="$1" repo="$2" is_private="$3"
-  curl -sf -X POST -H "Authorization: Bearer $ADMIN_KEY" \
-    "$GATEWAY/api/v1/repos/${org}/${repo}" >/dev/null 2>&1 || true
-  run_sql_cmd \
-    "INSERT INTO repositories (namespace, name, full_name, is_private, owner_type, owner_id, created_by)
-     SELECT '${org}', '${repo}', '${org}/${repo}', ${is_private},
-            'organization', o.id, (SELECT id FROM users WHERE github_login = 'd3-ghtest1')
-     FROM organizations o WHERE o.name = '${org}'
-     ON CONFLICT (full_name) DO UPDATE SET is_private = ${is_private};" >/dev/null 2>&1
+  DIT_API_KEY="$ADMIN_KEY" "$D3" repo create "$org" "$repo" --server "$GATEWAY" >/dev/null 2>&1 || true
+  curl -sf -X PATCH -H "Authorization: Bearer $ADMIN_KEY" -H "Content-Type: application/json" \
+    -d "{\"isPrivate\":${is_private}}" \
+    "$AUTH_SERVER/api/v1/repos/${org}/${repo}/visibility" >/dev/null 2>&1 || true
 }
 
-# Helper: delete a repo from manifest store and permissions DB
+# Helper: delete a repo via the CLI.
 delete_repo() {
   local org="$1" repo="$2"
-  curl -sf -X DELETE -H "Authorization: Bearer $ADMIN_KEY" \
-    "$GATEWAY/api/v1/repos/${org}/${repo}" >/dev/null 2>&1 || true
-  run_sql_cmd "DELETE FROM repositories WHERE full_name = '${org}/${repo}';" >/dev/null 2>&1 || true
+  DIT_API_KEY="$ADMIN_KEY" "$D3" repo delete "$org" "$repo" --server "$GATEWAY" >/dev/null 2>&1 || true
 }
 
-# Helper: set d3-ghtest2's collaborator permission on a repo (or remove it)
+# Helper: set d3-ghtest2's collaborator permission on a repo (or remove it).
 set_collab() {
   local repo_full="$1" permission="$2"
-  run_sql_cmd "DELETE FROM repo_collaborators WHERE repo_id = (SELECT id FROM repositories WHERE full_name = '${repo_full}') AND user_id = (SELECT id FROM users WHERE github_login = 'd3-ghtest2');" >/dev/null 2>&1
+  local ns="${repo_full%%/*}" name="${repo_full##*/}"
+  curl -sf -X DELETE -H "Authorization: Bearer $ADMIN_KEY" \
+    "$AUTH_SERVER/api/v1/repos/${ns}/${name}/collaborators/${GHTEST2_ID}" >/dev/null 2>&1 || true
   if [[ -n "$permission" ]]; then
-    run_sql_cmd "INSERT INTO repo_collaborators (repo_id, user_id, permission) VALUES ((SELECT id FROM repositories WHERE full_name = '${repo_full}'), (SELECT id FROM users WHERE github_login = 'd3-ghtest2'), '${permission}');" >/dev/null 2>&1
+    curl -sf -X POST -H "Authorization: Bearer $ADMIN_KEY" -H "Content-Type: application/json" \
+      -d "{\"userId\":\"${GHTEST2_ID}\",\"permission\":\"${permission}\"}" \
+      "$AUTH_SERVER/api/v1/repos/${ns}/${name}/collaborators" >/dev/null 2>&1 || true
   fi
 }
 
-# Helper: set d3-ghtest2's org membership role (or remove it)
+# Helper: set d3-ghtest2's org membership role (or remove it). Member management
+# requires an org owner/admin (the global is_admin bypass does not apply here), so
+# these calls act as d3-ghtest1, who owns PERM_ORG.
 set_org_role() {
   local role="$1"
-  run_sql_cmd "DELETE FROM org_memberships WHERE org_id = (SELECT id FROM organizations WHERE name = '${PERM_ORG}') AND user_id = (SELECT id FROM users WHERE github_login = 'd3-ghtest2');" >/dev/null 2>&1
+  curl -sf -X DELETE -H "X-API-Key: $GHTEST1_KEY" \
+    "$AUTH_SERVER/api/v1/orgs/${PERM_ORG}/members/${GHTEST2_ID}" >/dev/null 2>&1 || true
   if [[ -n "$role" ]]; then
-    run_sql_cmd "INSERT INTO org_memberships (org_id, user_id, role) VALUES ((SELECT id FROM organizations WHERE name = '${PERM_ORG}'), (SELECT id FROM users WHERE github_login = 'd3-ghtest2'), '${role}');" >/dev/null 2>&1
+    curl -sf -X POST -H "X-API-Key: $GHTEST1_KEY" -H "Content-Type: application/json" \
+      -d "{\"githubLogin\":\"d3-ghtest2\",\"role\":\"${role}\"}" \
+      "$AUTH_SERVER/api/v1/orgs/${PERM_ORG}/members" >/dev/null 2>&1 || true
   fi
 }
 
-# Helper: ensure repo exists (re-create if a previous test's bug deleted it)
+# Helper: ensure repo exists (re-create if a previous test deleted it). Existence is
+# checked against the gateway (which reflects the manifest store, the source of
+# truth for reads) as admin, so a stale permissions-DB row can't mask a deleted repo.
 ensure_repo() {
   local org="$1" repo="$2" is_private="$3"
-  local count
-  count=$(run_sql_raw "SELECT COUNT(*) FROM repositories WHERE full_name = '${org}/${repo}';" | tr -d '[:space:]')
-  if [[ "$count" != "1" ]]; then
+  local code
+  code=$(curl -s -o /dev/null -w "%{http_code}" -H "X-API-Key: $ADMIN_KEY" \
+    "$GATEWAY/api/v1/repos/${org}/${repo}")
+  if [[ "$code" != "200" ]]; then
     create_and_register_repo "$org" "$repo" "$is_private"
   fi
+}
+
+# Helper: reset PERM_ORG fixtures between runs. Deletes the repos (via CLI) and
+# removes d3-ghtest2 from the org so each run starts from a known state. The org
+# itself is left in place as a persistent fixture: org deletion does not free its
+# namespace and there is no namespace-delete API, so re-creating it would fail with
+# "namespace already taken". Org creation is therefore idempotent (see the create
+# test). ghtest2's per-repo collaborator rows go away with the repos.
+cleanup_perm_fixtures() {
+  delete_repo "$PERM_ORG" "$PUB_REPO"
+  delete_repo "$PERM_ORG" "$PRIV_REPO"
+  # Remove ghtest2's org membership if present (best-effort; needs the owner key).
+  if [[ -n "$GHTEST2_ID" ]]; then
+    curl -sf -X DELETE -H "X-API-Key: $GHTEST1_KEY" \
+      "$AUTH_SERVER/api/v1/orgs/${PERM_ORG}/members/${GHTEST2_ID}" >/dev/null 2>&1 || true
+  fi
+}
+
+# Verification helpers: read state back via the API (no SQL).
+# get_repo_isprivate <org/repo> -> "true"|"false"
+get_repo_isprivate() {
+  curl -sf -H "Authorization: Bearer $ADMIN_KEY" \
+    "$AUTH_SERVER/api/v1/repos/$1/visibility" 2>/dev/null | jq -r '.isPrivate'
+}
+# get_collab_permission <org/repo> -> d3-ghtest2's permission ("" if none)
+get_collab_permission() {
+  curl -sf -H "Authorization: Bearer $ADMIN_KEY" \
+    "$AUTH_SERVER/api/v1/repos/$1/collaborators" 2>/dev/null \
+    | jq -r --arg id "$GHTEST2_ID" '.[] | select(.userId==$id) | .permission'
+}
+# get_org_role -> d3-ghtest2's role in PERM_ORG ("" if not a member)
+get_org_role() {
+  curl -sf -H "Authorization: Bearer $ADMIN_KEY" \
+    "$AUTH_SERVER/api/v1/orgs/${PERM_ORG}/members" 2>/dev/null \
+    | jq -r --arg id "$GHTEST2_ID" '.[] | select(.userId==$id) | .role'
 }
 
 # ========================================
@@ -89,24 +143,14 @@ setup_file() {
   run curl -s "$GATEWAY/health"
   [[ "$output" == *"${HEALTH_EXPECT}"* ]] || { echo "Gateway not running"; return 1; }
 
-  if is_dev; then
-    run docker exec dit-postgres pg_isready -U dit
-    [[ "$output" == *"accepting connections"* ]] || { echo "Postgres not ready"; return 1; }
-  fi
+  # Resolve test-user UUIDs once for the collaborator/member APIs (which key on userId).
+  GHTEST2_ID=$(user_id_for_key "$GHTEST2_KEY")
+  GHTEST3_ID=$(user_id_for_key "$GHTEST3_KEY")
+  export GHTEST2_ID GHTEST3_ID
 }
 
 teardown_file() {
-  curl -sf -X DELETE -H "Authorization: Bearer $ADMIN_KEY" \
-    "$GATEWAY/api/v1/repos/${PERM_ORG}/${PUB_REPO}" 2>/dev/null || true
-  curl -sf -X DELETE -H "Authorization: Bearer $ADMIN_KEY" \
-    "$GATEWAY/api/v1/repos/${PERM_ORG}/${PRIV_REPO}" 2>/dev/null || true
-
-  run_sql_cmd \
-    "DELETE FROM repo_collaborators WHERE repo_id IN (SELECT id FROM repositories WHERE namespace = '${PERM_ORG}');
-     DELETE FROM repositories WHERE namespace = '${PERM_ORG}';
-     DELETE FROM org_memberships WHERE org_id IN (SELECT id FROM organizations WHERE name = '${PERM_ORG}');
-     DELETE FROM organizations WHERE name = '${PERM_ORG}';
-     DELETE FROM namespaces WHERE name = '${PERM_ORG}';" 2>/dev/null || true
+  cleanup_perm_fixtures
 }
 
 # ========================================
@@ -131,12 +175,7 @@ teardown_file() {
 # ========================================
 
 @test "perms: cleanup previous test data" {
-  run run_sql_cmd \
-    "DELETE FROM repo_collaborators WHERE repo_id IN (SELECT id FROM repositories WHERE namespace = '${PERM_ORG}');
-     DELETE FROM repositories WHERE namespace = '${PERM_ORG}';
-     DELETE FROM org_memberships WHERE org_id IN (SELECT id FROM organizations WHERE name = '${PERM_ORG}');
-     DELETE FROM organizations WHERE name = '${PERM_ORG}';
-     DELETE FROM namespaces WHERE name = '${PERM_ORG}';"
+  run cleanup_perm_fixtures
   assert_success
 }
 
@@ -147,21 +186,23 @@ teardown_file() {
     -d "{\"name\":\"${PERM_ORG}\",\"displayName\":\"Permissions Test Org\"}" \
     "$AUTH_SERVER/api/v1/orgs"
   assert_success
-  assert_output --partial "201"
+  # Idempotent: 201 the first time; on reruns the org (and its namespace, which has
+  # no delete API) persist, so creation returns 409 "already taken". Both are fine.
+  [[ "$output" == *"201"* || "$output" == *"already taken"* ]]
 }
 
 @test "perms: create public repo" {
   create_and_register_repo "$PERM_ORG" "$PUB_REPO" "false"
-  run run_sql_raw "SELECT is_private FROM repositories WHERE full_name = '${PERM_ORG}/${PUB_REPO}';"
+  run get_repo_isprivate "${PERM_ORG}/${PUB_REPO}"
   assert_success
-  assert_output "f"
+  assert_output "false"
 }
 
 @test "perms: create private repo" {
   create_and_register_repo "$PERM_ORG" "$PRIV_REPO" "true"
-  run run_sql_raw "SELECT is_private FROM repositories WHERE full_name = '${PERM_ORG}/${PRIV_REPO}';"
+  run get_repo_isprivate "${PERM_ORG}/${PRIV_REPO}"
   assert_success
-  assert_output "t"
+  assert_output "true"
 }
 
 # ========================================
@@ -247,7 +288,7 @@ teardown_file() {
   set_collab "${PERM_ORG}/${PRIV_REPO}" ""
   set_org_role "member"
 
-  run run_sql_raw "SELECT role FROM org_memberships WHERE org_id = (SELECT id FROM organizations WHERE name = '${PERM_ORG}') AND user_id = (SELECT id FROM users WHERE github_login = 'd3-ghtest2');"
+  run get_org_role
   assert_success
   assert_output "member"
 }
@@ -303,7 +344,7 @@ teardown_file() {
   set_collab "${PERM_ORG}/${PUB_REPO}" "read"
   set_collab "${PERM_ORG}/${PRIV_REPO}" "read"
 
-  run run_sql_raw "SELECT permission FROM repo_collaborators WHERE repo_id = (SELECT id FROM repositories WHERE full_name = '${PERM_ORG}/${PUB_REPO}') AND user_id = (SELECT id FROM users WHERE github_login = 'd3-ghtest2');"
+  run get_collab_permission "${PERM_ORG}/${PUB_REPO}"
   assert_success
   assert_output "read"
 }
@@ -358,7 +399,7 @@ teardown_file() {
   set_collab "${PERM_ORG}/${PUB_REPO}" "write"
   set_collab "${PERM_ORG}/${PRIV_REPO}" "write"
 
-  run run_sql_raw "SELECT permission FROM repo_collaborators WHERE repo_id = (SELECT id FROM repositories WHERE full_name = '${PERM_ORG}/${PUB_REPO}') AND user_id = (SELECT id FROM users WHERE github_login = 'd3-ghtest2');"
+  run get_collab_permission "${PERM_ORG}/${PUB_REPO}"
   assert_success
   assert_output "write"
 }
@@ -420,7 +461,7 @@ teardown_file() {
   set_collab "${PERM_ORG}/${PUB_REPO}" "admin"
   set_collab "${PERM_ORG}/${PRIV_REPO}" "admin"
 
-  run run_sql_raw "SELECT permission FROM repo_collaborators WHERE repo_id = (SELECT id FROM repositories WHERE full_name = '${PERM_ORG}/${PUB_REPO}') AND user_id = (SELECT id FROM users WHERE github_login = 'd3-ghtest2');"
+  run get_collab_permission "${PERM_ORG}/${PUB_REPO}"
   assert_success
   assert_output "admin"
 }
@@ -481,7 +522,7 @@ teardown_file() {
   set_collab "${PERM_ORG}/${PRIV_REPO}" ""
   set_org_role "admin"
 
-  run run_sql_raw "SELECT role FROM org_memberships WHERE org_id = (SELECT id FROM organizations WHERE name = '${PERM_ORG}') AND user_id = (SELECT id FROM users WHERE github_login = 'd3-ghtest2');"
+  run get_org_role
   assert_success
   assert_output "admin"
 }
