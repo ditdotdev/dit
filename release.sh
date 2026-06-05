@@ -37,15 +37,19 @@ set -euo pipefail
 # Configuration
 # ============================================================================
 
-WORKSPACE="/c/dev/dit"
-ORG="dit"
+# WORKSPACE is the directory containing all the cloned repos. Each repo must be
+# checked out under its post-rename name (dit, dit-server, dit-remote-go,
+# dit-client-go, dit-docker-proxy, dit-remote-server, remote-sdk-go, ...).
+# Override with DIT_WORKSPACE if your checkout lives elsewhere.
+WORKSPACE="${DIT_WORKSPACE:-/c/dev/dit}"
+ORG="ditdotdev"
 MAVEN_BUCKET="dit-maven"
 PROD_RELEASES_BUCKET="dit-releases-prod"
 DEV_RELEASES_BUCKET="dit-releases"
 DEV_MINIO_ENDPOINT="localhost:9000"
 ECR_REGION="us-west-2"
 ECS_CLUSTER="dit-prod"
-STATE_DIR="$WORKSPACE/ditdotdev/.release-state"
+STATE_DIR="$WORKSPACE/dit/.release-state"
 
 GO_PROVIDERS=(s3-remote-go ssh-remote-go s3web-remote-go nop-remote-go dit-remote-go)
 KOTLIN_PROVIDERS=(s3-remote ssh-remote s3web-remote nop-remote delphix-remote dit-remote)
@@ -376,7 +380,7 @@ get_completed_phase() {
 detect_prev_version() {
     # Auto-detect previous version from go.mod
     local prev
-    prev=$(grep 'github.com/ditdotdev/remote-sdk-go' "$WORKSPACE/ditdotdev/go.mod" | awk '{print $2}' | sed 's/^v//')
+    prev=$(grep 'github.com/ditdotdev/remote-sdk-go' "$WORKSPACE/dit/go.mod" | awk '{print $2}' | sed 's/^v//')
     echo "$prev"
 }
 
@@ -863,7 +867,7 @@ phase_cli() {
 
     # Update BATS test version expectations
     log_step "Updating BATS test version expectations..."
-    local bats_file="$repo_path/tests/endtoend/remotes/ditdotdev/dit-workflow.bats"
+    local bats_file="$repo_path/tests/endtoend/remotes/dit/dit-workflow.bats"
     if [ -f "$bats_file" ] && ! $DRY_RUN; then
         sed -i "s/v${PREV_VERSION}/v${VERSION}/g" "$bats_file"
         log_success "Updated dit-workflow.bats versions"
@@ -872,20 +876,27 @@ phase_cli() {
     # Update DOWNLOAD_TEST_VERSION in both PROD and DEV sections of env.bash
     # This must happen BEFORE tagging so the tag includes these changes,
     # since dit-remote-server E2E checks out the CLI at this tag.
-    local env_file="$repo_path/tests/endtoend/remotes/ditdotdev/env.bash"
+    local env_file="$repo_path/tests/endtoend/remotes/dit/env.bash"
     log_step "Updating DOWNLOAD_TEST_VERSION (PROD + DEV) to v$VERSION..."
     if ! $DRY_RUN; then
-        sed -i "s/DOWNLOAD_TEST_VERSION:-v[0-9.]*}/DOWNLOAD_TEST_VERSION:-v$VERSION}/g" "$env_file"
-        log_success "DOWNLOAD_TEST_VERSION updated in both PROD and DEV sections"
+        # Guard against a moved/renamed env file: under `set -e` an unguarded
+        # sed on a missing path aborts the whole release mid-phase.
+        if [ -f "$env_file" ]; then
+            sed -i "s/DOWNLOAD_TEST_VERSION:-v[0-9.]*}/DOWNLOAD_TEST_VERSION:-v$VERSION}/g" "$env_file"
+            log_success "DOWNLOAD_TEST_VERSION updated in both PROD and DEV sections"
+        else
+            log_error "env file not found at $env_file — DOWNLOAD_TEST_VERSION not updated"
+            exit 1
+        fi
     fi
 
     # Commit dependency updates + env.bash
     if ! $DRY_RUN; then
         cd "$repo_path"
         if [ -n "$(git status --porcelain)" ]; then
-            local files_to_add=(go.mod go.sum tests/endtoend/remotes/ditdotdev/env.bash)
+            local files_to_add=(go.mod go.sum tests/endtoend/remotes/dit/env.bash)
             if [ -f "$bats_file" ] && git diff --name-only | grep -q "dit-workflow.bats"; then
-                files_to_add+=(tests/endtoend/remotes/ditdotdev/dit-workflow.bats)
+                files_to_add+=(tests/endtoend/remotes/dit/dit-workflow.bats)
             fi
             commit_and_push "$repo_path" "Release v$VERSION: Update all dependencies" "${files_to_add[@]}"
         fi
