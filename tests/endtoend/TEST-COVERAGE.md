@@ -17,16 +17,16 @@ This document tracks E2E test coverage for every dit CLI command and user path.
 | `dit install` | Covered | `infrastructure/install.bats` | |
 | `dit uninstall` | Covered | `infrastructure/uninstall.bats` | `--force`, `--remove-images` tested |
 | `dit upgrade` | Covered | `infrastructure/upgrade.bats` | Idempotent upgrade tested |
-| `dit ls` | Covered | `getting-started/getting-started.bats`, `remotes/ditdotdev/dit-workflow.bats` | |
+| `dit ls` | Covered | `getting-started/getting-started.bats`, `remotes/dit/dit-workflow.bats` | |
 | `dit run` | Covered | `getting-started/getting-started.bats`, `context/docker/docker-tests.bats` | `-e`, `-P`, `-n` flags tested |
 | `dit start` | Covered | `container-lifecycle/container-lifecycle.bats` | Start previously stopped container |
 | `dit stop` | Covered | `container-lifecycle/container-lifecycle.bats` | Stop running container |
-| `dit status` | Covered | `container-lifecycle/container-lifecycle.bats`, `remotes/ditdotdev/dit-workflow.bats` | Running and stopped states |
+| `dit status` | Covered | `container-lifecycle/container-lifecycle.bats`, `remotes/dit/dit-workflow.bats` | Running and stopped states |
 | `dit rm` | Covered | `getting-started/getting-started.bats`, `remotes/ssh/ssh-workflow.bats` | `-f` flag tested |
 | `dit commit` | Covered | `getting-started/getting-started.bats`, `remotes/s3/s3-workflow.bats` | `-m`, `-t` flags tested |
 | `dit checkout` | Covered | `getting-started/getting-started.bats`, `tags/tag-management.bats` | `--commit` and `--tags` tested |
 | `dit log` | Covered | `remotes/ssh/ssh-workflow.bats`, `tags/tag-management.bats` | `--tags` filter tested |
-| `dit clone` | Covered | `getting-started/getting-started.bats`, `remotes/ditdotdev/clone-commit-workflow.bats` | `-c`, `-n`, `-P`, `-t` tested |
+| `dit clone` | Covered | `getting-started/getting-started.bats`, `remotes/dit/clone-commit-workflow.bats` | `-c`, `-n`, `-P`, `-t` tested |
 | `dit cp` | Covered | `data-import/data-import.bats` | `-s`, `-d` flags tested |
 | `dit migrate` | Covered | `data-import/data-import.bats` | Unmanaged container migration |
 | `dit tag` | Covered | `tags/tag-management.bats` | Standalone `dit tag` with `-c`, `-t` |
@@ -36,14 +36,14 @@ This document tracks E2E test coverage for every dit CLI command and user path.
 
 | Command | Status | Test File(s) | Notes |
 |---------|--------|-------------|-------|
-| `dit push` | Covered | `remotes/s3/s3-workflow.bats`, `remotes/ssh/ssh-workflow.bats`, `remotes/ditdotdev/dit-workflow.bats` | `-c`, `-r`, `-t` tested |
+| `dit push` | Covered | `remotes/s3/s3-workflow.bats`, `remotes/ssh/ssh-workflow.bats`, `remotes/dit/dit-workflow.bats` | `-c`, `-r`, `-t` tested |
 | `dit push --update-only` | Covered | `push-pull/push-pull-options.bats` | Tag-only sync via S3 |
-| `dit pull` | Covered | `remotes/ssh/ssh-workflow.bats`, `remotes/ditdotdev/dit-workflow.bats` | |
+| `dit pull` | Covered | `remotes/ssh/ssh-workflow.bats`, `remotes/dit/dit-workflow.bats` | |
 | `dit pull --update-only` | Covered | `push-pull/push-pull-options.bats` | Tag-only sync via S3 |
-| `dit push --tags` (dit) | Covered | `remotes/ditdotdev/push-pull-tags-remote.bats` | Tag-filtered push on dit remote |
-| `dit pull --tags` (dit) | Covered | `remotes/ditdotdev/push-pull-tags-remote.bats` | Tag-filtered pull on dit remote |
+| `dit push --tags` (dit) | Covered | `remotes/dit/push-pull-tags-remote.bats` | Tag-filtered push on dit remote |
+| `dit pull --tags` (dit) | Covered | `remotes/dit/push-pull-tags-remote.bats` | Tag-filtered pull on dit remote |
 | `dit clone` | Covered | `getting-started/getting-started.bats`, `tags/clone-tags.bats` | S3Web, S3, dit remotes |
-| `dit abort` | Covered | `remotes/ditdotdev/abort-workflow.bats` | No-op abort and basic abort |
+| `dit abort` | Covered | `remotes/dit/abort-workflow.bats` | No-op abort and basic abort |
 | `dit remote add` | Covered | `remotes/s3/s3-workflow.bats`, `remotes/ssh/ssh-workflow.bats` | S3, SSH, dit remotes |
 | `dit remote ls` | Covered | `remotes/s3/s3-workflow.bats`, `remotes/ssh/ssh-workflow.bats` | |
 | `dit remote log` | Covered | `remotes/s3/s3-workflow.bats`, `remotes/ssh/ssh-workflow.bats` | |
@@ -62,16 +62,16 @@ This document tracks E2E test coverage for every dit CLI command and user path.
 
 | Command | Status | Test File(s) | Notes |
 |---------|--------|-------------|-------|
-| `dit auth login` | Covered | `remotes/ditdotdev/org-workflow.bats`, `remotes/ditdotdev/auth-status.bats` | `--api-key`, `--server` |
-| `dit auth status` | Covered | `remotes/ditdotdev/auth-status.bats` | Before/after login/logout |
-| `dit auth logout` | Covered | `remotes/ditdotdev/org-workflow.bats`, `remotes/ditdotdev/auth-status.bats` | |
+| `dit auth login` | Covered | `remotes/dit/org-workflow.bats`, `remotes/dit/auth-status.bats` | `--api-key`, `--server` |
+| `dit auth status` | Covered | `remotes/dit/auth-status.bats` | Before/after login/logout |
+| `dit auth logout` | Covered | `remotes/dit/org-workflow.bats`, `remotes/dit/auth-status.bats` | |
 
 ### Organization Commands
 
 | Command | Status | Test File(s) | Notes |
 |---------|--------|-------------|-------|
-| `dit org list` | Covered | `remotes/ditdotdev/org-workflow.bats` | Full CRUD lifecycle |
-| `dit org ls` | Covered | `remotes/ditdotdev/org-workflow.bats` | Alias verified |
+| `dit org list` | Covered | `remotes/dit/org-workflow.bats` | Full CRUD lifecycle |
+| `dit org ls` | Covered | `remotes/dit/org-workflow.bats` | Alias verified |
 
 ### Error Handling
 
@@ -112,14 +112,14 @@ Requires: Docker, dit binary, dit-remote-server running locally
 | Target | BATS File |
 |--------|-----------|
 | `test-install` | `infrastructure/install.bats` |
-| `test-dit-workflow` | `remotes/ditdotdev/dit-workflow.bats` |
-| `test-clone-commit-workflow` | `remotes/ditdotdev/clone-commit-workflow.bats` |
-| `test-auth-workflow` | `remotes/ditdotdev/auth-workflow.bats` |
-| `test-auth-status` | `remotes/ditdotdev/auth-status.bats` |
-| `test-org-workflow` | `remotes/ditdotdev/org-workflow.bats` |
-| `test-billing-workflow` | `remotes/ditdotdev/billing-workflow.bats` |
-| `test-abort-workflow` | `remotes/ditdotdev/abort-workflow.bats` |
-| `test-push-pull-tags-remote` | `remotes/ditdotdev/push-pull-tags-remote.bats` |
+| `test-dit-workflow` | `remotes/dit/dit-workflow.bats` |
+| `test-clone-commit-workflow` | `remotes/dit/clone-commit-workflow.bats` |
+| `test-auth-workflow` | `remotes/dit/auth-workflow.bats` |
+| `test-auth-status` | `remotes/dit/auth-status.bats` |
+| `test-org-workflow` | `remotes/dit/org-workflow.bats` |
+| `test-billing-workflow` | `remotes/dit/billing-workflow.bats` |
+| `test-abort-workflow` | `remotes/dit/abort-workflow.bats` |
+| `test-push-pull-tags-remote` | `remotes/dit/push-pull-tags-remote.bats` |
 | `test-uninstall` | `infrastructure/uninstall.bats` |
 
 ### Standalone Targets (not in e2e or e2e-server)
@@ -128,9 +128,9 @@ Requires: Docker, dit binary, dit-remote-server running locally
 |--------|-----------|-------|
 | `test-multi-context` | `multi-context/multi-context.bats` | Excluded pending CI diagnosis |
 | `test-db-matrix` | `db-matrix/db-matrix.bats` | Excluded pending CI diagnosis |
-| `test-stripe-integration` | `remotes/ditdotdev/stripe-integration.bats` | Requires Stripe API keys |
-| `test-dit-workflow-prod` | `remotes/ditdotdev/dit-workflow-prod.bats` | Production environment |
-| `test-auth-workflow-prod` | `remotes/ditdotdev/auth-workflow-prod.bats` | Production environment |
+| `test-stripe-integration` | `remotes/dit/stripe-integration.bats` | Requires Stripe API keys |
+| `test-dit-workflow-prod` | `remotes/dit/dit-workflow-prod.bats` | Production environment |
+| `test-auth-workflow-prod` | `remotes/dit/auth-workflow-prod.bats` | Production environment |
 
 ## Flag Coverage Detail
 

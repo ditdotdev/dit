@@ -16,7 +16,7 @@
 # build commits on top of that pod, push, then clone into fresh repos.
 
 load '../../test_helper'
-load '../../remotes/ditdotdev/env'
+load '../../remotes/dit/env'
 
 CTX="k8sremotetest"
 REPO="commit-test"
