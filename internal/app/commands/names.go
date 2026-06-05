@@ -25,6 +25,7 @@ const (
 	flagPublic     = "public"
 	flagPermission = "permission"
 	flagRole       = "role"
+	flagOutput     = "output"
 
 	// Used both as a cobra flag identifier (clone/context/fork/run --name)
 	// and as a JSON key in the org request/response body. Same string,

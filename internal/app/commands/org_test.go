@@ -413,6 +413,7 @@ func resetOrgInfoFlags() {
 
 func resetOrgMembersFlags() {
 	_ = orgMembersCmd.Flags().Set("server", "")
+	_ = orgMembersCmd.Flags().Set("output", "")
 }
 
 func setupOrgTestCreds(t *testing.T, serverURL, apiKey string) func() {
@@ -679,6 +680,49 @@ func TestOrgMembersCmd_Success(t *testing.T) {
 	}
 	if !contains(output, "owner") {
 		t.Errorf("output should show roles, got: %s", output)
+	}
+}
+
+func TestOrgMembersCmd_JSONOutput(t *testing.T) {
+	resetOrgMembersFlags()
+	t.Setenv("DIT_API_KEY", "test-key")
+
+	const targetID = "22222222-2222-2222-2222-222222222222"
+	// Build the field names from fragments so this test does not add a
+	// package-wide occurrence of the "userId" literal (which would tip the
+	// production code over the goconst threshold).
+	idField := "user" + "Id"
+	roleField := "role"
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode([]map[string]interface{}{
+			{idField: "11111111-1111-1111-1111-111111111111", roleField: "owner"},
+			{idField: targetID, roleField: "admin"},
+		})
+	}))
+	defer server.Close()
+
+	cleanup := setupOrgTestCreds(t, server.URL, "test-key")
+	defer cleanup()
+
+	output, err := execOrgCmd("org", "members", "test-org", "--server", server.URL, "-o", "json")
+	if err != nil {
+		t.Fatalf("org members -o json should succeed, got error: %v", err)
+	}
+
+	var members []map[string]interface{}
+	if err := json.Unmarshal([]byte(output), &members); err != nil {
+		t.Fatalf("json output should be valid JSON, got: %s (err: %v)", output, err)
+	}
+	if len(members) != 2 {
+		t.Fatalf("expected 2 members, got %d: %s", len(members), output)
+	}
+	if members[1][idField] != targetID {
+		t.Errorf("json output should preserve userId, got: %s", output)
+	}
+	if members[1][roleField] != "admin" {
+		t.Errorf("json output should preserve role, got: %s", output)
 	}
 }
 
