@@ -24,5 +24,6 @@ Manage organizations on a dit remote server.
 * [dit org create](dit_org_create)	 - Create an organization
 * [dit org info](dit_org_info)	 - Show organization details
 * [dit org list](dit_org_list)	 - List organizations you belong to
+* [dit org member](dit_org_member)	 - Manage organization members
 * [dit org members](dit_org_members)	 - List organization members
 
