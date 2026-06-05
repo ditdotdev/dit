@@ -68,8 +68,8 @@ make test-auth-workflow
 
 ### Run specific test file manually:
 ```bash
-bats tests/endtoend/remotes/ditdotdev/dit-workflow.bats
-bats tests/endtoend/remotes/ditdotdev/auth-workflow.bats
+bats tests/endtoend/remotes/dit/dit-workflow.bats
+bats tests/endtoend/remotes/dit/auth-workflow.bats
 ```
 
 ## Test Coverage

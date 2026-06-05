@@ -128,7 +128,7 @@ export POSTGRES_PORT=5433
 
 ✅ **Tests passing?** You're ready to deploy!  
 ❌ **Tests failing?** Check the full documentation at:
-- `tests/endtoend/remotes/ditdotdev/README.md`
+- `tests/endtoend/remotes/dit/README.md`
 - `AUTH_IMPLEMENTATION.md`
 - `DEPLOYMENT_GUIDE.md`
 
