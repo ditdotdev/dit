@@ -1,6 +1,7 @@
 package commands
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"github.com/ditdotdev/dit/internal/app/providers/common"
@@ -29,7 +30,8 @@ var repoCreateCmd = &cobra.Command{
 	RunE: func(cmd *cobra.Command, args []string) error {
 		org := args[0]
 		repo := args[1]
-		server, _ := cmd.Flags().GetString("server")
+		server, _ := cmd.Flags().GetString(flagServer)
+		private, _ := cmd.Flags().GetBool(flagPrivate)
 
 		apiKey, server, err := resolveRepoAuth(server)
 		if err != nil {
@@ -55,7 +57,6 @@ var repoCreateCmd = &cobra.Command{
 		switch resp.StatusCode {
 		case http.StatusCreated, http.StatusOK:
 			cmd.Printf("Created repository %s/%s\n", org, repo)
-			return nil
 		case http.StatusConflict:
 			return fmt.Errorf("repository %s/%s already exists", org, repo)
 		case http.StatusUnauthorized:
@@ -63,7 +64,89 @@ var repoCreateCmd = &cobra.Command{
 		default:
 			return fmt.Errorf("server returned %d: %s", resp.StatusCode, string(body))
 		}
+
+		// --private requests an additional visibility update against the
+		// auth-server endpoint (repos are public by default on creation).
+		if private {
+			if err := setRepoVisibility(apiKey, server, org, repo, true); err != nil {
+				return fmt.Errorf("repository created but failed to set visibility: %w", err)
+			}
+			cmd.Printf("Set repository %s/%s visibility to private\n", org, repo)
+		}
+		return nil
 	},
+}
+
+var repoSetVisibilityCmd = &cobra.Command{
+	Use:   "set-visibility <org> <repo>",
+	Short: "Set a repository's visibility (public or private)",
+	Long:  `Change whether a repository is public or private on a dit remote server. Specify exactly one of --private or --public.`,
+	Args:  cobra.ExactArgs(2),
+	RunE: func(cmd *cobra.Command, args []string) error {
+		org := args[0]
+		repo := args[1]
+		server, _ := cmd.Flags().GetString(flagServer)
+		private, _ := cmd.Flags().GetBool(flagPrivate)
+		public, _ := cmd.Flags().GetBool(flagPublic)
+
+		if private == public {
+			return fmt.Errorf("specify exactly one of --private or --public")
+		}
+
+		apiKey, server, err := resolveRepoAuth(server)
+		if err != nil {
+			return err
+		}
+
+		if err := setRepoVisibility(apiKey, server, org, repo, private); err != nil {
+			return err
+		}
+
+		visibility := "public"
+		if private {
+			visibility = "private"
+		}
+		cmd.Printf("Set repository %s/%s visibility to %s\n", org, repo, visibility)
+		return nil
+	},
+}
+
+// setRepoVisibility PATCHes the auth-server visibility endpoint for a repo.
+func setRepoVisibility(apiKey, server, org, repo string, private bool) error {
+	bodyJSON, err := json.Marshal(map[string]bool{"isPrivate": private})
+	if err != nil {
+		return fmt.Errorf("failed to build request: %w", err)
+	}
+
+	url := fmt.Sprintf("%s/api/v1/repos/%s/%s/visibility", server, org, repo)
+	req, err := http.NewRequest(http.MethodPatch, url, bytes.NewReader(bodyJSON))
+	if err != nil {
+		return fmt.Errorf("failed to create request: %w", err)
+	}
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", apiKey))
+
+	client := &http.Client{Timeout: 30 * time.Second}
+	resp, err := client.Do(req)
+	if err != nil {
+		return fmt.Errorf("failed to connect to server: %w", err)
+	}
+	defer func() { _ = resp.Body.Close() }()
+
+	body, _ := io.ReadAll(resp.Body)
+
+	switch resp.StatusCode {
+	case http.StatusOK, http.StatusNoContent:
+		return nil
+	case http.StatusNotFound:
+		return fmt.Errorf("repository %s/%s not found", org, repo)
+	case http.StatusForbidden:
+		return fmt.Errorf("forbidden (403); you do not have permission to change this repository's visibility")
+	case http.StatusUnauthorized:
+		return fmt.Errorf("authentication failed (401); check your API key")
+	default:
+		return fmt.Errorf("server returned %d: %s", resp.StatusCode, string(body))
+	}
 }
 
 var repoDeleteCmd = &cobra.Command{
@@ -198,13 +281,21 @@ func init() {
 	rootCmd.AddCommand(repoCmd)
 
 	repoCmd.AddCommand(repoCreateCmd)
-	repoCreateCmd.Flags().String("server", "", "Server URL")
+	repoCreateCmd.Flags().String(flagServer, "", "Server URL")
+	repoCreateCmd.Flags().Bool(flagPrivate, false, "Create the repository as private")
 
 	repoCmd.AddCommand(repoDeleteCmd)
-	repoDeleteCmd.Flags().String("server", "", "Server URL")
+	repoDeleteCmd.Flags().String(flagServer, "", "Server URL")
 	repoDeleteCmd.Flags().Bool("force", false, "Skip confirmation")
 
 	repoCmd.AddCommand(repoListCmd)
-	repoListCmd.Flags().String("server", "", "Server URL")
+	repoListCmd.Flags().String(flagServer, "", "Server URL")
 	repoListCmd.Flags().String("org", "", "Filter by organization")
+
+	repoCmd.AddCommand(repoSetVisibilityCmd)
+	repoSetVisibilityCmd.Flags().String(flagServer, "", "Server URL")
+	repoSetVisibilityCmd.Flags().Bool(flagPrivate, false, "Make the repository private")
+	repoSetVisibilityCmd.Flags().Bool(flagPublic, false, "Make the repository public")
+
+	addRepoCollaboratorCommands()
 }
