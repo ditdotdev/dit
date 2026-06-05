@@ -33,10 +33,11 @@ PUB_REPO="perm-public"
 PRIV_REPO="perm-private"
 
 # NOTE: these tests drive the server through the dit CLI and the public HTTP API
-# only - no raw SQL. Repo create/delete use the CLI; visibility, collaborators and
-# org membership use the auth-server API because the CLI has no equivalent commands
-# yet (tracked in ditdotdev/dit#173 - replace these API calls with CLI as those
-# commands land).
+# only - no raw SQL. Repo create/delete, visibility, collaborators and org
+# membership all use the dit CLI (the CLI proxies to the auth-server through the
+# gateway). The remaining raw curl calls are read-back verification helpers and
+# permission-matrix assertions against the gateway, which have no CLI equivalent
+# (ditdotdev/dit#173).
 
 # Resolve a seeded test user's UUID. There is no user-lookup API, so authenticate
 # as the user against /api/me, which returns the caller's id.
@@ -44,14 +45,14 @@ user_id_for_key() {
   curl -sf -H "X-API-Key: $1" "$AUTH_SERVER/api/me" 2>/dev/null | jq -r '.id'
 }
 
-# Helper: create an org-owned repo via the CLI, then set its visibility via the API.
-# is_private is "true" or "false".
+# Helper: create an org-owned repo via the CLI, then set its visibility via the
+# CLI. is_private is "true" or "false".
 create_and_register_repo() {
   local org="$1" repo="$2" is_private="$3"
+  local vis="--public"
+  [[ "$is_private" == "true" ]] && vis="--private"
   DIT_API_KEY="$ADMIN_KEY" "$D3" repo create "$org" "$repo" --server "$GATEWAY" >/dev/null 2>&1 || true
-  curl -sf -X PATCH -H "Authorization: Bearer $ADMIN_KEY" -H "Content-Type: application/json" \
-    -d "{\"isPrivate\":${is_private}}" \
-    "$AUTH_SERVER/api/v1/repos/${org}/${repo}/visibility" >/dev/null 2>&1 || true
+  DIT_API_KEY="$ADMIN_KEY" "$D3" repo set-visibility "$org" "$repo" "$vis" --server "$GATEWAY" >/dev/null 2>&1 || true
 }
 
 # Helper: delete a repo via the CLI.
@@ -60,30 +61,29 @@ delete_repo() {
   DIT_API_KEY="$ADMIN_KEY" "$D3" repo delete "$org" "$repo" --server "$GATEWAY" >/dev/null 2>&1 || true
 }
 
-# Helper: set d3-ghtest2's collaborator permission on a repo (or remove it).
+# Helper: set d3-ghtest2's collaborator permission on a repo (or remove it) via
+# the CLI.
 set_collab() {
   local repo_full="$1" permission="$2"
   local ns="${repo_full%%/*}" name="${repo_full##*/}"
-  curl -sf -X DELETE -H "Authorization: Bearer $ADMIN_KEY" \
-    "$AUTH_SERVER/api/v1/repos/${ns}/${name}/collaborators/${GHTEST2_ID}" >/dev/null 2>&1 || true
+  DIT_API_KEY="$ADMIN_KEY" "$D3" repo collaborator remove "$ns" "$name" "$GHTEST2_ID" \
+    --server "$GATEWAY" >/dev/null 2>&1 || true
   if [[ -n "$permission" ]]; then
-    curl -sf -X POST -H "Authorization: Bearer $ADMIN_KEY" -H "Content-Type: application/json" \
-      -d "{\"userId\":\"${GHTEST2_ID}\",\"permission\":\"${permission}\"}" \
-      "$AUTH_SERVER/api/v1/repos/${ns}/${name}/collaborators" >/dev/null 2>&1 || true
+    DIT_API_KEY="$ADMIN_KEY" "$D3" repo collaborator add "$ns" "$name" "$GHTEST2_ID" \
+      --permission "$permission" --server "$GATEWAY" >/dev/null 2>&1 || true
   fi
 }
 
-# Helper: set d3-ghtest2's org membership role (or remove it). Member management
-# requires an org owner/admin (the global is_admin bypass does not apply here), so
-# these calls act as d3-ghtest1, who owns PERM_ORG.
+# Helper: set d3-ghtest2's org membership role (or remove it) via the CLI. Member
+# management requires an org owner/admin (the global is_admin bypass does not
+# apply here), so these calls act as d3-ghtest1, who owns PERM_ORG.
 set_org_role() {
   local role="$1"
-  curl -sf -X DELETE -H "X-API-Key: $GHTEST1_KEY" \
-    "$AUTH_SERVER/api/v1/orgs/${PERM_ORG}/members/${GHTEST2_ID}" >/dev/null 2>&1 || true
+  DIT_API_KEY="$GHTEST1_KEY" "$D3" org member remove "$PERM_ORG" "$GHTEST2_ID" \
+    --server "$GATEWAY" >/dev/null 2>&1 || true
   if [[ -n "$role" ]]; then
-    curl -sf -X POST -H "X-API-Key: $GHTEST1_KEY" -H "Content-Type: application/json" \
-      -d "{\"githubLogin\":\"d3-ghtest2\",\"role\":\"${role}\"}" \
-      "$AUTH_SERVER/api/v1/orgs/${PERM_ORG}/members" >/dev/null 2>&1 || true
+    DIT_API_KEY="$GHTEST1_KEY" "$D3" org member add "$PERM_ORG" "d3-ghtest2" \
+      --github-login --role "$role" --server "$GATEWAY" >/dev/null 2>&1 || true
   fi
 }
 
@@ -111,8 +111,8 @@ cleanup_perm_fixtures() {
   delete_repo "$PERM_ORG" "$PRIV_REPO"
   # Remove ghtest2's org membership if present (best-effort; needs the owner key).
   if [[ -n "$GHTEST2_ID" ]]; then
-    curl -sf -X DELETE -H "X-API-Key: $GHTEST1_KEY" \
-      "$AUTH_SERVER/api/v1/orgs/${PERM_ORG}/members/${GHTEST2_ID}" >/dev/null 2>&1 || true
+    DIT_API_KEY="$GHTEST1_KEY" "$D3" org member remove "$PERM_ORG" "$GHTEST2_ID" \
+      --server "$GATEWAY" >/dev/null 2>&1 || true
   fi
 }
 

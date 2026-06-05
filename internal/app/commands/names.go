@@ -19,6 +19,13 @@ const (
 	subcmdRemote    = "remote"
 	subcmdList      = "list"
 
+	// Shared flag identifiers used by multiple repo/org subcommands.
+	flagServer     = "server"
+	flagPrivate    = "private"
+	flagPublic     = "public"
+	flagPermission = "permission"
+	flagRole       = "role"
+
 	// Used both as a cobra flag identifier (clone/context/fork/run --name)
 	// and as a JSON key in the org request/response body. Same string,
 	// same purpose (the entity's name).

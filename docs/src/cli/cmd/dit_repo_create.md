@@ -14,6 +14,7 @@ dit repo create <org> <repo> [flags]
 
 ```
   -h, --help            help for create
+      --private         Create the repository as private
       --server string   Server URL
 ```
 
