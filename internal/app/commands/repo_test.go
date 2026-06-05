@@ -21,10 +21,18 @@ const testBearerToken = "Bearer test-key"
 
 func resetRepoFlags() {
 	_ = repoCreateCmd.Flags().Set("server", "")
+	_ = repoCreateCmd.Flags().Set("private", "false")
 	_ = repoDeleteCmd.Flags().Set("server", "")
 	_ = repoDeleteCmd.Flags().Set("force", "false")
 	_ = repoListCmd.Flags().Set("server", "")
 	_ = repoListCmd.Flags().Set("org", "")
+	_ = repoSetVisibilityCmd.Flags().Set("server", "")
+	_ = repoSetVisibilityCmd.Flags().Set("private", "false")
+	_ = repoSetVisibilityCmd.Flags().Set("public", "false")
+	_ = repoCollaboratorAddCmd.Flags().Set("server", "")
+	_ = repoCollaboratorAddCmd.Flags().Set("permission", "read")
+	_ = repoCollaboratorRemoveCmd.Flags().Set("server", "")
+	_ = repoCollaboratorListCmd.Flags().Set("server", "")
 }
 
 // setupRepoTestCreds writes a temporary credentials file and sets the override.

@@ -245,6 +245,182 @@ var orgMembersCmd = &cobra.Command{
 	},
 }
 
+var orgMemberCmd = &cobra.Command{
+	Use:   "member",
+	Short: "Manage organization members",
+	Long:  `Add, update, and remove members of an organization on a dit remote server.`,
+	PersistentPreRun: func(cmd *cobra.Command, args []string) {
+		// Override root's PersistentPreRun to skip provider initialization.
+		// Member commands talk directly to the remote server.
+	},
+}
+
+var orgMemberAddCmd = &cobra.Command{
+	Use:   "add <org> <user>",
+	Short: "Add a member to an organization",
+	Long: `Add a user to an organization with a role (member, admin, or owner).
+By default <user> is treated as a user ID; pass --github-login to resolve a GitHub login instead.`,
+	Args: cobra.ExactArgs(2),
+	RunE: func(cmd *cobra.Command, args []string) error {
+		orgName, user := args[0], args[1]
+		server, _ := cmd.Flags().GetString(flagServer)
+		role, _ := cmd.Flags().GetString(flagRole)
+		byLogin, _ := cmd.Flags().GetBool("github-login")
+
+		apiKey, server, err := resolveOrgAuth(server)
+		if err != nil {
+			return err
+		}
+
+		reqBody := map[string]string{flagRole: role}
+		if byLogin {
+			reqBody["githubLogin"] = user
+		} else {
+			reqBody["userId"] = user
+		}
+		bodyJSON, err := json.Marshal(reqBody)
+		if err != nil {
+			return fmt.Errorf("failed to build request: %w", err)
+		}
+
+		url := fmt.Sprintf("%s/api/v1/orgs/%s/members", server, orgName)
+		resp, body, err := doOrgMemberRequest(http.MethodPost, url, apiKey, bodyJSON)
+		if err != nil {
+			return err
+		}
+
+		switch resp.StatusCode {
+		case http.StatusOK, http.StatusCreated:
+			cmd.Printf("Added %s to %s as %s\n", user, orgName, role)
+			return nil
+		case http.StatusConflict:
+			return fmt.Errorf("%s is already a member of %s", user, orgName)
+		case http.StatusNotFound:
+			return fmt.Errorf("organization %s or user %s not found", orgName, user)
+		case http.StatusForbidden:
+			return fmt.Errorf("forbidden (403); you do not have permission to manage members")
+		case http.StatusUnauthorized:
+			return fmt.Errorf("authentication failed (401); check your API key")
+		default:
+			return fmt.Errorf("server returned %d: %s", resp.StatusCode, string(body))
+		}
+	},
+}
+
+var orgMemberSetRoleCmd = &cobra.Command{
+	Use:   "set-role <org> <userId>",
+	Short: "Update an organization member's role",
+	Long:  `Change a member's role (member, admin, or owner) in an organization.`,
+	Args:  cobra.ExactArgs(2),
+	RunE: func(cmd *cobra.Command, args []string) error {
+		orgName, userID := args[0], args[1]
+		server, _ := cmd.Flags().GetString(flagServer)
+		role, _ := cmd.Flags().GetString(flagRole)
+
+		if role == "" {
+			return fmt.Errorf("--role is required")
+		}
+
+		apiKey, server, err := resolveOrgAuth(server)
+		if err != nil {
+			return err
+		}
+
+		bodyJSON, err := json.Marshal(map[string]string{flagRole: role})
+		if err != nil {
+			return fmt.Errorf("failed to build request: %w", err)
+		}
+
+		url := fmt.Sprintf("%s/api/v1/orgs/%s/members/%s", server, orgName, userID)
+		resp, body, err := doOrgMemberRequest(http.MethodPut, url, apiKey, bodyJSON)
+		if err != nil {
+			return err
+		}
+
+		switch resp.StatusCode {
+		case http.StatusOK:
+			cmd.Printf("Updated %s role in %s to %s\n", userID, orgName, role)
+			return nil
+		case http.StatusNotFound:
+			return fmt.Errorf("member %s not found in %s", userID, orgName)
+		case http.StatusForbidden:
+			return fmt.Errorf("forbidden (403); you do not have permission to manage members")
+		case http.StatusUnauthorized:
+			return fmt.Errorf("authentication failed (401); check your API key")
+		default:
+			return fmt.Errorf("server returned %d: %s", resp.StatusCode, string(body))
+		}
+	},
+}
+
+var orgMemberRemoveCmd = &cobra.Command{
+	Use:     "remove <org> <userId>",
+	Aliases: []string{"rm"},
+	Short:   "Remove a member from an organization",
+	Long:    `Remove a user from an organization.`,
+	Args:    cobra.ExactArgs(2),
+	RunE: func(cmd *cobra.Command, args []string) error {
+		orgName, userID := args[0], args[1]
+		server, _ := cmd.Flags().GetString(flagServer)
+
+		apiKey, server, err := resolveOrgAuth(server)
+		if err != nil {
+			return err
+		}
+
+		url := fmt.Sprintf("%s/api/v1/orgs/%s/members/%s", server, orgName, userID)
+		resp, body, err := doOrgMemberRequest(http.MethodDelete, url, apiKey, nil)
+		if err != nil {
+			return err
+		}
+
+		switch resp.StatusCode {
+		case http.StatusOK, http.StatusNoContent:
+			cmd.Printf("Removed %s from %s\n", userID, orgName)
+			return nil
+		case http.StatusNotFound:
+			return fmt.Errorf("member %s not found in %s", userID, orgName)
+		case http.StatusBadRequest:
+			return fmt.Errorf("cannot remove member: %s", string(body))
+		case http.StatusForbidden:
+			return fmt.Errorf("forbidden (403); you do not have permission to manage members")
+		case http.StatusUnauthorized:
+			return fmt.Errorf("authentication failed (401); check your API key")
+		default:
+			return fmt.Errorf("server returned %d: %s", resp.StatusCode, string(body))
+		}
+	},
+}
+
+// doOrgMemberRequest performs an authenticated HTTP request against an org
+// member endpoint and returns the response, the read body, and any transport
+// error. The caller inspects the status code.
+func doOrgMemberRequest(method, url, apiKey string, jsonBody []byte) (*http.Response, []byte, error) {
+	var reader io.Reader
+	if jsonBody != nil {
+		reader = bytes.NewReader(jsonBody)
+	}
+
+	req, err := http.NewRequest(method, url, reader)
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to create request: %w", err)
+	}
+	if jsonBody != nil {
+		req.Header.Set("Content-Type", "application/json")
+	}
+	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", apiKey))
+
+	client := &http.Client{Timeout: 30 * time.Second}
+	resp, err := client.Do(req)
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to connect to server: %w", err)
+	}
+	defer func() { _ = resp.Body.Close() }()
+
+	body, _ := io.ReadAll(resp.Body)
+	return resp, body, nil
+}
+
 // resolveOrgAuth resolves API key and server URL for org commands.
 func resolveOrgAuth(server string) (string, string, error) {
 	credsPath := getCredentialsPath()
@@ -283,4 +459,18 @@ func init() {
 
 	orgCmd.AddCommand(orgMembersCmd)
 	orgMembersCmd.Flags().String("server", "", "Server URL")
+
+	orgCmd.AddCommand(orgMemberCmd)
+
+	orgMemberCmd.AddCommand(orgMemberAddCmd)
+	orgMemberAddCmd.Flags().String(flagServer, "", "Server URL")
+	orgMemberAddCmd.Flags().String(flagRole, "member", "Role: member, admin, or owner")
+	orgMemberAddCmd.Flags().Bool("github-login", false, "Treat <user> as a GitHub login instead of a user ID")
+
+	orgMemberCmd.AddCommand(orgMemberSetRoleCmd)
+	orgMemberSetRoleCmd.Flags().String(flagServer, "", "Server URL")
+	orgMemberSetRoleCmd.Flags().String(flagRole, "", "New role: member, admin, or owner")
+
+	orgMemberCmd.AddCommand(orgMemberRemoveCmd)
+	orgMemberRemoveCmd.Flags().String(flagServer, "", "Server URL")
 }
