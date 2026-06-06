@@ -194,6 +194,7 @@ var orgMembersCmd = &cobra.Command{
 	RunE: func(cmd *cobra.Command, args []string) error {
 		orgName := args[0]
 		server, _ := cmd.Flags().GetString("server")
+		outputFormat, _ := cmd.Flags().GetString(flagOutput)
 
 		apiKey, server, err := resolveOrgAuth(server)
 		if err != nil {
@@ -228,6 +229,19 @@ var orgMembersCmd = &cobra.Command{
 		var members []map[string]interface{}
 		if err := json.NewDecoder(resp.Body).Decode(&members); err != nil {
 			return fmt.Errorf("failed to parse response: %w", err)
+		}
+
+		// JSON output is the machine-readable form: the members endpoint keys
+		// each entry on userId (the human-readable username is not part of the
+		// payload), so callers that need to identify a specific member must use
+		// -o json and match on userId.
+		if outputFormat == "json" {
+			encoded, err := json.Marshal(members)
+			if err != nil {
+				return fmt.Errorf("failed to encode members: %w", err)
+			}
+			cmd.Println(string(encoded))
+			return nil
 		}
 
 		if len(members) == 0 {
@@ -459,6 +473,7 @@ func init() {
 
 	orgCmd.AddCommand(orgMembersCmd)
 	orgMembersCmd.Flags().String("server", "", "Server URL")
+	orgMembersCmd.Flags().StringP(flagOutput, "o", "", "Output format: json for machine-readable output (keyed on userId)")
 
 	orgCmd.AddCommand(orgMemberCmd)
 
