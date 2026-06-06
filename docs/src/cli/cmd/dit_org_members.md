@@ -14,6 +14,7 @@ dit org members <org-name> [flags]
 
 ```
   -h, --help            help for members
+  -o, --output string   Output format: json for machine-readable output (keyed on userId)
       --server string   Server URL
 ```
 
