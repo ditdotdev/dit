@@ -10,13 +10,17 @@ import (
 )
 
 func TestFork_InvalidURL(t *testing.T) {
-	// Should not panic on invalid URL
-	Fork("://invalid", "", "")
+	// Should return an error on invalid URL, not panic
+	if err := Fork("://invalid", "", ""); err == nil {
+		t.Error("expected error for invalid URL, got nil")
+	}
 }
 
 func TestFork_MissingOrgRepo(t *testing.T) {
-	// URL without org/repo path should print error, not panic
-	Fork("http://localhost:8080", "", "")
+	// URL without org/repo path should return an error, not panic
+	if err := Fork("http://localhost:8080", "", ""); err == nil {
+		t.Error("expected error for missing org/repo, got nil")
+	}
 }
 
 func TestFork_NoCredentials(t *testing.T) {
@@ -32,8 +36,10 @@ func TestFork_NoCredentials(t *testing.T) {
 	credentialsPathOverride = credsFile
 	defer func() { credentialsPathOverride = origOverride }()
 
-	// Should print auth error, not panic
-	Fork("http://localhost:9999/myorg/myrepo", "", "")
+	// Should return an auth error, not panic
+	if err := Fork("http://localhost:9999/myorg/myrepo", "", ""); err == nil {
+		t.Error("expected auth error with no credentials, got nil")
+	}
 }
 
 func TestFork_SuccessfulFork(t *testing.T) {
@@ -89,7 +95,9 @@ func TestFork_SuccessfulFork(t *testing.T) {
 	defer func() { credentialsPathOverride = origOverride }()
 
 	// Call Fork with the mock server URL
-	Fork(server.URL+"/sourceorg/sourcerepo", "myorg", "")
+	if err := Fork(server.URL+"/sourceorg/sourcerepo", "myorg", ""); err != nil {
+		t.Errorf("expected successful fork, got error: %v", err)
+	}
 }
 
 func TestFork_WithCustomName(t *testing.T) {
@@ -129,7 +137,55 @@ func TestFork_WithCustomName(t *testing.T) {
 	credentialsPathOverride = credsFile
 	defer func() { credentialsPathOverride = origOverride }()
 
-	Fork(server.URL+"/sourceorg/sourcerepo", "myorg", "custom-name")
+	if err := Fork(server.URL+"/sourceorg/sourcerepo", "myorg", "custom-name"); err != nil {
+		t.Errorf("expected successful fork with custom name, got error: %v", err)
+	}
+}
+
+func TestFork_HostGatewayOverride(t *testing.T) {
+	t.Setenv("DIT_API_KEY", "")
+	// Mock server stands in for the host-visible gateway.
+	var gotAuth string
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		gotAuth = r.Header.Get("Authorization")
+		expectedPath := "/api/v1/repos/sourceorg/sourcerepo/fork"
+		if r.URL.Path != expectedPath {
+			t.Errorf("expected path %s, got %s", expectedPath, r.URL.Path)
+		}
+		w.WriteHeader(http.StatusCreated)
+		_ = json.NewEncoder(w).Encode(map[string]any{"forkedFrom": "sourceorg/sourcerepo"})
+	}))
+	defer server.Close()
+
+	// The remote URL uses a Docker-internal host that is NOT reachable and NOT the
+	// mock server. DIT_HOST_GATEWAY must retarget the request to the mock server,
+	// while credentials remain keyed on the original (URL) server.
+	const originalServer = "http://dit-api-gateway:8080"
+	t.Setenv("DIT_HOST_GATEWAY", server.URL)
+
+	tmpDir := t.TempDir()
+	credsFile := filepath.Join(tmpDir, "credentials")
+	creds := Credentials{
+		Servers: map[string]ServerCredential{
+			originalServer: {APIKey: "test-key"},
+		},
+	}
+	data, _ := json.Marshal(creds)
+	_ = os.WriteFile(credsFile, data, 0600)
+
+	origOverride := credentialsPathOverride
+	credentialsPathOverride = credsFile
+	defer func() { credentialsPathOverride = origOverride }()
+
+	if err := Fork(originalServer+"/sourceorg/sourcerepo", "myorg", ""); err != nil {
+		t.Errorf("expected successful fork via override gateway, got error: %v", err)
+	}
+
+	// If the override worked, the mock gateway received the request; if creds stayed
+	// keyed on the original server, the auth header carries the stored key.
+	if gotAuth != "Bearer test-key" {
+		t.Errorf("expected fork request to reach DIT_HOST_GATEWAY with creds from the original server; got Authorization %q", gotAuth)
+	}
 }
 
 func TestFork_Conflict(t *testing.T) {
@@ -153,8 +209,10 @@ func TestFork_Conflict(t *testing.T) {
 	credentialsPathOverride = credsFile
 	defer func() { credentialsPathOverride = origOverride }()
 
-	// Should print conflict error, not panic
-	Fork(server.URL+"/sourceorg/sourcerepo", "", "")
+	// Should return a conflict error, not panic
+	if err := Fork(server.URL+"/sourceorg/sourcerepo", "", ""); err == nil {
+		t.Error("expected conflict error, got nil")
+	}
 }
 
 func TestFork_NotFound(t *testing.T) {
@@ -178,6 +236,8 @@ func TestFork_NotFound(t *testing.T) {
 	credentialsPathOverride = credsFile
 	defer func() { credentialsPathOverride = origOverride }()
 
-	// Should print not found error, not panic
-	Fork(server.URL+"/sourceorg/sourcerepo", "", "")
+	// Should return a not-found error, not panic
+	if err := Fork(server.URL+"/sourceorg/sourcerepo", "", ""); err == nil {
+		t.Error("expected not-found error, got nil")
+	}
 }

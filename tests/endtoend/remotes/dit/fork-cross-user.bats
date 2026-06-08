@@ -66,10 +66,9 @@ teardown_file() {
 
 @test "xfork: make source repo public" {
   # The source repo is registered automatically on create; make it public via the
-  # API so cross-user read is allowed (fork requires read access on the source).
-  run curl -sf -X PATCH -H "Authorization: Bearer $ADMIN_KEY" -H "Content-Type: application/json" \
-    -d '{"isPrivate":false}' \
-    "$AUTH_SERVER/api/v1/repos/${OWNER_NS}/${SOURCE_REPO}/visibility"
+  # dit CLI so cross-user read is allowed (fork requires read access on the source).
+  run env DIT_API_KEY="$ADMIN_KEY" "$D3" repo set-visibility "${OWNER_NS}" "${SOURCE_REPO}" --public \
+    --server "$GATEWAY"
   assert_success
 }
 
@@ -155,30 +154,27 @@ teardown_file() {
 
 # ===== Test: d3-ghtest2 forks d3-ghtest1's public repo =====
 
-@test "xfork: d3-ghtest2 forks d3-ghtest1's repo via API" {
+@test "xfork: d3-ghtest2 forks d3-ghtest1's repo via the dit CLI" {
   # This is the core reproduction of issue #560:
-  # A different user forks another user's public repo.
-  # Expected: 201 Created with fork metadata
-  # Bug: "failed to proxy request: EOF" (502 Bad Gateway)
-  run curl -X POST -f -w "\n%{http_code}" \
-    -H "Authorization: Bearer $GHTEST2_KEY" \
-    -H "Content-Type: application/json" \
-    -d "{\"targetNamespace\": \"${FORKER_NS}\"}" \
-    "$GATEWAY/api/v1/repos/${OWNER_NS}/${SOURCE_REPO}/fork"
+  # A different user forks another user's public repo, driven by the dit CLI's
+  # own `fork` command (which POSTs as "Authorization: Bearer <key>").
+  # Expected: success with fork metadata.
+  # Bug: "failed to proxy request: EOF" (502 Bad Gateway).
+  run env DIT_API_KEY="$GHTEST2_KEY" "$D3" fork "${REMOTE_URL}/${OWNER_NS}/${SOURCE_REPO}" \
+    --org "${FORKER_NS}"
   assert_success
   assert_output --partial "$FORKER_NS"
   assert_output --partial "$SOURCE_REPO"
-  assert_output --partial "forkedFrom"
+  assert_output --partial "Forked from"
 }
 
-@test "xfork: verify fork registered (readable by the forker)" {
-  # Fork registration is what makes the new repo resolvable and readable to the
-  # forker; a successful authenticated GET as d3-ghtest2 confirms it (the fork's
-  # forked_from linkage was asserted in the fork response above).
-  run curl -s -o /dev/null -w "%{http_code}" -H "Authorization: Bearer $GHTEST2_KEY" \
-    "$GATEWAY/api/v1/repos/${FORKER_NS}/${SOURCE_REPO}"
+@test "xfork: verify fork registered (visible to the forker via CLI)" {
+  # Fork registration makes the new repo resolvable and readable to the forker;
+  # listing d3-ghtest2's repos via the CLI confirms the fork landed in their
+  # namespace (the forked_from linkage was asserted in the fork output above).
+  run env DIT_API_KEY="$GHTEST2_KEY" "$D3" repo list --org "${FORKER_NS}" --server "$GATEWAY"
   assert_success
-  assert_output "200"
+  assert_output --partial "$SOURCE_REPO"
 }
 
 @test "xfork: verify forked repo has all commits via d3-ghtest2's key" {
@@ -186,6 +182,10 @@ teardown_file() {
   COMMIT_2=$(cat "$BATS_TMPDIR/xfork_commit_2.txt")
   COMMIT_3=$(cat "$BATS_TMPDIR/xfork_commit_3.txt")
 
+  # NOTE: listing a remote repo's commits by namespace has no dit CLI equivalent
+  # yet (dit log is local-only), so this commit-presence check stays on the HTTP
+  # API. The clone test below additionally verifies commit data via the CLI.
+  # Tracked for a future remote commit-list command in ditdotdev/dit#186.
   run curl -sf -H "Authorization: Bearer $GHTEST2_KEY" \
     "$GATEWAY/api/v1/repos/${FORKER_NS}/${SOURCE_REPO}/commits"
   assert_success
@@ -218,11 +218,8 @@ teardown_file() {
 # ===== Test: fork with custom name =====
 
 @test "xfork: d3-ghtest2 forks with custom name" {
-  run curl -X POST -f \
-    -H "Authorization: Bearer $GHTEST2_KEY" \
-    -H "Content-Type: application/json" \
-    -d "{\"targetNamespace\": \"${FORKER_NS}\", \"targetName\": \"custom-fork-name\"}" \
-    "$GATEWAY/api/v1/repos/${OWNER_NS}/${SOURCE_REPO}/fork"
+  run env DIT_API_KEY="$GHTEST2_KEY" "$D3" fork "${REMOTE_URL}/${OWNER_NS}/${SOURCE_REPO}" \
+    --org "${FORKER_NS}" --name custom-fork-name
   assert_success
   assert_output --partial "custom-fork-name"
 }
@@ -230,13 +227,12 @@ teardown_file() {
 # ===== Test: duplicate cross-user fork fails =====
 
 @test "xfork: duplicate fork to same namespace fails" {
-  run curl -X POST -s \
-    -H "Authorization: Bearer $GHTEST2_KEY" \
-    -H "Content-Type: application/json" \
-    -d "{\"targetNamespace\": \"${FORKER_NS}\"}" \
-    "$GATEWAY/api/v1/repos/${OWNER_NS}/${SOURCE_REPO}/fork"
-  # Should fail with 409 Conflict (target already exists)
-  [[ "$output" == *"exists"* ]] || [[ "$output" == *"conflict"* ]] || [[ "$output" == *"Conflict"* ]]
+  # Forking again into a namespace that already holds the fork must fail; the CLI
+  # surfaces the server's 409 as an "already exists" error.
+  run env DIT_API_KEY="$GHTEST2_KEY" "$D3" fork "${REMOTE_URL}/${OWNER_NS}/${SOURCE_REPO}" \
+    --org "${FORKER_NS}"
+  assert_failure
+  assert_output --partial "already exists"
 }
 
 # ===== Test: orphaned fork data does NOT block retry (issue #560 fix) =====
@@ -244,9 +240,10 @@ teardown_file() {
 # so that a retry succeeds instead of returning 409.
 
 @test "xfork: clean up successful fork to prepare orphan test" {
-  # Delete the fork we created earlier (API + DB) but leave orphaned S3 data behind
-  curl -X DELETE -sf -H "Authorization: Bearer $ADMIN_KEY" \
-    "$GATEWAY/api/v1/repos/${FORKER_NS}/${SOURCE_REPO}" 2>/dev/null || true
+  # Delete the fork we created earlier (repo record + DB) but leave orphaned S3
+  # data behind, via the dit CLI.
+  DIT_API_KEY="$ADMIN_KEY" "$D3" repo delete "${FORKER_NS}" "${SOURCE_REPO}" \
+    --server "$GATEWAY" 2>/dev/null || true
 }
 
 @test "xfork: plant orphaned journal entry in target namespace" {
@@ -270,16 +267,14 @@ teardown_file() {
 
 @test "xfork: fork with orphaned data returns 409 (pre-fix behavior)" {
   is_dev || skip "Depends on MinIO orphan data planted in DEV"
-  # Before the fix, orphaned S3 data from a failed fork blocks retries with 409.
+  # Before the fix, orphaned S3 data from a failed fork blocks retries; the dit
+  # CLI surfaces the server's 409 as an "already exists" failure (non-zero exit).
   # After the fix lands, this test should be updated: the server will clean up
-  # orphaned data automatically and return 201 instead.
-  run curl -X POST -s -w "\n%{http_code}" \
-    -H "Authorization: Bearer $GHTEST2_KEY" \
-    -H "Content-Type: application/json" \
-    -d "{\"targetNamespace\": \"${FORKER_NS}\"}" \
-    "$GATEWAY/api/v1/repos/${OWNER_NS}/${SOURCE_REPO}/fork"
+  # orphaned data automatically and the fork will succeed.
+  run env DIT_API_KEY="$GHTEST2_KEY" "$D3" fork "${REMOTE_URL}/${OWNER_NS}/${SOURCE_REPO}" \
+    --org "${FORKER_NS}"
+  assert_failure
   assert_output --partial "already exists"
-  assert_output --partial "409"
 }
 
 @test "xfork: clean up orphaned data for next test" {
@@ -293,38 +288,34 @@ teardown_file() {
 
 @test "xfork: re-fork after orphan cleanup succeeds" {
   is_dev || skip "Depends on MinIO orphan cleanup in DEV"
-  run curl -X POST -f \
-    -H "Authorization: Bearer $GHTEST2_KEY" \
-    -H "Content-Type: application/json" \
-    -d "{\"targetNamespace\": \"${FORKER_NS}\"}" \
-    "$GATEWAY/api/v1/repos/${OWNER_NS}/${SOURCE_REPO}/fork"
+  run env DIT_API_KEY="$GHTEST2_KEY" "$D3" fork "${REMOTE_URL}/${OWNER_NS}/${SOURCE_REPO}" \
+    --org "${FORKER_NS}"
   assert_success
-  assert_output --partial "forkedFrom"
+  assert_output --partial "Forked from"
 }
 
 @test "xfork: d3-ghtest3 can read forked repo commits" {
-  # In PROD, orphan tests are skipped and the fork was cleaned up in test 21.
-  # Re-fork if needed so this test has a repo to read.
-  local code
-  code=$(curl -s -o /dev/null -w "%{http_code}" -H "X-API-Key: $ADMIN_KEY" \
-    "$GATEWAY/api/v1/repos/${FORKER_NS}/${SOURCE_REPO}")
-  if [[ "$code" != "200" ]]; then
-    run curl -X POST -sf \
-      -H "Authorization: Bearer $GHTEST2_KEY" \
-      -H "Content-Type: application/json" \
-      -d "{\"targetNamespace\": \"${FORKER_NS}\"}" \
-      "$GATEWAY/api/v1/repos/${OWNER_NS}/${SOURCE_REPO}/fork"
+  # In PROD, orphan tests are skipped and the fork was cleaned up earlier.
+  # Re-fork if needed so this test has a repo to read; existence is checked via
+  # the dit CLI's repo list.
+  run env DIT_API_KEY="$ADMIN_KEY" "$D3" repo list --org "${FORKER_NS}" --server "$GATEWAY"
+  if ! echo "$output" | grep -q "${SOURCE_REPO}"; then
+    run env DIT_API_KEY="$GHTEST2_KEY" "$D3" fork "${REMOTE_URL}/${OWNER_NS}/${SOURCE_REPO}" \
+      --org "${FORKER_NS}"
     assert_success
   fi
 
-  # Make the fork public so d3-ghtest3 can read it
-  run curl -sf -X PATCH -H "Authorization: Bearer $ADMIN_KEY" -H "Content-Type: application/json" \
-    -d '{"isPrivate":false}' \
-    "$AUTH_SERVER/api/v1/repos/${FORKER_NS}/${SOURCE_REPO}/visibility"
+  # Make the fork public via the dit CLI so d3-ghtest3 can read it
+  run env DIT_API_KEY="$ADMIN_KEY" "$D3" repo set-visibility "${FORKER_NS}" "${SOURCE_REPO}" --public \
+    --server "$GATEWAY"
   assert_success
 
   COMMIT_1=$(cat "$BATS_TMPDIR/xfork_commit_1.txt")
 
+  # NOTE: listing a remote repo's commits by namespace has no dit CLI equivalent
+  # yet (dit log is local-only), so this third-party public-read verification
+  # stays on the HTTP API. Tracked for a future remote commit-list command in
+  # ditdotdev/dit#186.
   run curl -sf -H "Authorization: Bearer $GHTEST3_KEY" \
     "$GATEWAY/api/v1/repos/${FORKER_NS}/${SOURCE_REPO}/commits"
   assert_success
