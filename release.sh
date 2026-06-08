@@ -1090,12 +1090,12 @@ phase_ecs_deploy() {
         log_info "Fetching DB credentials from SSM Parameter Store..."
         local db_url db_password db_host
         db_url=$(aws ssm get-parameter \
-            --name "/ditdotdev/prod/database/url" \
+            --name "/dit/prod/database/url" \
             --with-decryption --region "$ECR_REGION" \
             --query 'Parameter.Value' --output text)
 
         db_password=$(aws ssm get-parameter \
-            --name "/ditdotdev/prod/db/password" \
+            --name "/dit/prod/db/password" \
             --with-decryption --region "$ECR_REGION" \
             --query 'Parameter.Value' --output text)
 
