@@ -65,7 +65,9 @@ func (k kubernetes) Copy(repo string, driver string, source string, path string)
 }
 
 func (k kubernetes) Fork(uri string, org string, name string) {
-	cmn.Fork(uri, org, name)
+	// The error is surfaced by the `dit fork` command, which calls cmn.Fork
+	// directly; this Provider method is an unused interface satisfier.
+	_ = cmn.Fork(uri, org, name)
 }
 
 func (k kubernetes) Delete(repo string, commit string, tags []string) {

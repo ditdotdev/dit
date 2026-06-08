@@ -79,7 +79,9 @@ func (l local) Copy(repo string, driver string, source string, path string) {
 }
 
 func (l local) Fork(uri string, org string, name string) {
-	cmn.Fork(uri, org, name)
+	// The error is surfaced by the `dit fork` command, which calls cmn.Fork
+	// directly; this Provider method is an unused interface satisfier.
+	_ = cmn.Fork(uri, org, name)
 }
 
 func (l local) Delete(repo string, commit string, tags []string) {
