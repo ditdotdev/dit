@@ -19,8 +19,8 @@ setup_file() {
 # Cleanup after all tests
 teardown_file() {
   "$D3" rm -f tagremote 2>/dev/null || true
-  curl -X DELETE -sf -H "Authorization: Bearer ${DIT_API_KEY}" \
-    "${GATEWAY}/api/v1/repos/${TEST_ORG}/tag-remote-test" 2>/dev/null || true
+  DIT_API_KEY="${DIT_API_KEY}" "$D3" repo delete "${TEST_ORG}" tag-remote-test \
+    --server "${GATEWAY}" 2>/dev/null || true
 }
 
 # ========================================
@@ -166,7 +166,7 @@ teardown_file() {
 }
 
 @test "push-pull-tags: delete remote repository" {
-  run curl -X DELETE -f -H "Authorization: Bearer ${DIT_API_KEY}" \
-    "${GATEWAY}/api/v1/repos/${TEST_ORG}/tag-remote-test"
+  run env DIT_API_KEY="${DIT_API_KEY}" "$D3" repo delete "${TEST_ORG}" tag-remote-test \
+    --server "${GATEWAY}"
   assert_success
 }
