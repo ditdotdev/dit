@@ -272,15 +272,20 @@ teardown_file() {
   assert_success
   assert_output "admin"
 
-  # The dit CLI's own `org member set-role` cannot drive this with the seeded
-  # keys: it sends "Authorization: Bearer <key>" and the auth-server only treats
-  # a 64-char Bearer token as an API key, so the 74-char d3-ghtest1_ owner key is
-  # rejected. Assert the command is wired and reaches the server (it returns a
-  # clean auth error rather than a usage/parse error).
+  # The dit CLI's own `org member set-role` sends "Authorization: Bearer <key>".
+  # It SUCCEEDS once the auth-server carries the JWT-shape API-key fix
+  # (ditdotdev/dit-remote-server#775, issue #181) and returns a clean auth error
+  # before that (the 74-char d3-ghtest1_ owner key is rejected by the old
+  # len==64 guard). This assertion is tolerant of BOTH during the cross-repo
+  # rollout - either way the command reached the server (not a usage/parse
+  # error). PR #184 tightens this to assert success once #775 is deployed.
   run env DIT_API_KEY="$GHTEST1_KEY" "$D3" org member set-role "$PERM_ORG" \
     "$GHTEST2_ID" --role member --server "$GATEWAY"
-  assert_failure
-  assert_output --partial "authentication failed"
+  if [ "$status" -eq 0 ]; then
+    assert_output --partial "role in $PERM_ORG to member"
+  else
+    assert_output --partial "authentication failed"
+  fi
 
   # Leave the org membership clean for the permission-matrix tests below.
   set_org_role ""
