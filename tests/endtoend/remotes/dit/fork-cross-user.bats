@@ -182,12 +182,9 @@ teardown_file() {
   COMMIT_2=$(cat "$BATS_TMPDIR/xfork_commit_2.txt")
   COMMIT_3=$(cat "$BATS_TMPDIR/xfork_commit_3.txt")
 
-  # NOTE: listing a remote repo's commits by namespace has no dit CLI equivalent
-  # yet (dit log is local-only), so this commit-presence check stays on the HTTP
-  # API. The clone test below additionally verifies commit data via the CLI.
-  # Tracked for a future remote commit-list command in ditdotdev/dit#186.
-  run curl -sf -H "Authorization: Bearer $GHTEST2_KEY" \
-    "$GATEWAY/api/v1/repos/${FORKER_NS}/${SOURCE_REPO}/commits"
+  # The forker reads the fork's commits through the dit CLI (#186).
+  run env DIT_API_KEY="$GHTEST2_KEY" "$D3" repo commits "${FORKER_NS}" "${SOURCE_REPO}" \
+    --server "$GATEWAY"
   assert_success
   assert_output --partial "$COMMIT_1"
   assert_output --partial "$COMMIT_2"
@@ -312,12 +309,9 @@ teardown_file() {
 
   COMMIT_1=$(cat "$BATS_TMPDIR/xfork_commit_1.txt")
 
-  # NOTE: listing a remote repo's commits by namespace has no dit CLI equivalent
-  # yet (dit log is local-only), so this third-party public-read verification
-  # stays on the HTTP API. Tracked for a future remote commit-list command in
-  # ditdotdev/dit#186.
-  run curl -sf -H "Authorization: Bearer $GHTEST3_KEY" \
-    "$GATEWAY/api/v1/repos/${FORKER_NS}/${SOURCE_REPO}/commits"
+  # A third party reads the public fork's commits through the dit CLI (#186).
+  run env DIT_API_KEY="$GHTEST3_KEY" "$D3" repo commits "${FORKER_NS}" "${SOURCE_REPO}" \
+    --server "$GATEWAY"
   assert_success
   assert_output --partial "$COMMIT_1"
 }

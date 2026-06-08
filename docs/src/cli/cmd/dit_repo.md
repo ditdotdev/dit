@@ -22,6 +22,7 @@ Create, delete, and list repositories on a dit remote server.
 
 * [dit](dit)	 - Dit CLI
 * [dit repo collaborator](dit_repo_collaborator)	 - Manage repository collaborators
+* [dit repo commits](dit_repo_commits)	 - List a repository's commits
 * [dit repo create](dit_repo_create)	 - Create a repository on the server
 * [dit repo delete](dit_repo_delete)	 - Delete a repository from the server
 * [dit repo list](dit_repo_list)	 - List repositories on the server
