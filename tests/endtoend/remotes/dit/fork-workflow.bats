@@ -132,8 +132,7 @@ teardown_file() {
 }
 
 @test "fork: verify forked repo has all commits" {
-  run curl -sf -H "Authorization: Bearer ${DIT_API_KEY}" \
-    "${GATEWAY}/api/v1/repos/forkdest/source-repo/commits"
+  run env DIT_API_KEY="${DIT_API_KEY}" "$D3" repo commits forkdest source-repo --server "${GATEWAY}"
   assert_success
 
   COMMIT_1=$(cat "$BATS_TMPDIR/fork_commit_1.txt")
@@ -224,12 +223,10 @@ teardown_file() {
 # ===== Test: unauthenticated fork fails =====
 
 @test "fork: unauthenticated fork fails" {
-  run curl -X POST -s \
-    -H "Content-Type: application/json" \
-    -d '{"targetNamespace": "forkdest"}' \
-    "${GATEWAY}/api/v1/repos/forktest/source-repo/fork"
-  # Should fail - no auth
-  [[ "$output" != *"created"* ]]
+  # No API key -> the dit CLI must refuse with a non-zero exit and not fork.
+  run env DIT_API_KEY="" "$D3" fork "${GATEWAY}/forktest/source-repo" --org forkdest
+  assert_failure
+  refute_output --partial "Forked"
 }
 
 # ===== Cleanup =====
