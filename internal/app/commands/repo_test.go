@@ -26,6 +26,8 @@ func resetRepoFlags() {
 	_ = repoDeleteCmd.Flags().Set("force", "false")
 	_ = repoListCmd.Flags().Set("server", "")
 	_ = repoListCmd.Flags().Set("org", "")
+	_ = repoCommitsCmd.Flags().Set("server", "")
+	_ = repoCommitsCmd.Flags().Set("output", "")
 	_ = repoSetVisibilityCmd.Flags().Set("server", "")
 	_ = repoSetVisibilityCmd.Flags().Set("private", "false")
 	_ = repoSetVisibilityCmd.Flags().Set("public", "false")
@@ -439,5 +441,107 @@ func TestRepoListCmd_BadJSON(t *testing.T) {
 	_, err := execRepoCmd("repo", "ls", "--server", server.URL)
 	if err == nil {
 		t.Fatal("repo ls with bad JSON should return error")
+	}
+}
+
+// ===========================================================================
+// dit repo commits
+// ===========================================================================
+
+// commitsPayload is the paginated shape the manifest service returns from
+// GET /api/v1/repos/{org}/{repo}/commits.
+func commitsPayload(commits ...map[string]any) map[string]any {
+	return map[string]any{
+		"commits":  commits,
+		"total":    len(commits),
+		"page":     1,
+		"pageSize": len(commits),
+	}
+}
+
+func TestRepoCommitsCmd_Success(t *testing.T) {
+	resetRepoFlags()
+	t.Setenv("DIT_API_KEY", "")
+	_ = os.Unsetenv("DIT_API_KEY")
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodGet {
+			t.Errorf("expected GET, got %s", r.Method)
+		}
+		if r.URL.Path != "/api/v1/repos/myorg/myrepo/commits" {
+			t.Errorf("unexpected path: %s", r.URL.Path)
+		}
+		if r.Header.Get("Authorization") != testBearerToken {
+			t.Errorf("bad auth header: %s", r.Header.Get("Authorization"))
+		}
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(commitsPayload(
+			map[string]any{"commitId": "abc123", "message": "second"},
+			map[string]any{"commitId": "def456", "message": "first"},
+		))
+	}))
+	defer server.Close()
+
+	cleanup := setupRepoTestCreds(t, server.URL, "test-key")
+	defer cleanup()
+
+	output, err := execRepoCmd("repo", "commits", "myorg", "myrepo", "--server", server.URL)
+	if err != nil {
+		t.Fatalf("repo commits should succeed, got error: %v", err)
+	}
+	if !contains(output, "abc123") || !contains(output, "def456") {
+		t.Errorf("output should list commit ids, got: %s", output)
+	}
+	if !contains(output, "second") {
+		t.Errorf("output should include commit messages, got: %s", output)
+	}
+}
+
+func TestRepoCommitsCmd_JSONOutput(t *testing.T) {
+	resetRepoFlags()
+	t.Setenv("DIT_API_KEY", "")
+	_ = os.Unsetenv("DIT_API_KEY")
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(commitsPayload(
+			map[string]any{"commitId": "abc123", "message": "only"},
+		))
+	}))
+	defer server.Close()
+
+	cleanup := setupRepoTestCreds(t, server.URL, "test-key")
+	defer cleanup()
+
+	output, err := execRepoCmd("repo", "commits", "myorg", "myrepo", "-o", "json", "--server", server.URL)
+	if err != nil {
+		t.Fatalf("repo commits -o json should succeed, got error: %v", err)
+	}
+	// JSON output is the raw commits array (object unwrapped), parseable as such.
+	var commits []map[string]any
+	if err := json.Unmarshal([]byte(output), &commits); err != nil {
+		t.Fatalf("output should be a JSON array of commits, got: %s (err %v)", output, err)
+	}
+	if len(commits) != 1 || commits[0]["commitId"] != "abc123" {
+		t.Errorf("unexpected JSON commits: %s", output)
+	}
+}
+
+func TestRepoCommitsCmd_NotFound(t *testing.T) {
+	resetRepoFlags()
+	t.Setenv("DIT_API_KEY", "")
+	_ = os.Unsetenv("DIT_API_KEY")
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusNotFound)
+	}))
+	defer server.Close()
+
+	cleanup := setupRepoTestCreds(t, server.URL, "test-key")
+	defer cleanup()
+
+	_, err := execRepoCmd("repo", "commits", "myorg", "missing", "--server", server.URL)
+	if err == nil {
+		t.Fatal("repo commits on a missing repo should return an error")
 	}
 }

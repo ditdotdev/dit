@@ -254,6 +254,88 @@ var repoListCmd = &cobra.Command{
 	},
 }
 
+var repoCommitsCmd = &cobra.Command{
+	Use:   "commits <org> <repo>",
+	Short: "List a repository's commits",
+	Long:  `List the commits of a repository on a dit remote server, newest first.`,
+	Args:  cobra.ExactArgs(2),
+	RunE: func(cmd *cobra.Command, args []string) error {
+		org := args[0]
+		repo := args[1]
+		server, _ := cmd.Flags().GetString(flagServer)
+		outputFormat, _ := cmd.Flags().GetString(flagOutput)
+
+		apiKey, server, err := resolveRepoAuth(server)
+		if err != nil {
+			return err
+		}
+
+		url := fmt.Sprintf("%s/api/v1/repos/%s/%s/commits", server, org, repo)
+		req, err := http.NewRequest(http.MethodGet, url, nil)
+		if err != nil {
+			return fmt.Errorf("failed to create request: %w", err)
+		}
+		req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", apiKey))
+
+		client := &http.Client{Timeout: 30 * time.Second}
+		resp, err := client.Do(req)
+		if err != nil {
+			return fmt.Errorf("failed to connect to server: %w", err)
+		}
+		defer func() { _ = resp.Body.Close() }()
+
+		if resp.StatusCode == http.StatusUnauthorized {
+			return fmt.Errorf("authentication failed (401); check your API key")
+		}
+		if resp.StatusCode == http.StatusForbidden {
+			return fmt.Errorf("forbidden (403); you do not have permission to read this repository")
+		}
+		if resp.StatusCode == http.StatusNotFound {
+			return fmt.Errorf("repository %s/%s not found", org, repo)
+		}
+		if resp.StatusCode != http.StatusOK {
+			body, _ := io.ReadAll(resp.Body)
+			return fmt.Errorf("server returned %d: %s", resp.StatusCode, string(body))
+		}
+
+		// The commits endpoint returns a paginated object:
+		// {"commits": [{"commitId": ..., "message": ..., "timestamp": ...}, ...], "total": N, ...}
+		var payload struct {
+			Commits []map[string]any `json:"commits"`
+		}
+		if err := json.NewDecoder(resp.Body).Decode(&payload); err != nil {
+			return fmt.Errorf("failed to parse response: %w", err)
+		}
+
+		// JSON output is the machine-readable form: the raw commits array.
+		if outputFormat == "json" {
+			encoded, err := json.Marshal(payload.Commits)
+			if err != nil {
+				return fmt.Errorf("failed to encode commits: %w", err)
+			}
+			cmd.Println(string(encoded))
+			return nil
+		}
+
+		if len(payload.Commits) == 0 {
+			cmd.Println("No commits found.")
+			return nil
+		}
+
+		for _, c := range payload.Commits {
+			commitID, _ := c["commitId"].(string)
+			message, _ := c["message"].(string)
+			if message != "" {
+				cmd.Printf("%s\t%s\n", commitID, message)
+			} else {
+				cmd.Println(commitID)
+			}
+		}
+
+		return nil
+	},
+}
+
 // resolveRepoAuth resolves API key and server URL using the same pattern as org commands.
 func resolveRepoAuth(server string) (string, string, error) {
 	credsPath := getCredentialsPath()
@@ -291,6 +373,10 @@ func init() {
 	repoCmd.AddCommand(repoListCmd)
 	repoListCmd.Flags().String(flagServer, "", "Server URL")
 	repoListCmd.Flags().String("org", "", "Filter by organization")
+
+	repoCmd.AddCommand(repoCommitsCmd)
+	repoCommitsCmd.Flags().String(flagServer, "", "Server URL")
+	repoCommitsCmd.Flags().StringP(flagOutput, "o", "", "Output format: json for machine-readable output")
 
 	repoCmd.AddCommand(repoSetVisibilityCmd)
 	repoSetVisibilityCmd.Flags().String(flagServer, "", "Server URL")
