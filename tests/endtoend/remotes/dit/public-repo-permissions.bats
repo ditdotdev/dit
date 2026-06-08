@@ -33,19 +33,17 @@ PUB_REPO="perm-public"
 PRIV_REPO="perm-private"
 
 # NOTE: these tests drive the server through the dit CLI and the public HTTP API
-# only - no raw SQL. Repo create/delete/visibility and collaborator management
-# use the dit CLI with the 64-char admin key. Collaborator and org-member
-# read-backs also go through the CLI (`repo collaborator list`,
-# `org members -o json`).
+# only - no raw SQL. Repo create/delete/visibility, collaborator management, and
+# org-member management all use the dit CLI. Read-backs go through the CLI too
+# (`repo collaborator list`, `org members -o json`). Org-member writes act as the
+# owner d3-ghtest1, whose 74-char prefixed key now authenticates over
+# "Authorization: Bearer" after the JWT-shape auth fix (ditdotdev/dit#181).
 #
-# Raw curl is still used for: the permission-matrix assertions against the
-# gateway; the repo-visibility read-back (`get_repo_isprivate`) - there is no CLI
-# command to read a single repo's visibility, only `set-visibility`; and org
-# member management as d3-ghtest1 (`set_org_role`) - the seeded test-user keys
-# (d3-ghtest*_..., 74 chars) authenticate only via the X-API-Key header. The dit
-# CLI sends "Authorization: Bearer <key>", and the auth-server only treats a
-# Bearer token as an API key when it is exactly 64 chars, so the prefixed seed
-# keys are rejected. See the report and ditdotdev/dit#173.
+# Raw curl is still used for: the permission-matrix assertions against the gateway
+# (they check specific HTTP status codes that the CLI abstracts away); the
+# user-UUID resolution via /api/me; and the repo-visibility read-back
+# (`get_repo_isprivate`) - there is no CLI command to read a single repo's
+# visibility, only `set-visibility`. See ditdotdev/dit#173.
 
 # Resolve a seeded test user's UUID. There is no user-lookup API, so authenticate
 # as the user against /api/me, which returns the caller's id.
@@ -82,26 +80,19 @@ set_collab() {
   fi
 }
 
-# Helper: set d3-ghtest2's org membership role (or remove it). Member management
-# requires an org owner/admin (the global is_admin bypass does not apply here),
-# so these calls act as d3-ghtest1, who owns PERM_ORG.
-#
-# These use curl with the X-API-Key header rather than the dit CLI: the seeded
-# test-user keys (d3-ghtest1_..., 74 chars) authenticate only via X-API-Key. The
-# dit CLI sends "Authorization: Bearer <key>", and the auth-server only treats a
-# Bearer token as an API key when it is exactly 64 chars (middleware.go: the
-# `len(token) == 64` guard), so the prefixed seed keys are rejected as malformed
-# JWTs. There is therefore no working dit-CLI path to manage org members as
-# d3-ghtest1; see the report / ditdotdev/dit#173.
+# Helper: set d3-ghtest2's org membership role (or remove it) via the dit CLI.
+# Member management requires an org owner/admin (the global is_admin bypass does
+# not apply here), so these calls act as d3-ghtest1, who owns PERM_ORG. The
+# 74-char prefixed seed keys now authenticate over "Authorization: Bearer" after
+# the JWT-shape fix in ditdotdev/dit#181 (auth-server no longer gates the API-key
+# path on len==64), so the CLI path works.
 set_org_role() {
   local role="$1"
-  curl -s -o /dev/null -X DELETE -H "X-API-Key: $GHTEST1_KEY" \
-    "$GATEWAY/api/v1/orgs/${PERM_ORG}/members/${GHTEST2_ID}" || true
+  DIT_API_KEY="$GHTEST1_KEY" "$D3" org member remove "$PERM_ORG" "$GHTEST2_ID" \
+    --server "$GATEWAY" >/dev/null 2>&1 || true
   if [[ -n "$role" ]]; then
-    curl -s -o /dev/null -X POST -H "X-API-Key: $GHTEST1_KEY" \
-      -H "Content-Type: application/json" \
-      -d "{\"githubLogin\":\"d3-ghtest2\",\"role\":\"${role}\"}" \
-      "$GATEWAY/api/v1/orgs/${PERM_ORG}/members" || true
+    DIT_API_KEY="$GHTEST1_KEY" "$D3" org member add "$PERM_ORG" "d3-ghtest2" \
+      --github-login --role "$role" --server "$GATEWAY" >/dev/null 2>&1 || true
   fi
 }
 
@@ -127,11 +118,10 @@ ensure_repo() {
 cleanup_perm_fixtures() {
   delete_repo "$PERM_ORG" "$PUB_REPO"
   delete_repo "$PERM_ORG" "$PRIV_REPO"
-  # Remove ghtest2's org membership if present (best-effort; needs the owner key,
-  # which only authenticates via X-API-Key - see set_org_role).
+  # Remove ghtest2's org membership if present (best-effort; needs the owner key).
   if [[ -n "$GHTEST2_ID" ]]; then
-    curl -s -o /dev/null -X DELETE -H "X-API-Key: $GHTEST1_KEY" \
-      "$GATEWAY/api/v1/orgs/${PERM_ORG}/members/${GHTEST2_ID}" || true
+    DIT_API_KEY="$GHTEST1_KEY" "$D3" org member remove "$PERM_ORG" "$GHTEST2_ID" \
+      --server "$GATEWAY" >/dev/null 2>&1 || true
   fi
 }
 
@@ -266,26 +256,27 @@ teardown_file() {
   assert_success
   assert_output "member"
 
-  # Promote member -> admin and confirm the new role via the CLI read-back.
-  set_org_role "admin"
+  # Promote member -> admin using the dit CLI's own `set-role` command. This works
+  # over "Authorization: Bearer" with the 74-char d3-ghtest1_ owner key after the
+  # JWT-shape auth fix (ditdotdev/dit#181); confirm via the CLI read-back.
+  run env DIT_API_KEY="$GHTEST1_KEY" "$D3" org member set-role "$PERM_ORG" \
+    "$GHTEST2_ID" --role admin --server "$GATEWAY"
+  assert_success
   run get_org_role
   assert_success
   assert_output "admin"
 
-  # The dit CLI's own `org member set-role` sends "Authorization: Bearer <key>".
-  # It SUCCEEDS once the auth-server carries the JWT-shape API-key fix
-  # (ditdotdev/dit-remote-server#775, issue #181) and returns a clean auth error
-  # before that (the 74-char d3-ghtest1_ owner key is rejected by the old
-  # len==64 guard). This assertion is tolerant of BOTH during the cross-repo
-  # rollout - either way the command reached the server (not a usage/parse
-  # error). PR #184 tightens this to assert success once #775 is deployed.
+  # Demote admin -> member using the dit CLI's own `set-role`. With the JWT-shape
+  # API-key fix (ditdotdev/dit-remote-server#775, issue #181) deployed, the
+  # 74-char d3-ghtest1_ owner key authenticates over "Authorization: Bearer",
+  # so this succeeds cleanly; confirm via the CLI read-back.
   run env DIT_API_KEY="$GHTEST1_KEY" "$D3" org member set-role "$PERM_ORG" \
     "$GHTEST2_ID" --role member --server "$GATEWAY"
-  if [ "$status" -eq 0 ]; then
-    assert_output --partial "role in $PERM_ORG to member"
-  else
-    assert_output --partial "authentication failed"
-  fi
+  assert_success
+  assert_output --partial "role in $PERM_ORG to member"
+  run get_org_role
+  assert_success
+  assert_output "member"
 
   # Leave the org membership clean for the permission-matrix tests below.
   set_org_role ""
