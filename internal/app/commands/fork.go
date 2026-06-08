@@ -21,8 +21,8 @@ var forkCmd = &cobra.Command{
 		// Override root's PersistentPreRun to skip provider initialization.
 		// Fork talks directly to the remote server, not through a local provider.
 	},
-	Run: func(cmd *cobra.Command, args []string) {
-		cmn.Fork(args[0], forkOrg, forkName)
+	RunE: func(cmd *cobra.Command, args []string) error {
+		return cmn.Fork(args[0], forkOrg, forkName)
 	},
 }
 
