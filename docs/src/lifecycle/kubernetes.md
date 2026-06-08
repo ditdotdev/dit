@@ -25,8 +25,10 @@ Dit requires a Kubernetes cluster with the following configuration options:
   feature gate must be enabled.
 * The [VolumeSnapshot](https://kubernetes.io/docs/concepts/storage/volume-snapshots/)
   API must be enabled.
-* The default storage class and snapshot class must use a CSI driver with
-  snapshot capabilities.
+* The storage class and snapshot class Dit uses — whether specified at install
+  time (see [Installing a Kubernetes Context](#installing-a-kubernetes-context))
+  or inherited from the cluster default — must use a CSI driver with snapshot
+  capabilities.
 
 Dit currently uses the default Kubernetes config file, cluster and namespace
 as defined the `.kube/config` file in your home directory. Future versions will make these
@@ -42,13 +44,59 @@ there is no way to manage them as Dit repositories on a different system.
 Each push or pull operation is run as a separate Job, requiring that the
 `ditdotdev/dit` image be avaialble to the cluster.
 
+## Installing a Kubernetes Context
+
+Install a Kubernetes context with `dit context install -t kubernetes`. The
+storage and snapshot classes Dit uses for its PersistentVolumeClaims (volumes)
+and VolumeSnapshots (commits) are set with the `-p storageClass=<name>` and
+`-p snapshotClass=<name>` parameters. Both **must** be backed by a CSI driver
+with snapshot support.
+
+Pin these explicitly rather than relying on the cluster default. Many clusters
+default to a non-CSI storage class that cannot snapshot — for example minikube's
+`standard` (`k8s.io/minikube-hostpath`) — in which case `dit commit` fails with
+`snapshotting non-CSI volumes is not supported` (or, on older paths, silently
+captures an empty volume).
+
+The exact class names vary by cluster. List what is available with
+`kubectl get storageclass` and `kubectl get volumesnapshotclass`, and pick a
+storage class and a snapshot class that share the same CSI driver.
+
+**minikube** — enable the `volumesnapshots` and `csi-hostpath-driver` addons,
+which provide the `csi-hostpath-sc` storage class and `csi-hostpath-snapclass`
+snapshot class:
+
+```bash
+minikube addons enable volumesnapshots
+minikube addons enable csi-hostpath-driver
+
+dit context install -n minikube -t kubernetes \
+  -p storageClass=csi-hostpath-sc \
+  -p snapshotClass=csi-hostpath-snapclass
+```
+
+**A managed/cloud cluster** — use the storage class and snapshot class backed by
+your provider's CSI driver. The names below are examples; substitute the ones
+your cluster actually exposes (AWS EBS, GCE PD, Azure Disk, etc.):
+
+```bash
+dit context install -n prod -t kubernetes \
+  -p storageClass=ebs-sc \
+  -p snapshotClass=ebs-vsc
+```
+
+If you omit these parameters, Dit falls back to the cluster's default storage
+class and snapshot class, which only works when that default is itself a CSI
+snapshot-capable class.
+
 ## Kubernetes Architecture
 
 A Kubernetes repository consists of:
 
 * A PersistentVolumeClaim for each volume identified in the image metadata.
-  These are currently always hardcoded to be 1GiB, and always use the default
-  StorageClass. Each is given a unique GUID and name.
+  These are currently always hardcoded to be 1GiB, and use the storage class
+  given at install time (`-p storageClass=`), or the cluster default if none was
+  specified. Each is given a unique GUID and name.
 * A StatefulSet with the same name as the repository.
 * Within that StatefulSet, all PersistentVolumeClaims mapped to the directories
   identified in the image metadata. The pod name is the same as the repository
@@ -80,8 +128,11 @@ specific known limitations with beta:
   a way to control the namespace and cluster used. If the default configuration
   is changed after the context is installed, it can result in inconsistent
   state.
-* Dit will always use the default storage class and snapshot class. These
-  are not currently configurable.
+* The storage class and snapshot class are fixed at install time via
+  `-p storageClass=` / `-p snapshotClass=` (see
+  [Installing a Kubernetes Context](#installing-a-kubernetes-context)) and
+  cannot be changed afterward without re-installing the context. Both must be
+  backed by a CSI driver with snapshot support.
 * There are various failure modes, such as failing to pull an image, that
   aren't handled well by Dit. These can result in hangs or hard to diagnose
   errors.
@@ -99,11 +150,13 @@ If `dit commit` reports success but a later `dit clone` or `dit checkout` produc
 an empty database (for example, `ERROR: relation "<table>" does not exist`), the
 cluster's **default** storage class is almost certainly not snapshot-capable.
 
-Because Dit always uses the default storage class and snapshot class (see
-[Kubernetes Requirements](#kubernetes-requirements)), a default class that lacks
-a working CSI snapshot driver fails silently: the commit is recorded but its
-VolumeSnapshot never captures any data, so clones and checkouts restore an empty
-volume. A telltale sign is a commit whose reported size is only a few bytes.
+This happens when the storage class backing the volume is not CSI
+snapshot-capable. If you did not pin a class at install time, Dit inherits the
+cluster default — and a default that lacks a working CSI snapshot driver fails:
+on current clusters `dit commit` errors with `snapshotting non-CSI volumes is
+not supported`, and on older paths it fails silently, recording a commit whose
+VolumeSnapshot never captures any data so clones and checkouts restore an empty
+volume (a telltale sign is a commit whose reported size is only a few bytes).
 
 Diagnose it:
 
@@ -117,8 +170,19 @@ kubectl get storageclass
 kubectl get volumesnapshotclass
 ```
 
-If the default storage class is not snapshot-capable, promote a CSI
-snapshot-capable class to be the default and demote the old one:
+The preferred fix is to pin a CSI snapshot-capable class when installing the
+context, rather than relying on the default (see
+[Installing a Kubernetes Context](#installing-a-kubernetes-context)):
+
+```bash
+dit context uninstall -f <context>
+dit context install -n <context> -t kubernetes \
+  -p storageClass=<csi-storage-class> \
+  -p snapshotClass=<csi-snapshot-class>
+```
+
+Alternatively, promote a CSI snapshot-capable class to be the cluster default and
+demote the old one:
 
 ```bash
 kubectl patch storageclass <old-default> -p \
@@ -128,4 +192,4 @@ kubectl patch storageclass <csi-snapshot-class> -p \
 ```
 
 Existing PersistentVolumeClaims keep the storage class they were created with, so
-re-create the repository after changing the default.
+re-create the repository (or re-install the context) after changing the class.

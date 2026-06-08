@@ -83,7 +83,7 @@ func (k kubernetes) Delete(repo string, commit string, tags []string) {
 }
 
 func (k kubernetes) Install(properties []string, verbose bool) {
-	k8s.Install(k.ditServerVersion, k.dockerRegistryUrl, verbose, k.portNum, k.contextName)
+	k8s.Install(k.ditServerVersion, k.dockerRegistryUrl, verbose, k.portNum, k.contextName, properties)
 }
 
 func (k kubernetes) List(context string) {
