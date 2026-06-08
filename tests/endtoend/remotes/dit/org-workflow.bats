@@ -36,10 +36,8 @@ setup_file() {
 
 teardown_file() {
   # Best-effort cleanup — API then DB
-  curl -s -X DELETE -H "X-API-Key: $ORGUSER_A_KEY" \
-    "$GATEWAY/api/v1/orgs/test-org" 2>/dev/null || true
-  curl -s -X DELETE -H "X-API-Key: $ORGUSER_A_KEY" \
-    "$GATEWAY/api/v1/orgs/delete-me-org" 2>/dev/null || true
+  DIT_API_KEY="$ORGUSER_A_KEY" "$D3" org delete test-org --server "$GATEWAY" 2>/dev/null || true
+  DIT_API_KEY="$ORGUSER_A_KEY" "$D3" org delete delete-me-org --server "$GATEWAY" 2>/dev/null || true
 
   run_sql_cmd \
     "DELETE FROM org_memberships WHERE org_id IN (SELECT id FROM organizations WHERE name IN ('test-org', 'delete-me-org'));
@@ -193,23 +191,15 @@ teardown_file() {
   assert_output --partial "owner"
 }
 
-@test "org: duplicate org name returns 409" {
-  run curl -s -o /dev/null -w "%{http_code}" -X POST \
-    -H "X-API-Key: $ORGUSER_A_KEY" \
-    -H "Content-Type: application/json" \
-    -d '{"name":"test-org"}' \
-    "$GATEWAY/api/v1/orgs"
-  assert_success
-  assert_output "409"
+@test "org: duplicate org name fails" {
+  run env DIT_API_KEY="$ORGUSER_A_KEY" "$D3" org create test-org --server "$GATEWAY"
+  assert_failure
+  assert_output --partial "already exists"
 }
 
-@test "org: create org without auth returns 401" {
-  run curl -s -o /dev/null -w "%{http_code}" -X POST \
-    -H "Content-Type: application/json" \
-    -d '{"name":"unauth-org"}' \
-    "$GATEWAY/api/v1/orgs"
-  assert_success
-  assert_output "401"
+@test "org: create org without auth fails" {
+  run env -u DIT_API_KEY "$D3" org create unauth-org --server "$GATEWAY"
+  assert_failure
 }
 
 # ========================================
@@ -217,58 +207,47 @@ teardown_file() {
 # ========================================
 
 @test "org: list orgs as orguser-a contains test-org" {
-  run curl -sf -H "X-API-Key: $ORGUSER_A_KEY" \
-    "$GATEWAY/api/v1/orgs"
+  run env DIT_API_KEY="$ORGUSER_A_KEY" "$D3" org list --server "$GATEWAY"
   assert_success
   assert_output --partial "test-org"
 }
 
 @test "org: list orgs as orguser-b returns empty (not a member)" {
-  run curl -sf -H "X-API-Key: $ORGUSER_B_KEY" \
-    "$GATEWAY/api/v1/orgs"
+  run env DIT_API_KEY="$ORGUSER_B_KEY" "$D3" org list --server "$GATEWAY"
   assert_success
-  # orguser-b is not a member of any org yet, list should be empty
-  assert_output "[]"
+  # orguser-b is not a member of any org yet
+  assert_output --partial "No organizations found"
 }
 
 # ========================================
 # Organization Update
 # ========================================
 
-@test "org: update test-org as owner returns 200" {
-  run curl -s -w "\n%{http_code}" -X PUT \
-    -H "X-API-Key: $ORGUSER_A_KEY" \
-    -H "Content-Type: application/json" \
-    -d '{"displayName":"Updated Test Org","description":"E2E test org"}' \
-    "$GATEWAY/api/v1/orgs/test-org"
+@test "org: update test-org as owner succeeds" {
+  run env DIT_API_KEY="$ORGUSER_A_KEY" "$D3" org update test-org \
+    --display-name "Updated Test Org" --description "E2E test org" --server "$GATEWAY"
   assert_success
-  assert_output --partial "200"
+  assert_output --partial "Updated organization test-org"
 }
 
 @test "org: verify test-org was updated" {
-  run curl -sf -H "X-API-Key: $ORGUSER_A_KEY" \
-    "$GATEWAY/api/v1/orgs/test-org"
+  run env DIT_API_KEY="$ORGUSER_A_KEY" "$D3" org info test-org --server "$GATEWAY"
   assert_success
   assert_output --partial "Updated Test Org"
   assert_output --partial "E2E test org"
 }
 
-@test "org: update test-org as non-member returns 403" {
-  run curl -s -o /dev/null -w "%{http_code}" -X PUT \
-    -H "X-API-Key: $ORGUSER_B_KEY" \
-    -H "Content-Type: application/json" \
-    -d '{"displayName":"Hijacked"}' \
-    "$GATEWAY/api/v1/orgs/test-org"
-  assert_success
-  assert_output "403"
+@test "org: update test-org as non-member fails" {
+  run env DIT_API_KEY="$ORGUSER_B_KEY" "$D3" org update test-org \
+    --display-name "Hijacked" --server "$GATEWAY"
+  assert_failure
+  assert_output --partial "forbidden"
 }
 
-@test "org: get nonexistent org returns 404" {
-  run curl -s -o /dev/null -w "%{http_code}" \
-    -H "X-API-Key: $ORGUSER_A_KEY" \
-    "$GATEWAY/api/v1/orgs/nonexistent-org"
-  assert_success
-  assert_output "404"
+@test "org: get nonexistent org fails" {
+  run env DIT_API_KEY="$ORGUSER_A_KEY" "$D3" org info nonexistent-org --server "$GATEWAY"
+  assert_failure
+  assert_output --partial "not found"
 }
 
 # ========================================
@@ -278,18 +257,14 @@ teardown_file() {
 @test "org: add orguser-b as member of test-org" {
   ORGUSER_B_ID=$(cat "$BATS_TMPDIR/orguser_b_id.txt")
 
-  run curl -s -w "\n%{http_code}" -X POST \
-    -H "X-API-Key: $ORGUSER_A_KEY" \
-    -H "Content-Type: application/json" \
-    -d "{\"userId\":\"${ORGUSER_B_ID}\",\"role\":\"member\"}" \
-    "$GATEWAY/api/v1/orgs/test-org/members"
+  run env DIT_API_KEY="$ORGUSER_A_KEY" "$D3" org member add test-org "$ORGUSER_B_ID" \
+    --role member --server "$GATEWAY"
   assert_success
-  assert_output --partial "200"
+  assert_output --partial "Added"
 }
 
 @test "org: list members returns 2 members" {
-  run curl -sf -H "X-API-Key: $ORGUSER_A_KEY" \
-    "$GATEWAY/api/v1/orgs/test-org/members"
+  run env DIT_API_KEY="$ORGUSER_A_KEY" "$D3" org members test-org --server "$GATEWAY"
   assert_success
   # Both orguser-a (owner) and orguser-b (member) should appear
   assert_output --partial "owner"
@@ -297,35 +272,28 @@ teardown_file() {
 }
 
 @test "org: list orgs as orguser-b now contains test-org" {
-  run curl -sf -H "X-API-Key: $ORGUSER_B_KEY" \
-    "$GATEWAY/api/v1/orgs"
+  run env DIT_API_KEY="$ORGUSER_B_KEY" "$D3" org list --server "$GATEWAY"
   assert_success
   assert_output --partial "test-org"
 }
 
-@test "org: add orguser-b again returns 409" {
+@test "org: add orguser-b again fails (already a member)" {
   ORGUSER_B_ID=$(cat "$BATS_TMPDIR/orguser_b_id.txt")
 
-  run curl -s -o /dev/null -w "%{http_code}" -X POST \
-    -H "X-API-Key: $ORGUSER_A_KEY" \
-    -H "Content-Type: application/json" \
-    -d "{\"userId\":\"${ORGUSER_B_ID}\",\"role\":\"member\"}" \
-    "$GATEWAY/api/v1/orgs/test-org/members"
-  assert_success
-  assert_output "409"
+  run env DIT_API_KEY="$ORGUSER_A_KEY" "$D3" org member add test-org "$ORGUSER_B_ID" \
+    --role member --server "$GATEWAY"
+  assert_failure
+  assert_output --partial "already a member"
 }
 
-@test "org: member cannot add new members (403)" {
+@test "org: member cannot add new members" {
   ORGUSER_A_ID=$(cat "$BATS_TMPDIR/orguser_a_id.txt")
 
   # orguser-b is a member, not admin/owner — should be rejected
-  run curl -s -o /dev/null -w "%{http_code}" -X POST \
-    -H "X-API-Key: $ORGUSER_B_KEY" \
-    -H "Content-Type: application/json" \
-    -d "{\"userId\":\"${ORGUSER_A_ID}\",\"role\":\"member\"}" \
-    "$GATEWAY/api/v1/orgs/test-org/members"
-  assert_success
-  assert_output "403"
+  run env DIT_API_KEY="$ORGUSER_B_KEY" "$D3" org member add test-org "$ORGUSER_A_ID" \
+    --role member --server "$GATEWAY"
+  assert_failure
+  assert_output --partial "forbidden"
 }
 
 # ========================================
@@ -335,18 +303,14 @@ teardown_file() {
 @test "org: update orguser-b role to admin" {
   ORGUSER_B_ID=$(cat "$BATS_TMPDIR/orguser_b_id.txt")
 
-  run curl -s -w "\n%{http_code}" -X PUT \
-    -H "X-API-Key: $ORGUSER_A_KEY" \
-    -H "Content-Type: application/json" \
-    -d '{"role":"admin"}' \
-    "$GATEWAY/api/v1/orgs/test-org/members/${ORGUSER_B_ID}"
+  run env DIT_API_KEY="$ORGUSER_A_KEY" "$D3" org member set-role test-org "$ORGUSER_B_ID" \
+    --role admin --server "$GATEWAY"
   assert_success
-  assert_output --partial "200"
+  assert_output --partial "Updated"
 }
 
 @test "org: verify orguser-b role is now admin" {
-  run curl -sf -H "X-API-Key: $ORGUSER_A_KEY" \
-    "$GATEWAY/api/v1/orgs/test-org/members"
+  run env DIT_API_KEY="$ORGUSER_A_KEY" "$D3" org members test-org --server "$GATEWAY"
   assert_success
   assert_output --partial "admin"
 }
@@ -354,13 +318,10 @@ teardown_file() {
 @test "org: update orguser-b role back to member" {
   ORGUSER_B_ID=$(cat "$BATS_TMPDIR/orguser_b_id.txt")
 
-  run curl -s -w "\n%{http_code}" -X PUT \
-    -H "X-API-Key: $ORGUSER_A_KEY" \
-    -H "Content-Type: application/json" \
-    -d '{"role":"member"}' \
-    "$GATEWAY/api/v1/orgs/test-org/members/${ORGUSER_B_ID}"
+  run env DIT_API_KEY="$ORGUSER_A_KEY" "$D3" org member set-role test-org "$ORGUSER_B_ID" \
+    --role member --server "$GATEWAY"
   assert_success
-  assert_output --partial "200"
+  assert_output --partial "Updated"
 }
 
 # ========================================
@@ -370,49 +331,42 @@ teardown_file() {
 @test "org: cannot remove last owner (orguser-a)" {
   ORGUSER_A_ID=$(cat "$BATS_TMPDIR/orguser_a_id.txt")
 
-  run curl -s -o /dev/null -w "%{http_code}" -X DELETE \
-    -H "X-API-Key: $ORGUSER_A_KEY" \
-    "$GATEWAY/api/v1/orgs/test-org/members/${ORGUSER_A_ID}"
-  assert_success
-  assert_output "400"
+  run env DIT_API_KEY="$ORGUSER_A_KEY" "$D3" org member remove test-org "$ORGUSER_A_ID" \
+    --server "$GATEWAY"
+  assert_failure
+  assert_output --partial "cannot remove"
 }
 
 @test "org: remove orguser-b from test-org" {
   ORGUSER_B_ID=$(cat "$BATS_TMPDIR/orguser_b_id.txt")
 
-  run curl -s -w "\n%{http_code}" -X DELETE \
-    -H "X-API-Key: $ORGUSER_A_KEY" \
-    "$GATEWAY/api/v1/orgs/test-org/members/${ORGUSER_B_ID}"
+  run env DIT_API_KEY="$ORGUSER_A_KEY" "$D3" org member remove test-org "$ORGUSER_B_ID" \
+    --server "$GATEWAY"
   assert_success
-  assert_output --partial "200"
+  assert_output --partial "Removed"
 }
 
 @test "org: list members after removal returns 1 member" {
-  run curl -sf -H "X-API-Key: $ORGUSER_A_KEY" \
-    "$GATEWAY/api/v1/orgs/test-org/members"
+  run env DIT_API_KEY="$ORGUSER_A_KEY" "$D3" org members test-org --server "$GATEWAY"
   assert_success
   assert_output --partial "owner"
-  # orguser-b should no longer appear
-  [[ "$output" != *"orguser-b"* ]] || [[ "$(echo "$output" | grep -c '"member"')" -eq 0 ]]
+  # orguser-b should no longer appear as a member
+  refute_output --partial "member"
 }
 
 @test "org: list orgs as orguser-b returns empty again" {
-  run curl -sf -H "X-API-Key: $ORGUSER_B_KEY" \
-    "$GATEWAY/api/v1/orgs"
+  run env DIT_API_KEY="$ORGUSER_B_KEY" "$D3" org list --server "$GATEWAY"
   assert_success
-  assert_output "[]"
+  assert_output --partial "No organizations found"
 }
 
 @test "org: re-add orguser-b as member for subsequent tests" {
   ORGUSER_B_ID=$(cat "$BATS_TMPDIR/orguser_b_id.txt")
 
-  run curl -s -w "\n%{http_code}" -X POST \
-    -H "X-API-Key: $ORGUSER_A_KEY" \
-    -H "Content-Type: application/json" \
-    -d "{\"userId\":\"${ORGUSER_B_ID}\",\"role\":\"member\"}" \
-    "$GATEWAY/api/v1/orgs/test-org/members"
+  run env DIT_API_KEY="$ORGUSER_A_KEY" "$D3" org member add test-org "$ORGUSER_B_ID" \
+    --role member --server "$GATEWAY"
   assert_success
-  assert_output --partial "200"
+  assert_output --partial "Added"
 }
 
 # ========================================
@@ -420,46 +374,33 @@ teardown_file() {
 # ========================================
 
 @test "org: create delete-me-org" {
-  run curl -s -w "\n%{http_code}" -X POST \
-    -H "X-API-Key: $ORGUSER_A_KEY" \
-    -H "Content-Type: application/json" \
-    -d '{"name":"delete-me-org"}' \
-    "$GATEWAY/api/v1/orgs"
+  run env DIT_API_KEY="$ORGUSER_A_KEY" "$D3" org create delete-me-org --server "$GATEWAY"
   assert_success
   assert_output --partial "delete-me-org"
-  assert_output --partial "201"
 }
 
-@test "org: delete as non-owner returns 403" {
-  run curl -s -o /dev/null -w "%{http_code}" -X DELETE \
-    -H "X-API-Key: $ORGUSER_B_KEY" \
-    "$GATEWAY/api/v1/orgs/delete-me-org"
-  assert_success
-  assert_output "403"
+@test "org: delete as non-owner fails" {
+  run env DIT_API_KEY="$ORGUSER_B_KEY" "$D3" org delete delete-me-org --server "$GATEWAY"
+  assert_failure
+  assert_output --partial "forbidden"
 }
 
-@test "org: delete as owner returns 200" {
-  run curl -s -o /dev/null -w "%{http_code}" -X DELETE \
-    -H "X-API-Key: $ORGUSER_A_KEY" \
-    "$GATEWAY/api/v1/orgs/delete-me-org"
+@test "org: delete as owner succeeds" {
+  run env DIT_API_KEY="$ORGUSER_A_KEY" "$D3" org delete delete-me-org --server "$GATEWAY"
   assert_success
-  assert_output "200"
+  assert_output --partial "Deleted"
 }
 
-@test "org: verify delete-me-org is gone (404)" {
-  run curl -s -o /dev/null -w "%{http_code}" \
-    -H "X-API-Key: $ORGUSER_A_KEY" \
-    "$GATEWAY/api/v1/orgs/delete-me-org"
-  assert_success
-  assert_output "404"
+@test "org: verify delete-me-org is gone" {
+  run env DIT_API_KEY="$ORGUSER_A_KEY" "$D3" org info delete-me-org --server "$GATEWAY"
+  assert_failure
+  assert_output --partial "not found"
 }
 
-@test "org: delete nonexistent org returns 404" {
-  run curl -s -o /dev/null -w "%{http_code}" -X DELETE \
-    -H "X-API-Key: $ORGUSER_A_KEY" \
-    "$GATEWAY/api/v1/orgs/nonexistent-org"
-  assert_success
-  assert_output "404"
+@test "org: delete nonexistent org fails" {
+  run env DIT_API_KEY="$ORGUSER_A_KEY" "$D3" org delete nonexistent-org --server "$GATEWAY"
+  assert_failure
+  assert_output --partial "not found"
 }
 
 # ========================================
@@ -501,18 +442,15 @@ teardown_file() {
 # Cleanup
 # ========================================
 
-@test "org: cleanup - delete test-org via API" {
-  run curl -s -X DELETE -H "X-API-Key: $ORGUSER_A_KEY" \
-    "$GATEWAY/api/v1/orgs/test-org"
+@test "org: cleanup - delete test-org via CLI" {
+  run env DIT_API_KEY="$ORGUSER_A_KEY" "$D3" org delete test-org --server "$GATEWAY"
   assert_success
 }
 
 @test "org: cleanup - verify test-org deleted" {
-  run curl -s -o /dev/null -w "%{http_code}" \
-    -H "X-API-Key: $ORGUSER_A_KEY" \
-    "$GATEWAY/api/v1/orgs/test-org"
-  assert_success
-  assert_output "404"
+  run env DIT_API_KEY="$ORGUSER_A_KEY" "$D3" org info test-org --server "$GATEWAY"
+  assert_failure
+  assert_output --partial "not found"
 }
 
 @test "org: cleanup - delete API keys for test users" {

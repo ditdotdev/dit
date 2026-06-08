@@ -177,12 +177,125 @@ var orgInfoCmd = &cobra.Command{
 
 		name, _ := org[nameKey].(string)
 		display, _ := org["displayName"].(string)
+		description, _ := org["description"].(string)
 		cmd.Printf("Name:         %s\n", name)
 		if display != "" {
 			cmd.Printf("Display Name: %s\n", display)
 		}
+		if description != "" {
+			cmd.Printf("Description:  %s\n", description)
+		}
 
 		return nil
+	},
+}
+
+var orgUpdateCmd = &cobra.Command{
+	Use:   "update <org-name>",
+	Short: "Update an organization's display name or description",
+	Long:  `Update an organization's display name and/or description on a dit remote server. Specify at least one of --display-name or --description.`,
+	Args:  cobra.ExactArgs(1),
+	RunE: func(cmd *cobra.Command, args []string) error {
+		orgName := args[0]
+		server, _ := cmd.Flags().GetString(flagServer)
+		displayName, _ := cmd.Flags().GetString("display-name")
+		description, _ := cmd.Flags().GetString("description")
+
+		if !cmd.Flags().Changed("display-name") && !cmd.Flags().Changed("description") {
+			return fmt.Errorf("specify at least one of --display-name or --description")
+		}
+
+		apiKey, server, err := resolveOrgAuth(server)
+		if err != nil {
+			return err
+		}
+
+		reqBody := map[string]string{}
+		if cmd.Flags().Changed("display-name") {
+			reqBody["displayName"] = displayName
+		}
+		if cmd.Flags().Changed("description") {
+			reqBody["description"] = description
+		}
+		bodyJSON, err := json.Marshal(reqBody)
+		if err != nil {
+			return fmt.Errorf("failed to build request: %w", err)
+		}
+
+		url := fmt.Sprintf("%s/api/v1/orgs/%s", server, orgName)
+		req, err := http.NewRequest(http.MethodPut, url, bytes.NewReader(bodyJSON))
+		if err != nil {
+			return fmt.Errorf("failed to create request: %w", err)
+		}
+		req.Header.Set("Content-Type", "application/json")
+		req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", apiKey))
+
+		client := &http.Client{Timeout: 30 * time.Second}
+		resp, err := client.Do(req)
+		if err != nil {
+			return fmt.Errorf("failed to connect to server: %w", err)
+		}
+		defer func() { _ = resp.Body.Close() }()
+
+		body, _ := io.ReadAll(resp.Body)
+		switch resp.StatusCode {
+		case http.StatusOK, http.StatusNoContent:
+			cmd.Printf("Updated organization %s\n", orgName)
+			return nil
+		case http.StatusUnauthorized:
+			return fmt.Errorf("authentication failed (401); check your API key")
+		case http.StatusForbidden:
+			return fmt.Errorf("forbidden (403); you do not have permission to update this organization")
+		case http.StatusNotFound:
+			return fmt.Errorf("organization %s not found", orgName)
+		default:
+			return fmt.Errorf("server returned %d: %s", resp.StatusCode, string(body))
+		}
+	},
+}
+
+var orgDeleteCmd = &cobra.Command{
+	Use:   "delete <org-name>",
+	Short: "Delete an organization",
+	Long:  `Delete an organization from a dit remote server.`,
+	Args:  cobra.ExactArgs(1),
+	RunE: func(cmd *cobra.Command, args []string) error {
+		orgName := args[0]
+		server, _ := cmd.Flags().GetString(flagServer)
+
+		apiKey, server, err := resolveOrgAuth(server)
+		if err != nil {
+			return err
+		}
+
+		url := fmt.Sprintf("%s/api/v1/orgs/%s", server, orgName)
+		req, err := http.NewRequest(http.MethodDelete, url, nil)
+		if err != nil {
+			return fmt.Errorf("failed to create request: %w", err)
+		}
+		req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", apiKey))
+
+		client := &http.Client{Timeout: 30 * time.Second}
+		resp, err := client.Do(req)
+		if err != nil {
+			return fmt.Errorf("failed to connect to server: %w", err)
+		}
+		defer func() { _ = resp.Body.Close() }()
+
+		body, _ := io.ReadAll(resp.Body)
+		switch resp.StatusCode {
+		case http.StatusOK, http.StatusNoContent:
+			cmd.Printf("Deleted organization %s\n", orgName)
+			return nil
+		case http.StatusUnauthorized:
+			return fmt.Errorf("authentication failed (401); check your API key")
+		case http.StatusForbidden:
+			return fmt.Errorf("forbidden (403); you do not have permission to delete this organization")
+		case http.StatusNotFound:
+			return fmt.Errorf("organization %s not found", orgName)
+		default:
+			return fmt.Errorf("server returned %d: %s", resp.StatusCode, string(body))
+		}
 	},
 }
 
@@ -470,6 +583,14 @@ func init() {
 
 	orgCmd.AddCommand(orgInfoCmd)
 	orgInfoCmd.Flags().String("server", "", "Server URL")
+
+	orgCmd.AddCommand(orgUpdateCmd)
+	orgUpdateCmd.Flags().String(flagServer, "", "Server URL")
+	orgUpdateCmd.Flags().String("display-name", "", "New display name for the organization")
+	orgUpdateCmd.Flags().String("description", "", "New description for the organization")
+
+	orgCmd.AddCommand(orgDeleteCmd)
+	orgDeleteCmd.Flags().String(flagServer, "", "Server URL")
 
 	orgCmd.AddCommand(orgMembersCmd)
 	orgMembersCmd.Flags().String("server", "", "Server URL")
