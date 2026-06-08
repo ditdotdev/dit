@@ -411,6 +411,16 @@ func resetOrgInfoFlags() {
 	_ = orgInfoCmd.Flags().Set("server", "")
 }
 
+func resetOrgUpdateFlags() {
+	_ = orgUpdateCmd.Flags().Set("server", "")
+	_ = orgUpdateCmd.Flags().Set("display-name", "")
+	_ = orgUpdateCmd.Flags().Set("description", "")
+}
+
+func resetOrgDeleteFlags() {
+	_ = orgDeleteCmd.Flags().Set("server", "")
+}
+
 func resetOrgMembersFlags() {
 	_ = orgMembersCmd.Flags().Set("server", "")
 	_ = orgMembersCmd.Flags().Set("output", "")
@@ -786,5 +796,136 @@ func TestOrgMembersCmd_EmptyList(t *testing.T) {
 	}
 	if !contains(output, "No members found") {
 		t.Errorf("empty members list should show message, got: %s", output)
+	}
+}
+
+// ===========================================================================
+// dit org update
+// ===========================================================================
+
+func TestOrgUpdateCmd_Success(t *testing.T) {
+	resetOrgUpdateFlags()
+	t.Setenv("DIT_API_KEY", "")
+	_ = os.Unsetenv("DIT_API_KEY")
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPut {
+			t.Errorf("expected PUT, got %s", r.Method)
+		}
+		if r.URL.Path != "/api/v1/orgs/test-org" {
+			t.Errorf("unexpected path: %s", r.URL.Path)
+		}
+		if r.Header.Get("Authorization") != testBearerToken {
+			t.Errorf("bad auth header: %s", r.Header.Get("Authorization"))
+		}
+		var body map[string]string
+		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+			t.Errorf("failed to decode request body: %v", err)
+		}
+		if body["displayName"] != "Updated Org" {
+			t.Errorf("expected displayName=Updated Org, got %q", body["displayName"])
+		}
+		if body["description"] != "new desc" {
+			t.Errorf("expected description=new desc, got %q", body["description"])
+		}
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer server.Close()
+
+	cleanup := setupOrgTestCreds(t, server.URL, "test-key")
+	defer cleanup()
+
+	output, err := execOrgCmd("org", "update", "test-org",
+		"--display-name", "Updated Org", "--description", "new desc", "--server", server.URL)
+	if err != nil {
+		t.Fatalf("org update should succeed, got error: %v", err)
+	}
+	if !contains(output, "test-org") {
+		t.Errorf("output should mention updated org, got: %s", output)
+	}
+}
+
+func TestOrgUpdateCmd_NoFields(t *testing.T) {
+	resetOrgUpdateFlags()
+	t.Setenv("DIT_API_KEY", "test-key")
+
+	// No --display-name/--description: must error before any request.
+	cleanup := setupOrgTestCreds(t, "http://localhost:9999", "test-key")
+	defer cleanup()
+
+	_, err := execOrgCmd("org", "update", "test-org", "--server", "http://localhost:9999")
+	if err == nil {
+		t.Fatal("org update with no fields should return an error")
+	}
+}
+
+func TestOrgUpdateCmd_Forbidden(t *testing.T) {
+	resetOrgUpdateFlags()
+	t.Setenv("DIT_API_KEY", "test-key")
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusForbidden)
+	}))
+	defer server.Close()
+
+	cleanup := setupOrgTestCreds(t, server.URL, "test-key")
+	defer cleanup()
+
+	_, err := execOrgCmd("org", "update", "test-org", "--display-name", "X", "--server", server.URL)
+	if err == nil {
+		t.Fatal("org update with 403 should return an error")
+	}
+}
+
+// ===========================================================================
+// dit org delete
+// ===========================================================================
+
+func TestOrgDeleteCmd_Success(t *testing.T) {
+	resetOrgDeleteFlags()
+	t.Setenv("DIT_API_KEY", "")
+	_ = os.Unsetenv("DIT_API_KEY")
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodDelete {
+			t.Errorf("expected DELETE, got %s", r.Method)
+		}
+		if r.URL.Path != "/api/v1/orgs/test-org" {
+			t.Errorf("unexpected path: %s", r.URL.Path)
+		}
+		if r.Header.Get("Authorization") != testBearerToken {
+			t.Errorf("bad auth header: %s", r.Header.Get("Authorization"))
+		}
+		w.WriteHeader(http.StatusNoContent)
+	}))
+	defer server.Close()
+
+	cleanup := setupOrgTestCreds(t, server.URL, "test-key")
+	defer cleanup()
+
+	output, err := execOrgCmd("org", "delete", "test-org", "--server", server.URL)
+	if err != nil {
+		t.Fatalf("org delete should succeed, got error: %v", err)
+	}
+	if !contains(output, "test-org") {
+		t.Errorf("output should mention deleted org, got: %s", output)
+	}
+}
+
+func TestOrgDeleteCmd_NotFound(t *testing.T) {
+	resetOrgDeleteFlags()
+	t.Setenv("DIT_API_KEY", "test-key")
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusNotFound)
+	}))
+	defer server.Close()
+
+	cleanup := setupOrgTestCreds(t, server.URL, "test-key")
+	defer cleanup()
+
+	_, err := execOrgCmd("org", "delete", "missing-org", "--server", server.URL)
+	if err == nil {
+		t.Fatal("org delete on a missing org should return an error")
 	}
 }
