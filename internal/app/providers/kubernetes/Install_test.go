@@ -2,6 +2,7 @@ package kubernetes
 
 import (
 	"errors"
+	"os"
 	"strings"
 	"testing"
 )
@@ -13,7 +14,7 @@ func TestK8sInstall_DockerNotAvailable(t *testing.T) {
 	output := captureStdout(func() {
 		didExit, code = captureExit(t, func() {
 			with(t, d, &fakeK8s{}, func() {
-				Install("v1.0.0", "dit", false, 9999, "ctx")
+				Install("v1.0.0", "dit", false, 9999, "ctx", nil)
 			})
 		})
 	})
@@ -33,7 +34,7 @@ func TestK8sInstall_TriggersPullWhenNotDownloaded(t *testing.T) {
 	_ = captureStdout(func() {
 		_, _ = captureExit(t, func() {
 			with(t, d, &fakeK8s{}, func() {
-				Install("v1.0.0", "dit", false, 9999, "ctx")
+				Install("v1.0.0", "dit", false, 9999, "ctx", nil)
 			})
 		})
 	})
@@ -53,7 +54,7 @@ func TestK8sInstall_PullErrorExits(t *testing.T) {
 	output := captureStdout(func() {
 		didExit, code = captureExit(t, func() {
 			with(t, d, &fakeK8s{}, func() {
-				Install("v1.0.0", "dit", false, 9999, "ctx")
+				Install("v1.0.0", "dit", false, 9999, "ctx", nil)
 			})
 		})
 	})
@@ -77,7 +78,7 @@ func TestK8sInstall_HappyPathRemovesStaleAndLaunches(t *testing.T) {
 	output := captureStdout(func() {
 		_, _ = captureExit(t, func() {
 			with(t, d, &fakeK8s{}, func() {
-				Install("v1.0.0", "dit", true, 9999, "ctx")
+				Install("v1.0.0", "dit", true, 9999, "ctx", nil)
 			})
 		})
 	})
@@ -106,7 +107,7 @@ func TestK8sInstall_LaunchFailurePanics(t *testing.T) {
 			}()
 			_, _ = captureExit(t, func() {
 				with(t, d, &fakeK8s{}, func() {
-					Install("v1.0.0", "dit", false, 9999, "ctx")
+					Install("v1.0.0", "dit", false, 9999, "ctx", nil)
 				})
 			})
 		}()
@@ -124,12 +125,55 @@ func TestK8sInstall_TagWarningsAreNonFatal(t *testing.T) {
 	output := captureStdout(func() {
 		_, _ = captureExit(t, func() {
 			with(t, d, &fakeK8s{}, func() {
-				Install("v1.0.0", "dit", false, 9999, "ctx")
+				Install("v1.0.0", "dit", false, 9999, "ctx", nil)
 			})
 		})
 	})
 
 	if !strings.Contains(output, "Error tagging image") {
 		t.Errorf("expected tag warning, got %q", output)
+	}
+}
+
+func TestK8sInstall_PropertiesExportContextConfig(t *testing.T) {
+	// t.Setenv isolates DIT_CONTEXT_CONFIG and restores it after the test.
+	t.Setenv("DIT_CONTEXT_CONFIG", "")
+	d := &fakeDocker{
+		latestDownloaded: true,
+		fetchLaunchLogs:  []string{"DATADATDAT FINISHED"},
+	}
+	_ = captureStdout(func() {
+		_, _ = captureExit(t, func() {
+			with(t, d, &fakeK8s{}, func() {
+				Install("v1.0.0", "dit", false, 9999, "ctx",
+					[]string{"storageClass=csi-hostpath-sc", "snapshotClass=csi-hostpath-snapclass"})
+			})
+		})
+	})
+
+	got := os.Getenv("DIT_CONTEXT_CONFIG")
+	want := "storageClass=csi-hostpath-sc,snapshotClass=csi-hostpath-snapclass"
+	if got != want {
+		t.Errorf("DIT_CONTEXT_CONFIG = %q, want %q", got, want)
+	}
+}
+
+func TestK8sInstall_InvalidPropertyExits(t *testing.T) {
+	d := &fakeDocker{latestDownloaded: true}
+	var didExit bool
+	var code int
+	output := captureStdout(func() {
+		didExit, code = captureExit(t, func() {
+			with(t, d, &fakeK8s{}, func() {
+				Install("v1.0.0", "dit", false, 9999, "ctx", []string{"storageClassMissingEquals"})
+			})
+		})
+	})
+
+	if !didExit || code != 1 {
+		t.Errorf("expected osExit(1); got didExit=%v code=%d", didExit, code)
+	}
+	if !strings.Contains(output, "invalid context parameter") {
+		t.Errorf("expected invalid param error, got %q", output)
 	}
 }

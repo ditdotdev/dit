@@ -22,7 +22,7 @@ var contextInstallCmd = &cobra.Command{
 	Short: "Install a new context",
 	Run: func(cmd *cobra.Command, args []string) {
 		provider = providers.Create(contextName, contextType, providers.GetAvailablePort())
-		provider.Install(nil, verbose) //TODO add params
+		provider.Install(params, verbose)
 		providers.AddProvider(provider)
 	},
 }
