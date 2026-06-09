@@ -198,12 +198,17 @@ teardown_file() {
 }
 
 @test "org: create org without auth fails" {
-  # Truly anonymous: unset the env API key AND point HOME at an empty dir so
-  # the CLI can't fall back to a stored credential. A prior suite
-  # (auth-status "restore auth for subsequent tests") does `dit auth login`,
-  # which persists a credential in ~/.dit; without an isolated HOME the CLI
-  # would use it and the create would (correctly) succeed, defeating the test.
-  run env -u DIT_API_KEY HOME="$(mktemp -d)" "$D3" org create unauth-org --server "$GATEWAY"
+  # Truly anonymous request. Unsetting DIT_API_KEY alone isn't enough: the CLI
+  # falls back to the stored credential at ~/.dit/credentials (written by
+  # auth-status "restore auth for subsequent tests"). HOME can't redirect it
+  # either, because CredentialsPath() resolves the home dir via user.Current(),
+  # not $HOME. Move the credentials file aside for this one check so the request
+  # is genuinely unauthenticated, then restore it for the suites that follow.
+  local creds="$HOME/.dit/credentials"
+  local bak=""
+  [ -f "$creds" ] && { bak="$(mktemp)"; mv "$creds" "$bak"; }
+  run env -u DIT_API_KEY "$D3" org create unauth-org --server "$GATEWAY"
+  [ -n "$bak" ] && mv "$bak" "$creds"
   assert_failure
 }
 
