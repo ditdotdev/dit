@@ -4,14 +4,35 @@ import (
 	"fmt"
 	"github.com/briandowns/spinner"
 	"github.com/ditdotdev/dit/internal/app"
+	"os"
 	"strconv"
 	"strings"
 	"time"
 )
 
-func Install(latest string, registry string, verbose bool, port int, context string) {
+func Install(latest string, registry string, verbose bool, port int, context string, properties []string) {
 	cfg.Servers[0].URL = "http://localhost:" + strconv.Itoa(port)
 	docker := newDocker(context, port)
+
+	// Context-specific parameters (`-p key=value`) are handed to the server as
+	// DIT_CONTEXT_CONFIG: a comma-separated key=value string the server parses
+	// into its context configuration — e.g. storageClass / snapshotClass for the
+	// CSI driver (see dit-server Application.kt). LaunchDitKubernetesServers
+	// forwards DIT_* env vars into the server container, so exporting it here
+	// plumbs the params through to the running context. Without this the params
+	// are silently dropped and dit-provisioned PVCs fall back to the cluster
+	// default StorageClass, which is often non-CSI and cannot snapshot.
+	if len(properties) > 0 {
+		for _, p := range properties {
+			if strings.Count(p, "=") != 1 || strings.HasPrefix(p, "=") || strings.HasSuffix(p, "=") {
+				fmt.Printf("Error: invalid context parameter '%s' (expected key=value)\n", p)
+				osExit(1)
+				return
+			}
+		}
+		// Name is a fixed, valid identifier, so Setenv cannot fail here.
+		_ = os.Setenv("DIT_CONTEXT_CONFIG", strings.Join(properties, ","))
+	}
 
 	s := spinner.New(spinner.CharSets[9], 100*time.Millisecond)
 	s.HideCursor = true

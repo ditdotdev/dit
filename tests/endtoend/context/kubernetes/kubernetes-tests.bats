@@ -100,7 +100,19 @@ setup_file() {
   kubectl delete statefulset,svc -l "ditRepository=$REPO" --ignore-not-found >/dev/null 2>&1 || true
   rm -f "$HOME/.dit/portforward-${REPO}-"*.pid 2>/dev/null || true
 
-  "$D3" context install -n "$CTX" -t kubernetes
+  # Pin storage + snapshot classes for dit-provisioned PVCs. Relying on the
+  # cluster default is fragile: minikube's `default-storageclass` addon
+  # re-asserts `standard` (k8s.io/minikube-hostpath, no snapshot support) as
+  # the default on every `minikube start`, so any new PVC lands on a class
+  # whose driver can't fulfill VolumeSnapshots and `dit commit` snapshots
+  # fail with "snapshotting non-CSI volumes is not supported". csi-hostpath-sc
+  # + csi-hostpath-snapclass come from minikube's csi-hostpath-driver addon;
+  # override via env if your cluster names them differently.
+  local sc="${D3_K8S_STORAGE_CLASS:-csi-hostpath-sc}"
+  local snapclass="${D3_K8S_SNAPSHOT_CLASS:-csi-hostpath-snapclass}"
+  "$D3" context install -n "$CTX" -t kubernetes \
+    -p "storageClass=${sc}" \
+    -p "snapshotClass=${snapclass}"
 
   # Wait for the embedded Ktor app to start serving /v1/.
   local server_port
