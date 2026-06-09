@@ -767,8 +767,17 @@ phase_docker_proxy() {
     tag_and_push "$repo_path" "v$VERSION"
     wait_for_workflow "dit-docker-proxy" "release.yml"
 
-    # Verify binary uploaded to S3
-    verify_s3_artifact "$MAVEN_BUCKET" "dit-docker-proxy/docker-volume-proxy"
+    # Verify the docker-volume-proxy binary is attached to the GitHub release.
+    # The dit-server image downloads it from Releases (server.Dockerfile uses
+    # repos/.../releases/latest), NOT from S3 — so check the release asset.
+    if $DRY_RUN; then
+        log_dry "Verify docker-volume-proxy asset on $ORG/dit-docker-proxy@v$VERSION"
+    elif gh release view "v$VERSION" --repo "$ORG/dit-docker-proxy" --json assets --jq '.assets[].name' 2>/dev/null | grep -qx "docker-volume-proxy"; then
+        log_success "Verified docker-volume-proxy asset on $ORG/dit-docker-proxy@v$VERSION"
+    else
+        log_error "docker-volume-proxy asset NOT found on $ORG/dit-docker-proxy@v$VERSION"
+        exit 1
+    fi
 
     save_phase_state 4
     log_success "Phase 4 complete: dit-docker-proxy released at v$VERSION"
