@@ -60,6 +60,16 @@ GO_MOD_REPOS=(dit dit-remote-go dit-remote-server nop-remote-go s3-remote-go s3w
 ECR_SERVICES=(auth-server api-gateway api-repo-manifest api-ingest api-download dit-repo-web worker web)
 PROD_URL="https://dit.dev"
 
+# Go module-fetch settings for the private github.com/ditdotdev/* modules.
+# EXPORTED (not `go env -w`) so they survive the go-toolchain auto-switch
+# (go.mod pins go 1.26.2): the switched toolchain otherwise bypasses the
+# env-file GOPRIVATE, so `go get` consults sum.golang.org for a private module
+# -> 404, surfacing as a misleading "could not read Username" git-auth error
+# (ditdotdev/dit#161). GOSUMDB=off disables the checksum-DB lookup entirely.
+export GOPRIVATE='github.com/ditdotdev/*'
+export GOSUMDB=off
+export GOPROXY=direct
+
 # ============================================================================
 # Globals (set by parse_args)
 # ============================================================================
@@ -169,8 +179,7 @@ update_go_dep() {
         return 0
     fi
     cd "$repo_path"
-    go env -w GOPRIVATE=github.com/ditdotdev/*
-    go env -w GOPROXY=direct
+    # GOPRIVATE / GOSUMDB / GOPROXY are exported at the top of the script.
     go get "$module@$version"
     go mod tidy
 }
@@ -700,9 +709,7 @@ phase_kotlin_foundation() {
     if [ -d "$pl_path" ]; then
         if ! $DRY_RUN; then
             cd "$pl_path"
-            # Update Go dependency
-            go env -w GOPRIVATE=github.com/ditdotdev/*
-            go env -w GOPROXY=direct
+            # Update Go dependency (GOPRIVATE/GOSUMDB/GOPROXY exported at top)
             go get "github.com/ditdotdev/remote-sdk-go@v$VERSION"
             go mod tidy
             if [ -n "$(git status --porcelain)" ]; then
