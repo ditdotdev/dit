@@ -1112,7 +1112,11 @@ phase_ecs_deploy() {
         aws ec2 wait instance-status-ok --instance-ids "$ec2_id" --region "$ECR_REGION" \
             || { log_error "EC2 instance $ec2_id did not reach status-ok"; exit 1; }
 
-        local ssh_opts="-i $ssh_key -o StrictHostKeyChecking=no -o ConnectTimeout=10 -o BatchMode=yes"
+        # UserKnownHostsFile=/dev/null: the ECS host was just replaced (fresh
+        # host key) but reuses the EIP, so a stale known_hosts entry makes ssh
+        # refuse even with StrictHostKeyChecking=no (the changed-key MITM guard).
+        # Ignore known_hosts for these ephemeral cutover hosts.
+        local ssh_opts="-i $ssh_key -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=10 -o BatchMode=yes"
 
         # 3) sshd answers. A failed connect costs up to ConnectTimeout (10s),
         #    which paces the loop without a sleep.
