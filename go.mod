@@ -39,10 +39,10 @@ require (
 	github.com/ditdotdev/dit-client-go v1.9.3
 	github.com/ditdotdev/dit-remote-go v1.9.4
 	github.com/ditdotdev/nop-remote-go v1.9.3
-	github.com/ditdotdev/remote-sdk-go v1.9.3
+	github.com/ditdotdev/remote-sdk-go v1.9.5
 	github.com/ditdotdev/s3-remote-go v1.9.3
 	github.com/ditdotdev/s3web-remote-go v1.9.3
-	github.com/ditdotdev/ssh-remote-go v1.9.3
+	github.com/ditdotdev/ssh-remote-go v1.9.5
 	github.com/emicklei/go-restful/v3 v3.11.0 // indirect
 	github.com/fatih/color v1.19.0 // indirect
 	github.com/fatih/structs v1.1.0 // indirect
@@ -83,12 +83,12 @@ require (
 	github.com/subosito/gotenv v1.6.0 // indirect
 	github.com/x448/float16 v0.8.4 // indirect
 	go.yaml.in/yaml/v3 v3.0.4 // indirect
-	golang.org/x/crypto v0.52.0 // indirect
-	golang.org/x/net v0.54.0 // indirect
+	golang.org/x/crypto v0.53.0 // indirect
+	golang.org/x/net v0.55.0 // indirect
 	golang.org/x/oauth2 v0.36.0 // indirect
-	golang.org/x/sys v0.45.0 // indirect
-	golang.org/x/term v0.43.0 // indirect
-	golang.org/x/text v0.37.0 // indirect
+	golang.org/x/sys v0.46.0 // indirect
+	golang.org/x/term v0.44.0 // indirect
+	golang.org/x/text v0.38.0 // indirect
 	golang.org/x/time v0.3.0 // indirect
 	google.golang.org/genproto v0.0.0-20200526211855-cb27e3aa2013 // indirect
 	google.golang.org/grpc v1.81.1 // indirect
