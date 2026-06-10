@@ -59,12 +59,12 @@ github.com/ditdotdev/dit-remote-go v1.9.4 h1:XMu5nRdOuzLsdxbO6N+j+4TRG6SXsVIWnm2
 github.com/ditdotdev/dit-remote-go v1.9.4/go.mod h1:LYU8dNOF7aqA5QbXDv1Tr5UCZQHo6Z8Yyk88jZiTnRg=
 github.com/ditdotdev/nop-remote-go v1.9.3 h1:5gCWZoEa0/pNpOAvTOl4NGEJjeJpwSkqkx/hjFrLynQ=
 github.com/ditdotdev/nop-remote-go v1.9.3/go.mod h1:mgqKQjbjiKYS9k71UlcNKWQZK9t8X6kpjdc/QatuGR4=
-github.com/ditdotdev/remote-sdk-go v1.9.3 h1:/igtYiq1zfO4cB4L/sA+CnKN3NOLbvgo5AkDOqtYlBM=
-github.com/ditdotdev/remote-sdk-go v1.9.3/go.mod h1:zyQQJgtOf6R5UFri3k/E8jRH/u7ji0MO2L0zHxp3PFY=
+github.com/ditdotdev/remote-sdk-go v1.9.5 h1:jb5FN4U0VzdzYe4AGxaVCQQKlBVKEX00laqlmBywRiQ=
+github.com/ditdotdev/remote-sdk-go v1.9.5/go.mod h1:zyQQJgtOf6R5UFri3k/E8jRH/u7ji0MO2L0zHxp3PFY=
 github.com/ditdotdev/s3-remote-go v1.9.3 h1:wp9cyBQE39Xk7ZQZYC/tWMvh8LKofe02pjbTAx+aDd0=
 github.com/ditdotdev/s3-remote-go v1.9.3/go.mod h1:jgrKu/3iS5V2DjGTERCGXFJmJtBAEI3bzn8HhnvmkvA=
-github.com/ditdotdev/s3web-remote-go v1.9.3 h1:J+sj/YdiUxgb2depE7XP0M6eZOV+HWcn75drpjg+Zig=
-github.com/ditdotdev/s3web-remote-go v1.9.3/go.mod h1:os5Pg48WBNc9diuz3fbOn9d7mkP14Es5HEoo3ghdz9k=
+github.com/ditdotdev/s3web-remote-go v1.9.5 h1:TTmBxPHcz1udsxs6fqBcaaK+9qj+Z5HpVnI+c53UoLk=
+github.com/ditdotdev/s3web-remote-go v1.9.5/go.mod h1:MpRi974RTnH/kPtObNC7IAXB4TTcH0lNjsKD/FWZI6g=
 github.com/ditdotdev/ssh-remote-go v1.9.3 h1:3NgI5xBrko3xPpPySjJnrWaQAmyd/Js2nxzE9b2OABk=
 github.com/ditdotdev/ssh-remote-go v1.9.3/go.mod h1:Y+fImxLnLRbV+2LxXqwPrqBBiHkJRcCtPlDWIj67tEo=
 github.com/emicklei/go-restful/v3 v3.11.0 h1:rAQeMHw1c7zTmncogyy8VvRZwtkmkZ4FxERmMY4rD+g=
