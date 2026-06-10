@@ -1264,8 +1264,15 @@ REMOTE_SCRIPT
 
             cd "$WORKSPACE/dit-remote-server"
             git add update-task-definitions-with-digests.sh
-            git commit -m "Update task definition digests for v$VERSION"
-            git push origin master
+            # Only commit/push when the digests actually changed. A no-op
+            # `git commit` exits non-zero and, under `set -e`, would silently
+            # kill the release before the deploy + validation phases run.
+            if ! git diff --cached --quiet; then
+                git commit -m "Update task definition digests for v$VERSION"
+                git push origin master
+            else
+                log_step "Task definition digests unchanged; nothing to commit"
+            fi
         fi
 
         # 5. Run the task definition update script
