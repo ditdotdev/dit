@@ -1104,7 +1104,7 @@ phase_ecs_deploy() {
 
         # Fetch DB credentials from SSM locally (EC2 doesn't have aws CLI)
         log_info "Fetching DB credentials from SSM Parameter Store..."
-        local db_url db_password db_host
+        local db_url db_password db_host db_user db_name
         db_url=$(aws ssm get-parameter \
             --name "/dit/prod/database/url" \
             --with-decryption --region "$ECR_REGION" \
@@ -1120,24 +1120,37 @@ phase_ecs_deploy() {
             exit 1
         fi
 
-        # Extract host from postgres:// URL
+        # Parse host, user, and database name from the postgres:// URL. The RDS
+        # still uses the datadatdat database/user (the rebrand moved only the SSM
+        # prefix and the ECS cluster, not the RDS), so derive the real target
+        # from the SSM value instead of hardcoding 'dit'. Following the SSM URL
+        # also auto-tracks a future RDS rename without another release.sh change.
+        # URL shape: postgres://<user>:<pw>@<host>:5432/<dbname>?sslmode=require
         db_host=$(echo "$db_url" | sed -n 's|.*@\(.*\):5432/.*|\1|p')
-        log_success "Retrieved DB credentials (host: $db_host)"
+        db_user=$(echo "$db_url" | sed -n 's|^postgres://\([^:]*\):.*|\1|p')
+        db_name=$(echo "$db_url" | sed -n 's|.*:5432/\([^?]*\).*|\1|p')
+        if [ -z "$db_host" ] || [ -z "$db_user" ] || [ -z "$db_name" ]; then
+            log_error "Could not parse host/user/dbname from /dit/prod/database/url"
+            exit 1
+        fi
+        log_success "Retrieved DB credentials (host: $db_host, user: $db_user, db: $db_name)"
 
         # Run Liquibase on EC2, passing credentials via SSH
         log_info "Running Liquibase on EC2..."
-        ssh $ssh_opts ec2-user@"$ec2_ip" bash -s "$db_host" "$db_password" <<'REMOTE_SCRIPT'
+        ssh $ssh_opts ec2-user@"$ec2_ip" bash -s "$db_host" "$db_password" "$db_user" "$db_name" <<'REMOTE_SCRIPT'
             set -euo pipefail
             DB_HOST="$1"
             DB_PASSWORD="$2"
+            DB_USER="$3"
+            DB_NAME="$4"
 
             # Run Liquibase via Docker
             docker run --rm \
                 -v /tmp/liquibase:/liquibase/changelog \
                 liquibase/liquibase:4.20 \
                 --changeLogFile=changelog-master.xml \
-                --url="jdbc:postgresql://${DB_HOST}:5432/dit?sslmode=require" \
-                --username="dit" \
+                --url="jdbc:postgresql://${DB_HOST}:5432/${DB_NAME}?sslmode=require" \
+                --username="${DB_USER}" \
                 --password="$DB_PASSWORD" \
                 update
 
