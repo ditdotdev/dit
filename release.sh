@@ -1065,10 +1065,7 @@ phase_ecs_deploy() {
     # 1. Run Liquibase migrations against production database via EC2
     log_step "Running Liquibase migrations against production..."
     local liquibase_dir="$WORKSPACE/dit-remote-server/deploy/liquibase"
-    # The ECS host key pair was NOT renamed in the rebrand (TF compute/ec2.tf
-    # still uses key_name = "datadatdat-ecs-host"), so the private key file is
-    # datadatdat-ecs-host.pem — same situation as the RDS db name/user.
-    local ssh_key="$WORKSPACE/dit-remote-server/datadatdat-ecs-host.pem"
+    local ssh_key="$WORKSPACE/dit-remote-server/dit-ecs-host.pem"
     local ec2_ip
 
     if [ ! -d "$liquibase_dir" ]; then
