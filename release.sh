@@ -1093,10 +1093,13 @@ phase_ecs_deploy() {
         #    for 'running', so this normally resolves on the first attempt; the
         #    AWS API round-trip paces the retries.
         for attempt in $(seq 1 60); do
+            # tr -d '\r': the Windows aws CLI emits CRLF, and the trailing \r would
+            # otherwise ride along on $ec2_ip and make ssh reject the hostname
+            # ("hostname contains invalid characters").
             read -r ec2_id ec2_ip < <(aws ec2 describe-instances --region "$ECR_REGION" \
                 --filters "Name=tag:Name,Values=dit-ecs-host-prod" "Name=instance-state-name,Values=running" \
                 --query 'Reservations[0].Instances[0].[InstanceId,PublicIpAddress]' \
-                --output text 2>/dev/null)
+                --output text 2>/dev/null | tr -d '\r')
             [ -n "$ec2_id" ] && [ "$ec2_id" != "None" ] && [ -n "$ec2_ip" ] && [ "$ec2_ip" != "None" ] && break
             ec2_id=""; ec2_ip=""
         done
@@ -1134,7 +1137,7 @@ phase_ecs_deploy() {
         local registered=false ci_count
         for attempt in $(seq 1 60); do
             ci_count=$(aws ecs list-container-instances --cluster "$ECS_CLUSTER" --status ACTIVE \
-                --region "$ECR_REGION" --query 'length(containerInstanceArns)' --output text 2>/dev/null || echo 0)
+                --region "$ECR_REGION" --query 'length(containerInstanceArns)' --output text 2>/dev/null | tr -d '\r' || echo 0)
             [ "${ci_count:-0}" -ge 1 ] 2>/dev/null && { registered=true; break; }
         done
         $registered || { log_error "No ACTIVE container instance registered in $ECS_CLUSTER"; exit 1; }
@@ -1151,12 +1154,12 @@ phase_ecs_deploy() {
         db_url=$(aws ssm get-parameter \
             --name "/dit/prod/database/url" \
             --with-decryption --region "$ECR_REGION" \
-            --query 'Parameter.Value' --output text)
+            --query 'Parameter.Value' --output text | tr -d '\r')
 
         db_password=$(aws ssm get-parameter \
             --name "/dit/prod/db/password" \
             --with-decryption --region "$ECR_REGION" \
-            --query 'Parameter.Value' --output text)
+            --query 'Parameter.Value' --output text | tr -d '\r')
 
         if [ -z "$db_url" ] || [ -z "$db_password" ]; then
             log_error "Failed to fetch production DB credentials from SSM"
@@ -1232,6 +1235,7 @@ REMOTE_SCRIPT
                 --image-ids "imageTag=v$VERSION" \
                 --query 'imageDetails[0].imageDigest' \
                 --output text 2>/dev/null || echo "NOT_FOUND")
+            digest="${digest//$'\r'/}"   # strip CR from the Windows aws CLI
 
             if [ "$digest" = "NOT_FOUND" ] || [ "$digest" = "None" ]; then
                 log_error "Image not found in ECR: ditdotdev/$service:v$VERSION"
