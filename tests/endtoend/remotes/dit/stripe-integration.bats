@@ -21,13 +21,15 @@ STRIPE_USER_KEY="ee11111122223333444455556666777788889999aaaabbbbccccddddeeeefff
 # ========================================
 
 setup_file() {
-  # Try env vars first, then fall back to reading from .env.auth
-  # Locate the remote-server .env.auth. Supports both the current workspace layout
-  # (datadatdat/datadatdat-remote-server) and the post-rename layout
-  # (ditdotdev/dit-remote-server).
+  # Try env vars first, then fall back to reading from .env.auth.
+  # dit-remote-server sits next to the dit repo, so derive the path from this
+  # test's location (works regardless of the absolute workspace path), then
+  # fall back to known absolute layouts (current /c/dev/dit, older names).
   local env_auth_candidates=(
-    "/c/dev/datadatdat/datadatdat-remote-server/.env.auth"
+    "${BATS_TEST_DIRNAME}/../../../../../dit-remote-server/.env.auth"
+    "/c/dev/dit/dit-remote-server/.env.auth"
     "/c/dev/ditdotdev/dit-remote-server/.env.auth"
+    "/c/dev/datadatdat/datadatdat-remote-server/.env.auth"
   )
   ENV_AUTH=""
   for cand in "${env_auth_candidates[@]}"; do
