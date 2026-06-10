@@ -38,8 +38,8 @@ require (
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc // indirect
 	github.com/ditdotdev/dit-client-go v1.9.3
 	github.com/ditdotdev/dit-remote-go v1.9.4
-	github.com/ditdotdev/nop-remote-go v1.9.3
-	github.com/ditdotdev/remote-sdk-go v1.9.3
+	github.com/ditdotdev/nop-remote-go v1.9.5
+	github.com/ditdotdev/remote-sdk-go v1.9.5
 	github.com/ditdotdev/s3-remote-go v1.9.3
 	github.com/ditdotdev/s3web-remote-go v1.9.3
 	github.com/ditdotdev/ssh-remote-go v1.9.3
