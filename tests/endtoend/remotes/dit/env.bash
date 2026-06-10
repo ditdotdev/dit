@@ -16,7 +16,12 @@ if [[ "$ENV" == "PROD" ]]; then
   export WEB_UI="https://dit.dev"
   export AUTH_SERVER="https://dit.dev"
   export REMOTE_URL="https://dit.dev"
-  export HEALTH_EXPECT="healthy"
+  # In prod, nginx fronts the api-gateway and answers /health itself with a
+  # static "OK\n" (LB liveness; see dit-remote-server user-data.sh `location
+  # /health { return 200 "OK\n"; }`). The api-gateway's own "healthy" body
+  # (what DEV hits directly at :8080) is shadowed by nginx, so PROD must expect
+  # "OK", not "healthy".
+  export HEALTH_EXPECT="OK"
 
   # Org/namespace prefixes (production uses e2e- prefix to avoid collisions)
   export TEST_ORG="e2e-testorg"
