@@ -53,8 +53,8 @@ github.com/davecgh/go-spew v1.1.0/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSs
 github.com/davecgh/go-spew v1.1.1/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc h1:U9qPSI2PIWSS1VwoXQT9A3Wy9MM3WgvqSxFWenqJduM=
 github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
-github.com/ditdotdev/dit-client-go v1.9.3 h1:xMJC2lIfj2AAHzaRAN30Wldps4VGKPBOrOPD6y9V3wE=
-github.com/ditdotdev/dit-client-go v1.9.3/go.mod h1:ZDBJDo0hv5qr/oEdsXPlCNxjTogbWagCR6sflmyEkmA=
+github.com/ditdotdev/dit-client-go v1.9.5 h1:0eqr8tid1H6XKm2R91EY1qbVxnfMbxlXKKbWmM/oi88=
+github.com/ditdotdev/dit-client-go v1.9.5/go.mod h1:ZDBJDo0hv5qr/oEdsXPlCNxjTogbWagCR6sflmyEkmA=
 github.com/ditdotdev/dit-remote-go v1.9.4 h1:XMu5nRdOuzLsdxbO6N+j+4TRG6SXsVIWnm23UiVzSDk=
 github.com/ditdotdev/dit-remote-go v1.9.4/go.mod h1:LYU8dNOF7aqA5QbXDv1Tr5UCZQHo6Z8Yyk88jZiTnRg=
 github.com/ditdotdev/nop-remote-go v1.9.3 h1:5gCWZoEa0/pNpOAvTOl4NGEJjeJpwSkqkx/hjFrLynQ=

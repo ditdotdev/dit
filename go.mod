@@ -36,7 +36,7 @@ require (
 	github.com/aws/smithy-go v1.26.0 // indirect
 	github.com/cpuguy83/go-md2man/v2 v2.0.6 // indirect
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc // indirect
-	github.com/ditdotdev/dit-client-go v1.9.3
+	github.com/ditdotdev/dit-client-go v1.9.5
 	github.com/ditdotdev/dit-remote-go v1.9.4
 	github.com/ditdotdev/nop-remote-go v1.9.3
 	github.com/ditdotdev/remote-sdk-go v1.9.3
