@@ -1083,19 +1083,58 @@ phase_ecs_deploy() {
         log_dry "SSH: fetch DB credentials from SSM, run Liquibase Docker container"
         log_dry "SSH: clean up /tmp/liquibase"
     else
-        # Find the production EC2 instance IP
-        ec2_ip=$(aws ec2 describe-instances \
-            --filters "Name=tag:Name,Values=dit-ecs-host-prod" "Name=instance-state-name,Values=running" \
-            --query 'Reservations[0].Instances[0].PublicIpAddress' \
-            --output text --region "$ECR_REGION" 2>/dev/null || echo "")
-
-        if [ -z "$ec2_ip" ] || [ "$ec2_ip" = "None" ]; then
-            log_error "Could not find running EC2 instance 'dit-ecs-host-prod'"
+        # The terraform apply above may have REPLACED the ECS host EC2 (a
+        # user_data change forces replacement), so re-resolve the NEW instance
+        # and actively poll until it is genuinely usable before SSHing for
+        # Liquibase and deploying. No blind sleeps — each check self-paces on its
+        # own API / connect latency, and the status-check uses the AWS waiter.
+        local ec2_id="" attempt
+        # 1) A running instance tagged dit-ecs-host-prod exists. terraform waits
+        #    for 'running', so this normally resolves on the first attempt; the
+        #    AWS API round-trip paces the retries.
+        for attempt in $(seq 1 60); do
+            read -r ec2_id ec2_ip < <(aws ec2 describe-instances --region "$ECR_REGION" \
+                --filters "Name=tag:Name,Values=dit-ecs-host-prod" "Name=instance-state-name,Values=running" \
+                --query 'Reservations[0].Instances[0].[InstanceId,PublicIpAddress]' \
+                --output text 2>/dev/null)
+            [ -n "$ec2_id" ] && [ "$ec2_id" != "None" ] && [ -n "$ec2_ip" ] && [ "$ec2_ip" != "None" ] && break
+            ec2_id=""; ec2_ip=""
+        done
+        if [ -z "$ec2_id" ]; then
+            log_error "No running EC2 instance tagged 'dit-ecs-host-prod' after terraform apply"
             exit 1
         fi
-        log_info "EC2 instance IP: $ec2_ip"
+        log_info "ECS host: $ec2_id ($ec2_ip)"
 
-        local ssh_opts="-i $ssh_key -o StrictHostKeyChecking=no -o ConnectTimeout=10"
+        # 2) Instance status checks pass (system + instance reachability = boot
+        #    finished). The AWS waiter polls internally; no sleep here.
+        log_step "Waiting for EC2 status checks to pass on $ec2_id..."
+        aws ec2 wait instance-status-ok --instance-ids "$ec2_id" --region "$ECR_REGION" \
+            || { log_error "EC2 instance $ec2_id did not reach status-ok"; exit 1; }
+
+        local ssh_opts="-i $ssh_key -o StrictHostKeyChecking=no -o ConnectTimeout=10 -o BatchMode=yes"
+
+        # 3) sshd answers. A failed connect costs up to ConnectTimeout (10s),
+        #    which paces the loop without a sleep.
+        log_step "Waiting for sshd on $ec2_ip..."
+        local ssh_ready=false
+        for attempt in $(seq 1 30); do
+            if ssh $ssh_opts ec2-user@"$ec2_ip" true 2>/dev/null; then ssh_ready=true; break; fi
+        done
+        $ssh_ready || { log_error "sshd on $ec2_ip ($ec2_id) not reachable after apply"; exit 1; }
+
+        # 4) Host has registered with the ECS cluster as an ACTIVE container
+        #    instance (required for service placement in the deploy below). This
+        #    cluster runs a single ECS host, so one ACTIVE instance == ours.
+        log_step "Waiting for $ec2_id to register with cluster $ECS_CLUSTER..."
+        local registered=false ci_count
+        for attempt in $(seq 1 60); do
+            ci_count=$(aws ecs list-container-instances --cluster "$ECS_CLUSTER" --status ACTIVE \
+                --region "$ECR_REGION" --query 'length(containerInstanceArns)' --output text 2>/dev/null || echo 0)
+            [ "${ci_count:-0}" -ge 1 ] 2>/dev/null && { registered=true; break; }
+        done
+        $registered || { log_error "No ACTIVE container instance registered in $ECS_CLUSTER"; exit 1; }
+        log_success "ECS host ready: $ec2_id ($ec2_ip) — status-ok, sshd up, registered"
 
         # Copy Liquibase changelogs to EC2
         log_info "Copying Liquibase changelogs to EC2..."
