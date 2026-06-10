@@ -10,7 +10,7 @@ ENV ?= DEV
 VERSION ?= dev
 LDFLAGS := -ldflags "-X github.com/ditdotdev/dit/internal/app.DitVersion=$(VERSION)"
 
-.PHONY: build release darwin-amd64 darwin-arm64 linux-amd64 linux-arm64 windows clean coverage gen-docs
+.PHONY: build release darwin-amd64 darwin-arm64 linux-amd64 linux-arm64 windows clean coverage gen-docs k8s-csi-default
 
 # Regenerate the Markdown CLI reference under docs/src/cli/cmd/ from the live
 # Cobra command tree. CI runs the same target and then `git diff --exit-code`
@@ -160,9 +160,22 @@ test-whitelist-approval:
 test-public-repo-permissions:
 	ENV=$(ENV) bats tests/endtoend/remotes/dit/public-repo-permissions.bats
 
+# Local-minikube helper: assert the CSI hostpath class as the cluster default
+# (and demote the non-CSI `standard` class) so dit-provisioned volumes use the
+# CSI driver and `dit commit` VolumeSnapshots can become ReadyToUse. minikube's
+# `default-storageclass` addon re-asserts `standard` on every `minikube start`,
+# so run this after each start. Idempotent; tolerates failures (|| true). CI
+# already does this in release.yml / pull-request.yml.
+k8s-csi-default:
+	kubectl patch storageclass csi-hostpath-sc -p '{"metadata":{"annotations":{"storageclass.kubernetes.io/is-default-class":"true"}}}' || true
+	kubectl patch storageclass standard -p '{"metadata":{"annotations":{"storageclass.kubernetes.io/is-default-class":"false"}}}' || true
+
 # Kubernetes provider tests. Both targets self-skip when no k8s cluster is
 # reachable (kubectl cluster-info), so they are safe to include in `e2e` /
 # `e2e-server` on hosts without minikube — they just no-op rather than fail.
+# Local prerequisite (minikube): run `make k8s-csi-default` first so volumes
+# use the CSI driver, otherwise VolumeSnapshots fail with
+# "snapshotting non-CSI volumes is not supported".
 test-kubernetes:
 	bats tests/endtoend/context/kubernetes/kubernetes-tests.bats
 
