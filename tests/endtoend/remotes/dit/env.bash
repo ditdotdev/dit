@@ -34,27 +34,47 @@ if [[ "$ENV" == "PROD" ]]; then
 
   # RDS / SSH access for database commands
   export EC2_HOST="${EC2_HOST:-ec2-user@100.22.249.49}"
-  export SSH_KEY="${SSH_KEY:-c:/dev/ditdotdev/dit-remote-server/dit-ecs-host.pem}"
+  export SSH_KEY="${SSH_KEY:-c:/dev/dit/dit-remote-server/dit-ecs-host.pem}"
+  # The RDS instance kept its datadatdat name through the rebrand (like the ECS
+  # resources); user + database are datadatdat too. These match the live
+  # /dit/prod/database/url secret.
   export RDS_ENDPOINT="${RDS_ENDPOINT:-***REMOVED-RDS-ENDPOINT***}"
   export RDS_PASSWORD="${RDS_PASSWORD:-***REMOVED***}"
-  export RDS_USER="${RDS_USER:-dit}"
-  export RDS_DATABASE="${RDS_DATABASE:-dit}"
+  export RDS_USER="${RDS_USER:-datadatdat}"
+  export RDS_DATABASE="${RDS_DATABASE:-datadatdat}"
 
-  # Helper: execute SQL against production RDS via SSH tunnel
+  # SSH opts: StrictHostKeyChecking=no + UserKnownHostsFile=/dev/null avoid the
+  # interactive host-key prompt when the EC2 host is replaced; BatchMode fails
+  # fast instead of hanging.
+  # LogLevel=ERROR silences the "Permanently added <host> to known hosts"
+  # warning that UserKnownHostsFile=/dev/null prints on every connection,
+  # which would otherwise pollute captured psql output.
+  SSH_OPTS="-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o BatchMode=yes -o ConnectTimeout=10 -o LogLevel=ERROR"
+  # The ECS host reaches RDS but has no psql client, so run psql via a
+  # throwaway postgres container on the instance's network (--network host) so
+  # it can resolve the VPC-internal RDS endpoint. Pull only if missing, quietly,
+  # so docker progress never pollutes the captured command output.
+  PSQL_IMAGE="postgres:17-alpine"
+  _psql_via_host() {
+    ssh $SSH_OPTS -i "${SSH_KEY}" "${EC2_HOST}" \
+      "docker image inspect ${PSQL_IMAGE} >/dev/null 2>&1 || docker pull -q ${PSQL_IMAGE} >/dev/null 2>&1; docker run -i --rm --network host -e PGPASSWORD='${RDS_PASSWORD}' ${PSQL_IMAGE} psql -h ${RDS_ENDPOINT} -U ${RDS_USER} -d ${RDS_DATABASE} $*"
+  }
+
+  # Helper: execute SQL against production RDS via the ECS host
   run_sql() {
-    ssh -i "${SSH_KEY}" "${EC2_HOST}" "PGPASSWORD='${RDS_PASSWORD}' psql -h ${RDS_ENDPOINT} -U ${RDS_USER} -d ${RDS_DATABASE} $*"
+    _psql_via_host "$@" </dev/null
   }
 
   # Helper: execute SQL (with flags like -t -A) against production RDS
   # Uses stdin to avoid SSH double-quote escaping issues with JSON literals
   run_sql_raw() {
-    echo "$1" | ssh -i "${SSH_KEY}" "${EC2_HOST}" "PGPASSWORD='${RDS_PASSWORD}' psql -h ${RDS_ENDPOINT} -U ${RDS_USER} -d ${RDS_DATABASE} -t -A"
+    echo "$1" | _psql_via_host -t -A
   }
 
   # Helper: execute SQL command (returns table output) against production RDS
   # Uses stdin to avoid SSH double-quote escaping issues with JSON literals
   run_sql_cmd() {
-    echo "$1" | ssh -i "${SSH_KEY}" "${EC2_HOST}" "PGPASSWORD='${RDS_PASSWORD}' psql -h ${RDS_ENDPOINT} -U ${RDS_USER} -d ${RDS_DATABASE}"
+    echo "$1" | _psql_via_host
   }
 
   # Minio is not available in production (uses real S3)
@@ -63,7 +83,7 @@ if [[ "$ENV" == "PROD" ]]; then
   # Container checks go through SSH
   check_container_running() {
     local filter="$1"
-    ssh -i "${SSH_KEY}" "${EC2_HOST}" "docker ps --filter name=${filter} --format '{{.Status}}'"
+    ssh $SSH_OPTS -i "${SSH_KEY}" "${EC2_HOST}" "docker ps --filter name=${filter} --format '{{.Status}}'"
   }
 
 else
