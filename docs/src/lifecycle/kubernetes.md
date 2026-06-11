@@ -75,6 +75,16 @@ dit context install -n minikube -t kubernetes \
   -p snapshotClass=csi-hostpath-snapclass
 ```
 
+> **Local prerequisite (running the test suite).** minikube's
+> `default-storageclass` addon re-asserts the non-CSI `standard` class as the
+> cluster default on every `minikube start`, so a dit-provisioned volume can
+> land on a class that cannot snapshot. Before running `make test-kubernetes`,
+> run `make k8s-csi-default` to promote `csi-hostpath-sc` to the default (and
+> demote `standard`) so dit-provisioned volumes use the CSI driver — otherwise
+> VolumeSnapshots fail with `snapshotting non-CSI volumes is not supported`.
+> The target is idempotent; re-run it after each `minikube start`. (CI already
+> does this in `release.yml` / `pull-request.yml`.)
+
 **A managed/cloud cluster** — use the storage class and snapshot class backed by
 your provider's CSI driver. The names below are examples; substitute the ones
 your cluster actually exposes (AWS EBS, GCE PD, Azure Disk, etc.):
