@@ -45,10 +45,27 @@ PRIV_REPO="perm-private"
 # (`get_repo_isprivate`) - there is no CLI command to read a single repo's
 # visibility, only `set-visibility`. See ditdotdev/dit#173.
 
-# Resolve a seeded test user's UUID. There is no user-lookup API, so authenticate
-# as the user against /api/me, which returns the caller's id.
-user_id_for_key() {
-  curl -sf -H "X-API-Key: $1" "$AUTH_SERVER/api/me" 2>/dev/null | jq -r '.id'
+# Resolve a seeded test user's UUID via an API-key-authenticated path. There is
+# no user-lookup API, and /api/me is NOT usable in PROD: there the public origin
+# (https://dit.dev) is nginx -> api-gateway, whose /api/me rejects API-key auth
+# (401 "Missing authentication token" - it wants a web/OAuth session). Only in
+# DEV does $AUTH_SERVER point straight at the auth-server, which accepts the key
+# on /api/me. So instead, add the user to PERM_ORG by GitHub login (add-by-login
+# needs no UUID) and read the userId back from `org members -o json`, which is
+# API-key-authenticated through the gateway in both environments. The org owner
+# (d3-ghtest1) is the only "owner" row, so the freshly-added user is the lone
+# non-owner member. Output is on stderr (cobra), so fold it into stdout.
+resolve_member_id() {
+  local login="$1"
+  # Ensure the org exists (idempotent: 201 first time, 409 "already taken" after).
+  curl -s -o /dev/null -X POST -H "X-API-Key: $GHTEST1_KEY" \
+    -H "Content-Type: application/json" \
+    -d "{\"name\":\"${PERM_ORG}\",\"displayName\":\"Permissions Test Org\"}" \
+    "$AUTH_SERVER/api/v1/orgs"
+  DIT_API_KEY="$GHTEST1_KEY" "$D3" org member add "$PERM_ORG" "$login" \
+    --github-login --role member --server "$GATEWAY" >/dev/null 2>&1 || true
+  DIT_API_KEY="$GHTEST1_KEY" "$D3" org members "$PERM_ORG" --server "$GATEWAY" -o json 2>&1 \
+    | jq -r 'map(select(.role != "owner")) | .[0].userId // empty'
 }
 
 # Helper: create an org-owned repo via the CLI, then set its visibility via the
@@ -161,10 +178,11 @@ setup_file() {
   run curl -s "$GATEWAY/health"
   [[ "$output" == *"${HEALTH_EXPECT}"* ]] || { echo "Gateway not running"; return 1; }
 
-  # Resolve test-user UUIDs once for the collaborator/member APIs (which key on userId).
-  GHTEST2_ID=$(user_id_for_key "$GHTEST2_KEY")
-  GHTEST3_ID=$(user_id_for_key "$GHTEST3_KEY")
-  export GHTEST2_ID GHTEST3_ID
+  # Resolve d3-ghtest2's UUID once for the collaborator/member APIs (which key on
+  # userId). d3-ghtest3 is only ever used via its API key (as the "authed
+  # stranger"), never by UUID, so it needs no resolution.
+  GHTEST2_ID=$(resolve_member_id "d3-ghtest2")
+  export GHTEST2_ID
 }
 
 teardown_file() {
