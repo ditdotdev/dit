@@ -64,7 +64,14 @@ web_dir() {
 
 # Fetch a URL to a temp file; echo the HTTP status.
 fetch() {
-  curl -s -o "$2" -w "%{http_code}" --max-time 15 "$1"
+  # curl here may be the native Windows (mingw) build, which mis-resolves an
+  # MSYS-style /tmp/... path - it writes to C:\tmp, where the MSYS `file`/`[ -f`
+  # checks below can't see the file (the served tests would then fail even
+  # though the asset downloaded fine). Hand curl a Windows path when cygpath is
+  # present; on Linux CI cygpath is absent and the path passes through unchanged.
+  local dest="$2"
+  command -v cygpath >/dev/null 2>&1 && dest="$(cygpath -w "$2")"
+  curl -s -o "$dest" -w "%{http_code}" --max-time 15 "$1"
 }
 
 # ===========================================================================
