@@ -36,13 +36,13 @@ require (
 	github.com/aws/smithy-go v1.27.1 // indirect
 	github.com/cpuguy83/go-md2man/v2 v2.0.6 // indirect
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc // indirect
-	github.com/ditdotdev/dit-client-go v1.9.6
-	github.com/ditdotdev/dit-remote-go v1.9.6
-	github.com/ditdotdev/nop-remote-go v1.9.6
-	github.com/ditdotdev/remote-sdk-go v1.9.6
-	github.com/ditdotdev/s3-remote-go v1.9.6
-	github.com/ditdotdev/s3web-remote-go v1.9.6
-	github.com/ditdotdev/ssh-remote-go v1.9.6
+	github.com/ditdotdev/dit-client-go v1.9.7
+	github.com/ditdotdev/dit-remote-go v1.9.7
+	github.com/ditdotdev/nop-remote-go v1.9.7
+	github.com/ditdotdev/remote-sdk-go v1.9.7
+	github.com/ditdotdev/s3-remote-go v1.9.7
+	github.com/ditdotdev/s3web-remote-go v1.9.7
+	github.com/ditdotdev/ssh-remote-go v1.9.7
 	github.com/emicklei/go-restful/v3 v3.11.0 // indirect
 	github.com/fatih/color v1.19.0 // indirect
 	github.com/fatih/structs v1.1.0 // indirect
