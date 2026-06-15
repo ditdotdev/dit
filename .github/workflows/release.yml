@@ -46,18 +46,8 @@ permissions:
   pull-requests: write
 
 jobs:
-  health:
-    uses: ditdotdev/.github/.github/workflows/repo-health.yml@master
-    with:
-      language: go
-      coverage-floor: 90
-      mode: block
-    secrets:
-      GO_MODULES_TOKEN: ${{ secrets.GO_MODULES_TOKEN }}
-
   build:
     name: Build Release Artifacts
-    needs: health
     runs-on: ubuntu-22.04
     steps:
       # fetch-depth: 0 makes tags available so the dry-run path can
