@@ -52,7 +52,7 @@ jobs:
     steps:
       # fetch-depth: 0 makes tags available so the dry-run path can
       # `git describe --tags --abbrev=0` to find a published version.
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
 
@@ -106,7 +106,7 @@ jobs:
     steps:
       # fetch-depth: 0 mirrors the build job: tags need to be available
       # so the dry-run version derivation can resolve `git describe`.
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
 
@@ -260,7 +260,7 @@ jobs:
     if: github.event_name == 'push'
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       
       - name: Download artifacts
         uses: actions/download-artifact@v8

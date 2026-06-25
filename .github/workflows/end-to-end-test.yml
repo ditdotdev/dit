@@ -17,7 +17,7 @@ jobs:
     name: Test Linux
     runs-on: ubuntu-22.04
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
         with:
           token: ${{ secrets.GO_MODULES_TOKEN }}
           fetch-depth: 0
