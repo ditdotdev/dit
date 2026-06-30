@@ -23,7 +23,7 @@ jobs:
     runs-on: ubuntu-latest
     if: github.event.pull_request.draft == false
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
       - uses: actions/setup-go@v6
         with:
@@ -67,7 +67,7 @@ jobs:
     runs-on: ubuntu-latest
     if: github.event.pull_request.draft == false
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
 
@@ -103,7 +103,7 @@ jobs:
       matrix:
         os: [ubuntu-latest, windows-latest, macos-latest]
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
         with:
           token: ${{ secrets.GO_MODULES_TOKEN }}
 
@@ -140,7 +140,7 @@ jobs:
     env:
       E2E_RUN_SUFFIX: run-${{ github.run_id }}-${{ github.run_attempt }}
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
         with:
           token: ${{ secrets.GO_MODULES_TOKEN }}
           fetch-depth: 0
@@ -312,7 +312,7 @@ jobs:
     name: CLI Docs Up To Date
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
         with:
           token: ${{ secrets.GO_MODULES_TOKEN }}
 
