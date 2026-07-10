@@ -1,4 +1,6 @@
 #!/usr/bin/env bats
+# Copyright Dit 2026
+# SPDX-License-Identifier: BUSL-1.1
 
 # E2E Tag Management Tests
 # Tests standalone dit tag, dit delete --tags, dit log --tags, dit checkout --tags

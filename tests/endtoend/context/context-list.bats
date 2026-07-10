@@ -1,4 +1,6 @@
 #!/usr/bin/env bats
+# Copyright Dit 2026
+# SPDX-License-Identifier: BUSL-1.1
 
 # E2E Context List Tests
 # Tests dit context ls and dit context default (read operations)

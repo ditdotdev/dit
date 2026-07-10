@@ -1,4 +1,6 @@
 #!/usr/bin/env bats
+# Copyright Dit 2026
+# SPDX-License-Identifier: BUSL-1.1
 
 # Stripe Integration Validation Tests
 # Tests real Stripe API calls (checkout, portal) and webhook processing

@@ -1,4 +1,6 @@
 #!/usr/bin/env bats
+# Copyright Dit 2026
+# SPDX-License-Identifier: BUSL-1.1
 
 # E2E Authentication and Authorization Tests
 # These tests validate the complete auth flow including OAuth, JWT, whitelist, and admin workflows
@@ -482,7 +484,7 @@ teardown_file() {
 }
 
 @test "API keys: get existing API key ID for robertericreeves" {
-  run run_sql_raw "SELECT id FROM api_keys WHERE key_prefix = '02b31569' LIMIT 1;"
+  run run_sql_raw "SELECT id FROM api_keys WHERE key_prefix = '${DIT_API_KEY:0:8}' LIMIT 1;"
   assert_success
   TEST_KEY_ID=$(echo "$output" | tr -d '[:space:]')
   echo "$TEST_KEY_ID" > "$BATS_TMPDIR/test_key_id.txt"
@@ -500,7 +502,7 @@ teardown_file() {
   TEST_KEY_ID=$(cat "$BATS_TMPDIR/test_key_id.txt")
   run run_sql_raw "SELECT key_prefix FROM api_keys WHERE id = '${TEST_KEY_ID}';"
   assert_success
-  assert_output "02b31569"
+  assert_output "${DIT_API_KEY:0:8}"
 }
 
 @test "API keys: authenticate with existing API key via X-API-Key header" {
@@ -695,7 +697,7 @@ teardown_file() {
   run curl -sf -H "Authorization: Bearer ${DIT_API_KEY}" \
     "${AUTH_SERVER}/api/v1/api-keys"
   assert_success
-  assert_output --partial "02b31569"
+  assert_output --partial "${DIT_API_KEY:0:8}"
 }
 
 @test "API keys: verify newly created API key metadata" {

@@ -1,3 +1,6 @@
+// Copyright Dit 2026
+// SPDX-License-Identifier: BUSL-1.1
+
 // Command gen-docs regenerates the Markdown CLI reference under
 // docs/src/cli/cmd/ from the live Cobra command tree. Run via `make gen-docs`.
 //

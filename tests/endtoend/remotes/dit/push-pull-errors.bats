@@ -1,4 +1,6 @@
 #!/usr/bin/env bats
+# Copyright Dit 2026
+# SPDX-License-Identifier: BUSL-1.1
 
 # E2E Push/Pull Error Handling Tests
 # Tests that dit push and dit pull give helpful error messages

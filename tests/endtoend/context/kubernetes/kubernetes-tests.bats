@@ -1,4 +1,6 @@
 #!/usr/bin/env bats
+# Copyright Dit 2026
+# SPDX-License-Identifier: BUSL-1.1
 
 # E2E Kubernetes context tests
 # These run as part of `make e2e` and exercise the full dit lifecycle on a

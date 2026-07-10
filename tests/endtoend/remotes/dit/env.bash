@@ -8,7 +8,7 @@
 ENV="${ENV:-DEV}"
 
 # API key is the same in both environments
-export DIT_API_KEY="${DIT_API_KEY:-***REMOVED***}"
+export DIT_API_KEY="${DIT_API_KEY:?set DIT_API_KEY (CI secret / local env) — see DEVELOPING.md}"
 
 if [[ "$ENV" == "PROD" ]]; then
   # ---- Production (ECS on AWS) ----
@@ -38,8 +38,8 @@ if [[ "$ENV" == "PROD" ]]; then
   # The RDS instance kept its datadatdat name through the rebrand (like the ECS
   # resources); user + database are datadatdat too. These match the live
   # /dit/prod/database/url secret.
-  export RDS_ENDPOINT="${RDS_ENDPOINT:-***REMOVED-RDS-ENDPOINT***}"
-  export RDS_PASSWORD="${RDS_PASSWORD:-***REMOVED***}"
+  export RDS_ENDPOINT="${RDS_ENDPOINT:-<prod-rds-endpoint>}"
+  export RDS_PASSWORD="${RDS_PASSWORD:?set RDS_PASSWORD (CI secret / local env) for PROD tests}"
   export RDS_USER="${RDS_USER:-datadatdat}"
   export RDS_DATABASE="${RDS_DATABASE:-datadatdat}"
 

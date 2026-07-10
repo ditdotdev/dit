@@ -1,4 +1,6 @@
 #!/usr/bin/env bats
+# Copyright Dit 2026
+# SPDX-License-Identifier: BUSL-1.1
 
 # E2E Upgrade Tests
 # Tests dit upgrade (idempotent - upgrading to same version)

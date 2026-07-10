@@ -44,7 +44,7 @@ kubectl get volumesnapshot
 
 # if needed
 
-./dit auth login --server https://dit.dev --api-key ***REMOVED***
+./dit auth login --server https://dit.dev --api-key YOUR_DIT_API_KEY
 
 ./dit repo list
 

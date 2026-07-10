@@ -1,4 +1,6 @@
 #!/usr/bin/env bats
+# Copyright Dit 2026
+# SPDX-License-Identifier: BUSL-1.1
 
 # E2E Billing & Usage Workflow Tests for Dit Remote Server
 # Tests storage snapshots, usage API, billing subscription endpoints, and webhook validation.
@@ -8,7 +10,7 @@ load '../../test_helper'
 load 'env'
 
 # Admin API key (seeded by Liquibase)
-ADMIN_KEY="***REMOVED***"
+ADMIN_KEY="$DIT_API_KEY"
 
 # Test API key for billing user (raw hex key)
 BILLING_USER_KEY="cc11111122223333444455556666777788889999aaaabbbbccccddddeeeeffff"

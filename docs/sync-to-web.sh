@@ -1,4 +1,6 @@
 #!/usr/bin/env bash
+# Copyright Dit 2026
+# SPDX-License-Identifier: BUSL-1.1
 #
 # Vendor the hand-written docs from docs/src/ into the dit-remote-server web app
 # (services/web/content/docs/), which is what renders at https://dit.dev/docs.

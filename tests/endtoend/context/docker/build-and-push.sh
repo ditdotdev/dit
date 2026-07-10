@@ -1,4 +1,6 @@
 #!/bin/bash
+# Copyright Dit 2026
+# SPDX-License-Identifier: BUSL-1.1
 # Build and push multi-architecture nginx-test image
 # Usage: ./build-and-push.sh [version]
 # Example: ./build-and-push.sh latest
