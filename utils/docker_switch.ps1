@@ -1,3 +1,6 @@
+# Copyright Dit 2026
+# SPDX-License-Identifier: BUSL-1.1
+
 #requires -version 5.1
 <# 
  Switch to Docker Desktop on Windows 11

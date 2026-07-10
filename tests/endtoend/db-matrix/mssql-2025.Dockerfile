@@ -1,3 +1,6 @@
+# Copyright Dit 2026
+# SPDX-License-Identifier: BUSL-1.1
+
 # SQL Server 2025 Preview with VOLUME directive for dit compatibility
 # Base image from Microsoft Container Registry
 FROM mcr.microsoft.com/mssql/server:2025-latest

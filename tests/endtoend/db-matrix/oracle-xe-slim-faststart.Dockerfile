@@ -1,3 +1,6 @@
+# Copyright Dit 2026
+# SPDX-License-Identifier: BUSL-1.1
+
 # Oracle XE slim-faststart with VOLUME directive for dit compatibility
 # Base image from Docker Hub
 FROM gvenzl/oracle-xe:slim-faststart

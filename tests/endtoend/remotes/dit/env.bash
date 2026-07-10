@@ -1,4 +1,6 @@
 #!/usr/bin/env bash
+# Copyright Dit 2026
+# SPDX-License-Identifier: BUSL-1.1
 
 # Environment configuration for dit E2E server tests.
 # Usage:
