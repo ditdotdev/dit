@@ -1,3 +1,6 @@
+// Copyright Dit 2026
+// SPDX-License-Identifier: BUSL-1.1
+
 package clients
 
 import (
@@ -22,7 +25,7 @@ func TestFlattenKubeconfigInlinesFileReferences(t *testing.T) {
 
 	caData := []byte("-----BEGIN CERTIFICATE-----\nCA-PLACEHOLDER\n-----END CERTIFICATE-----\n")
 	certData := []byte("-----BEGIN CERTIFICATE-----\nCLIENT-CERT-PLACEHOLDER\n-----END CERTIFICATE-----\n")
-	keyData := []byte("***REMOVED-PRIVATE-KEY***\n")
+	keyData := []byte("-----BEGIN RSA PRIVATE KEY-----\nCLIENT-KEY-PLACEHOLDER\n-----END RSA PRIVATE KEY-----\n")
 
 	for path, data := range map[string][]byte{caPath: caData, certPath: certData, keyPath: keyData} {
 		if err := os.WriteFile(path, data, 0600); err != nil {

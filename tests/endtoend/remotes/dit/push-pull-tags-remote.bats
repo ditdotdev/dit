@@ -1,4 +1,6 @@
 #!/usr/bin/env bats
+# Copyright Dit 2026
+# SPDX-License-Identifier: BUSL-1.1
 
 # E2E Push/Pull Tags on Dit Remote Tests
 # Tests dit push --tags and dit pull --tags on the dit remote server

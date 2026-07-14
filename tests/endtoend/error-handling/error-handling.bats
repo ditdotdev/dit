@@ -1,4 +1,6 @@
 #!/usr/bin/env bats
+# Copyright Dit 2026
+# SPDX-License-Identifier: BUSL-1.1
 
 # E2E Error Handling Tests
 # Verifies dit CLI returns non-zero exit codes for invalid operations

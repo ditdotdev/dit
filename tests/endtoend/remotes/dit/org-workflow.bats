@@ -1,4 +1,6 @@
 #!/usr/bin/env bats
+# Copyright Dit 2026
+# SPDX-License-Identifier: BUSL-1.1
 
 # E2E Organization Workflow Tests for Dit Remote Server
 # Tests org CRUD, membership management, and CLI org commands.
@@ -8,7 +10,7 @@ load '../../test_helper'
 load 'env'
 
 # Admin API key (seeded by Liquibase)
-ADMIN_KEY="***REMOVED***"
+ADMIN_KEY="$DIT_API_KEY"
 
 # Test API keys for org users (raw hex keys)
 ORGUSER_A_KEY="aa11111122223333444455556666777788889999aaaabbbbccccddddeeeeffff"

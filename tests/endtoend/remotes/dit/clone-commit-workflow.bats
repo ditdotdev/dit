@@ -1,4 +1,6 @@
 #!/usr/bin/env bats
+# Copyright Dit 2026
+# SPDX-License-Identifier: BUSL-1.1
 
 # Tests for cloning with a specific commit ID (dit clone -c).
 # Regression tests for:

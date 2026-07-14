@@ -1,4 +1,6 @@
 #!/usr/bin/env bats
+# Copyright Dit 2026
+# SPDX-License-Identifier: BUSL-1.1
 
 # Tests for cross-user fork functionality (issue #560).
 # Verifies that user B can fork user A's public repository.

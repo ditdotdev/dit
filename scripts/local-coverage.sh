@@ -1,4 +1,6 @@
 #!/usr/bin/env bash
+# Copyright Dit 2026
+# SPDX-License-Identifier: BUSL-1.1
 # Local coverage that matches the CI repo-health gate.
 #
 # The CI workflow (ditdotdev/.github/.github/workflows/repo-health.yml)

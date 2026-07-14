@@ -1,3 +1,6 @@
+# Copyright Dit 2026
+# SPDX-License-Identifier: BUSL-1.1
+
 # Elasticsearch 9.3.3 with VOLUME directive for dit compatibility
 # Base image from Docker Hub
 FROM elasticsearch:9.3.3

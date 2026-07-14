@@ -1,4 +1,6 @@
 #!/usr/bin/env bats
+# Copyright Dit 2026
+# SPDX-License-Identifier: BUSL-1.1
 
 # E2E Tests: Whitelist Approval Flow
 # Replicates bug where admin-approved users still see "Access Request Pending"

@@ -1,4 +1,6 @@
 #!/bin/bash
+# Copyright Dit 2026
+# SPDX-License-Identifier: BUSL-1.1
 # ZFS Pool Setup for Dit Linux Development
 #
 # Provisions the loop-backed ZFS pools that the dit server expects

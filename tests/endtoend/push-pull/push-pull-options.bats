@@ -1,4 +1,6 @@
 #!/usr/bin/env bats
+# Copyright Dit 2026
+# SPDX-License-Identifier: BUSL-1.1
 
 # E2E Push/Pull Options Tests
 # Tests dit push --update-only and dit pull --update-only via S3
