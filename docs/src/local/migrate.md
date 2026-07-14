@@ -15,8 +15,9 @@ laptop.
 ## Source Container
 
 The source container must be from an image available in a docker registry,
-and the data corresponding to volume directives (see the local_copy
-section) must be mounted from your host system. For example, you must have
+and the data corresponding to volume directives (see the
+[Copying Repositories](copy.md) section) must be mounted from your host
+system. For example, you must have
 run
 
 ```
@@ -42,7 +43,7 @@ dit mgirate -s somecontainer myrepo
 
 This will get the configuration of the container and use it verbatim for the
 new repository. It will determine where each volume resides on the host
-system, and use the equivalent of cli_cmd_cp to copy the volumes over
+system, and use the equivalent of [dit cp](../cli/cmd/dit_cp.md) to copy the volumes over
 one by one.
 
 > **Note:**

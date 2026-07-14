@@ -4,7 +4,7 @@ nav_label: Clone
 nav_order: 330
 ---
 
-The cli_cmd_clone command will create a new repository using the
+The [dit clone](../cli/cmd/dit_clone.md) command will create a new repository using the
 configuration from a remote. It is equivalent to creating a new repository with
 an identical configuration, adding the remote, and pulling down the latest
 commit
@@ -14,7 +14,7 @@ $ dit clone -n hello-world s3web://demo.dit.dev/hello-world/postgres
 ```
 
 The docker environment is persisted with each commit, but runtime parameters are
-not and can be specified with the `--`` argument flag. See cli_cmd_clone
+not and can be specified with the `--` argument flag. See [dit clone](../cli/cmd/dit_clone.md)
 for more details.
 
 > **Note:**

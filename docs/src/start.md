@@ -11,9 +11,9 @@ a bit more about what's going on under the hood with more detailed examples.
 For a quick tour getting started using docker containers on your workstation,
 check out the following sections:
 
-* lifecycle_install
-* local_run
-* local_commit
+* [Installing Dit](lifecycle/install.md)
+* [Running Containers](local/run.md)
+* [Committing Data](local/commit.md)
 
-If you are interested in running dit with Kubernetes, see the
-lifecycle_kubernetes section.
+If you are interested in running dit with Kubernetes, see
+[Dit with Kubernetes](lifecycle/kubernetes.md).

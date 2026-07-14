@@ -7,7 +7,7 @@ nav_order: 210
 A dit repository combines a docker container and its configuration with data
 that backs the volumes within that container. So every repository should
 have a running docker container associated with it. For more information on
-how the docker configuration is used, see the local_docker section.
+how the docker configuration is used, see the [Managing Docker](docker.md) section.
 
 To run a repository, you simply take the arguments you'd normally supply to
 `docker run` and pass that to `dit run` instead

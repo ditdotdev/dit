@@ -12,7 +12,7 @@ other changes on the host.
 By default, the `dit` volume is created as a vanilla docker volume,
 which uses storage locally on the host system. If you want to use different
 storage for your dit work, you can manually create the `dit`
-volume yourself prior to running cli_cmd_install.
+volume yourself prior to running [dit install](../cli/cmd/dit_install.md).
 
 > **Warning:**
 > Do not manually change the contents of the `dit` volume, and do
@@ -31,7 +31,7 @@ volume yourself prior to running cli_cmd_install.
 ## Managing Storage Usage
 
 To view the amount of space consumed by a repository, run the
-cli_cmd_status command. This will display output similar to
+[dit status](../cli/cmd/dit_status.md) command. This will display output similar to
 
 ```bash
 $ dit status hello-world

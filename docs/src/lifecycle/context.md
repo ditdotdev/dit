@@ -12,24 +12,26 @@ repositories within it.
 * Kubernetes contexts manage containers within a Kubernetes cluster.
 
 In both cases, there is a local container that stores the metadata associated
-with the repositories and orchestrates their lifecycle. These containers are
-named `dit` and, for local docker contexts,
-`dit`.
+with the repositories and orchestrates their lifecycle. This container is
+named `dit-<context>-server` — for example, `dit-docker-server` for the
+default local Docker context.
 
 ## Context Configuration
 
-Contexts are installed through the cli_cmd_context_install command.
+Contexts are installed through the
+[dit context install](../cli/cmd/dit_context_install.md) command.
 Each context has:
 
-* A type ("docker" or "kubernetes")
-* A name (defaults to the type of not specified)
-* Optional context-specific parameters
+* A type ("docker" or "kubernetes"), set with `-t`
+* A name, set with `-n` (defaults to "docker" if not specified, so always pass
+  `-n` when installing a non-Docker context)
+* Optional context-specific parameters, set with `-p key=value`
 
-The cli_cmd_install command is an alias for
+The [dit install](../cli/cmd/dit_install.md) command is an alias for
 `dit context install -t docker`, and will create a default docker context
 for managing local containers.
 
-The context configuration is stored in the `.dit` file in your
+The context configuration is stored in the `~/.dit/config` file in your
 home directory. This is a YAML file that contains a `contexts` object that
 is a map of context configurations, with the key being the name of the context
 and the fields the following:
@@ -39,9 +41,11 @@ and the fields the following:
 * `port` - Port that the context container is listening on. Selected at
   random when the context is installed.
 
-While this file can be edited by hand, it is recommend to use the Dit context
-commands. To list available contexts, use the cli_cmd_context_ls
-command. To uninstall a context, use the cli_cmd_context_uninstall
+While this file can be edited by hand, it is recommended to use the Dit
+context commands. To list available contexts, use the
+[dit context ls](../cli/cmd/dit_context_ls.md) command. To uninstall a
+context, use the [dit context uninstall](../cli/cmd/dit_context_uninstall.md)
+command.
 
 ## Selecting Contexts
 
@@ -51,7 +55,7 @@ and any new repository is created within that context.
 
 Repositories can also be referenced by their fully qualified name,
 `<context>/<repository>`. This can be used to uniquely identify any
-repository, even when there are multiple contexts are configured. This can
+repository, even when multiple contexts are configured. This can
 also be used to select which context to use when creating a new repository,
 such as `dit run mongo -n contextone/mongo`.
 
@@ -67,5 +71,5 @@ Dit will attempt to determine the appropriate context in one of two ways:
 
 The default context is identified in `dit context ls` output via a
 " (*)" indicator. You can also get the default context with the
-cli_cmd_context_default command. To set the default context, run
-`dit context default <name>`.
+[dit context default](../cli/cmd/dit_context_default.md) command. To set the
+default context, run `dit context default <name>`.

@@ -5,7 +5,7 @@ nav_order: 230
 ---
 
 Once you have a repository running as outlined in the
-local_run section, you can start to commit changes. Picking up where
+[Running Containers](run.md) section, you can start to commit changes. Picking up where
 the previous example left off, we can create some data and then commit
 that state
 

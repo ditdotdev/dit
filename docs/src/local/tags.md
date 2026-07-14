@@ -17,10 +17,10 @@ lets tags be used as labels, such as `dit commit -t nightly ...`.
 ## Local Tags
 
 A commit can be created with any number of tags set through
-cli_cmd_commit. Tags can be added or modified by cli_cmd_tag,
-and removed by cli_cmd_delete.
+[dit commit](../cli/cmd/dit_commit.md). Tags can be added or modified by [dit tag](../cli/cmd/dit_tag.md),
+and removed by [dit delete](../cli/cmd/dit_delete.md).
 
-Tags are displayed as part of cli_cmd_log
+Tags are displayed as part of [dit log](../cli/cmd/dit_log.md)
 
 ```bash
 $ dit log postgres
@@ -50,11 +50,11 @@ Otherwise a normal push should be use, which will include both data and tags.
 A number of commands can be augmented by specifying one or more `-t` options
 to filter commits by tag. These commands include:
 
- * cli_cmd_log
- * cli_cmd_remote_log
- * cli_cmd_pull
- * cli_cmd_push
- * cli_cmd_checkout
+ * [dit log](../cli/cmd/dit_log.md)
+ * [dit remote log](../cli/cmd/dit_remote_log.md)
+ * [dit pull](../cli/cmd/dit_pull.md)
+ * [dit push](../cli/cmd/dit_push.md)
+ * [dit checkout](../cli/cmd/dit_checkout.md)
 
 When tag options are specified, only matching commits (or the latest matching
 commit for pull, push, and checkout) are included. The commits must match

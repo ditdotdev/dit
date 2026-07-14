@@ -64,7 +64,11 @@ kubectl get storageclass         # "standard (default)" provisioned by k8s.io/mi
 > equivalent health check and works without elevation.
 
 The `standard` StorageClass is what `dit` will use for the Postgres PVC. No
-additional CSI setup is required for this demo.
+additional CSI setup is required for this demo, because it never calls
+`dit commit` — `standard` cannot take VolumeSnapshots. If you want to extend
+the demo with commits, see
+[Dit with Kubernetes](docs/src/lifecycle/kubernetes.md) for the CSI addon and
+storage/snapshot class setup.
 
 ### Fallback: the Docker driver
 
@@ -91,9 +95,10 @@ isn't up, you'll see an opaque `Error pulling image ditdotdev/dit:vX.Y.Z: exit s
 dit context install -n k8s-demo -t kubernetes
 ```
 
-This boots the `dit` server as a local Docker container (`dit-kubernetes-server`)
-listening on `localhost:5001`. First run pulls the `ditdotdev/dit` image
-and may take a few minutes.
+This boots the `dit` server as a local Docker container named after the
+context (`dit-k8s-demo-server`), listening on a randomly chosen `localhost`
+port that `dit` records in `~/.dit/config`. First run pulls the
+`ditdotdev/dit` image and may take a few minutes.
 
 ## Step 4: Run Postgres in the cluster
 
@@ -165,17 +170,22 @@ affect this demo, but know them before extending it:
 
 - **Namespace is hardcoded to `default`.** There's no flag to change it yet.
 - **`~/.kube/config` is hardcoded.** `dit` always uses the standard kubeconfig
-  location and whatever context is currently selected. Don't switch contexts
-  between `dit` commands.
+  location and whatever context is currently selected, and the server container
+  keeps a copy of the kubeconfig taken at `dit context install` time. Don't
+  switch kube contexts between `dit` commands; to point at a different cluster,
+  re-install the dit context.
 - **PVC size is fixed at 1 GiB** per image volume. Not configurable.
 - **Port forwarding is fragile.** `dit` spawns `kubectl port-forward` in the
   background. If it dies (host sleep, process crash), run
   `dit stop demo-db && dit start demo-db` to re-establish.
-- **`dit commit` on a k8s context expects alpha CSI VolumeSnapshots.** Modern
-  minikube ships GA snapshots (and none at all by default — enable with
-  `minikube addons enable volumesnapshots csi-hostpath-driver`). `dit commit`
-  against a modern cluster will likely fail; this demo only exercises
-  `run`/`status`/`rm`, which does not touch snapshots.
+- **`dit commit` needs snapshot-capable CSI storage.** This demo deliberately
+  sticks with minikube's default `standard` StorageClass, which cannot take
+  VolumeSnapshots — so `dit commit` will fail on this context. Commits do work
+  on Kubernetes (dit uses the GA `snapshot.storage.k8s.io/v1` API): enable the
+  addons with `minikube addons enable volumesnapshots` and
+  `minikube addons enable csi-hostpath-driver`, then install the context with
+  `-p storageClass=csi-hostpath-sc -p snapshotClass=csi-hostpath-snapclass`.
+  See [Dit with Kubernetes](docs/src/lifecycle/kubernetes.md) for details.
 
 ## Troubleshooting
 

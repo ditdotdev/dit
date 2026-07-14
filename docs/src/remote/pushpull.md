@@ -4,7 +4,7 @@ nav_label: Push/Pull
 nav_order: 320
 ---
 
-The cli_cmd_push and cli_cmd_pull commands form the basis of
+The [dit push](../cli/cmd/dit_push.md) and [dit pull](../cli/cmd/dit_pull.md) commands form the basis of
 sharing data via remote repositories. Unlike git, however, they transfer
 only a single commit to or from the remote repository. There is no notion
 of pulling "all commits" and then checking out one of them.
@@ -17,11 +17,11 @@ Each push and pull runs asynchronously in the context of the dit container,
 but progress is streamed to the command line while it's being run. In rare
 cases, it's possible to exit the CLI while the operation is ongoing. In this
 case, you may get a message that an operation is in progress. You can either
-wait for it to complete, or abort it with cli_cmd_abort.
+wait for it to complete, or abort it with [dit abort](../cli/cmd/dit_abort.md).
 
 While the CLI does not provide full-fledged management of remotes (something
 specific to each remote), you can get a list of remote commits using the
-cli_cmd_remote_log command.
+[dit remote log](../cli/cmd/dit_remote_log.md) command.
 
 > **Note:**
 > Dit doesn't currently retry after network errors or other interruptions.

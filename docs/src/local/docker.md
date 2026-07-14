@@ -52,7 +52,7 @@ more volume declarations.
 ## Docker Containers
 
 Every dit repository corresponds to exactly one docker container. The
-configuration of this container is defined when the cli_cmd_run
+configuration of this container is defined when the [dit run](../cli/cmd/dit_run.md)
 command is executed. The name of the repository must match the name of
 the container.
 

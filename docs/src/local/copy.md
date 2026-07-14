@@ -41,7 +41,7 @@ are multiple volumes)
 
 ## Copying Data Into a Repository
 
-The cli_cmd_cp command is designed to copy this data into a running
+The [dit cp](../cli/cmd/dit_cp.md) command is designed to copy this data into a running
 repository. To do this, first start a container running. Then, use the
 the `dit cp` command
 
