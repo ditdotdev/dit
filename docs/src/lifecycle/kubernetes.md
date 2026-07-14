@@ -15,24 +15,27 @@ cluster and later cloning for local debugging).
 
 ## Kubernetes Requirements
 
-Dit requires a Kubernetes cluster with the following configuration options:
+Dit requires a Kubernetes cluster with the following configuration:
 
-* There must be a CSI (Container Storage Interface) driver installed that
-  supports the [alpha snapshot](https://kubernetes-csi.github.io/docs/snapshot-restore-feature.html)
-  capabilities. Dit does not yet work with the
-  [beta snapshot APIs](https://kubernetes.io/blog/2019/12/09/kubernetes-1-17-feature-cis-volume-snapshot-beta/).
-* The [VolumeSnapshotDataSource](https://v1-13.docs.kubernetes.io/docs/reference/command-line-tools-reference/feature-gates/)
-  feature gate must be enabled.
 * The [VolumeSnapshot](https://kubernetes.io/docs/concepts/storage/volume-snapshots/)
-  API must be enabled.
+  API (`snapshot.storage.k8s.io/v1`, GA since Kubernetes 1.20) must be
+  available — that is, the VolumeSnapshot CRDs and snapshot controller must be
+  installed. Most managed clusters (EKS, GKE, AKS) ship these out of the box;
+  on minikube they come from the `volumesnapshots` addon.
+* There must be a CSI (Container Storage Interface) driver installed that
+  supports [volume snapshots](https://kubernetes-csi.github.io/docs/snapshot-restore-feature.html).
 * The storage class and snapshot class Dit uses — whether specified at install
   time (see [Installing a Kubernetes Context](#installing-a-kubernetes-context))
   or inherited from the cluster default — must use a CSI driver with snapshot
   capabilities.
 
-Dit currently uses the default Kubernetes config file, cluster and namespace
-as defined the `.kube/config` file in your home directory. Future versions will make these
-configurable.
+Dit uses the default Kubernetes config file (`~/.kube/config`) with whatever
+context is currently selected, and always operates in the `default` namespace.
+At install time this config is flattened and copied into the Dit server
+container (stored as `~/.dit/kubeconfig-<context>`), so changes made to
+`~/.kube/config` after `dit context install` — switching clusters, rotating
+credentials — do not reach the server until the context is re-installed.
+Future versions will make the cluster and namespace configurable.
 
 The dit server still runs as a container on the local workstation. A local
 Docker installation is required, though no special privileges or operating
@@ -41,16 +44,20 @@ user, so two users cannot share dit repositories in a shared Kubernetes
 cluster. The pods themselves will be accessible to any kubernetes user, but
 there is no way to manage them as Dit repositories on a different system.
 
-Each push or pull operation is run as a separate Job, requiring that the
-`ditdotdev/dit` image be avaialble to the cluster.
+Each push or pull operation is run as a separate Kubernetes Job, which
+requires the `ditdotdev/dit` image to be pullable from within the cluster. On
+clusters that cannot reach Docker Hub (air-gapped or private-registry
+environments), point Dit at a mirrored copy with
+`-p ditImage=<registry>/dit:<tag>` at install time.
 
 ## Installing a Kubernetes Context
 
-Install a Kubernetes context with `dit context install -t kubernetes`. The
-storage and snapshot classes Dit uses for its PersistentVolumeClaims (volumes)
-and VolumeSnapshots (commits) are set with the `-p storageClass=<name>` and
-`-p snapshotClass=<name>` parameters. Both **must** be backed by a CSI driver
-with snapshot support.
+Install a Kubernetes context with `dit context install -n <name> -t kubernetes`.
+Always pass a context name with `-n`: if omitted, the name defaults to
+`docker` regardless of the context type. The storage and snapshot classes Dit
+uses for its PersistentVolumeClaims (volumes) and VolumeSnapshots (commits) are
+set with the `-p storageClass=<name>` and `-p snapshotClass=<name>` parameters.
+Both **must** be backed by a CSI driver with snapshot support.
 
 Pin these explicitly rather than relying on the cluster default. Many clusters
 default to a non-CSI storage class that cannot snapshot — for example minikube's
@@ -111,16 +118,20 @@ A Kubernetes repository consists of:
 * Within that StatefulSet, all PersistentVolumeClaims mapped to the directories
   identified in the image metadata. The pod name is the same as the repository
   name.
-* A service that maps all exposed ports to the ports of the Pods within the
-  StatefulSet.
+* A headless Service (same name as the repository) that exposes all ports
+  declared by the image to the Pod within the StatefulSet.
 
 Each commit corresponds to a VolumeSnapshot.
 
-By default, Dit will make all ports available on the local system. This
-is accomplished by running `kubectl port-forward` for each known port. This
-is a fairly fragile process, since that process can die or the system
-restarted at any time. This will be replaced with a more reliable mechanism
-in the future.
+By default, Dit makes all exposed ports available on the local system by
+spawning a background `kubectl port-forward` process for each known port.
+Disable this with `-P` / `--disable-port-mapping` on `dit run` or `dit clone`.
+Each forwarder's process id is recorded under `~/.dit`
+(`portforward-<repository>-<port>.pid`) so that `dit stop` and `dit rm` can
+terminate it, but nothing supervises the process while it runs — if it dies
+(host restart, sleep), re-establish it with `dit stop <repo>` followed by
+`dit start <repo>`. This will be replaced with a more reliable mechanism in
+the future.
 
 ## Limitations
 
@@ -134,10 +145,12 @@ specific known limitations with beta:
 * There is no method to specify volume sizes. While the amount of data pushed
   and pulled will remain the logical size of the dataset, volumes must be
   statically sized in Kubernetes. Currently, these are always 1GiB.
-* Dit currently always uses the default ~/.kube configuration, and there isn't
-  a way to control the namespace and cluster used. If the default configuration
-  is changed after the context is installed, it can result in inconsistent
-  state.
+* Dit always uses the default `~/.kube/config` and the `default` namespace;
+  there is no way to select a different namespace or cluster. The server keeps
+  the copy of the kubeconfig taken at install time while the CLI reads the
+  live file, so changing the kubeconfig (or its selected context) after
+  installation can leave the two pointing at different clusters. To switch
+  clusters, re-install the context.
 * The storage class and snapshot class are fixed at install time via
   `-p storageClass=` / `-p snapshotClass=` (see
   [Installing a Kubernetes Context](#installing-a-kubernetes-context)) and
@@ -146,11 +159,11 @@ specific known limitations with beta:
 * There are various failure modes, such as failing to pull an image, that
   aren't handled well by Dit. These can result in hangs or hard to diagnose
   errors.
-* Port forwarding is very simplistic. Dit simply spawns `kubectl port-forward`
-  in the background, and tries to kill it when stopping port forwarding. If
-  the system is restarted, or that process dies, it will need to be manually
-  restarted, either by running the `kubectl` directly, or stopping and
-  starting the repository.
+* Port forwarding is simplistic. Dit spawns `kubectl port-forward` in the
+  background and kills it on `dit stop` / `dit rm`, but nothing restarts it
+  automatically. If the system is restarted, or that process dies, re-establish
+  it by stopping and starting the repository
+  (`dit stop <repo> && dit start <repo>`).
 
 ## Troubleshooting
 
