@@ -4,7 +4,7 @@ nav_label: Upgrade
 nav_order: 160
 ---
 
-Dit can be automatically upgraded with the cli_cmd_upgrade command.
+Dit can be automatically upgraded with the [dit upgrade](../cli/cmd/dit_upgrade.md) command.
 This command works by:
 
 1. Downloading a newest version of the dit binary

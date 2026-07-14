@@ -46,7 +46,7 @@ to see if you can get it to work.
 
 ## Installation Issues
 
-When you're running cli_cmd_install, the server container may or may not
+When you're running [dit install](../cli/cmd/dit_install.md), the server container may or may not
 be running successfully. In these cases, you can use `docker logs dit`
 to see what may be going on within the process. The lines denoted `DIT` are
 designed to be more user-readable, while the other error messages may be

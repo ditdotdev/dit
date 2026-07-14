@@ -13,11 +13,11 @@ The URI format is
 s3web://<bucket-url>[:port]/<path>
 ```
 
-The format of the data must match that pushed by the remote_provider_s3.
+The format of the data must match that pushed by the [S3 provider](s3.md).
 The bucket URL can be anything, including DNS aliases or cloud front
 distributions sitting in front of the bucket. The only requirement is that
 `HTTP GET` is supported for objects beneath the path.
 
 > **Note:**
 > The S3 Web provider is read-only. It can only pull data that has been pushed by
-> the remote_provider_s3.
+> the [S3 provider](s3.md).
