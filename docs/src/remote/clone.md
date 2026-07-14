@@ -10,7 +10,7 @@ an identical configuration, adding the remote, and pulling down the latest
 commit
 
 ```bash
-$ dit clone -n hello-world s3web://demo.dit.dev/hello-world/postgres
+$ dit clone -n hello-world s3web://demos.dit.dev/hello-world/postgres
 ```
 
 The docker environment is persisted with each commit, but runtime parameters are
@@ -21,7 +21,7 @@ for more details.
 > The clone command uses the latest commit by default. To clone a specific
 > commit, add the commit GUID to the URI with a `#` tag. Example::
 >
-> $ dit clone -n hello-world s3web://demo.dit.dev/hello-world/postgres#0f53a6a4-90ff-4f8c-843a-a6cce36f4f4f
+> $ dit clone -n hello-world s3web://demos.dit.dev/hello-world/postgres#0f53a6a4-90ff-4f8c-843a-a6cce36f4f4f
 >
 
 > **Note:**

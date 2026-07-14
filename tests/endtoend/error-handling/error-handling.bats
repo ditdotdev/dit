@@ -115,7 +115,7 @@ teardown_file() {
   # into the same name forces CreateRepository to fail on the dit server. Pre-fix,
   # dit clone silently exited 0 with no output; post-fix it must exit non-zero
   # AND print a non-empty error message.
-  run "$D3" clone -n errortest s3web://demo-dit.s3-website-us-west-2.amazonaws.com/hello-world/postgres
+  run "$D3" clone -n errortest s3web://demos.dit.dev/hello-world/postgres
   assert_failure
   refute_output ""
 }

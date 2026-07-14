@@ -6,7 +6,7 @@
 load '../test_helper'
 
 @test "can clone hello-world/postgres" {
-  run "$D3" clone -n hello-world s3web://demo-dit.s3-website-us-west-2.amazonaws.com/hello-world/postgres
+  run "$D3" clone -n hello-world s3web://demos.dit.dev/hello-world/postgres
   assert_success
   assert_output --partial "Running controlled container hello-world"
   assert_output --partial "Starting container hello-world"

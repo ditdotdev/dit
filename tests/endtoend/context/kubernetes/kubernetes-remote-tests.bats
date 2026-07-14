@@ -22,7 +22,7 @@ load '../../remotes/dit/env'
 
 CTX="k8sremotetest"
 REPO="commit-test"
-S3WEB_URL="s3web://demo-dit.s3-website-us-west-2.amazonaws.com/hello-world/postgres"
+S3WEB_URL="s3web://demos.dit.dev/hello-world/postgres"
 S3_URL="s3://demo-dit/hello-world/postgres"
 
 # Wait for a Pod's Ready condition. Default 36 iterations × 5s = 180s.
