@@ -23,8 +23,7 @@ Contexts are installed through the
 Each context has:
 
 * A type ("docker" or "kubernetes"), set with `-t`
-* A name, set with `-n` (defaults to "docker" if not specified, so always pass
-  `-n` when installing a non-Docker context)
+* A name, set with `-n` (defaults to the context type if not specified)
 * Optional context-specific parameters, set with `-p key=value`
 
 The [dit install](../cli/cmd/dit_install.md) command is an alias for

@@ -24,10 +24,23 @@ var contextInstallCmd = &cobra.Command{
 	Use:   subcmdInstall,
 	Short: "Install a new context",
 	Run: func(cmd *cobra.Command, args []string) {
+		contextName = resolveContextName(contextName, contextType)
 		provider = providers.Create(contextName, contextType, providers.GetAvailablePort())
 		provider.Install(params, verbose)
 		providers.AddProvider(provider)
 	},
+}
+
+// resolveContextName applies the documented -n default: a context installed
+// without an explicit name is named after its resolved type ("docker" for
+// plain `dit context install`, "kubernetes" for `-t kubernetes`). The cobra
+// default used to be the literal "docker", so `-t kubernetes` without -n
+// created a kubernetes context named "docker" (ditdotdev/dit#214).
+func resolveContextName(name string, contextType string) string {
+	if name == "" {
+		return contextType
+	}
+	return name
 }
 
 // contextUninstallCmd represents the contextUninstall command
@@ -91,7 +104,7 @@ func init() {
 	contextCmd.AddCommand(contextListCmd)
 
 	contextInstallCmd.Flags().StringVarP(&contextType, "type", "t", "docker", "context type (docker or kubernetes)")
-	contextInstallCmd.Flags().StringVarP(&contextName, nameKey, "n", "docker", "context name, defaults to context type")
+	contextInstallCmd.Flags().StringVarP(&contextName, nameKey, "n", "", "context name, defaults to context type")
 	contextInstallCmd.Flags().StringSliceVarP(&params, "parameters", "p", nil, "context specific parameters. key=value format")
 	contextInstallCmd.Flags().BoolVarP(&verbose, "verbose", "v", false, "verbose logging")
 	contextInstallCmd.Flags().SortFlags = false //TODO review flag sorting
