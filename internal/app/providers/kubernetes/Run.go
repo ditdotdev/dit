@@ -17,7 +17,96 @@ import (
 const (
 	keyImage              = "image"
 	keyDisablePortMapping = "disablePortMapping"
+	keyProtocol           = "protocol"
+	keyPort               = "port"
 )
+
+// splitImageTag splits a container reference into image and tag, defaulting
+// the tag to "latest" when the reference has none.
+func splitImageTag(container string) (string, string) {
+	if !strings.Contains(container, ":") {
+		return container, "latest"
+	}
+	parts := strings.Split(container, ":")
+	return parts[0], parts[1]
+}
+
+// createDitVolumes creates a dit volume for each image volume path and
+// returns the created volumes plus the volume metadata entries recorded in
+// the repository properties. On a creation failure the repository is deleted
+// (best effort) before panicking, matching the previous inline behavior.
+func createDitVolumes(repoName string, vols []string) ([]client.Volume, []map[string]string) {
+	var ditVolumes []client.Volume
+	var metaVolumes []map[string]string
+	for i, path := range vols {
+		volName := "v" + strconv.Itoa(i)
+		path := strings.Split(path, ":")[0]
+		path = strings.ReplaceAll(path, `"`, "")
+		fmt.Println("Creating dit volume " + volName + " with path " + path)
+
+		v := client.Volume{
+			Name:       volName,
+			Properties: map[string]interface{}{"path": path},
+			Config:     map[string]interface{}{},
+		}
+		vol, _, err := volumesApi.CreateVolume(ctx, repoName).Volume(v).Execute()
+		//TODO BAD REQUEST
+
+		if err != nil {
+			if _, err := repositoriesApi.DeleteRepository(ctx, repoName).Execute(); err != nil {
+				fmt.Printf("Warning: Failed to delete repository after volume creation failure: %v\n", err)
+			}
+			panic(err)
+			//TODO REMOVE VOLUME AND EXIT
+		}
+		ditVolumes = append(ditVolumes, *vol)
+		metaVolumes = append(metaVolumes, map[string]string{
+			"name": volName,
+			"path": path,
+		})
+	}
+	return ditVolumes, metaVolumes
+}
+
+// waitForVolumesReady polls volume status until every volume reports ready,
+// exiting the process if any volume reports a provisioning error.
+func waitForVolumesReady(repoName string, ditVolumes []client.Volume) {
+	ready := false
+	for !ready {
+		ready = true
+		for _, v := range ditVolumes {
+			s, _, _ := volumesApi.GetVolumeStatus(ctx, repoName, v.Name).Execute()
+			if !s.Ready {
+				ready = false
+			}
+			if s.GetError() != "" {
+				//TODO REMOVE VOLUMES AND EXIT
+				fmt.Println("Error creating volume" + v.Name + ": " + s.GetError())
+				osExit(1)
+			}
+		}
+	}
+}
+
+// parseExposedPorts converts the image's exposed-port entries into the port
+// metadata recorded in the repository properties plus the numeric port list
+// used for the StatefulSet and port forwarding.
+func parseExposedPorts(dockerPorts []string) ([]map[string]string, []int) {
+	var metaPorts []map[string]string
+	ports := make([]int, 0, len(dockerPorts))
+	for _, rawPort := range dockerPorts {
+		rawPort = strings.ReplaceAll(rawPort, `"`, "")
+		port := strings.Split(rawPort, "/")[0]
+		protocol := strings.Split(strings.Split(rawPort, "/")[1], ":")[0]
+		metaPorts = append(metaPorts, map[string]string{
+			keyProtocol: protocol,
+			keyPort:     port,
+		})
+		portInt, _ := strconv.Atoi(port)
+		ports = append(ports, portInt)
+	}
+	return metaPorts, ports
+}
 
 func Run(container string, repository string, envVars []string, args []string, disablePortMap bool, privileged bool, createRepo bool, port int, context string) {
 	cfg.Servers[0].URL = "http://localhost:" + strconv.Itoa(port)
@@ -40,19 +129,7 @@ func Run(container string, repository string, envVars []string, args []string, d
 		repoName = repository
 	}
 
-	var image string
-	if strings.Contains(container, ":") {
-		image = strings.Split(container, ":")[0]
-	} else {
-		image = container
-	}
-
-	var tag string
-	if strings.Contains(container, ":") {
-		tag = strings.Split(container, ":")[1]
-	} else {
-		tag = "latest"
-	}
+	image, tag := splitImageTag(container)
 
 	imageInfo, err := docker.InspectImage(image + ":" + tag)
 	if err != nil {
@@ -85,52 +162,10 @@ func Run(container string, repository string, envVars []string, args []string, d
 		}
 	}
 
-	var ditVolumes []client.Volume
-	var metaVolumes []map[string]string
-	for i, path := range vols {
-		volName := "v" + strconv.Itoa(i)
-		path := strings.Split(path, ":")[0]
-		path = strings.ReplaceAll(path, `"`, "")
-		fmt.Println("Creating dit volume " + volName + " with path " + path)
+	ditVolumes, metaVolumes := createDitVolumes(repoName, vols)
 
-		v := client.Volume{
-			Name:       volName,
-			Properties: map[string]interface{}{"path": path},
-			Config:     map[string]interface{}{},
-		}
-		vol, _, err := volumesApi.CreateVolume(ctx, repoName).Volume(v).Execute()
-		//TODO BAD REQUEST
-
-		if err != nil {
-			if _, err := repositoriesApi.DeleteRepository(ctx, repoName).Execute(); err != nil {
-				fmt.Printf("Warning: Failed to delete repository after volume creation failure: %v\n", err)
-			}
-			panic(err)
-			//TODO REMOVE VOLUME AND EXIT
-		}
-		ditVolumes = append(ditVolumes, *vol)
-		addVol := map[string]string{
-			"name": "v" + strconv.Itoa(i),
-			"path": path,
-		}
-		metaVolumes = append(metaVolumes, addVol)
-	}
 	fmt.Println("Waiting for volumes to be ready")
-	ready := false
-	for !ready {
-		ready = true
-		for _, v := range ditVolumes {
-			s, _, _ := volumesApi.GetVolumeStatus(ctx, repoName, v.Name).Execute()
-			if !s.Ready {
-				ready = false
-			}
-			if s.GetError() != "" {
-				//TODO REMOVE VOLUMES AND EXIT
-				fmt.Println("Error creating volume" + v.Name + ": " + s.GetError())
-				osExit(1)
-			}
-		}
-	}
+	waitForVolumesReady(repoName, ditVolumes)
 
 	repoDigest := docker.GetValFromImage(image+":"+tag, "RepoDigests")
 	repoDigest = strings.ReplaceAll(repoDigest, "[", "")
@@ -161,20 +196,7 @@ func Run(container string, repository string, envVars []string, args []string, d
 		fmt.Printf("Warning: Failed to update repository metadata: %v\n", err)
 	}
 
-	var metaPorts []map[string]string
-	dockerPorts := docker.GetSliceFromImage(image+":"+tag, "Config", "ExposedPorts")
-	ports := make([]int, 0, len(dockerPorts))
-	for _, rawPort := range dockerPorts {
-		rawPort = strings.ReplaceAll(rawPort, `"`, "")
-		port := strings.Split(rawPort, "/")[0]
-		protocol := strings.Split(strings.Split(rawPort, "/")[1], ":")[0]
-		addPort := make(map[string]string)
-		addPort["protocol"] = protocol
-		addPort["port"] = port
-		metaPorts = append(metaPorts, addPort)
-		portInt, _ := strconv.Atoi(port)
-		ports = append(ports, portInt)
-	}
+	metaPorts, ports := parseExposedPorts(docker.GetSliceFromImage(image+":"+tag, "Config", "ExposedPorts"))
 
 	metadata = map[string]interface{}{
 		"v2": map[string]interface{}{
