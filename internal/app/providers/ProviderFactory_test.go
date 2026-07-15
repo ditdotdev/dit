@@ -71,11 +71,35 @@ func TestCreate_Kubernetes(t *testing.T) {
 	}
 }
 
-func TestCreate_UnknownType_ReturnsNil(t *testing.T) {
+// Regression: an unknown type used to fall through the switch and return a
+// nil Provider, which the install command then panicked on. It must exit
+// with a clear error instead.
+func TestCreate_UnknownType_Exits(t *testing.T) {
 	resetProviderState(t)
-	p := Create("weird", "unknown-type", 1234)
-	if p != nil {
-		t.Errorf("expected nil for unknown provider type, got %+v", p)
+	didExit, code := captureExit(t, func() {
+		Create("weird", "unknown-type", 1234)
+	})
+	if !didExit || code != 1 {
+		t.Errorf("expected exit code 1 for unknown provider type, got didExit=%v code=%d", didExit, code)
+	}
+}
+
+// Regression: SetDefault with an unknown name used to un-default every
+// context and default none, leaving the config with no default context.
+func TestSetDefault_UnknownContext_ExitsAndKeepsDefault(t *testing.T) {
+	resetProviderState(t)
+	usingTempViperFile(t) // AddProvider writes config; keep it off ~/.dit/config
+	p := Create("real-ctx", ProviderTypeDocker, 1234)
+	AddProvider(p)
+
+	didExit, code := captureExit(t, func() {
+		SetDefault("not-a-context")
+	})
+	if !didExit || code != 1 {
+		t.Errorf("expected exit code 1 for unknown context, got didExit=%v code=%d", didExit, code)
+	}
+	if got := DefaultName(); got != "real-ctx" {
+		t.Errorf("existing default must survive a failed SetDefault; DefaultName() = %q, want %q", got, "real-ctx")
 	}
 }
 

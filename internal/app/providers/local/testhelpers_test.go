@@ -11,10 +11,18 @@ import (
 	"os"
 	"strconv"
 	"testing"
+	"time"
 
 	"bytes"
 	"io"
 )
+
+// init shrinks the launch-log follow tuning so tests never sit on the
+// production 120s timeout.
+func init() {
+	launchLogPollInterval = 1 * time.Millisecond
+	launchLogTimeout = 50 * time.Millisecond
+}
 
 // captureStdout captures stdout during a function call and returns the output.
 func captureStdout(f func()) string {

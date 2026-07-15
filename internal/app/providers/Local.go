@@ -154,10 +154,13 @@ func (l local) Remove(repo string, force bool) {
 
 func (l local) Run(image string, repo string, environments []string, arguments []string, disablePortMap bool, privileged bool) {
 	s, err := lcl.Run(image, repo, environments, arguments, disablePortMap, privileged, true, l.portNum, l.contextName)
-	fmt.Println(s)
 	if err != nil {
+		// s is empty on early failures (e.g. volume creation), which used
+		// to print a blank line before exiting - the error is the message.
+		fmt.Println(err)
 		osExit(1)
 	}
+	fmt.Println(s)
 }
 
 func (l local) Start(repo string) {

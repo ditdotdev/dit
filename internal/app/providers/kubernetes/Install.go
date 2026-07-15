@@ -72,7 +72,11 @@ func Install(latest string, registry string, verbose bool, port int, context str
 		s.Prefix = "Removing dit server "
 		s.FinalMSG = "Old dit server removed"
 		s.Start()
-		if _, err := docker.Remove("dit-kubernetes-server", true); err != nil {
+		// Containers are named after the context ("dit-<context>-server",
+		// see clients.Docker getKubernetesLaunchArgs), not the context type.
+		// Removing the hardcoded "dit-kubernetes-*" names left stale
+		// containers behind for custom-named contexts (#214).
+		if _, err := docker.Remove("dit-"+context+"-server", true); err != nil {
 			fmt.Printf("Warning: Failed to remove old dit server: %v\n", err)
 		}
 		s.Stop()
@@ -83,7 +87,7 @@ func Install(latest string, registry string, verbose bool, port int, context str
 		s.Prefix = "Removing stale dit-launch container "
 		s.FinalMSG = "Stale dit-launch container removed"
 		s.Start()
-		if _, err := docker.Remove("dit-kubernetes-launch", true); err != nil {
+		if _, err := docker.Remove("dit-"+context+"-launch", true); err != nil {
 			fmt.Printf("Warning: Failed to remove dit-launch container: %v\n", err)
 		}
 		s.Stop()
@@ -100,9 +104,39 @@ func Install(latest string, registry string, verbose bool, port int, context str
 	}
 	s.Stop()
 
-	output := false
+	followLaunchLogs(docker, verbose)
+	fmt.Println()
+}
+
+// Launch-log follow tuning; vars so tests can shrink them.
+var (
+	launchLogPollInterval = 200 * time.Millisecond
+	launchLogTimeout      = 120 * time.Second
+)
+
+// followLaunchLogs tails the launch container's logs, echoing the banner
+// (and, with verbose, everything between the START/END markers) until the
+// FINISHED marker or the timeout. The previous inline loop ranged over the
+// initial snapshot while appending to it - Go's range captures the slice
+// length up front, so appended lines were never visited and Install returned
+// before the server finished starting; the next CLI command then raced
+// server startup (surfaced by context-lifecycle.bats on cold CI runners).
+func followLaunchLogs(docker dockerClient, verbose bool) {
 	logs := docker.FetchLaunchLogs()
-	for _, line := range logs {
+	output := false
+	deadline := time.Now().Add(launchLogTimeout)
+	for i := 0; time.Now().Before(deadline); {
+		if i >= len(logs) {
+			// Caught up with the tail: refresh, or wait for more output.
+			if refreshed := docker.FetchLaunchLogs(); len(refreshed) > len(logs) {
+				logs = refreshed
+				continue
+			}
+			time.Sleep(launchLogPollInterval)
+			continue
+		}
+		line := logs[i]
+		i++
 		if verbose && output && !strings.Contains(line, "DATADATDAT") {
 			fmt.Println(line)
 		}
@@ -114,12 +148,8 @@ func Install(latest string, registry string, verbose bool, port int, context str
 			output = false
 		}
 		if strings.Contains(line, "DATADATDAT FINISHED") {
-			break
-		}
-		newLogs := docker.FetchLaunchLogs()
-		if len(newLogs) > len(logs) {
-			logs = append(logs, newLogs[len(logs):]...)
+			return
 		}
 	}
-	fmt.Println()
+	fmt.Println("Warning: timed out waiting for the dit server launch to finish; it may still be starting")
 }

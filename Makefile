@@ -133,6 +133,9 @@ test-upgrade:
 test-context-list:
 	bats tests/endtoend/context/context-list.bats
 
+test-context-lifecycle:
+	bats tests/endtoend/context/context-lifecycle.bats
+
 test-error-handling:
 	bats tests/endtoend/error-handling/error-handling.bats
 
@@ -157,6 +160,9 @@ test-fork-cross-user:
 test-whitelist-approval:
 	ENV=$(ENV) bats tests/endtoend/remotes/dit/whitelist-approval.bats
 
+test-push-pull-errors:
+	ENV=$(ENV) bats tests/endtoend/remotes/dit/push-pull-errors.bats
+
 test-public-repo-permissions:
 	ENV=$(ENV) bats tests/endtoend/remotes/dit/public-repo-permissions.bats
 
@@ -178,14 +184,15 @@ k8s-csi-default:
 # "snapshotting non-CSI volumes is not supported".
 test-kubernetes:
 	bats tests/endtoend/context/kubernetes/kubernetes-tests.bats
+	bats tests/endtoend/context/kubernetes/kubernetes-context-edge.bats
 
 test-kubernetes-remote:
 	ENV=$(ENV) bats tests/endtoend/context/kubernetes/kubernetes-remote-tests.bats
 
 # TODO: diagnose test-multi-context test-db-matrix in gh actions and readd to e2e
-e2e: test-install test-getting-started test-tags test-tag-management test-docker-context test-container-lifecycle test-context-list test-data-import test-error-handling test-s3-workflow test-push-pull-options test-ssh-workflow test-kubernetes test-upgrade test-uninstall
+e2e: test-install test-getting-started test-tags test-tag-management test-docker-context test-container-lifecycle test-context-list test-context-lifecycle test-data-import test-error-handling test-s3-workflow test-push-pull-options test-ssh-workflow test-kubernetes test-upgrade test-uninstall
 
 test-connect-drs-network:
 	docker network connect dit-docker dit-docker-server 2>/dev/null || true
 
-e2e-server: test-install test-connect-drs-network test-dit-workflow test-clone-commit-workflow test-auth-workflow test-whitelist-approval test-public-repo-permissions test-auth-status test-org-workflow test-billing-workflow test-stripe-integration test-favicon test-abort-workflow test-push-pull-tags-remote test-fork-workflow test-fork-cross-user test-kubernetes-remote test-uninstall
+e2e-server: test-install test-connect-drs-network test-dit-workflow test-clone-commit-workflow test-auth-workflow test-whitelist-approval test-public-repo-permissions test-auth-status test-org-workflow test-billing-workflow test-stripe-integration test-favicon test-abort-workflow test-push-pull-tags-remote test-push-pull-errors test-fork-workflow test-fork-cross-user test-kubernetes-remote test-uninstall

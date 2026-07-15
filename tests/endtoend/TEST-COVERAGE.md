@@ -53,10 +53,10 @@ This document tracks E2E test coverage for every dit CLI command and user path.
 
 | Command | Status | Test File(s) | Notes |
 |---------|--------|-------------|-------|
-| `dit context install` | Covered | `multi-context/multi-context.bats` | Docker type |
-| `dit context uninstall` | Covered | `multi-context/multi-context.bats` | With `--force` |
-| `dit context default` | Covered | `multi-context/multi-context.bats`, `context/context-list.bats` | Get and set |
-| `dit context ls` | Covered | `context/context-list.bats` | List contexts with headers |
+| `dit context install` | Covered | `multi-context/multi-context.bats`, `context/context-lifecycle.bats`, `context/kubernetes/kubernetes-context-edge.bats` | Docker + kubernetes types; name defaulting to type, duplicate-name collision, unknown type, invalid `-p`, stale-server reinstall cleanup (#214) |
+| `dit context uninstall` | Covered | `multi-context/multi-context.bats`, `context/context-lifecycle.bats` | With `--force`; nonexistent-context error; targets the named context only |
+| `dit context default` | Covered | `multi-context/multi-context.bats`, `context/context-list.bats`, `context/context-lifecycle.bats` | Get and set; nonexistent name fails without losing the current default |
+| `dit context ls` | Covered | `context/context-list.bats`, `context/context-lifecycle.bats` | List contexts with headers; default marker |
 
 ### Auth Commands
 
@@ -97,6 +97,8 @@ Requires: Docker, dit binary, AWS credentials (for S3 tests), SSH key (for SSH t
 | `test-docker-context` | `context/docker/docker-tests.bats` |
 | `test-container-lifecycle` | `container-lifecycle/container-lifecycle.bats` |
 | `test-context-list` | `context/context-list.bats` |
+| `test-context-lifecycle` | `context/context-lifecycle.bats` |
+| `test-kubernetes` | `context/kubernetes/kubernetes-tests.bats`, `context/kubernetes/kubernetes-context-edge.bats` |
 | `test-data-import` | `data-import/data-import.bats` |
 | `test-error-handling` | `error-handling/error-handling.bats` |
 | `test-upgrade` | `infrastructure/upgrade.bats` |

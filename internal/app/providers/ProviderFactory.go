@@ -184,6 +184,11 @@ func Create(name string, provider string, port int) Provider {
 		p = Local(name, defaultHost, port) //TODO confirm provider host
 	case ProviderTypeKubernetes:
 		p = Kubernetes(name, defaultHost, port)
+	default:
+		// Without this an unknown -t fell through, Create returned a nil
+		// Provider, and the install command panicked calling Install on it.
+		fmt.Println("Error: unknown context type '" + provider + "' (valid types: " + ProviderTypeDocker + ", " + ProviderTypeKubernetes + ")")
+		osExit(1)
 	}
 	return p
 }
@@ -226,6 +231,13 @@ func Remove(n string) {
 
 func SetDefault(n string) {
 	contexts := viper.GetStringMap("contexts")
+	// Guard before mutating: the loop below un-defaults every context and
+	// re-defaults only a key matching n, so an unknown name used to leave
+	// the config with NO default context at all.
+	if _, ok := contexts[n]; !ok {
+		fmt.Println("Error: no such context '" + n + "'")
+		osExit(1)
+	}
 	for k, c := range contexts {
 		context := loadContext(c)
 		context.isDefault = false
