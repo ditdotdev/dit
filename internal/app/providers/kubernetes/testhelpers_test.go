@@ -92,6 +92,9 @@ type fakeDocker struct {
 
 	PullCalls   int
 	RemoveCalls int
+	// RemovedNames records the container names passed to Remove, so tests
+	// can assert the cleanup targets context-derived names (#214).
+	RemovedNames []string
 }
 
 func (f *fakeDocker) DitLatestIsDownloaded(string, app.Version) bool {
@@ -116,7 +119,11 @@ func (f *fakeDocker) LaunchDitKubernetesServers() (string, error) {
 	return f.launchK8sOut, f.launchK8sErr
 }
 func (f *fakeDocker) Pull(string) (string, error)               { f.PullCalls++; return "", f.pullErr }
-func (f *fakeDocker) Remove(string, bool) (string, error)       { f.RemoveCalls++; return "", f.removeErr }
+func (f *fakeDocker) Remove(name string, _ bool) (string, error) {
+	f.RemoveCalls++
+	f.RemovedNames = append(f.RemovedNames, name)
+	return "", f.removeErr
+}
 func (f *fakeDocker) RemoveDitImages(string) (string, error)    { return "", f.removeImagesErr }
 func (f *fakeDocker) RemoveVolume(string, bool) (string, error) { return "", f.removeVolumeErr }
 func (f *fakeDocker) Tag(string, string) (string, error)        { return "", f.tagErr }

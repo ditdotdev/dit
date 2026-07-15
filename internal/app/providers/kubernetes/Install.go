@@ -72,7 +72,11 @@ func Install(latest string, registry string, verbose bool, port int, context str
 		s.Prefix = "Removing dit server "
 		s.FinalMSG = "Old dit server removed"
 		s.Start()
-		if _, err := docker.Remove("dit-kubernetes-server", true); err != nil {
+		// Containers are named after the context ("dit-<context>-server",
+		// see clients.Docker getKubernetesLaunchArgs), not the context type.
+		// Removing the hardcoded "dit-kubernetes-*" names left stale
+		// containers behind for custom-named contexts (#214).
+		if _, err := docker.Remove("dit-"+context+"-server", true); err != nil {
 			fmt.Printf("Warning: Failed to remove old dit server: %v\n", err)
 		}
 		s.Stop()
@@ -83,7 +87,7 @@ func Install(latest string, registry string, verbose bool, port int, context str
 		s.Prefix = "Removing stale dit-launch container "
 		s.FinalMSG = "Stale dit-launch container removed"
 		s.Start()
-		if _, err := docker.Remove("dit-kubernetes-launch", true); err != nil {
+		if _, err := docker.Remove("dit-"+context+"-launch", true); err != nil {
 			fmt.Printf("Warning: Failed to remove dit-launch container: %v\n", err)
 		}
 		s.Stop()

@@ -89,6 +89,20 @@ func TestK8sInstall_HappyPathRemovesStaleAndLaunches(t *testing.T) {
 	if d.RemoveCalls < 2 {
 		t.Errorf("expected docker.Remove calls for stale server + launch, got %d", d.RemoveCalls)
 	}
+	// Regression for #214: cleanup must target the context-derived container
+	// names ("dit-<context>-*"), not the hardcoded "dit-kubernetes-*" names,
+	// or reinstalling a custom-named context leaves the stale containers behind.
+	for _, want := range []string{"dit-ctx-server", "dit-ctx-launch"} {
+		found := false
+		for _, got := range d.RemovedNames {
+			if got == want {
+				found = true
+			}
+		}
+		if !found {
+			t.Errorf("expected Remove(%q); removed names were %v", want, d.RemovedNames)
+		}
+	}
 	if !strings.Contains(output, "Initializing dit infrastructure") {
 		t.Errorf("expected initial banner, got %q", output)
 	}
