@@ -10,7 +10,7 @@ dit context install [flags]
 
 ```
   -t, --type string          context type (docker or kubernetes) (default "docker")
-  -n, --name string          context name, defaults to context type (default "docker")
+  -n, --name string          context name, defaults to context type
   -p, --parameters strings   context specific parameters. key=value format
   -v, --verbose              verbose logging
   -h, --help                 help for install

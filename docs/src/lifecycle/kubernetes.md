@@ -53,8 +53,8 @@ environments), point Dit at a mirrored copy with
 ## Installing a Kubernetes Context
 
 Install a Kubernetes context with `dit context install -n <name> -t kubernetes`.
-Always pass a context name with `-n`: if omitted, the name defaults to
-`docker` regardless of the context type. The storage and snapshot classes Dit
+If `-n` is omitted, the context is named after its type (`kubernetes`
+here). The storage and snapshot classes Dit
 uses for its PersistentVolumeClaims (volumes) and VolumeSnapshots (commits) are
 set with the `-p storageClass=<name>` and `-p snapshotClass=<name>` parameters.
 Both **must** be backed by a CSI driver with snapshot support.
