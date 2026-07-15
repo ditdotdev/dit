@@ -13,7 +13,7 @@ import "testing"
 func TestSetOsExitForTesting_RoundTrip(t *testing.T) {
 	called := false
 	prev := SetOsExitForTesting(func(int) { called = true })
-	defer SetOsExitForTesting(prev)
+	defer func() { SetOsExitForTesting(prev) }()
 
 	osExit(7)
 	if !called {
