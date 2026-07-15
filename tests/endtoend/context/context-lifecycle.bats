@@ -260,6 +260,56 @@ teardown_file() {
   assert_output --partial "nothing to uninstall"
 }
 
+# ---------------------------------------------------------------
+# Install edge cases: name defaulting, collisions, unknown types
+# (regressions for ditdotdev/dit#214 and the nil-provider panic)
+# ---------------------------------------------------------------
+
+@test "context install without -n: name defaults to the type and collides with 'docker'" {
+  # Post-#214 an omitted -n resolves to the resolved -t value. This suite
+  # guarantees a context named 'docker' exists, so a second docker-type
+  # install without -n must fail on the 'docker' name - NOT succeed under
+  # some other name.
+  run "$D3" context install -t docker
+  assert_failure
+  assert_output --partial "context 'docker' already exists"
+}
+
+@test "context install: duplicate explicit -n fails with a clear error" {
+  run "$D3" context install -n "$SECOND_CTX" -t docker
+  assert_failure
+  assert_output --partial "context '$SECOND_CTX' already exists"
+}
+
+@test "context install: unknown -t type fails cleanly, no panic" {
+  run "$D3" context install -n ctxtest-badtype -t bogus
+  assert_failure
+  assert_output --partial "unknown context type 'bogus'"
+  refute_output --partial "panic"
+
+  # nothing half-created
+  run "$D3" context ls
+  refute_output --partial "ctxtest-badtype"
+}
+
+@test "context uninstall: nonexistent context reports no such context" {
+  run "$D3" context uninstall -f definitely-not-installed
+  assert_failure
+  assert_output --partial "no such context"
+}
+
+@test "context default <nonexistent>: fails and the existing default survives" {
+  run "$D3" context default definitely-not-installed
+  assert_failure
+  assert_output --partial "no such context"
+
+  # Regression: SetDefault used to un-default everything on an unknown
+  # name, leaving NO default context at all.
+  run "$D3" context default
+  assert_success
+  assert_output --partial "docker"
+}
+
 @test "context uninstall <name>: removes the named context's server, not the default's" {
   local KILL_CTX="ctxtest-kill"
   # Install a sacrificial docker-type context
