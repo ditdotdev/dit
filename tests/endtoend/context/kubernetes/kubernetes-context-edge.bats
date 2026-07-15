@@ -61,10 +61,15 @@ setup() {
 
   # ls shows a context NAMED kubernetes of TYPE kubernetes (name may carry
   # the default marker). Pre-#214 this row was 'docker  kubernetes' or the
-  # install failed on the docker-name collision.
+  # install failed on the docker-name collision. grep instead of
+  # assert_output --regexp: the test_helper fallback assert_output (used
+  # when bats-assert isn't installed, e.g. CI) has no --regexp support.
   run "$D3" context ls
   assert_success
-  assert_output --regexp '^kubernetes( \(\*\))? +kubernetes'
+  echo "$output" | grep -E '^kubernetes( \(\*\))? +kubernetes' || {
+    echo "expected a context named 'kubernetes' of type kubernetes; got: $output"
+    return 1
+  }
 }
 
 @test "type-named context: server container uses the context-derived name" {
@@ -79,7 +84,13 @@ setup() {
 
   run "$D3" context ls
   assert_success
-  refute_output --regexp '^kubernetes '
+  # grep instead of refute_output --regexp (no fallback support, see above);
+  # anchored to the NAME column so the TYPE column of other kubernetes-type
+  # contexts can't false-positive.
+  if echo "$output" | grep -qE '^kubernetes '; then
+    echo "context 'kubernetes' still listed after uninstall: $output"
+    return 1
+  fi
 
   run docker ps --filter "name=^dit-kubernetes-server\$" --format '{{.Names}}'
   assert_output ""
