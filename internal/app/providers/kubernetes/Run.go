@@ -17,6 +17,8 @@ import (
 const (
 	keyImage              = "image"
 	keyDisablePortMapping = "disablePortMapping"
+	keyProtocol           = "protocol"
+	keyPort               = "port"
 )
 
 // splitImageTag splits a container reference into image and tag, defaulting
@@ -97,8 +99,8 @@ func parseExposedPorts(dockerPorts []string) ([]map[string]string, []int) {
 		port := strings.Split(rawPort, "/")[0]
 		protocol := strings.Split(strings.Split(rawPort, "/")[1], ":")[0]
 		metaPorts = append(metaPorts, map[string]string{
-			"protocol": protocol,
-			"port":     port,
+			keyProtocol: protocol,
+			keyPort:     port,
 		})
 		portInt, _ := strconv.Atoi(port)
 		ports = append(ports, portInt)

@@ -11,6 +11,13 @@ import (
 	client "github.com/ditdotdev/dit-client-go"
 )
 
+// Port-metadata map keys recorded in the repository properties; kept as
+// constants so goconst doesn't flag the repeated string literals.
+const (
+	keyProtocol = "protocol"
+	keyPort     = "port"
+)
+
 // splitImageTag splits a container reference into image and tag, defaulting
 // the tag to "latest" when the reference has none.
 func splitImageTag(container string) (string, string) {
@@ -88,7 +95,7 @@ func portRunArgs(rawPorts []string, disablePortMap bool) ([]string, []map[string
 		if !disablePortMap {
 			portArgs = append(portArgs, "-p", port+":"+port+"/"+protocol)
 		}
-		metaPorts = append(metaPorts, map[string]string{"protocol": protocol, "port": port})
+		metaPorts = append(metaPorts, map[string]string{keyProtocol: protocol, keyPort: port})
 	}
 	return portArgs, metaPorts
 }
