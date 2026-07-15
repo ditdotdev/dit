@@ -25,6 +25,8 @@ func init() {
 	CommitReadyTimeout = 100 * time.Millisecond
 	utils.MonitorPollInterval = 1 * time.Millisecond
 	utils.MonitorIdleTimeout = 100 * time.Millisecond
+	launchLogPollInterval = 1 * time.Millisecond
+	launchLogTimeout = 50 * time.Millisecond
 }
 
 func captureStdout(f func()) string {
@@ -76,6 +78,7 @@ type fakeDocker struct {
 	launchAvailable     bool
 	serverAvailable     bool
 	fetchLaunchLogs     []string
+	fetchLaunchLogsSeq  [][]string
 	getSliceFromImage   map[string][]string
 	getValFromContainer map[string]string
 	getValFromImage     map[string]string
@@ -102,7 +105,18 @@ func (f *fakeDocker) DitLatestIsDownloaded(string, app.Version) bool {
 }
 func (f *fakeDocker) DitLaunchIsAvailable() (bool, error) { return f.launchAvailable, nil }
 func (f *fakeDocker) DitServerIsAvailable() (bool, error) { return f.serverAvailable, nil }
-func (f *fakeDocker) FetchLaunchLogs() []string           { return f.fetchLaunchLogs }
+func (f *fakeDocker) FetchLaunchLogs() []string {
+	// fetchLaunchLogsSeq simulates a log stream that grows between fetches
+	// (each call returns the next snapshot; the last one is sticky).
+	if len(f.fetchLaunchLogsSeq) > 0 {
+		out := f.fetchLaunchLogsSeq[0]
+		if len(f.fetchLaunchLogsSeq) > 1 {
+			f.fetchLaunchLogsSeq = f.fetchLaunchLogsSeq[1:]
+		}
+		return out
+	}
+	return f.fetchLaunchLogs
+}
 func (f *fakeDocker) GetSliceFromImage(i string, k ...string) []string {
 	return f.getSliceFromImage[i+":"+joinKeys(k)]
 }

@@ -89,6 +89,9 @@ func TestK8sInstall_HappyPathRemovesStaleAndLaunches(t *testing.T) {
 	if d.RemoveCalls < 2 {
 		t.Errorf("expected docker.Remove calls for stale server + launch, got %d", d.RemoveCalls)
 	}
+	if strings.Contains(output, "timed out waiting") {
+		t.Errorf("launch-log follow timed out on a FINISHED fixture: %q", output)
+	}
 	// Regression for #214: cleanup must target the context-derived container
 	// names ("dit-<context>-*"), not the hardcoded "dit-kubernetes-*" names,
 	// or reinstalling a custom-named context leaves the stale containers behind.

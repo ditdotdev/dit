@@ -160,6 +160,9 @@ test-fork-cross-user:
 test-whitelist-approval:
 	ENV=$(ENV) bats tests/endtoend/remotes/dit/whitelist-approval.bats
 
+test-push-pull-errors:
+	ENV=$(ENV) bats tests/endtoend/remotes/dit/push-pull-errors.bats
+
 test-public-repo-permissions:
 	ENV=$(ENV) bats tests/endtoend/remotes/dit/public-repo-permissions.bats
 
@@ -192,4 +195,4 @@ e2e: test-install test-getting-started test-tags test-tag-management test-docker
 test-connect-drs-network:
 	docker network connect dit-docker dit-docker-server 2>/dev/null || true
 
-e2e-server: test-install test-connect-drs-network test-dit-workflow test-clone-commit-workflow test-auth-workflow test-whitelist-approval test-public-repo-permissions test-auth-status test-org-workflow test-billing-workflow test-stripe-integration test-favicon test-abort-workflow test-push-pull-tags-remote test-fork-workflow test-fork-cross-user test-kubernetes-remote test-uninstall
+e2e-server: test-install test-connect-drs-network test-dit-workflow test-clone-commit-workflow test-auth-workflow test-whitelist-approval test-public-repo-permissions test-auth-status test-org-workflow test-billing-workflow test-stripe-integration test-favicon test-abort-workflow test-push-pull-tags-remote test-push-pull-errors test-fork-workflow test-fork-cross-user test-kubernetes-remote test-uninstall

@@ -88,6 +88,7 @@ func TestCreate_UnknownType_Exits(t *testing.T) {
 // context and default none, leaving the config with no default context.
 func TestSetDefault_UnknownContext_ExitsAndKeepsDefault(t *testing.T) {
 	resetProviderState(t)
+	usingTempViperFile(t) // AddProvider writes config; keep it off ~/.dit/config
 	p := Create("real-ctx", ProviderTypeDocker, 1234)
 	AddProvider(p)
 
