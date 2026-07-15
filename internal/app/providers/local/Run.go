@@ -11,6 +11,105 @@ import (
 	client "github.com/ditdotdev/dit-client-go"
 )
 
+// splitImageTag splits a container reference into image and tag, defaulting
+// the tag to "latest" when the reference has none.
+func splitImageTag(container string) (string, string) {
+	if !strings.Contains(container, ":") {
+		return container, "latest"
+	}
+	parts := strings.Split(container, ":")
+	return parts[0], parts[1]
+}
+
+// createRepoVolumes creates one docker volume per image volume path and
+// returns the `-v name:path` docker arguments plus the volume metadata
+// entries recorded in the repository properties.
+func createRepoVolumes(docker dockerClient, containerName string, vols []string) ([]string, []map[string]string, error) {
+	var volArgs []string
+	var metaVols []map[string]string
+	for i, path := range vols {
+		volumeName := "v" + strconv.Itoa(i)
+		volName := docker.FormatVolumeName(containerName, volumeName)
+		path := strings.Split(path, ":")[0]
+		path = strings.ReplaceAll(path, `"`, "")
+
+		fmt.Println("Creating docker volume " + volName + " with path " + path)
+		if _, err := docker.CreateVolume(volName, path); err != nil {
+			return nil, nil, err
+		}
+		volArgs = append(volArgs, "-v", volName+":"+path)
+		metaVols = append(metaVols, map[string]string{"name": volumeName, "path": path})
+	}
+	return volArgs, metaVols, nil
+}
+
+// filterRunArgs strips the --name flag (and its value) and the image:tag
+// token from the pass-through docker args - Run supplies its own name and
+// image.
+func filterRunArgs(args []string, imageTag string) []string {
+	var filtered []string
+	i := 0
+	for i < len(args) {
+		switch args[i] {
+		case flagName:
+			// Skip --name and the next argument
+			if i+1 < len(args) {
+				i += 2 // Skip both --name and its value
+			} else {
+				i += 1 // Just skip --name if no value follows
+			}
+		case imageTag:
+			// Skip the image:tag argument
+			i += 1
+		default:
+			// Keep this argument
+			filtered = append(filtered, args[i])
+			i += 1
+		}
+	}
+	return filtered
+}
+
+// portRunArgs parses the image's exposed-port entries into `-p` publish
+// arguments (omitted when port mapping is disabled) and the port metadata
+// entries recorded in the repository properties. Malformed entries are
+// skipped.
+func portRunArgs(rawPorts []string, disablePortMap bool) ([]string, []map[string]string) {
+	var portArgs []string
+	var metaPorts []map[string]string
+	for _, rawPort := range rawPorts {
+		rawPort = strings.ReplaceAll(rawPort, `"`, "")
+		portParts := strings.Split(rawPort, "/")
+		if len(portParts) < 2 {
+			continue // Skip malformed port entries
+		}
+		port := portParts[0]
+		protocol := strings.Split(portParts[1], ":")[0]
+		if !disablePortMap {
+			portArgs = append(portArgs, "-p", port+":"+port+"/"+protocol)
+		}
+		metaPorts = append(metaPorts, map[string]string{"protocol": protocol, "port": port})
+	}
+	return portArgs, metaPorts
+}
+
+// firstRepoDigest normalizes the raw RepoDigests value from image metadata
+// and returns the first digest, or "" when the image has none.
+func firstRepoDigest(raw string) string {
+	digest := strings.ReplaceAll(raw, "[", "")
+	digest = strings.ReplaceAll(digest, "]", "")
+	digest = strings.ReplaceAll(digest, " ", "")
+	digest = strings.ReplaceAll(digest, `"`, "")
+	digest = strings.ReplaceAll(digest, "\n", "")
+	digest = strings.TrimSpace(digest)
+
+	// If multiple digests are present (separated by commas), take the first one
+	if strings.Contains(digest, ",") {
+		digest = strings.TrimSpace(strings.Split(digest, ",")[0])
+	}
+	return digest
+}
+
 func Run(container string, repository string, envVars []string, args []string, disablePortMap bool, privileged bool, createRepo bool, port int, context string) (string, error) {
 	cfg.Servers[0].URL = "http://localhost:" + strconv.Itoa(port)
 	docker := newDocker(context, port)
@@ -35,24 +134,7 @@ func Run(container string, repository string, envVars []string, args []string, d
 		osExit(1)
 	}
 
-	var image string
-	if strings.Contains(container, ":") {
-		image = strings.Split(container, ":")[0]
-	} else {
-		image = container
-	}
-
-	var tag string
-	if strings.Contains(container, ":") {
-		containerParts := strings.Split(container, ":")
-		if len(containerParts) > 1 {
-			tag = containerParts[1]
-		} else {
-			tag = "latest"
-		}
-	} else {
-		tag = "latest"
-	}
+	image, tag := splitImageTag(container)
 
 	imageInfo, err := docker.InspectImage(image + ":" + tag)
 	if err != nil {
@@ -85,71 +167,17 @@ func Run(container string, repository string, envVars []string, args []string, d
 	}
 
 	argList := []string{"-d", "--label", "dev.dit.dit"}
-	var metaVols []map[string]string
-	for i, path := range vols {
-		volumeName := "v" + strconv.Itoa(i)
-		volName := docker.FormatVolumeName(containerName, volumeName)
-		path := strings.Split(path, ":")[0]
-		path = strings.ReplaceAll(path, `"`, "")
-
-		fmt.Println("Creating docker volume " + volName + " with path " + path)
-		_, err := docker.CreateVolume(volName, path)
-		if err != nil {
-			return "", err
-		}
-		argList = append(argList, "-v")
-		argList = append(argList, volName+":"+path)
-		addVol := make(map[string]string)
-		addVol["name"] = volumeName
-		addVol["path"] = path
-		metaVols = append(metaVols, addVol)
+	volArgs, metaVols, err := createRepoVolumes(docker, containerName, vols)
+	if err != nil {
+		return "", err
 	}
-	// Filter out --name and image arguments from args
-	var filteredArgs []string
-	imageTag := image + ":" + tag
-	i := 0
-	for i < len(args) {
-		switch args[i] {
-		case flagName:
-			// Skip --name and the next argument
-			if i+1 < len(args) {
-				i += 2 // Skip both --name and its value
-			} else {
-				i += 1 // Just skip --name if no value follows
-			}
-		case imageTag:
-			// Skip the image:tag argument
-			i += 1
-		default:
-			// Keep this argument
-			filteredArgs = append(filteredArgs, args[i])
-			i += 1
-		}
-	}
-	argList = append(argList, filteredArgs...)
+	argList = append(argList, volArgs...)
+	argList = append(argList, filterRunArgs(args, image+":"+tag)...)
 	argList = append(argList, flagName)
 	argList = append(argList, containerName)
 
-	var metaPorts []map[string]string
-	ports := docker.GetSliceFromImage(image+":"+tag, "Config", "ExposedPorts")
-	for _, rawPort := range ports {
-		rawPort = strings.ReplaceAll(rawPort, `"`, "")
-		portParts := strings.Split(rawPort, "/")
-		if len(portParts) < 2 {
-			continue // Skip malformed port entries
-		}
-		port := portParts[0]
-		protocolPart := portParts[1]
-		protocol := strings.Split(protocolPart, ":")[0]
-		if !disablePortMap {
-			argList = append(argList, "-p")
-			argList = append(argList, port+":"+port+"/"+protocol)
-		}
-		addPort := make(map[string]string)
-		addPort["protocol"] = protocol
-		addPort["port"] = port
-		metaPorts = append(metaPorts, addPort)
-	}
+	portArgs, metaPorts := portRunArgs(docker.GetSliceFromImage(image+":"+tag, "Config", "ExposedPorts"), disablePortMap)
+	argList = append(argList, portArgs...)
 
 	for _, env := range envVars {
 		argList = append(argList, "--env")
@@ -160,19 +188,7 @@ func Run(container string, repository string, envVars []string, args []string, d
 		argList = append(argList, "--privileged")
 	}
 
-	repoDigest := docker.GetValFromImage(image+":"+tag, "RepoDigests")
-	repoDigest = strings.ReplaceAll(repoDigest, "[", "")
-	repoDigest = strings.ReplaceAll(repoDigest, "]", "")
-	repoDigest = strings.ReplaceAll(repoDigest, " ", "")
-	repoDigest = strings.ReplaceAll(repoDigest, `"`, "")
-	repoDigest = strings.ReplaceAll(repoDigest, "\n", "")
-	repoDigest = strings.TrimSpace(repoDigest)
-
-	// If multiple digests are present (separated by commas), take the first one
-	if strings.Contains(repoDigest, ",") {
-		digestParts := strings.Split(repoDigest, ",")
-		repoDigest = strings.TrimSpace(digestParts[0])
-	}
+	repoDigest := firstRepoDigest(docker.GetValFromImage(image+":"+tag, "RepoDigests"))
 
 	var dockerRunCmd string
 	if len(repoDigest) == 0 {
