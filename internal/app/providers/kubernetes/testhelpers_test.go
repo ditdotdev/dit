@@ -118,7 +118,7 @@ func (f *fakeDocker) InspectImage(string) (string, error) {
 func (f *fakeDocker) LaunchDitKubernetesServers() (string, error) {
 	return f.launchK8sOut, f.launchK8sErr
 }
-func (f *fakeDocker) Pull(string) (string, error)               { f.PullCalls++; return "", f.pullErr }
+func (f *fakeDocker) Pull(string) (string, error) { f.PullCalls++; return "", f.pullErr }
 func (f *fakeDocker) Remove(name string, _ bool) (string, error) {
 	f.RemoveCalls++
 	f.RemovedNames = append(f.RemovedNames, name)
