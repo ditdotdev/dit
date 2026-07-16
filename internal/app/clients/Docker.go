@@ -179,16 +179,28 @@ func (d docker) GetValFromContainer(c string, key ...string) (string, error) {
 	return string(out), err
 }
 
-func (d docker) GetSliceFromContainer(c string, key ...string) []string {
-	raw, _ := d.GetValFromContainer(c, key...)
+// splitInspectList parses a jsonparser-extracted list/object body ("{...}"
+// or "[...]") into its comma-separated elements. Elements are trimmed of
+// surrounding whitespace only - the previous implementation removed EVERY
+// space, corrupting values that legitimately contain one (e.g. a volume
+// path "/data/my files" became "/data/myfiles").
+func splitInspectList(raw string) []string {
 	raw = strings.TrimLeft(raw, "[")
 	raw = strings.TrimLeft(raw, "{")
 	raw = strings.TrimRight(raw, "}")
 	raw = strings.TrimRight(raw, "]")
-	raw = strings.ReplaceAll(raw, " ", "") //TODO trimspace
 	raw = strings.ReplaceAll(raw, EOL, "")
-	out := strings.Split(raw, ",")
+	parts := strings.Split(raw, ",")
+	out := make([]string, 0, len(parts))
+	for _, p := range parts {
+		out = append(out, strings.TrimSpace(p))
+	}
 	return out
+}
+
+func (d docker) GetSliceFromContainer(c string, key ...string) []string {
+	raw, _ := d.GetValFromContainer(c, key...)
+	return splitInspectList(raw)
 }
 
 func (d docker) InspectImage(image string) (string, error) {
@@ -204,12 +216,7 @@ func (d docker) GetValFromImage(image string, key ...string) string {
 
 func (d docker) GetSliceFromImage(image string, key ...string) []string {
 	raw := d.GetValFromImage(image, key...)
-	raw = strings.TrimLeft(raw, "{")
-	raw = strings.TrimRight(raw, "}")
-	raw = strings.ReplaceAll(raw, " ", "") //TODO trimspace
-	raw = strings.ReplaceAll(raw, EOL, "")
-	out := strings.Split(raw, ",")
-	return out
+	return splitInspectList(raw)
 }
 
 func (d docker) Run(image string, entry string, args []string) (string, error) {

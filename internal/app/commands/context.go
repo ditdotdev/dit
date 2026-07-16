@@ -107,7 +107,7 @@ func init() {
 	contextInstallCmd.Flags().StringVarP(&contextName, nameKey, "n", "", "context name, defaults to context type")
 	contextInstallCmd.Flags().StringSliceVarP(&params, "parameters", "p", nil, "context specific parameters. key=value format")
 	contextInstallCmd.Flags().BoolVarP(&verbose, "verbose", "v", false, "verbose logging")
-	contextInstallCmd.Flags().SortFlags = false //TODO review flag sorting
+	contextInstallCmd.Flags().SortFlags = false // keep declaration order in help: most-used flags first (#207)
 
 	contextUninstallCmd.Flags().BoolVarP(&force, "force", "f", false, "destroy all repositories")
 }

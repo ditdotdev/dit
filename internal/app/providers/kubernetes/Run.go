@@ -19,6 +19,10 @@ const (
 	keyDisablePortMapping = "disablePortMapping"
 	keyProtocol           = "protocol"
 	keyPort               = "port"
+
+	// statusRunning mirrors the "running" state string returned by
+	// clients.Kubernetes GetStatefulSetStatus.
+	statusRunning = "running"
 )
 
 // splitImageTag splits a container reference into image and tag, defaulting
@@ -34,7 +38,9 @@ func splitImageTag(container string) (string, string) {
 // createDitVolumes creates a dit volume for each image volume path and
 // returns the created volumes plus the volume metadata entries recorded in
 // the repository properties. On a creation failure the repository is deleted
-// (best effort) before panicking, matching the previous inline behavior.
+// and the process exits: server-side DeleteRepository cascades volume-set
+// teardown (RepositoryOrchestrator marks the sets deleting and signals the
+// reaper), so no per-volume cleanup is needed here.
 func createDitVolumes(repoName string, vols []string) ([]client.Volume, []map[string]string) {
 	var ditVolumes []client.Volume
 	var metaVolumes []map[string]string
@@ -50,14 +56,12 @@ func createDitVolumes(repoName string, vols []string) ([]client.Volume, []map[st
 			Config:     map[string]interface{}{},
 		}
 		vol, _, err := volumesApi.CreateVolume(ctx, repoName).Volume(v).Execute()
-		//TODO BAD REQUEST
-
 		if err != nil {
 			if _, err := repositoriesApi.DeleteRepository(ctx, repoName).Execute(); err != nil {
 				fmt.Printf("Warning: Failed to delete repository after volume creation failure: %v\n", err)
 			}
-			panic(err)
-			//TODO REMOVE VOLUME AND EXIT
+			fmt.Println("Error creating volume " + volName + ": " + err.Error())
+			osExit(1)
 		}
 		ditVolumes = append(ditVolumes, *vol)
 		metaVolumes = append(metaVolumes, map[string]string{
@@ -68,8 +72,10 @@ func createDitVolumes(repoName string, vols []string) ([]client.Volume, []map[st
 	return ditVolumes, metaVolumes
 }
 
-// waitForVolumesReady polls volume status until every volume reports ready,
-// exiting the process if any volume reports a provisioning error.
+// waitForVolumesReady polls volume status until every volume reports ready.
+// A volume provisioning error deletes the repository (which cascades
+// volume-set teardown server-side, see createDitVolumes) and exits -
+// previously the repo and its volumes were orphaned here.
 func waitForVolumesReady(repoName string, ditVolumes []client.Volume) {
 	ready := false
 	for !ready {
@@ -80,8 +86,10 @@ func waitForVolumesReady(repoName string, ditVolumes []client.Volume) {
 				ready = false
 			}
 			if s.GetError() != "" {
-				//TODO REMOVE VOLUMES AND EXIT
-				fmt.Println("Error creating volume" + v.Name + ": " + s.GetError())
+				fmt.Println("Error creating volume " + v.Name + ": " + s.GetError())
+				if _, err := repositoriesApi.DeleteRepository(ctx, repoName).Execute(); err != nil {
+					fmt.Printf("Warning: Failed to delete repository after volume failure: %v\n", err)
+				}
 				osExit(1)
 			}
 		}

@@ -181,7 +181,7 @@ func Create(name string, provider string, port int) Provider {
 	var p Provider
 	switch provider {
 	case ProviderTypeDocker:
-		p = Local(name, defaultHost, port) //TODO confirm provider host
+		p = Local(name, defaultHost, port)
 	case ProviderTypeKubernetes:
 		p = Kubernetes(name, defaultHost, port)
 	default:
@@ -197,7 +197,7 @@ func AddProvider(p Provider) {
 	contexts := viper.GetStringMap("contexts")
 	context := context{
 		isDefault:   len(contexts) < 1,
-		host:        defaultHost, //TODO remap host URL
+		host:        defaultHost,
 		port:        p.GetPort(),
 		contextType: p.GetType(),
 	}

@@ -13,7 +13,7 @@ var (
 
 // cloneCmd represents the clone command
 var cloneCmd = &cobra.Command{
-	Use:   "clone [URI]", //TODO format usage for variadic args
+	Use:   "clone URI [ARGS...]",
 	Short: "Clone a remote repository to local repository",
 	Args:  cobra.MinimumNArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {

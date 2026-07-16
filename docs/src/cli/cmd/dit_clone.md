@@ -3,7 +3,7 @@
 Clone a remote repository to local repository
 
 ```
-dit clone [URI] [flags]
+dit clone URI [ARGS...] [flags]
 ```
 
 ### Options

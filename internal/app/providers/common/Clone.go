@@ -37,11 +37,33 @@ type CloneCallbacks struct {
 	Remove func(repoName string, force bool)
 }
 
+// parseRemoteParams converts the -p key=value flags into the map RemoteAdd
+// expects, with the same validation `dit remote add` applies. Exits on a
+// malformed parameter - called before any server state is created so a bad
+// flag can't leave a half-cloned repository behind.
+func parseRemoteParams(params []string) map[string]string {
+	remoteParams := map[string]string{}
+	for _, p := range params {
+		s := strings.Split(p, "=")
+		if len(s) != 2 {
+			fmt.Println("Parameters must be in key=value format.")
+			osExit(1)
+		}
+		remoteParams[s[0]] = s[1]
+	}
+	return remoteParams
+}
+
 func Clone(uri string, repo string, guid string, params []string, args []string, disablePortMap bool, tags []string, port int, context string, cb CloneCallbacks) {
 	cfg.Servers[0].URL = "http://localhost:" + strconv.Itoa(port)
 	docker := newDocker(context, port)
 
-	var parsedUri, _ = url.Parse(uri) //TODO handle err
+	parsedUri, err := url.Parse(uri)
+	if err != nil {
+		fmt.Println("Error: invalid URI '" + uri + "': " + err.Error())
+		osExit(1)
+	}
+	remoteParams := parseRemoteParams(params)
 	var repoName string
 	if repo == "" {
 		var p = strings.Split(parsedUri.Path, "/")
@@ -71,7 +93,9 @@ func Clone(uri string, repo string, guid string, params []string, args []string,
 		osExit(1)
 	}
 
-	RemoteAdd(repoName, plainUri, "", nil, port) //TODO fix params
+	// Forward the -p provider parameters exactly as `dit remote add -p`
+	// does; they used to be silently dropped here.
+	RemoteAdd(repoName, plainUri, "", remoteParams, port)
 	rm, _, _ := remotesApi.GetRemote(ctx, repoName, "origin").Execute()
 	provider, err := ResolveProvider(rm.Provider)
 	if err != nil {

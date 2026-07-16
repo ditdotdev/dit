@@ -12,7 +12,7 @@ func RemoteList(repo string, port int) {
 	cfg.Servers[0].URL = "http://localhost:" + strconv.Itoa(port)
 
 	remotes, _, _ := remotesApi.ListRemotes(ctx, repo).Execute()
-	fmt.Printf("%-20s %-20s\n", "REMOTE", "URI") //TODO get proper os line separator
+	fmt.Printf("%-20s %-20s\n", "REMOTE", "URI")
 	for _, r := range remotes {
 		provider, err := ResolveProvider(r.Provider)
 		if err != nil {

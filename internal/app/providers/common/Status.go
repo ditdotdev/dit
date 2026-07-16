@@ -8,7 +8,6 @@ import (
 	"strconv"
 )
 
-// TODO pass this from provider as param
 func getContainersStatus(port int, context string) []runtimeStatus {
 	cfg.Servers[0].URL = "http://localhost:" + strconv.Itoa(port)
 	docker := newDocker(context, port)

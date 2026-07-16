@@ -11,7 +11,14 @@ import (
 func Remove(repo string, force bool, port int) {
 	cfg.Servers[0].URL = "http://localhost:" + strconv.Itoa(port)
 
-	// TODO check running  & force
+	// Refuse to remove a running repository unless forced - mirrors the
+	// docker provider's guard in local/Remove.go.
+	if !force {
+		if status, _ := k8s.GetStatefulSetStatus(repo); status == statusRunning {
+			fmt.Println("repository " + repo + " is running, stop or use '-f' to force")
+			osExit(1)
+		}
+	}
 
 	// Kill any kubectl port-forward spawned by an earlier `dit run` so the
 	// local port is released before we tear down the Service.

@@ -24,5 +24,5 @@ func init() {
 	pushCmd.Flags().StringVarP(&remote, "remote", "r", "", "name of the remote provider, defaults to origin")
 	pushCmd.Flags().BoolVarP(&updateOnly, "update-only", "u", false, "update tags only, do not push data")
 	pushCmd.Flags().StringSliceVarP(&tags, "tags", "t", nil, "filter commits to select commit to push")
-	pushCmd.Flags().SortFlags = false //TODO review flag sorting
+	pushCmd.Flags().SortFlags = false // keep declaration order in help: most-used flags first (#207)
 }

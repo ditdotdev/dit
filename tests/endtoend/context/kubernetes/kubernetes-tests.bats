@@ -314,6 +314,18 @@ setup() {
 # stop / start lifecycle (StatefulSet replica scaling)
 # ---------------------------------------------------------------
 
+@test "dit rm without -f refuses while the repository is running (regression #207)" {
+  # The kubernetes provider accepted the force flag and never used it -
+  # `dit rm` tore down running repositories unconditionally.
+  run "$D3" rm "$REPO" --context "$CTX"
+  assert_failure
+  assert_output --partial "is running"
+
+  # Nothing was torn down
+  run kubectl get statefulset "$REPO"
+  assert_success
+}
+
 @test "dit stop scales the StatefulSet down" {
   run "$D3" stop "$REPO" --context "$CTX"
   assert_success
