@@ -172,7 +172,7 @@ func (m Metadata) MapV2(metaMap map[string]interface{}) Metadata {
 		Digest: fmt.Sprintf("%v", imageMap["digest"]),
 	}
 
-	envCheck := meta[keyEnvironment] //TODO this can be empty
+	envCheck := meta[keyEnvironment]
 	var environment []interface{}
 	if envCheck != nil {
 		environment = meta[keyEnvironment].([]interface{})

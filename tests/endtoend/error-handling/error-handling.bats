@@ -110,6 +110,24 @@ teardown_file() {
   refute_output ""
 }
 
+@test "dit clone with malformed URI fails cleanly (regression #207)" {
+  # url.Parse errors used to be swallowed, so a malformed URI crashed on a
+  # nil pointer instead of a clean error.
+  run "$D3" clone -n errortest-baduri "://not-a-uri"
+  assert_failure
+  assert_output --partial "invalid URI"
+  refute_output --partial "panic"
+}
+
+@test "dit clone with malformed -p parameter fails before creating anything (regression #207)" {
+  run "$D3" clone -n errortest-badparam -p notkeyvalue s3web://demos.dit.dev/hello-world/postgres
+  assert_failure
+  assert_output --partial "key=value"
+
+  run "$D3" ls
+  refute_output --partial "errortest-badparam"
+}
+
 @test "dit clone with duplicate repo name fails loudly (regression #103)" {
   # 'errortest' was already created by an earlier test in this file; cloning
   # into the same name forces CreateRepository to fail on the dit server. Pre-fix,

@@ -63,12 +63,7 @@ func Copy(repo string, driver string, source string, path string, port int, cont
 			v := parts[len(parts)-1]
 			_, _ = volumesApi.ActivateVolume(ctx, repo, v).Execute()
 			vol, _, _ := volumesApi.GetVolume(ctx, repo, v).Execute()
-			/*
-				   TODO add multiple cp sources
-				   when(driver) {
-					   else -> docker.cp(source.removeSuffix("/"), volumeName)
-				   }
-			*/
+			// Multi-source cp is tracked as ditdotdev/dit#224.
 			target := fmt.Sprintf("%v", vol.Config["mountpoint"])
 			if _, err := docker.Cp(strings.TrimRight(source, "/"), target); err != nil {
 				fmt.Printf("Warning: Failed to copy data to volume: %v\n", err)

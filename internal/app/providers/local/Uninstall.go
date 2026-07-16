@@ -79,7 +79,7 @@ func Uninstall(version string, force bool, removeImages bool, port int, context 
 
 	if removeImages {
 		fmt.Println("Removing Dit Docker image")
-		if _, err := docker.RemoveDitImages(version); err != nil { //TODO track this
+		if _, err := docker.RemoveDitImages(version); err != nil {
 			fmt.Printf("Warning: Failed to remove dit images: %v\n", err)
 		} else {
 			removed = append(removed, "images")

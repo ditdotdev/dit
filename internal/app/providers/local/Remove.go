@@ -60,15 +60,6 @@ func Remove(repo string, force bool, port int, context string) {
 		}
 	}
 
-	//TODO double check for docker volumes
-	//vols := docker.ListVolumes(repo)
-	//for _, v := range vols {
-	//	vol, err := docker.RemoveVolume(v, true)
-	//	if err != nil {
-	//		fmt.Println(vol)
-	//	}
-	//}
-
 	_, err := repositoriesApi.DeleteRepository(ctx, repo).Execute()
 	if err != nil {
 		// Handle 404 - repository doesn't exist

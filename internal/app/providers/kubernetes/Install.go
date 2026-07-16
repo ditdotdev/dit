@@ -49,7 +49,7 @@ func Install(latest string, registry string, verbose bool, port int, context str
 	}
 	if !docker.DitLatestIsDownloaded(registry, app.Version{}.FromString(latest)) {
 		s.Prefix = "Pulling dit docker image (may take a while) "
-		s.FinalMSG = "Latest docker image downloaded"
+		s.FinalMSG = "Latest docker image downloaded\n"
 		s.Start()
 		pullImage := registry + "/dit:" + latest
 		if _, err := docker.Pull(pullImage); err != nil {
@@ -70,7 +70,7 @@ func Install(latest string, registry string, verbose bool, port int, context str
 	serverAvailable, _ := docker.DitServerIsAvailable()
 	if serverAvailable {
 		s.Prefix = "Removing dit server "
-		s.FinalMSG = "Old dit server removed"
+		s.FinalMSG = "Old dit server removed\n"
 		s.Start()
 		// Containers are named after the context ("dit-<context>-server",
 		// see clients.Docker getKubernetesLaunchArgs), not the context type.
@@ -85,15 +85,13 @@ func Install(latest string, registry string, verbose bool, port int, context str
 	launchAvailable, _ := docker.DitLaunchIsAvailable()
 	if launchAvailable {
 		s.Prefix = "Removing stale dit-launch container "
-		s.FinalMSG = "Stale dit-launch container removed"
+		s.FinalMSG = "Stale dit-launch container removed\n"
 		s.Start()
 		if _, err := docker.Remove("dit-"+context+"-launch", true); err != nil {
 			fmt.Printf("Warning: Failed to remove dit-launch container: %v\n", err)
 		}
 		s.Stop()
 	}
-
-	//TODO messages don't persist once spinner is closed
 
 	s.Prefix = "Starting dit server docker containers "
 	s.FinalMSG = "Dit CLI successfully installed, happy data versioning :)\n"

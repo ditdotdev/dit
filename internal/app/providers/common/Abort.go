@@ -11,7 +11,11 @@ import (
 func Abort(repo string, port int) {
 	cfg.Servers[0].URL = "http://localhost:" + strconv.Itoa(port)
 
-	var operations, _, _ = operationsApi.ListOperations(ctx).Execute() //TODO handle error
+	operations, _, err := operationsApi.ListOperations(ctx).Execute()
+	if err != nil {
+		fmt.Println("Error listing operations: " + err.Error())
+		osExit(1)
+	}
 	var abortCount = 0
 	for _, operation := range operations {
 		if operation.State == "RUNNING" {

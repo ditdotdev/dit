@@ -135,7 +135,13 @@ func Run(container string, repository string, envVars []string, args []string, d
 	} else {
 		containerName = repository
 	}
-	containerExists, _ := docker.ContainerExists(containerName) //TODO handle this error
+	containerExists, err := docker.ContainerExists(containerName)
+	if err != nil {
+		// docker ps failed outright (daemon down, CLI missing) - stop with
+		// the cause instead of stumbling into confusing downstream errors.
+		fmt.Println("Error checking for existing container '" + containerName + "': " + err.Error())
+		osExit(1)
+	}
 	if containerExists {
 		fmt.Println("Container '" + containerName + "' already exists, name must be unique")
 		osExit(1)
