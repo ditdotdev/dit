@@ -19,6 +19,10 @@ const (
 	keyDisablePortMapping = "disablePortMapping"
 	keyProtocol           = "protocol"
 	keyPort               = "port"
+
+	// statusRunning mirrors the "running" state string returned by
+	// clients.Kubernetes GetStatefulSetStatus.
+	statusRunning = "running"
 )
 
 // splitImageTag splits a container reference into image and tag, defaulting

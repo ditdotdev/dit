@@ -83,7 +83,7 @@ func UseNoopK8sForTesting() func() {
 // noopK8sRunningStatus is the canned response noopK8s returns from
 // GetStatefulSetStatus. Extracted to keep goconst quiet about the
 // "running" literal showing up in multiple files in the package.
-const noopK8sRunningStatus = "running"
+const noopK8sRunningStatus = statusRunning
 
 type noopK8s struct{}
 

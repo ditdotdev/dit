@@ -14,7 +14,7 @@ func Remove(repo string, force bool, port int) {
 	// Refuse to remove a running repository unless forced - mirrors the
 	// docker provider's guard in local/Remove.go.
 	if !force {
-		if status, _ := k8s.GetStatefulSetStatus(repo); status == "running" {
+		if status, _ := k8s.GetStatefulSetStatus(repo); status == statusRunning {
 			fmt.Println("repository " + repo + " is running, stop or use '-f' to force")
 			osExit(1)
 		}
