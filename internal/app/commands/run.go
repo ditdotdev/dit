@@ -34,5 +34,5 @@ func init() {
 	runCmd.Flags().BoolVarP(&disablePortMap, "disable-port-mapping", "P", false, "disable default port mapping from container to localhost")
 	runCmd.Flags().BoolVar(&privileged, "privileged", false, "run container in privileged mode with extended permissions")
 	runCmd.Flags().StringSliceVarP(&tags, "tags", "t", nil, "filter latest commit by tags")
-	runCmd.Flags().SortFlags = false //TODO review flag sorting
+	runCmd.Flags().SortFlags = false // keep declaration order in help: most-used flags first (#207)
 }
