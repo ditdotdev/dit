@@ -119,6 +119,10 @@ var (
 // length up front, so appended lines were never visited and Install returned
 // before the server finished starting; the next CLI command then raced
 // server startup (surfaced by context-lifecycle.bats on cold CI runners).
+// The marker word is "DIT" (util.sh log_delimiter in dit-server); ERROR
+// lines are echoed because the launch script exits fatally after emitting
+// them, and the container may retry after a restart, so scanning continues
+// until FINISHED or the deadline.
 func followLaunchLogs(docker dockerClient, verbose bool) {
 	logs := docker.FetchLaunchLogs()
 	output := false
@@ -135,17 +139,20 @@ func followLaunchLogs(docker dockerClient, verbose bool) {
 		}
 		line := logs[i]
 		i++
-		if verbose && output && !strings.Contains(line, "DATADATDAT") {
+		if verbose && output && !strings.Contains(line, "DIT ") {
 			fmt.Println(line)
 		}
-		if strings.Contains(line, "DATADATDAT START") {
-			fmt.Println(strings.Replace(line, "DATADATDAT START", "", 1)[21:])
+		if strings.Contains(line, "DIT START") {
+			fmt.Println(strings.Replace(line, "DIT START", "", 1)[21:])
 			output = true
 		}
-		if strings.Contains(line, "DATADATDAT END") {
+		if strings.Contains(line, "DIT END") {
 			output = false
 		}
-		if strings.Contains(line, "DATADATDAT FINISHED") {
+		if strings.Contains(line, "DIT ERROR") {
+			fmt.Println("Error: " + strings.Replace(line, "DIT ERROR", "", 1)[21:])
+		}
+		if strings.Contains(line, "DIT FINISHED") {
 			return
 		}
 	}
