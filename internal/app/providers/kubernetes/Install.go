@@ -146,4 +146,3 @@ func waitForServerReady(baseURL string) {
 	}
 	fmt.Println("Warning: dit server API did not respond within the startup wait; it may still be starting")
 }
-
