@@ -18,10 +18,14 @@ import (
 )
 
 // init shrinks the launch-log follow tuning so tests never sit on the
-// production 120s timeout.
+// production 120s timeout, and stubs the server-ready ping (no live
+// server in unit tests).
 func init() {
 	launchLogPollInterval = 1 * time.Millisecond
 	launchLogTimeout = 50 * time.Millisecond
+	serverReadyPollInterval = 1 * time.Millisecond
+	serverReadyTimeout = 5 * time.Millisecond
+	serverPing = func(string) bool { return true }
 }
 
 // captureStdout captures stdout during a function call and returns the output.

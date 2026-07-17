@@ -27,6 +27,9 @@ func init() {
 	utils.MonitorIdleTimeout = 100 * time.Millisecond
 	launchLogPollInterval = 1 * time.Millisecond
 	launchLogTimeout = 50 * time.Millisecond
+	serverReadyPollInterval = 1 * time.Millisecond
+	serverReadyTimeout = 5 * time.Millisecond
+	serverPing = func(string) bool { return true }
 }
 
 func captureStdout(f func()) string {

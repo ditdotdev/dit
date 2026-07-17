@@ -32,7 +32,7 @@ func TestInstall_DockerNotAvailableExits(t *testing.T) {
 func TestInstall_LatestNotDownloadedTriggersPull(t *testing.T) {
 	d := &fakeDocker{
 		ditLatestIsDownloaded: false,
-		fetchLaunchLogs:       []string{"DATADATDAT START 2024-01-01 00:00:00 hello", "DATADATDAT FINISHED"},
+		fetchLaunchLogs:       []string{"DIT START 2024-01-01 00:00:00 hello", "DIT FINISHED"},
 		launchOut:             "ok",
 	}
 	output := captureStdout(func() {
@@ -51,7 +51,7 @@ func TestInstall_LatestNotDownloadedTriggersPull(t *testing.T) {
 func TestInstall_LatestNotDownloadedLocalFallback(t *testing.T) {
 	d := &fakeDocker{
 		ditLatestIsDownloaded: false,
-		fetchLaunchLogs:       []string{"DATADATDAT FINISHED"},
+		fetchLaunchLogs:       []string{"DIT FINISHED"},
 		launchOut:             "ok",
 	}
 	_ = captureStdout(func() {
@@ -67,12 +67,34 @@ func TestInstall_LatestNotDownloadedLocalFallback(t *testing.T) {
 	}
 }
 
+func TestInstall_EchoesLaunchErrorLines(t *testing.T) {
+	d := &fakeDocker{
+		ditLatestIsDownloaded: true,
+		fetchLaunchLogs: []string{
+			"DIT ERROR 2024-01-01 00:00:00 Failed to load ZFS",
+			"DIT FINISHED",
+		},
+		launchOut: "ok",
+	}
+	output := captureStdout(func() {
+		_, _ = captureExit(t, func() {
+			withDocker(t, d, func() {
+				Install("v1.0.0", "dit", false, 9999, "ctx")
+			})
+		})
+	})
+
+	if !strings.Contains(output, "Error: Failed to load ZFS") {
+		t.Errorf("expected launch ERROR line echoed, got %q", output)
+	}
+}
+
 func TestInstall_RemovesPreexistingServer(t *testing.T) {
 	d := &fakeDocker{
 		ditLatestIsDownloaded: true,
 		ditServerAvailable:    true,
 		ditLaunchAvailable:    true,
-		fetchLaunchLogs:       []string{"DATADATDAT FINISHED"},
+		fetchLaunchLogs:       []string{"DIT FINISHED"},
 		launchOut:             "ok",
 	}
 	_ = captureStdout(func() {
