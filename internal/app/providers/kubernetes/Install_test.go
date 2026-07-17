@@ -75,7 +75,6 @@ func TestK8sInstall_HappyPathRemovesStaleAndLaunches(t *testing.T) {
 		latestDownloaded: true,
 		serverAvailable:  true,
 		launchAvailable:  true,
-		fetchLaunchLogs:  []string{"DIT START 2024-01-01 00:00:00 hello", "verbose-line", "DIT END", "DIT FINISHED"},
 	}
 
 	output := captureStdout(func() {
@@ -160,7 +159,6 @@ func TestK8sInstall_PropertiesExportContextConfig(t *testing.T) {
 	t.Setenv("DIT_CONTEXT_CONFIG", "")
 	d := &fakeDocker{
 		latestDownloaded: true,
-		fetchLaunchLogs:  []string{"DIT FINISHED"},
 	}
 	_ = captureStdout(func() {
 		_, _ = captureExit(t, func() {
