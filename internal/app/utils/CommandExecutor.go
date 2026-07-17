@@ -6,6 +6,7 @@ package utils
 import (
 	"fmt"
 	"os/exec"
+	"strings"
 )
 
 type commandExecutor struct {
@@ -41,6 +42,14 @@ func (ce commandExecutor) Exec(name string, arg ...string) (string, error) {
 	if ce.debug && err != nil {
 		fmt.Printf("Command failed with error: %v\n", err)
 		fmt.Printf("Command output: %s\n", string(out))
+	}
+	// A bare exec.ExitError stringifies as just "exit status N", which is
+	// what callers end up printing - fold the command's own output (stderr
+	// is in the combined output) into the error so failures are diagnosable.
+	if err != nil {
+		if msg := strings.TrimSpace(string(out)); msg != "" {
+			err = fmt.Errorf("%w: %s", err, msg)
+		}
 	}
 	return string(out), err
 }

@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"github.com/briandowns/spinner"
 	"github.com/ditdotdev/dit/internal/app"
+	"net/http"
 	"os"
 	"strconv"
 	"strings"
@@ -103,6 +104,7 @@ func Install(latest string, registry string, verbose bool, port int, context str
 	s.Stop()
 
 	followLaunchLogs(docker, verbose)
+	waitForServerReady(cfg.Servers[0].URL)
 	fmt.Println()
 }
 
@@ -111,6 +113,40 @@ var (
 	launchLogPollInterval = 200 * time.Millisecond
 	launchLogTimeout      = 120 * time.Second
 )
+
+// Server-ready poll tuning; vars so tests can shrink or stub them.
+var (
+	serverReadyPollInterval = 500 * time.Millisecond
+	serverReadyTimeout      = 60 * time.Second
+	serverPing              = func(baseURL string) bool {
+		c := http.Client{Timeout: 2 * time.Second}
+		resp, err := c.Get(baseURL + "/v1/repositories")
+		if err != nil {
+			return false
+		}
+		defer func() { _ = resp.Body.Close() }()
+		return resp.StatusCode < 500
+	}
+)
+
+// waitForServerReady blocks until the dit server API answers (or the
+// timeout passes). The launch container's FINISHED marker only means the
+// launch script is done - the API server and docker-volume-proxy inside
+// the server container are still starting, so a command issued right
+// after install (e.g. `dit run` creating a volume through the proxy
+// driver) races them. The pre-fix 120s marker timeout masked this race;
+// on CI runners the gap is long enough that context-lifecycle.bats failed
+// deterministically at the first post-install `dit run`.
+func waitForServerReady(baseURL string) {
+	deadline := time.Now().Add(serverReadyTimeout)
+	for time.Now().Before(deadline) {
+		if serverPing(baseURL) {
+			return
+		}
+		time.Sleep(serverReadyPollInterval)
+	}
+	fmt.Println("Warning: dit server API did not respond within the startup wait; it may still be starting")
+}
 
 // followLaunchLogs tails the launch container's logs, echoing the banner
 // (and, with verbose, everything between the START/END markers) until the
