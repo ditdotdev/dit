@@ -17,7 +17,6 @@ type dockerClient interface {
 	DitLatestIsDownloaded(registry string, latest app.Version) bool
 	DitLaunchIsAvailable() (bool, error)
 	DitServerIsAvailable() (bool, error)
-	FetchLaunchLogs() []string
 	GetSliceFromImage(image string, key ...string) []string
 	GetValFromContainer(c string, key ...string) (string, error)
 	GetValFromImage(image string, key ...string) string

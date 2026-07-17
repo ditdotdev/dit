@@ -103,16 +103,15 @@ func Install(latest string, registry string, verbose bool, port int, context str
 	}
 	s.Stop()
 
-	followLaunchLogs(docker, verbose)
+	// Unlike the docker provider there is no launch container to follow:
+	// LaunchDitKubernetesServers starts only dit-<context>-server, which
+	// runs the Ktor app directly and emits no DIT launch markers. Following
+	// the (nonexistent) launch container's logs just burned the full 120s
+	// marker timeout on every kubernetes install, so readiness is gated on
+	// the server API alone.
 	waitForServerReady(cfg.Servers[0].URL)
 	fmt.Println()
 }
-
-// Launch-log follow tuning; vars so tests can shrink them.
-var (
-	launchLogPollInterval = 200 * time.Millisecond
-	launchLogTimeout      = 120 * time.Second
-)
 
 // Server-ready poll tuning; vars so tests can shrink or stub them.
 var (
@@ -146,51 +145,4 @@ func waitForServerReady(baseURL string) {
 		time.Sleep(serverReadyPollInterval)
 	}
 	fmt.Println("Warning: dit server API did not respond within the startup wait; it may still be starting")
-}
-
-// followLaunchLogs tails the launch container's logs, echoing the banner
-// (and, with verbose, everything between the START/END markers) until the
-// FINISHED marker or the timeout. The previous inline loop ranged over the
-// initial snapshot while appending to it - Go's range captures the slice
-// length up front, so appended lines were never visited and Install returned
-// before the server finished starting; the next CLI command then raced
-// server startup (surfaced by context-lifecycle.bats on cold CI runners).
-// The marker word is "DIT" (util.sh log_delimiter in dit-server); ERROR
-// lines are echoed because the launch script exits fatally after emitting
-// them, and the container may retry after a restart, so scanning continues
-// until FINISHED or the deadline.
-func followLaunchLogs(docker dockerClient, verbose bool) {
-	logs := docker.FetchLaunchLogs()
-	output := false
-	deadline := time.Now().Add(launchLogTimeout)
-	for i := 0; time.Now().Before(deadline); {
-		if i >= len(logs) {
-			// Caught up with the tail: refresh, or wait for more output.
-			if refreshed := docker.FetchLaunchLogs(); len(refreshed) > len(logs) {
-				logs = refreshed
-				continue
-			}
-			time.Sleep(launchLogPollInterval)
-			continue
-		}
-		line := logs[i]
-		i++
-		if verbose && output && !strings.Contains(line, "DIT ") {
-			fmt.Println(line)
-		}
-		if strings.Contains(line, "DIT START") {
-			fmt.Println(strings.Replace(line, "DIT START", "", 1)[21:])
-			output = true
-		}
-		if strings.Contains(line, "DIT END") {
-			output = false
-		}
-		if strings.Contains(line, "DIT ERROR") {
-			fmt.Println("Error: " + strings.Replace(line, "DIT ERROR", "", 1)[21:])
-		}
-		if strings.Contains(line, "DIT FINISHED") {
-			return
-		}
-	}
-	fmt.Println("Warning: timed out waiting for the dit server launch to finish; it may still be starting")
 }
