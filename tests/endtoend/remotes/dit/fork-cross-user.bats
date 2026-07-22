@@ -16,10 +16,13 @@
 load '../../test_helper'
 load 'env'
 
-# API keys for test users (seeded by Liquibase)
-GHTEST1_KEY="d3ghtest1_aaaa1111bbbb2222cccc3333dddd4444eeee5555ffff6666aaaa1111bbbb"
-GHTEST2_KEY="d3ghtest2_aaaa1111bbbb2222cccc3333dddd4444eeee5555ffff6666aaaa1111bbbb"
-GHTEST3_KEY="d3ghtest3_aaaa1111bbbb2222cccc3333dddd4444eeee5555ffff6666aaaa1111bbbb"
+# API keys for test users (seeded by Liquibase, rotated by dit-remote-server
+# changelog 018 after the old hardcoded keys leaked with this repo going
+# public). Never hardcode these: CI gets them from the GHTEST{1,2,3}_KEY org
+# secrets, local runs from the environment — same treatment as DIT_API_KEY.
+GHTEST1_KEY="${GHTEST1_KEY:?set GHTEST1_KEY (CI secret / local env) for ghtest E2E suites}"
+GHTEST2_KEY="${GHTEST2_KEY:?set GHTEST2_KEY (CI secret / local env) for ghtest E2E suites}"
+GHTEST3_KEY="${GHTEST3_KEY:?set GHTEST3_KEY (CI secret / local env) for ghtest E2E suites}"
 ADMIN_KEY="${DIT_API_KEY}"
 
 OWNER_NS="d3-ghtest1"
