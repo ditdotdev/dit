@@ -3,7 +3,7 @@
 # SPDX-License-Identifier: BUSL-1.1
 
 # E2E Kubernetes + remote tests
-# These run as part of `make e2e-server` and exercise commit / push / clone
+# These run as part of dit-remote-server's `make e2e-server` and exercise commit / push / clone
 # against the dit dev server (docker compose) AND the public S3 / S3web
 # hello-world remotes. Auto-skip when no kubernetes cluster is reachable OR
 # the dev dit-server isn't healthy.

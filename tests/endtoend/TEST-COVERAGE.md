@@ -109,6 +109,10 @@ Requires: Docker, dit binary, AWS credentials (for S3 tests), SSH key (for SSH t
 
 ### `make e2e-server` (remote server functionality)
 
+The `e2e-server` target lives in the **dit-remote-server** repo's Makefile
+(run it from a dit-remote-server checkout; `DIT_DIR` defaults to a sibling
+checkout of this repo). The BATS suites below still live in this repo.
+
 Requires: Docker, dit binary, dit-remote-server running locally
 
 | Target | BATS File |
