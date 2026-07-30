@@ -3,7 +3,9 @@
 # SPDX-License-Identifier: BUSL-1.1
 
 # Environment configuration for dit E2E server tests.
-# Usage:
+# The e2e-server target lives in the dit-remote-server repo's Makefile and
+# runs these suites with DIT_DIR pointing at this checkout. Usage (from a
+# dit-remote-server checkout):
 #   make e2e-server              # runs against local DEV (default)
 #   ENV=PROD make e2e-server     # runs against production
 

@@ -94,27 +94,6 @@ test-s3-workflow:
 test-ssh-workflow:
 	bats tests/endtoend/remotes/ssh/ssh-workflow.bats
 
-test-dit-workflow:
-	ENV=$(ENV) bats tests/endtoend/remotes/dit/dit-workflow.bats
-
-test-auth-workflow:
-	ENV=$(ENV) bats tests/endtoend/remotes/dit/auth-workflow.bats
-
-test-org-workflow:
-	ENV=$(ENV) bats tests/endtoend/remotes/dit/org-workflow.bats
-
-test-clone-commit-workflow:
-	ENV=$(ENV) bats tests/endtoend/remotes/dit/clone-commit-workflow.bats
-
-test-billing-workflow:
-	ENV=$(ENV) bats tests/endtoend/remotes/dit/billing-workflow.bats
-
-test-stripe-integration:
-	ENV=$(ENV) bats tests/endtoend/remotes/dit/stripe-integration.bats
-
-test-favicon:
-	ENV=$(ENV) bats tests/endtoend/remotes/dit/favicon.bats
-
 test-multi-context:
 	bats tests/endtoend/multi-context/multi-context.bats
 
@@ -142,30 +121,6 @@ test-error-handling:
 test-push-pull-options:
 	bats tests/endtoend/push-pull/push-pull-options.bats
 
-test-abort-workflow:
-	ENV=$(ENV) bats tests/endtoend/remotes/dit/abort-workflow.bats
-
-test-auth-status:
-	ENV=$(ENV) bats tests/endtoend/remotes/dit/auth-status.bats
-
-test-push-pull-tags-remote:
-	ENV=$(ENV) bats tests/endtoend/remotes/dit/push-pull-tags-remote.bats
-
-test-fork-workflow:
-	ENV=$(ENV) bats tests/endtoend/remotes/dit/fork-workflow.bats
-
-test-fork-cross-user:
-	ENV=$(ENV) bats tests/endtoend/remotes/dit/fork-cross-user.bats
-
-test-whitelist-approval:
-	ENV=$(ENV) bats tests/endtoend/remotes/dit/whitelist-approval.bats
-
-test-push-pull-errors:
-	ENV=$(ENV) bats tests/endtoend/remotes/dit/push-pull-errors.bats
-
-test-public-repo-permissions:
-	ENV=$(ENV) bats tests/endtoend/remotes/dit/public-repo-permissions.bats
-
 # Local-minikube helper: assert the CSI hostpath class as the cluster default
 # (and demote the non-CSI `standard` class) so dit-provisioned volumes use the
 # CSI driver and `dit commit` VolumeSnapshots can become ReadyToUse. minikube's
@@ -176,9 +131,11 @@ k8s-csi-default:
 	kubectl patch storageclass csi-hostpath-sc -p '{"metadata":{"annotations":{"storageclass.kubernetes.io/is-default-class":"true"}}}' || true
 	kubectl patch storageclass standard -p '{"metadata":{"annotations":{"storageclass.kubernetes.io/is-default-class":"false"}}}' || true
 
-# Kubernetes provider tests. Both targets self-skip when no k8s cluster is
-# reachable (kubectl cluster-info), so they are safe to include in `e2e` /
-# `e2e-server` on hosts without minikube — they just no-op rather than fail.
+# Kubernetes provider tests. The target self-skips when no k8s cluster is
+# reachable (kubectl cluster-info), so it is safe to include in `e2e` on
+# hosts without minikube — it just no-ops rather than fails.
+# The kubernetes REMOTE suite (kubernetes-remote-tests.bats) is orchestrated
+# by dit-remote-server's `make e2e-server` (see ditdotdev/dit-remote-server).
 # Local prerequisite (minikube): run `make k8s-csi-default` first so volumes
 # use the CSI driver, otherwise VolumeSnapshots fail with
 # "snapshotting non-CSI volumes is not supported".
@@ -186,13 +143,5 @@ test-kubernetes:
 	bats tests/endtoend/context/kubernetes/kubernetes-tests.bats
 	bats tests/endtoend/context/kubernetes/kubernetes-context-edge.bats
 
-test-kubernetes-remote:
-	ENV=$(ENV) bats tests/endtoend/context/kubernetes/kubernetes-remote-tests.bats
-
 # TODO: diagnose test-multi-context test-db-matrix in gh actions and readd to e2e
 e2e: test-install test-getting-started test-tags test-tag-management test-docker-context test-container-lifecycle test-context-list test-context-lifecycle test-data-import test-error-handling test-s3-workflow test-push-pull-options test-ssh-workflow test-kubernetes test-upgrade test-uninstall
-
-test-connect-drs-network:
-	docker network connect dit-docker dit-docker-server 2>/dev/null || true
-
-e2e-server: test-install test-connect-drs-network test-dit-workflow test-clone-commit-workflow test-auth-workflow test-whitelist-approval test-public-repo-permissions test-auth-status test-org-workflow test-billing-workflow test-stripe-integration test-favicon test-abort-workflow test-push-pull-tags-remote test-push-pull-errors test-fork-workflow test-fork-cross-user test-kubernetes-remote test-uninstall
