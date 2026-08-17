@@ -408,7 +408,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v7
         with:
-          go-version: '1.26.2'
+          go-version: '1.26.6'
 
       - name: Configure Go for private repos
         run: |
