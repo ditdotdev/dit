@@ -1,10 +1,10 @@
 # Dit
 ## Your Code. Your Environment. Your Data.
 
-![](https://github.com/ditdotdev/ditdotdev/workflows/Publish/badge.svg)
-![](https://github.com/ditdotdev/ditdotdev/workflows/End%20to%20End%20Test/badge.svg)
+![](https://github.com/ditdotdev/dit/workflows/Release/badge.svg)
+![](https://github.com/ditdotdev/dit/workflows/End%20to%20End%20Test/badge.svg)
 ![GitHub release (latest by date)](https://img.shields.io/github/v/release/ditdotdev/dit)
-![GitHub All Releases](https://img.shields.io/github/downloads/ditdotdev/ditdotdev/total)
+![GitHub All Releases](https://img.shields.io/github/downloads/ditdotdev/dit/total)
 
 **Has Claude destroyed your database?** Would you like to have it back, the way `git checkout` brings your code back?
 
@@ -18,13 +18,17 @@ Dit is git for your data. It versions Docker-based databases with the commands y
 
 ### 1. Requirements
 
-Install and start [Docker Desktop](https://www.docker.com/products/docker-desktop) for your operating system.
+* **Windows and Linux:** install and start [Docker Desktop](https://www.docker.com/products/docker-desktop).
+* **macOS:** you must use [Colima](https://github.com/abiosoft/colima) instead of Docker Desktop. Install and start Colima, then point Docker at it:
 
-> **macOS users with Colima:** if you use Colima instead of Docker Desktop, run `docker context use colima` first.
+  ```bash
+  colima start
+  docker context use colima
+  ```
 
 ### 2. Download
 
-Grab the package for your OS and architecture from the [releases](https://github.com/ditdotdev/ditdotdev/releases) page, unzip it, and move the `dit` binary to a directory on your `PATH`.
+Grab the package for your OS and architecture from the [releases](https://github.com/ditdotdev/dit/releases) page, unzip it, and move the `dit` binary to a directory on your `PATH`.
 
 ### 3. Install
 
@@ -63,7 +67,7 @@ That's a fully loaded PostgreSQL database, running locally, in one command. Your
 
 ## Download. Try. Get Support.
 
-1. **Download** the latest release from the [releases](https://github.com/ditdotdev/ditdotdev/releases) page.
+1. **Download** the latest release from the [releases](https://github.com/ditdotdev/dit/releases) page.
 2. **Try** the [Quick Start](#quick-start) above — it takes about five minutes.
 3. **Get support** in the [Dit community Slack](https://join.dit.dev). Found a bug? [Open an issue](https://github.com/ditdotdev/dit/issues).
 
