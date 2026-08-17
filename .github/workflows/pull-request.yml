@@ -209,7 +209,7 @@ jobs:
       # provider. Auto-skips with a clear message if absent, so this step
       # is the difference between testing the k8s path vs. silently no-op.
       - name: Setup minikube
-        uses: medyagh/setup-minikube@latest
+        uses: ditdotdev/setup-minikube@v0.0.21-dit.1
         with:
           driver: none
 

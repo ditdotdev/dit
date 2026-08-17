@@ -184,7 +184,7 @@ jobs:
       # 500 from inside the dit server. driver=none puts the apiserver on
       # the host network where every container can reach it.
       - name: Setup minikube
-        uses: medyagh/setup-minikube@latest
+        uses: ditdotdev/setup-minikube@v0.0.21-dit.1
         with:
           driver: none
 
