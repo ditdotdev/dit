@@ -6,13 +6,13 @@
 ![GitHub release (latest by date)](https://img.shields.io/github/v/release/ditdotdev/dit)
 ![GitHub All Releases](https://img.shields.io/github/downloads/ditdotdev/dit/total)
 
-**Has Claude destroyed your database?** Would you like to have it back, the way `git checkout` brings your code back?
+**Has Claude destroyed your database?** Would you like to have it back just like `git checkout` brings your code back?
 
-**Have you spent hours — or days — creating a dev database environment?**
+**Have you spent hours or days creating a dev database environment?**
 
 **Have you ever wanted to just issue a `clone` and get a copy of another developer's database for development?**
 
-Dit is git for your data. It versions Docker-based databases with the commands you already know — `commit`, `checkout`, `log`, `push`, `pull`, and `clone` — backed by ZFS snapshots, so every commit and checkout is instant no matter how big the database is.
+Dit is git for your data. It versions container databases with the commands you already know — `commit`, `checkout`, `log`, `push`, `pull`, and `clone` — backed by ZFS snapshots, so every commit and checkout is super fast no matter how big the database is.
 
 ## Quick Start
 
