@@ -1,37 +1,82 @@
 # Dit
-## Your Code. Your Environment. Your Data. 
+## Your Code. Your Environment. Your Data.
 
 ![](https://github.com/ditdotdev/ditdotdev/workflows/Publish/badge.svg)
 ![](https://github.com/ditdotdev/ditdotdev/workflows/End%20to%20End%20Test/badge.svg)
 ![GitHub release (latest by date)](https://img.shields.io/github/v/release/ditdotdev/dit)
 ![GitHub All Releases](https://img.shields.io/github/downloads/ditdotdev/ditdotdev/total)
 
-## CI/CD Pipeline
+**Has Claude destroyed your database?** Would you like to have it back, the way `git checkout` brings your code back?
 
-This repository includes a comprehensive Pull Request 2 workflow with:
-- Cross-platform testing (Ubuntu, Windows, macOS)
-- Multi-version Go support (1.21, 1.22, 1.23)
-- Security scanning and code quality checks
-- Coverage reporting and performance benchmarks
+**Have you spent hours — or days — creating a dev database environment?**
 
-## <a id="getting-started"></a> Getting Started
+**Have you ever wanted to just issue a `clone` and get a copy of another developer's database for development?**
 
-### <a id="requirements"></a> Requirements
-Before downloading Dit, be sure that you have the appropriate Docker Desktop Client installed and running for your operating system.
-*   [Docker Desktop Client](https://www.docker.com/products/docker-desktop)
+Dit is git for your data. It versions Docker-based databases with the commands you already know — `commit`, `checkout`, `log`, `push`, `pull`, and `clone` — backed by ZFS snapshots, so every commit and checkout is instant no matter how big the database is.
 
-### <a id="installation"></a> Installation
-The available downloads are listed on the [releases](https://github.com/ditdotdev/ditdotdev/releases) tab. Please download the proper package for your operating system and architecture. 
+## Quick Start
 
-Dit is distributed as a binary with accompanying docker image. Install Dit by unzipping the downloaded release and moving the binary to a directory included in your system's PATH and running the following command from your CLI:
+### 1. Requirements
+
+Install and start [Docker Desktop](https://www.docker.com/products/docker-desktop) for your operating system.
+
+> **macOS users with Colima:** if you use Colima instead of Docker Desktop, run `docker context use colima` first.
+
+### 2. Download
+
+Grab the package for your OS and architecture from the [releases](https://github.com/ditdotdev/ditdotdev/releases) page, unzip it, and move the `dit` binary to a directory on your `PATH`.
+
+### 3. Install
+
+Dit ships as a binary with an accompanying Docker image. One command sets everything up:
+
 ```bash
 dit install
 ```
 
-**macOS users with Colima:** If you're using Colima instead of Docker Desktop, configure Docker to use Colima first:
+### 4. Version your first database
+
 ```bash
-docker context use colima
+# Start a versioned PostgreSQL container
+dit run postgres -n mydb -e POSTGRES_PASSWORD=postgres
+
+# Take a commit — a point-in-time snapshot of the database
+dit commit mydb -m "Initial commit"
+
+# Make some changes
+docker exec mydb psql -U postgres -c "CREATE TABLE users (id SERIAL PRIMARY KEY, name VARCHAR(100));"
+dit commit mydb -m "Added users table"
+
+# Something (or someone, or some AI) destroys your data?
+# List your commits and roll back — just like git.
+dit log mydb
+dit checkout mydb -c <commit-id>
 ```
+
+### 5. Or clone a ready-made database
+
+```bash
+dit clone -n hello-world s3web://demos.dit.dev/hello-world/postgres
+```
+
+That's a fully loaded PostgreSQL database, running locally, in one command. Your teammates can `push` their databases to a shared remote and you can `clone` or `pull` them the same way.
+
+## Download. Try. Get Support.
+
+1. **Download** the latest release from the [releases](https://github.com/ditdotdev/ditdotdev/releases) page.
+2. **Try** the [Quick Start](#quick-start) above — it takes about five minutes.
+3. **Get support** in the [Dit community Slack](https://join.dit.dev). Found a bug? [Open an issue](https://github.com/ditdotdev/dit/issues).
+
+## Documentation
+
+The full documentation lives in this repository:
+
+* [Getting Started](docs/src/start.md) — a guided tour of the concepts and workflow
+* [Installing, configuring, and upgrading](docs/src/lifecycle/) — including [Dit with Kubernetes](docs/src/lifecycle/kubernetes.md)
+* [Working with local repositories](docs/src/local/) — running containers, committing, tagging, migrating data
+* [Remotes](docs/src/remote/) — push, pull, clone, and the S3/SSH/S3Web remote providers
+* [CLI reference](docs/src/cli/) — every command and flag
+* [Demo datasets](https://github.com/ditdotdev/dit-demos) — the sample databases used in the quick start
 
 ## <a id="development"></a> Development and Testing
 
