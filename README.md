@@ -69,7 +69,7 @@ That's a fully loaded PostgreSQL database, running locally, in one command. Your
 
 1. **Download** the latest release from the [releases](https://github.com/ditdotdev/dit/releases) page.
 2. **Try** the [Quick Start](#quick-start) above — it takes about five minutes.
-3. **Get support** in the [Dit community Slack](https://join.dit.dev). Found a bug? [Open an issue](https://github.com/ditdotdev/dit/issues).
+3. **Get support** in the [Dit community Slack](https://join.slack.com/t/ditdotdev/shared_invite/zt-472e8qfmd-4pm5SDFF5vo_W8nJWddrbg). Found a bug? [Open an issue](https://github.com/ditdotdev/dit/issues).
 
 ## Documentation
 
