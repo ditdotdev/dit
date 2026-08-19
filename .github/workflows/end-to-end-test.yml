@@ -36,7 +36,7 @@ jobs:
           git config --global user.email "test@runner.com"
       - uses: actions/setup-go@v7
         with:
-          go-version: '1.26.2'
+          go-version: '1.26.6'
       - name: Configure Go for private modules
         run: |
           go env -w GOPRIVATE=github.com/ditdotdev/*
@@ -127,7 +127,7 @@ jobs:
       # 500 from inside the dit server. driver=none puts the apiserver on
       # the host network where every container can reach it.
       - name: Setup minikube
-        uses: medyagh/setup-minikube@latest
+        uses: ditdotdev/setup-minikube@v0.0.21-dit.1
         with:
           driver: none
 
