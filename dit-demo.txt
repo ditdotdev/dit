@@ -8,7 +8,7 @@
 
 # if needed
 
-./dit auth login --server https://dit.dev --api-key YOUR_DIT_API_KEY
+./dit auth login --server https://dit.dev --api-key $DIT_API_KEY
 
 ./dit repo list
 
@@ -42,15 +42,15 @@ docker exec mydb psql -U postgres -c "INSERT INTO users (name, email) VALUES ('A
 
 ./dit log mydb
 
-./dit checkout mydb -c 66a3bbea87934dbfa7f35fb6df12c21c
+./dit checkout mydb -c 9dd40142d04449508b3e37cd98dc3318
 
 docker exec mydb psql -U postgres -c "\dt"
 
-./dit checkout mydb -c c84b493973a740eb993ca16a3f6664b3
+./dit checkout mydb -c a5ff7961edaf4bd8bced72b213281ec4
 
 docker exec mydb psql -U postgres -c "\dt"
 
-./dit checkout mydb -c 9fc9513dca734118b0ef451e65979b1d
+./dit checkout mydb -c c9b35f0479cf49389990db799be3a057
 
 docker exec mydb psql -U postgres -c "SELECT * FROM users;"
 
@@ -66,13 +66,13 @@ docker exec mydb psql -U postgres -c "SELECT * FROM users;"
 
 ./dit remote log mydb
 
-./dit pull mydb -c 66a3bbea87934dbfa7f35fb6df12c21c
+./dit pull mydb -c 9dd40142d04449508b3e37cd98dc3318
 
-./dit checkout mydb -c 66a3bbea87934dbfa7f35fb6df12c21c
+./dit checkout mydb -c 9dd40142d04449508b3e37cd98dc3318
 
-./dit pull mydb -c c84b493973a740eb993ca16a3f6664b3 
+./dit pull mydb -c a5ff7961edaf4bd8bced72b213281ec4 
 
-./dit checkout mydb -c c84b493973a740eb993ca16a3f6664b3 
+./dit checkout mydb -c a5ff7961edaf4bd8bced72b213281ec4 
 
 ./dit checkout mydb -t v2.3.4
 

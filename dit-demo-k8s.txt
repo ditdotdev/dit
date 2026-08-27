@@ -21,16 +21,20 @@
 
 ./dit context ls
 
+./dit context default k8s-demo
+
+./dit context ls
+
 ### feature branch starts here — bring up postgres in k8s
 
-./dit run postgres -n mydb -e POSTGRES_HOST_AUTH_METHOD=trust --context k8s-demo
+./dit run postgres -n mydb -e POSTGRES_HOST_AUTH_METHOD=trust
 
 # dit created a StatefulSet, a headless Service, and a PVC. Pod is
 # named <repo>-0 by k8s convention.
 
 kubectl get statefulset,svc,pvc,pod -l ditRepository=mydb
 
-./dit status mydb --context k8s-demo
+./dit status mydb
 
 ./dit commit mydb -m "Initial commit"
 
@@ -44,7 +48,7 @@ kubectl get volumesnapshot
 
 # if needed
 
-./dit auth login --server https://dit.dev --api-key YOUR_DIT_API_KEY
+./dit auth login --server https://dit.dev --api-key $DIT_API_KEY
 
 ./dit repo list
 
@@ -52,7 +56,7 @@ kubectl get volumesnapshot
 
 ./dit remote add https://dit.dev/robertericreeves/mydb mydb
 
-./dit push mydb 
+./dit push mydb
 
 ./dit remote log mydb
 
@@ -102,13 +106,13 @@ kubectl exec mydb-0 -- psql -U postgres -c "SELECT * FROM users;"
 
 ### teammate flow: wipe local, clone from remote, pull specific commits
 
-./dit stop mydb --context k8s-demo
+./dit stop mydb
 
-./dit rm mydb --context k8s-demo
+./dit rm mydb
 
 kubectl get statefulset,svc,pvc,pod -l ditRepository=mydb
 
-./dit clone https://dit.dev/robertericreeves/mydb --context k8s-demo
+./dit clone https://dit.dev/robertericreeves/mydb
 
 kubectl get statefulset,svc,pvc,pod -l ditRepository=mydb
 
@@ -138,7 +142,7 @@ kubectl exec mydb-0 -- psql -U postgres -c "SELECT * FROM users;"
 
 ### clean up
 
-./dit rm mydb -f --context k8s-demo
+./dit rm mydb -f
 
 ./dit repo delete robertericreeves mydb
 
