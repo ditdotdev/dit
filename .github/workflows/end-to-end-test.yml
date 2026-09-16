@@ -126,10 +126,18 @@ jobs:
       # — has no route to. CreateVolume / CreatePVC then fails with a
       # 500 from inside the dit server. driver=none puts the apiserver on
       # the host network where every container can reach it.
+      #
+      # container-runtime=docker is explicit because minikube v1.39.0
+      # (2026-09-02, kubernetes/minikube#23562) changed the default runtime
+      # from docker to containerd. With driver=none that means the runner
+      # host's own containerd, which ships with the CRI plugin disabled, so
+      # `minikube start` dies with RUNTIME_ENABLE / "unknown service
+      # runtime.v1.RuntimeService". Same fix as dit-remote-server#1093.
       - name: Setup minikube
         uses: ditdotdev/setup-minikube@v0.0.21-dit.1
         with:
           driver: none
+          container-runtime: docker
 
       - name: Verify kubernetes cluster
         run: |
