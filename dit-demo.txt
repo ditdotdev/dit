@@ -1,3 +1,5 @@
+./dit install
+
 ./dit run postgres -n mydb -e POSTGRES_PASSWORD=postgres
 
 ./dit commit mydb -m "Initial commit"
@@ -42,15 +44,15 @@ docker exec mydb psql -U postgres -c "INSERT INTO users (name, email) VALUES ('A
 
 ./dit log mydb
 
-./dit checkout mydb -c 9dd40142d04449508b3e37cd98dc3318
+./dit checkout mydb -c 48dcddffbc0d4a9eae8c15727332af58
 
 docker exec mydb psql -U postgres -c "\dt"
 
-./dit checkout mydb -c a5ff7961edaf4bd8bced72b213281ec4
+./dit checkout mydb -c 545731df150f42838245fdfc2c821c91
 
 docker exec mydb psql -U postgres -c "\dt"
 
-./dit checkout mydb -c c9b35f0479cf49389990db799be3a057
+./dit checkout mydb -c 5aaaee945c9f49fda20d268197101af8
 
 docker exec mydb psql -U postgres -c "SELECT * FROM users;"
 
@@ -66,13 +68,13 @@ docker exec mydb psql -U postgres -c "SELECT * FROM users;"
 
 ./dit remote log mydb
 
-./dit pull mydb -c 9dd40142d04449508b3e37cd98dc3318
+./dit pull mydb -c 48dcddffbc0d4a9eae8c15727332af58
 
-./dit checkout mydb -c 9dd40142d04449508b3e37cd98dc3318
+./dit checkout mydb -c 48dcddffbc0d4a9eae8c15727332af58
 
-./dit pull mydb -c a5ff7961edaf4bd8bced72b213281ec4 
+./dit pull mydb -c 545731df150f42838245fdfc2c821c91 
 
-./dit checkout mydb -c a5ff7961edaf4bd8bced72b213281ec4 
+./dit checkout mydb -c 545731df150f42838245fdfc2c821c91 
 
 ./dit checkout mydb -t v2.3.4
 
@@ -81,4 +83,6 @@ docker exec mydb psql -U postgres -c "SELECT * FROM users;"
 ./dit rm mydb -f
 
 ./dit repo delete robertericreeves mydb
+
+./dit uninstall
 
