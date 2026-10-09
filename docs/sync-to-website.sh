@@ -20,10 +20,13 @@
 #   bash docs/sync-to-website.sh [--check] [path-to-ditdotdev.github.io]
 #     default path: ../../ditdotdev.github.io (or $WEBSITE_REPO)
 #     --check: compare only; exit 1 if the site's docs/ differs from docs/src/
+#     DOCS_SRC=<dir> publishes that docs/src tree instead of this checkout's
+#     (the workflow uses it to publish a release tag's docs with the current
+#     script, since older tags predate this script).
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"      # <dit-repo>/docs
-SRC="$SCRIPT_DIR/src"
+SRC="${DOCS_SRC:-$SCRIPT_DIR/src}"
 WEB="${WEBSITE_REPO:-$SCRIPT_DIR/../../ditdotdev.github.io}"
 CHECK=false
 for arg in "$@"; do
