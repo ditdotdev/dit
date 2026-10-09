@@ -52,6 +52,14 @@ jobs:
           fi
           echo "tag=$tag" >> "$GITHUB_OUTPUT"
 
+      # The sync script comes from the commit this workflow runs from, not
+      # from the release tag: tags older than the script (e.g. v1.10.2) have
+      # no docs/sync-to-website.sh. Only docs/src is taken from the tag.
+      - name: Check out the sync script
+        uses: actions/checkout@v7
+        with:
+          path: tools
+
       - name: Check out dit at ${{ steps.ref.outputs.tag }}
         uses: actions/checkout@v7
         with:
@@ -67,7 +75,9 @@ jobs:
           path: website
 
       - name: Sync docs/src into the website
-        run: bash dit/docs/sync-to-website.sh "$GITHUB_WORKSPACE/website"
+        env:
+          DOCS_SRC: ${{ github.workspace }}/dit/docs/src
+        run: bash tools/docs/sync-to-website.sh "$GITHUB_WORKSPACE/website"
 
       - name: Commit and push
         working-directory: website
