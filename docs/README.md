@@ -49,8 +49,17 @@ npm run dev
 
 ## Publishing
 
-There is no separate docs-publish workflow. The rendered site is the
-`/docs` route inside the `dit-remote-server` web app, which
-vendors a copy of this `docs/src/` tree under
-`services/web/content/docs/`. Updates land when the web service
-redeploys.
+The docs are published in two places:
+
+* **dit.dev/docs** — the `/docs` route inside the `dit-remote-server` web
+  app, which vendors a copy of this `docs/src/` tree under
+  `services/web/content/docs/` (`bash docs/sync-to-web.sh`). Updates land
+  when the web service redeploys.
+* **ditdotdev.github.io/docs** — the Jekyll community site renders a copy
+  under its `docs/` directory. `.github/workflows/docs-publish.yml` pushes
+  it there on every release (chained from `release.yml`), using
+  `bash docs/sync-to-website.sh`. Run that script by hand to preview or
+  re-seed the site; `--check` reports drift without changing anything.
+
+Jekyll picks up the same `title` / `nav_label` / `nav_order` frontmatter for
+its sidebar. Pages without `nav_order` sort after the numbered ones.

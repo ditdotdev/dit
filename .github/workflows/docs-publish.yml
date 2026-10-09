@@ -1,0 +1,87 @@
+name: Publish Docs
+
+# Push docs/src (rendered at https://ditdotdev.github.io/docs) to the
+# ditdotdev.github.io repo for a release tag.
+#
+# Normally invoked from release.yml (workflow_call) after the GitHub Release is
+# created. The `release: published` trigger below only fires for releases
+# published by a person or a PAT: GitHub does not run workflows for events
+# caused by GITHUB_TOKEN, which is what release.yml creates releases with.
+on:
+  workflow_call:
+    inputs:
+      tag:
+        description: 'Release tag whose docs/src to publish, e.g. v1.10.2'
+        required: true
+        type: string
+    secrets:
+      WEBSITE_PUSH_TOKEN:
+        description: 'PAT with Contents: read/write on ditdotdev/ditdotdev.github.io'
+        required: true
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Release tag whose docs/src to publish, e.g. v1.10.2'
+        required: true
+        type: string
+  release:
+    types: [published]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: docs-publish
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    name: Publish Docs
+    runs-on: ubuntu-latest
+    steps:
+      - name: Resolve tag
+        id: ref
+        env:
+          INPUT_TAG: ${{ inputs.tag }}
+          RELEASE_TAG: ${{ github.event.release.tag_name }}
+        run: |
+          tag="${INPUT_TAG:-$RELEASE_TAG}"
+          if [ -z "$tag" ]; then
+            echo "::error::no release tag provided"
+            exit 1
+          fi
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+
+      - name: Check out dit at ${{ steps.ref.outputs.tag }}
+        uses: actions/checkout@v7
+        with:
+          ref: refs/tags/${{ steps.ref.outputs.tag }}
+          path: dit
+
+      - name: Check out ditdotdev.github.io
+        uses: actions/checkout@v7
+        with:
+          repository: ditdotdev/ditdotdev.github.io
+          ref: master
+          token: ${{ secrets.WEBSITE_PUSH_TOKEN }}
+          path: website
+
+      - name: Sync docs/src into the website
+        run: bash dit/docs/sync-to-website.sh "$GITHUB_WORKSPACE/website"
+
+      - name: Commit and push
+        working-directory: website
+        env:
+          TAG: ${{ steps.ref.outputs.tag }}
+        run: |
+          git add -A docs
+          if git diff --cached --quiet; then
+            echo "docs/ already matches dit $TAG; nothing to publish."
+            exit 0
+          fi
+          sha="$(git -C ../dit rev-parse --short HEAD)"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "docs: sync from dit $TAG ($sha)"
+          git push origin HEAD:master
+          echo "Published docs for dit $TAG ($sha) to ditdotdev/ditdotdev.github.io master."
