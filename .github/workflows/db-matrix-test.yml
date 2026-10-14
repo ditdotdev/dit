@@ -326,9 +326,12 @@ jobs:
         - ditdotdev/meilisearch:v1.42.1
 
         # MinIO
-        # https://hub.docker.com/r/minio/minio
+        # https://hub.docker.com/r/ditdotdev/minio
+        # Built from source by dit-remote-server (deploy/minio/Dockerfile).
+        # Upstream minio/minio is archived and its Docker Hub repo was deleted;
+        # this is the final upstream release, built and hosted under our namespace.
         # S3-compatible object storage for cloud-native applications
-        - minio/minio:latest
+        - ditdotdev/minio:RELEASE.2025-10-15T17-29-55Z
 
         # NATS with JetStream
         # https://hub.docker.com/_/nats
