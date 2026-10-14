@@ -1,5 +1,5 @@
 # Dit
-## Your Code. Your Environment. Your Data.
+## Database Version Control for everybody, everywhere, every database.
 
 ![](https://github.com/ditdotdev/dit/workflows/Release/badge.svg)
 ![](https://github.com/ditdotdev/dit/workflows/End%20to%20End%20Test/badge.svg)
