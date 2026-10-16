@@ -52,19 +52,25 @@ load '../test_helper'
 }
 
 @test "can run mongo-test" {
-  run "$D3" run -n mongo-test mongo:4
+  # Unpinned "mongo" matches getting-started.md on the website: mongo:4 is
+  # EOL and mongo 6+ images ship mongosh only, not the legacy mongo shell.
+  run "$D3" run -n mongo-test mongo
   assert_success
   assert_output --partial "Creating repository mongo-test"
   assert_output --partial "Creating docker volume mongo-test_v0 with path /data/configdb"
   assert_output --partial "Creating docker volume mongo-test_v1 with path /data/db"
   assert_output --partial "Running controlled container mongo-test"
-  sleep 5
+}
+
+@test "check to see if mongo-test database is up and running" {
+  run bash -c 'for i in {1..18}; do docker exec mongo-test mongosh --quiet --eval "db.runCommand({ping:1}).ok" | grep -q 1 && break || sleep 5; done'
+  assert_success
 }
 
 @test "can insert mongo-test Ada Lovelace" {
-  run docker exec mongo-test mongo --quiet --eval "db.employees.insert({'firstName':'Ada','lastName':'Lovelace'})"
+  run docker exec mongo-test mongosh --quiet --eval "db.employees.insertOne({firstName:'Ada',lastName:'Lovelace'})"
   assert_success
-  assert_output --partial "nInserted"
+  assert_output --partial "acknowledged: true"
 }
 
 @test "can commit mongo-test" {
@@ -78,13 +84,13 @@ load '../test_helper'
 }
 
 @test "can insert mongo-test Grace Hopper" {
-  run docker exec mongo-test mongo --quiet --eval "db.employees.insert({'firstName':'Grace','lastName':'Hopper'})"
+  run docker exec mongo-test mongosh --quiet --eval "db.employees.insertOne({firstName:'Grace',lastName:'Hopper'})"
   assert_success
-  assert_output --partial "nInserted"
+  assert_output --partial "acknowledged: true"
 }
 
 @test "can select employees from mongo-test" {
-  run docker exec mongo-test mongo --quiet --eval 'db.employees.find().forEach(printjson)'
+  run docker exec mongo-test mongosh --quiet --eval 'db.employees.find()'
   assert_success
   assert_output --partial "Ada"
   assert_output --partial "Grace"
@@ -106,8 +112,9 @@ load '../test_helper'
 }
 
 @test "mongo-test checkout was successful" {
-  run docker exec mongo-test mongo --quiet --eval 'db.employees.find().forEach(printjson)'
+  run docker exec mongo-test mongosh --quiet --eval 'db.employees.find()'
   assert_success
+  assert_output --partial "Ada"
   # Should NOT contain Grace (we checked out earlier commit)
   if echo "$output" | grep -q "Grace"; then
     echo "Expected Grace to be excluded from output after checkout"
