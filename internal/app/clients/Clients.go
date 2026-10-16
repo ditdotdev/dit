@@ -6,6 +6,7 @@ package clients
 import (
 	"github.com/ditdotdev/dit/internal/app/utils"
 	"os"
+	"time"
 )
 
 // commandRunner is the narrow interface around the part of
@@ -16,6 +17,10 @@ import (
 // would take minutes per test run).
 type commandRunner interface {
 	Exec(name string, arg ...string) (string, error)
+	// ExecWithTimeout abandons the command after timeout; the error then
+	// wraps context.DeadlineExceeded. Used where a shell-out may block
+	// indefinitely on the docker daemon (#244).
+	ExecWithTimeout(timeout time.Duration, name string, arg ...string) (string, error)
 }
 
 // realCE is the production-mode CommandExecutor; tests replace `ce` with

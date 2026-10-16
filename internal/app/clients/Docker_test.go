@@ -4,8 +4,11 @@
 package clients
 
 import (
+	"context"
+	"fmt"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/ditdotdev/dit/internal/app"
 )
@@ -176,10 +179,47 @@ type fakeCE struct {
 	out  string
 	err  error
 	last []string
+	// calls records every invocation (name followed by args) in order so
+	// tests can assert on sequences, e.g. that a cleanup `docker rm -f`
+	// follows a `docker run`.
+	calls [][]string
+	// hangOnRun, when non-nil, makes any `docker run ...` invocation block
+	// until the channel is closed. This simulates the wedged docker CLI
+	// client from #244: the daemon never finishes the container's --rm
+	// cleanup, so `docker run` never returns.
+	hangOnRun chan struct{}
+	// partialOut is what a hung `docker run` has already written before it
+	// stalls (the teardown script's own output); ExecWithTimeout returns it
+	// alongside the timeout error.
+	partialOut string
 }
 
-func (f *fakeCE) Exec(name string, arg ...string) (string, error) {
+func (f *fakeCE) record(name string, arg []string) {
 	f.last = append([]string{name}, arg...)
+	f.calls = append(f.calls, f.last)
+}
+
+func isRunArgs(arg []string) bool { return len(arg) > 0 && arg[0] == dockerRun }
+
+func (f *fakeCE) Exec(name string, arg ...string) (string, error) {
+	f.record(name, arg)
+	if f.hangOnRun != nil && isRunArgs(arg) {
+		<-f.hangOnRun
+	}
+	return f.out, f.err
+}
+
+// ExecWithTimeout mirrors the real executor's contract: a hung command is
+// abandoned after timeout and the error wraps context.DeadlineExceeded.
+func (f *fakeCE) ExecWithTimeout(timeout time.Duration, name string, arg ...string) (string, error) {
+	f.record(name, arg)
+	if f.hangOnRun != nil && isRunArgs(arg) {
+		select {
+		case <-f.hangOnRun:
+		case <-time.After(timeout):
+			return f.partialOut, fmt.Errorf("%s timed out after %s: %w", name, timeout, context.DeadlineExceeded)
+		}
+	}
 	return f.out, f.err
 }
 

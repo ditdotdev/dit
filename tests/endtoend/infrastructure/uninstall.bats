@@ -23,6 +23,14 @@ load '../test_helper'
   assert_output --partial "Error response from daemon: No such container: dit-docker-launch"
 }
 
+@test "dit teardown container is not left behind" {
+  # #244: the teardown helper runs under a fixed name and is force-removed
+  # by the CLI instead of relying on the daemon's --rm auto-remove.
+  run docker inspect --type container --format='{{.State.Status}}' dit-docker-teardown
+  assert_failure
+  assert_output --partial "Error response from daemon: No such container: dit-docker-teardown"
+}
+
 @test "dit docker images not removed" {
   run docker inspect --type image --format='{{.RepoTags}}' dit:latest
   assert_success

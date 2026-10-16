@@ -117,6 +117,7 @@ type fakeDocker struct {
 	stopErr            error
 	tagErr             error
 	teardownErr        error
+	teardownOut        string
 	versionErr         error
 	volumeExists       map[string]bool
 
@@ -200,7 +201,7 @@ func (f *fakeDocker) Run(string, string, []string) (string, error) {
 func (f *fakeDocker) Start(string) (string, error)        { f.StartCalls++; return "", f.startErr }
 func (f *fakeDocker) Stop(string) (string, error)         { f.StopCalls++; return "", f.stopErr }
 func (f *fakeDocker) Tag(string, string) (string, error)  { return "", f.tagErr }
-func (f *fakeDocker) TeardownDitServers() (string, error) { return "", f.teardownErr }
+func (f *fakeDocker) TeardownDitServers() (string, error) { return f.teardownOut, f.teardownErr }
 func (f *fakeDocker) Version() (string, error)            { return "", f.versionErr }
 func (f *fakeDocker) VolumeExists(name string) bool       { return f.volumeExists[name] }
 
