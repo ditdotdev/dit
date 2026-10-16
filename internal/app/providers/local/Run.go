@@ -19,14 +19,35 @@ const (
 	keyPort     = "port"
 )
 
-// splitImageTag splits a container reference into image and tag, defaulting
-// the tag to "latest" when the reference has none.
-func splitImageTag(container string) (string, string) {
-	if !strings.Contains(container, ":") {
-		return container, "latest"
+// defaultTag is the tag assumed when a container reference has none.
+const defaultTag = "latest"
+
+// parseImageRef splits a container reference into image, tag and digest.
+// The tag defaults to "latest" when the reference has none. The digest is
+// the "sha256:…" part of an image:tag@sha256:… reference, which dit clone
+// passes so the container starts from the exact committed image (#240).
+func parseImageRef(ref string) (image, tag, digest string) {
+	if at := strings.Index(ref, "@"); at >= 0 {
+		digest = ref[at+1:]
+		ref = ref[:at]
 	}
-	parts := strings.Split(container, ":")
-	return parts[0], parts[1]
+	if !strings.Contains(ref, ":") {
+		return ref, defaultTag, digest
+	}
+	parts := strings.Split(ref, ":")
+	return parts[0], parts[1], digest
+}
+
+// imageLookupRef is the reference used for every docker inspect and run:
+// image:tag, or image:tag@digest when a digest is known. Docker resolves
+// the latter by the digest alone, so a local image:tag that points at a
+// different image is never consulted.
+func imageLookupRef(image, tag, digest string) string {
+	ref := image + ":" + tag
+	if digest != "" {
+		ref += "@" + digest
+	}
+	return ref
 }
 
 // createRepoVolumes creates one docker volume per image volume path and
@@ -131,18 +152,19 @@ func Run(container string, repository string, envVars []string, args []string, d
 		osExit(1)
 	}
 
-	image, tag := splitImageTag(container)
+	image, tag, digest := parseImageRef(container)
+	ref := imageLookupRef(image, tag, digest)
 
-	if err := common.EnsureImage(docker, image+":"+tag, "", pull); err != nil {
+	if _, err := common.EnsureImage(docker, ref, "", pull); err != nil {
 		fmt.Println(err)
 		osExit(1)
 	}
-	imageInfo, _ := docker.InspectImage(image + ":" + tag)
+	imageInfo, _ := docker.InspectImage(ref)
 	if len(imageInfo) == 0 {
 		fmt.Println("Image information is not available")
 		osExit(1)
 	}
-	vols := docker.GetSliceFromImage(image+":"+tag, "Config", "Volumes")
+	vols := docker.GetSliceFromImage(ref, "Config", "Volumes")
 	if len(vols) < 1 {
 		fmt.Println("No volumes found for image " + image)
 		osExit(1)
@@ -167,11 +189,11 @@ func Run(container string, repository string, envVars []string, args []string, d
 		return "", err
 	}
 	argList = append(argList, volArgs...)
-	argList = append(argList, filterRunArgs(args, image+":"+tag)...)
+	argList = append(argList, filterRunArgs(args, ref)...)
 	argList = append(argList, flagName)
 	argList = append(argList, containerName)
 
-	portArgs, metaPorts := portRunArgs(docker.GetSliceFromImage(image+":"+tag, "Config", "ExposedPorts"), disablePortMap)
+	portArgs, metaPorts := portRunArgs(docker.GetSliceFromImage(ref, "Config", "ExposedPorts"), disablePortMap)
 	argList = append(argList, portArgs...)
 
 	for _, env := range envVars {
@@ -184,13 +206,13 @@ func Run(container string, repository string, envVars []string, args []string, d
 	}
 
 	repoDigest := ""
-	if digests := common.RepoDigests(docker.GetValFromImage(image+":"+tag, "RepoDigests")); len(digests) > 0 {
+	if digests := common.RepoDigests(docker.GetValFromImage(ref, "RepoDigests")); len(digests) > 0 {
 		repoDigest = digests[0]
 	}
 
 	var dockerRunCmd string
 	if len(repoDigest) == 0 {
-		dockerRunCmd = image + ":" + tag
+		dockerRunCmd = ref
 	} else {
 		dockerRunCmd = repoDigest
 	}

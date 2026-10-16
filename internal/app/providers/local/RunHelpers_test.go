@@ -8,22 +8,35 @@ import (
 	"testing"
 )
 
-func TestSplitImageTag(t *testing.T) {
+func TestParseImageRef(t *testing.T) {
 	cases := []struct {
-		container string
-		wantImage string
-		wantTag   string
+		ref        string
+		wantImage  string
+		wantTag    string
+		wantDigest string
 	}{
-		{"postgres", "postgres", "latest"},
-		{"postgres:16", "postgres", "16"},
-		{"postgres:", "postgres", ""},
+		{"postgres", "postgres", "latest", ""},
+		{"postgres:16", "postgres", "16", ""},
+		{"postgres:", "postgres", "", ""},
+		// Issue #240: clone hands Run the committed digest on the reference.
+		{"postgres:16@sha256:abc", "postgres", "16", "sha256:abc"},
+		{"postgres@sha256:abc", "postgres", "latest", "sha256:abc"},
 	}
 	for _, tc := range cases {
-		image, tag := splitImageTag(tc.container)
-		if image != tc.wantImage || tag != tc.wantTag {
-			t.Errorf("splitImageTag(%q) = (%q, %q), want (%q, %q)",
-				tc.container, image, tag, tc.wantImage, tc.wantTag)
+		image, tag, digest := parseImageRef(tc.ref)
+		if image != tc.wantImage || tag != tc.wantTag || digest != tc.wantDigest {
+			t.Errorf("parseImageRef(%q) = (%q, %q, %q), want (%q, %q, %q)",
+				tc.ref, image, tag, digest, tc.wantImage, tc.wantTag, tc.wantDigest)
 		}
+	}
+}
+
+func TestImageLookupRef(t *testing.T) {
+	if got := imageLookupRef("postgres", "16", ""); got != "postgres:16" {
+		t.Errorf("imageLookupRef without digest = %q, want postgres:16", got)
+	}
+	if got := imageLookupRef("postgres", "16", "sha256:abc"); got != "postgres:16@sha256:abc" {
+		t.Errorf("imageLookupRef with digest = %q, want postgres:16@sha256:abc", got)
 	}
 }
 
@@ -37,6 +50,7 @@ func TestFilterRunArgs(t *testing.T) {
 		{"strips --name and value", []string{flagName, "custom", "-e", "X=1"}, "img:latest", []string{"-e", "X=1"}},
 		{"strips trailing --name without value", []string{"-e", "X=1", flagName}, "img:latest", []string{"-e", "X=1"}},
 		{"strips image:tag token", []string{"-e", "X=1", "img:latest"}, "img:latest", []string{"-e", "X=1"}},
+		{"strips digest reference token", []string{"img:latest@sha256:abc", "-e", "X=1"}, "img:latest@sha256:abc", []string{"-e", "X=1"}},
 		{"keeps everything else", []string{"-p", "8080:80"}, "img:latest", []string{"-p", "8080:80"}},
 		{"empty args", nil, "img:latest", nil},
 	}

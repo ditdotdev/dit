@@ -23,15 +23,20 @@ type fakeCloneDocker struct {
 	pullErrFor       map[string]error
 	pullMakesPresent bool
 	repoDigests      string
-	tagErr           error
+	// absent marks individual references (image:tag or image@digest) as not
+	// present; inspectErr marks everything absent. A pull with
+	// pullMakesPresent clears both for the pulled reference.
+	absent map[string]bool
 
 	pulledRefs []string
-	tagCalls   [][2]string
 }
 
 func (f *fakeCloneDocker) InspectImage(image string) (string, error) {
 	if f.inspectErr != nil {
 		return "", f.inspectErr
+	}
+	if f.absent[image] {
+		return "", errors.New("no such image: " + image)
 	}
 	return `[{"Id":"sha256:local"}]`, nil
 }
@@ -51,12 +56,9 @@ func (f *fakeCloneDocker) Pull(image string) (string, error) {
 	}
 	if f.pullMakesPresent {
 		f.inspectErr = nil
+		delete(f.absent, image)
 	}
 	return "", nil
-}
-func (f *fakeCloneDocker) Tag(source, target string) (string, error) {
-	f.tagCalls = append(f.tagCalls, [2]string{source, target})
-	return "", f.tagErr
 }
 
 func makeCallbacks(runErr error) (cb CloneCallbacks, calls *cloneCallCounts) {
@@ -64,6 +66,7 @@ func makeCallbacks(runErr error) (cb CloneCallbacks, calls *cloneCallCounts) {
 	cb = CloneCallbacks{
 		Run: func(image, repoName string, envs, args []string, disablePortMap, privileged bool) (string, error) {
 			c.runCalls++
+			c.runImage = image
 			return "ran", runErr
 		},
 		Checkout: func(repoName, commitId string) { c.checkoutCalls++ },
@@ -74,6 +77,7 @@ func makeCallbacks(runErr error) (cb CloneCallbacks, calls *cloneCallCounts) {
 
 type cloneCallCounts struct {
 	runCalls      int
+	runImage      string // image reference the last Run call received
 	checkoutCalls int
 	removeCalls   int
 }

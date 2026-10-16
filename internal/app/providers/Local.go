@@ -61,7 +61,8 @@ func (l local) Clone(uri string, repo string, commit string, params []string, ar
 	cb := cmn.CloneCallbacks{
 		Run: func(image, repoName string, envs, args []string, disablePortMap, privileged bool) (string, error) {
 			// cmn.Clone has already applied the pull policy; PullMissing
-			// here finds the image present and avoids a second pull.
+			// here finds the image present and avoids a second pull. image
+			// carries the committed digest (image:tag@sha256:…) when known.
 			return lcl.Run(image, repoName, envs, args, disablePortMap, privileged, cmn.PullMissing, false, l.portNum, l.contextName)
 		},
 		Checkout: func(repoName, commitId string) {

@@ -128,7 +128,9 @@ spawning a background `kubectl port-forward` process for each known port.
 Disable this with `-P` / `--disable-port-mapping` on `dit run` or `dit clone`.
 The `--pull` flag on those commands governs only the docker daemon the CLI
 uses to read image metadata; the cluster pulls the image itself according to
-its own `imagePullPolicy`, which dit does not set.
+its own `imagePullPolicy`, which dit does not set. The StatefulSet references
+the image by digest (`image@sha256:...`), so a clone runs the exact image the
+commit was made with.
 Each forwarder's process id is recorded under `~/.dit`
 (`portforward-<repository>-<port>.pid`) so that `dit stop` and `dit rm` can
 terminate it, but nothing supervises the process while it runs — if it dies

@@ -27,7 +27,8 @@ import (
 type CloneCallbacks struct {
 	// Run brings up a container/pod for `repoName` from `image`, returning a
 	// human-readable status string (printed to stdout on success). Error
-	// triggers Remove + os.Exit via removeRepo.
+	// triggers Remove + os.Exit via removeRepo. `image` is image:tag, or
+	// image:tag@sha256:… when the commit recorded a digest (issue #240).
 	Run func(image, repoName string, envs, args []string, disablePortMap, privileged bool) (string, error)
 	// Checkout switches `repoName` to the given commit. Errors here are
 	// already printed by the underlying call; this fn doesn't propagate.
@@ -154,11 +155,17 @@ func Clone(uri string, repo string, guid string, params []string, args []string,
 		}
 	}
 	metadata := Metadata{}.Load(props)
-	// Construct image reference from image name and tag
-	imageRef := metadata.image.Image + ":" + metadata.image.Tag
 	// Resolve the image once here; the Run callback receives PullMissing
 	// so it finds the image present and never pulls a second time.
-	if err := EnsureImage(docker, imageRef, metadata.image.Digest, pull); err != nil {
+	//
+	// The commit records the digest the data was written with. Clone runs
+	// that digest (imageToRun is image:tag@sha256:… when it is known), not
+	// whatever image:tag resolves to on this daemon: a moved tag would start
+	// a newer database binary over older data files (issue #240). The
+	// local image:tag is never retagged.
+	imageRef := metadata.image.Image + ":" + metadata.image.Tag
+	imageToRun, err := EnsureImage(docker, imageRef, metadata.image.Digest, pull)
+	if err != nil {
 		fmt.Println(err)
 		osExit(1)
 	}
@@ -170,7 +177,7 @@ func Clone(uri string, repo string, guid string, params []string, args []string,
 	// Use disablePortMap from metadata if available, otherwise use the command-line flag
 	metadataDisablePortMap := metadata.GetDisablePortMap()
 	finalDisablePortMap := disablePortMap || metadataDisablePortMap
-	m, err := cb.Run(imageRef, repoName, envs, args, finalDisablePortMap, privileged)
+	m, err := cb.Run(imageToRun, repoName, envs, args, finalDisablePortMap, privileged)
 	if err != nil {
 		fmt.Printf("failed to run container: %v\n", err)
 		removeRepo(repoName, cb)

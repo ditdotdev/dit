@@ -23,7 +23,7 @@ dit run [IMAGE] [flags]
   -e, --env strings            container specific environment variables
   -P, --disable-port-mapping   disable default port mapping from container to localhost
       --privileged             run container in privileged mode with extended permissions
-      --pull string            image pull policy: missing (pull only if absent), always (re-pull unless the local image matches the commit), never (use the local image only) (default "missing")
+      --pull string            image pull policy: missing (use the local image, pull only if absent; clone uses the digest recorded in the commit), always (re-pull the tag; clone uses the recorded digest), never (local images only) (default "missing")
   -t, --tags strings           filter latest commit by tags
   -h, --help                   help for run
 ```

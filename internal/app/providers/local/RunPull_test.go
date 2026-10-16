@@ -96,6 +96,40 @@ func TestRun_PullMissingAbsentPullFailsExits(t *testing.T) {
 	}
 }
 
+// Issue #240: clone passes image:tag@digest. Run must inspect that
+// reference (not image:tag, which may point at a different image), record
+// the committed digest, and start the container from it without pulling.
+func TestRun_DigestReferenceRunsCommittedImage(t *testing.T) {
+	const ref = "img:1.0@sha256:abc"
+	d := &fakeDocker{
+		inspectImageOut: "{}",
+		getSliceFromImage: map[string][]string{
+			ref + ":Config.Volumes":      {"/data"},
+			ref + ":Config.ExposedPorts": {"5432/tcp"},
+		},
+		getValFromImage: map[string]string{ref + ":RepoDigests": `["img@sha256:abc"]`},
+		pullErr:         errors.New("must not pull"),
+	}
+	port := runPullServer(t)
+	var r runResult
+	r.output = captureStdout(func() {
+		r.didExit, r.code = captureExit(t, func() {
+			withDocker(t, d, func() {
+				r.s, r.err = Run(ref, "img", nil, []string{ref, "-e", "X=1"}, false, false, common.PullMissing, true, port, "ctx")
+			})
+		})
+	})
+	if r.didExit || r.err != nil {
+		t.Fatalf("unexpected failure: exit=%v code=%d err=%v output=%q", r.didExit, r.code, r.err, r.output)
+	}
+	if d.PullCalls != 0 {
+		t.Errorf("expected no pull for a present digest, got %d (%v)", d.PullCalls, d.PulledRefs)
+	}
+	if !reflect.DeepEqual(d.RunImages, []string{"img@sha256:abc"}) {
+		t.Errorf("expected docker run of the committed digest, got %v", d.RunImages)
+	}
+}
+
 func TestRun_PullAlwaysPullsTag(t *testing.T) {
 	d := presentFake()
 	r := runWithPolicy(t, d, common.PullAlways)

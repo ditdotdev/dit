@@ -37,7 +37,7 @@ func validatePullFlag(cmd *cobra.Command, args []string) error {
 	return err
 }
 
-const pullFlagHelp = "image pull policy: missing (pull only if absent), always (re-pull unless the local image matches the commit), never (use the local image only)"
+const pullFlagHelp = "image pull policy: missing (use the local image, pull only if absent; clone uses the digest recorded in the commit), always (re-pull the tag; clone uses the recorded digest), never (local images only)"
 
 func init() {
 	rootCmd.AddCommand(runCmd)

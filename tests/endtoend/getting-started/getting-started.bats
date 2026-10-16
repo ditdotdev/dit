@@ -12,6 +12,15 @@ load '../test_helper'
   assert_output --partial "Starting container hello-world"
 }
 
+@test "clone runs the image digest recorded in the demo commit (#240)" {
+  # The clone must start from the exact image the demo data was written
+  # with, not from whatever postgres:latest resolves to today.
+  run docker inspect --format '{{.Config.Image}}' hello-world
+  assert_success
+  echo "container image: $output"
+  [[ "$output" =~ ^postgres@sha256:[0-9a-f]{64}$ ]]
+}
+
 @test "can list hello-world/postgres" {
   run "$D3" ls
   assert_success
