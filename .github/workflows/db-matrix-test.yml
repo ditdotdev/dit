@@ -331,8 +331,8 @@ jobs:
         # ditdotdev/minio:RELEASE.2025-10-15T17-29-55Z is the final upstream
         # release built from source by dit-remote-server (deploy/minio).
         # Its default command prints help and exits, so the -server wrapper
-        # adds CMD server /data. Built and pushed by "Prepare database image"
-        # below when the tag is not yet on Docker Hub.
+        # adds CMD server /data. Built in the runner by "Build or pull
+        # database image" below; never pushed (#250).
         # Source Dockerfile: tests/endtoend/db-matrix/minio-*.Dockerfile
         # S3-compatible object storage for cloud-native applications
         - ditdotdev/minio:RELEASE.2025-10-15T17-29-55Z-server
@@ -493,6 +493,7 @@ jobs:
       
       # Authenticate to Docker Hub so 'dit install' can pull ditdotdev/* images
       # without hitting the anonymous pull rate-limit on shared runner IPs (#167).
+      # Read-only use: nothing in this workflow pushes to Docker Hub (#250).
       - name: Log in to Docker Hub
         uses: docker/login-action@v4
         with:
@@ -519,25 +520,24 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: us-west-2
       
-      - name: Prepare database image
-        # Pull the matrix image. If the tag is not on Docker Hub but a wrapper
-        # Dockerfile exists under tests/endtoend/db-matrix (named
-        # <image>-<tag>.Dockerfile), build it and push it under that ref using
-        # the Docker Hub login above. `dit clone` always pulls the repo's
-        # image (Clone.go), so a local-only build is not enough.
+      - name: Build or pull database image
+        # A matrix entry with a wrapper Dockerfile under tests/endtoend/db-matrix
+        # (named <image>-<tag>.Dockerfile) is built here from the repo source and
+        # never pushed, so the job proves run, commit, push, pull, delete and
+        # clone against an image that exists only in the local docker cache
+        # (#247, #240, #250). The Docker Hub copies of the ditdotdev/* wrappers
+        # are published by their own repos (e.g. ditdotdev/dynamodb-local), not
+        # by this test. Entries without a wrapper are pulled as-is.
         run: |
-          if docker pull "$DATABASE_VERSION"; then
-            exit 0
-          fi
           name="${DATABASE_VERSION##*/}"
           dockerfile="tests/endtoend/db-matrix/${name/:/-}.Dockerfile"
-          if [[ ! -f "$dockerfile" ]]; then
-            echo "::error::Cannot pull $DATABASE_VERSION and no wrapper Dockerfile at $dockerfile"
-            exit 1
+          if [[ -f "$dockerfile" ]]; then
+            echo "Building $DATABASE_VERSION in the runner from $dockerfile (never pushed)"
+            docker build -t "$DATABASE_VERSION" -f "$dockerfile" tests/endtoend/db-matrix
+            docker image inspect --format 'Built {{.Id}} RepoDigests={{.RepoDigests}}' "$DATABASE_VERSION"
+          else
+            docker pull "$DATABASE_VERSION"
           fi
-          echo "Pull failed; building and publishing $DATABASE_VERSION from $dockerfile"
-          docker build -t "$DATABASE_VERSION" -f "$dockerfile" tests/endtoend/db-matrix
-          docker push "$DATABASE_VERSION"
         shell: bash
         env:
           DATABASE_VERSION: ${{ matrix.database }}
