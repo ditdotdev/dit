@@ -94,6 +94,9 @@ test-s3-workflow:
 test-ssh-workflow:
 	bats tests/endtoend/remotes/ssh/ssh-workflow.bats
 
+test-image-pull:
+	bats tests/endtoend/image-pull/image-pull-policy.bats
+
 test-multi-context:
 	bats tests/endtoend/multi-context/multi-context.bats
 
@@ -144,4 +147,4 @@ test-kubernetes:
 	bats tests/endtoend/context/kubernetes/kubernetes-context-edge.bats
 
 # TODO: diagnose test-multi-context test-db-matrix in gh actions and readd to e2e
-e2e: test-install test-getting-started test-tags test-tag-management test-docker-context test-container-lifecycle test-context-list test-context-lifecycle test-data-import test-error-handling test-s3-workflow test-push-pull-options test-ssh-workflow test-kubernetes test-upgrade test-uninstall
+e2e: test-install test-getting-started test-tags test-tag-management test-docker-context test-container-lifecycle test-context-list test-context-lifecycle test-data-import test-error-handling test-s3-workflow test-push-pull-options test-ssh-workflow test-image-pull test-kubernetes test-upgrade test-uninstall

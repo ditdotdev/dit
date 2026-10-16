@@ -5,6 +5,7 @@ package commands
 
 import (
 	"github.com/ditdotdev/dit/internal/app/providers"
+	cmn "github.com/ditdotdev/dit/internal/app/providers/common"
 
 	"github.com/spf13/cobra"
 )
@@ -18,14 +19,25 @@ Containers associated with a repository can be launched using context specific
 run arguments and passed verbatim using '--' as the flag.
 
 Docker example: 'dit run --disable-port-mapping postgres -- -p 2345:5432'
-Privileged example: 'dit run --privileged icr.io/db2_community/db2:latest'`,
-	Args: cobra.MinimumNArgs(1),
+Privileged example: 'dit run --privileged icr.io/db2_community/db2:latest'
+Local image example: 'dit run --pull never myorg/postgres:16'`,
+	Args:    cobra.MinimumNArgs(1),
+	PreRunE: validatePullFlag,
 	Run: func(cmd *cobra.Command, args []string) {
 		image := args[0]
+		policy, _ := cmn.ParsePullPolicy(pull)
 		p, repoName := providers.Resolve(context, name)
-		p.Run(image, repoName, envVars, args[1:], disablePortMap, privileged)
+		p.Run(image, repoName, envVars, args[1:], disablePortMap, privileged, policy)
 	},
 }
+
+// validatePullFlag rejects a bad --pull value before any provider work.
+func validatePullFlag(cmd *cobra.Command, args []string) error {
+	_, err := cmn.ParsePullPolicy(pull)
+	return err
+}
+
+const pullFlagHelp = "image pull policy: missing (pull only if absent), always (re-pull unless the local image matches the commit), never (use the local image only)"
 
 func init() {
 	rootCmd.AddCommand(runCmd)
@@ -33,6 +45,7 @@ func init() {
 	runCmd.Flags().StringSliceVarP(&envVars, "env", "e", nil, "container specific environment variables")
 	runCmd.Flags().BoolVarP(&disablePortMap, "disable-port-mapping", "P", false, "disable default port mapping from container to localhost")
 	runCmd.Flags().BoolVar(&privileged, "privileged", false, "run container in privileged mode with extended permissions")
+	runCmd.Flags().StringVar(&pull, "pull", "missing", pullFlagHelp)
 	runCmd.Flags().StringSliceVarP(&tags, "tags", "t", nil, "filter latest commit by tags")
 	runCmd.Flags().SortFlags = false // keep declaration order in help: most-used flags first (#207)
 }

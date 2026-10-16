@@ -126,6 +126,9 @@ Each commit corresponds to a VolumeSnapshot.
 By default, Dit makes all exposed ports available on the local system by
 spawning a background `kubectl port-forward` process for each known port.
 Disable this with `-P` / `--disable-port-mapping` on `dit run` or `dit clone`.
+The `--pull` flag on those commands governs only the docker daemon the CLI
+uses to read image metadata; the cluster pulls the image itself according to
+its own `imagePullPolicy`, which dit does not set.
 Each forwarder's process id is recorded under `~/.dit`
 (`portforward-<repository>-<port>.pid`) so that `dit stop` and `dit rm` can
 terminate it, but nothing supervises the process while it runs — if it dies

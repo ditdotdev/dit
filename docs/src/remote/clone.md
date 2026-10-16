@@ -18,6 +18,15 @@ not and can be specified with the `--` argument flag. See [dit clone](../cli/cmd
 for more details.
 
 > **Note:**
+> Clone uses the image already on your docker daemon when it is present and
+> pulls it only when it is missing, the same as `dit run`. Pass
+> `--pull always` to refresh it from the registry: dit compares the local
+> image's digest with the digest recorded in the commit and only pulls when
+> they differ, so a clone of an unchanged image never touches the network.
+> Pass `--pull never` to refuse to pull at all; if the local image differs
+> from the committed digest, dit prints a warning and keeps the local image.
+
+> **Note:**
 > The clone command uses the latest commit by default. To clone a specific
 > commit, add the commit GUID to the URI with a `#` tag. Example::
 >

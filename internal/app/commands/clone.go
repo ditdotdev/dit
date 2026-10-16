@@ -4,6 +4,8 @@
 package commands
 
 import (
+	cmn "github.com/ditdotdev/dit/internal/app/providers/common"
+
 	"github.com/spf13/cobra"
 )
 
@@ -13,12 +15,14 @@ var (
 
 // cloneCmd represents the clone command
 var cloneCmd = &cobra.Command{
-	Use:   "clone URI [ARGS...]",
-	Short: "Clone a remote repository to local repository",
-	Args:  cobra.MinimumNArgs(1),
+	Use:     "clone URI [ARGS...]",
+	Short:   "Clone a remote repository to local repository",
+	Args:    cobra.MinimumNArgs(1),
+	PreRunE: validatePullFlag,
 	Run: func(cmd *cobra.Command, args []string) {
 		uri := args[0]
-		provider.Clone(uri, name, guid, params, args[1:], disablePortMap, tags)
+		policy, _ := cmn.ParsePullPolicy(pull)
+		provider.Clone(uri, name, guid, params, args[1:], disablePortMap, tags, policy)
 	},
 }
 
@@ -28,5 +32,6 @@ func init() {
 	cloneCmd.Flags().StringVarP(&guid, "commit", "c", "", "commit to checkout")
 	cloneCmd.Flags().StringSliceVarP(&params, "parameters", "p", nil, "provider specific parameters. key=value format")
 	cloneCmd.Flags().BoolVarP(&disablePortMap, "disable-port-mapping", "P", false, "disable default port mapping from container to localhost")
+	cloneCmd.Flags().StringVar(&pull, "pull", "missing", pullFlagHelp)
 	cloneCmd.Flags().StringSliceVarP(&tags, "tags", "t", nil, "filter latest commit by tags")
 }

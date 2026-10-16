@@ -5,6 +5,7 @@ package kubernetes
 
 import (
 	"fmt"
+	"github.com/ditdotdev/dit/internal/app/providers/common"
 	"os"
 	"strconv"
 	"strings"
@@ -116,7 +117,7 @@ func parseExposedPorts(dockerPorts []string) ([]map[string]string, []int) {
 	return metaPorts, ports
 }
 
-func Run(container string, repository string, envVars []string, args []string, disablePortMap bool, privileged bool, createRepo bool, port int, context string) {
+func Run(container string, repository string, envVars []string, args []string, disablePortMap bool, privileged bool, pull common.PullPolicy, createRepo bool, port int, context string) {
 	cfg.Servers[0].URL = "http://localhost:" + strconv.Itoa(port)
 	docker := newDocker(context, port)
 
@@ -139,14 +140,11 @@ func Run(container string, repository string, envVars []string, args []string, d
 
 	image, tag := splitImageTag(container)
 
-	imageInfo, err := docker.InspectImage(image + ":" + tag)
-	if err != nil {
-		if _, err := docker.Pull(image + ":" + tag); err != nil {
-			fmt.Printf("Error pulling image %s:%s: %v\n", image, tag, err)
-			osExit(1)
-		}
-		imageInfo, _ = docker.InspectImage(image + ":" + tag)
+	if err := common.EnsureImage(docker, image+":"+tag, "", pull); err != nil {
+		fmt.Println(err)
+		osExit(1)
 	}
+	imageInfo, _ := docker.InspectImage(image + ":" + tag)
 	if len(imageInfo) == 0 {
 		fmt.Println("Image information is not available")
 		osExit(1)
@@ -175,12 +173,10 @@ func Run(container string, repository string, envVars []string, args []string, d
 	fmt.Println("Waiting for volumes to be ready")
 	waitForVolumesReady(repoName, ditVolumes)
 
-	repoDigest := docker.GetValFromImage(image+":"+tag, "RepoDigests")
-	repoDigest = strings.ReplaceAll(repoDigest, "[", "")
-	repoDigest = strings.ReplaceAll(repoDigest, "]", "")
-	repoDigest = strings.ReplaceAll(repoDigest, " ", "")
-	repoDigest = strings.ReplaceAll(repoDigest, `"`, "")
-	repoDigest = strings.TrimSpace(repoDigest)
+	repoDigest := ""
+	if digests := common.RepoDigests(docker.GetValFromImage(image+":"+tag, "RepoDigests")); len(digests) > 0 {
+		repoDigest = digests[0]
+	}
 
 	var imageId string
 	if len(repoDigest) == 0 {

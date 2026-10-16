@@ -4,6 +4,8 @@
 package local
 
 import (
+	"github.com/ditdotdev/dit/internal/app/providers/common"
+
 	"errors"
 	"net/http"
 	"strings"
@@ -104,7 +106,7 @@ func TestRun_ArgsFilteredAndImageDigestUsed(t *testing.T) {
 	_ = captureStdout(func() {
 		_, _ = captureExit(t, func() {
 			withDocker(t, d, func() {
-				_, _ = Run("img:tag", "", nil, args, true, false, false, port, "ctx")
+				_, _ = Run("img:tag", "", nil, args, true, false, common.PullMissing, false, port, "ctx")
 			})
 		})
 	})
@@ -132,7 +134,7 @@ func TestRun_NameWithoutValueArg(t *testing.T) {
 	_ = captureStdout(func() {
 		_, _ = captureExit(t, func() {
 			withDocker(t, d, func() {
-				_, _ = Run("img", "", nil, args, true, false, false, port, "ctx")
+				_, _ = Run("img", "", nil, args, true, false, common.PullMissing, false, port, "ctx")
 			})
 		})
 	})

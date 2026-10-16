@@ -18,7 +18,7 @@ func TestClone_InvalidURIExits(t *testing.T) {
 	output := captureStdout(func() {
 		withDocker(t, &fakeCloneDocker{}, func() {
 			didExit, code = captureExit(t, func() {
-				Clone("://bad", "", "", nil, nil, false, nil, 1, "docker", CloneCallbacks{})
+				Clone("://bad", "", "", nil, nil, false, nil, PullMissing, 1, "docker", CloneCallbacks{})
 			})
 		})
 	})

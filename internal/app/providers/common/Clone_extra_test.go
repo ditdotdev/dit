@@ -10,17 +10,53 @@ import (
 	"testing"
 )
 
+// fakeCloneDocker models the image side of a docker daemon:
+//   - inspectErr != nil means the image is absent;
+//   - repoDigests is the raw [0].RepoDigests inspect text ("" for an image
+//     that was built locally and never pushed);
+//   - pullErr fails every pull, pullErrFor fails pulls of specific refs;
+//   - pullMakesPresent makes a successful pull clear inspectErr.
 type fakeCloneDocker struct {
 	stubDocker
-	inspectErr error
-	pullErr    error
-	pullCalls  int
+	inspectErr       error
+	pullErr          error
+	pullErrFor       map[string]error
+	pullMakesPresent bool
+	repoDigests      string
+	tagErr           error
+
+	pulledRefs []string
+	tagCalls   [][2]string
 }
 
-func (f *fakeCloneDocker) InspectImage(image string) (string, error) { return "", f.inspectErr }
+func (f *fakeCloneDocker) InspectImage(image string) (string, error) {
+	if f.inspectErr != nil {
+		return "", f.inspectErr
+	}
+	return `[{"Id":"sha256:local"}]`, nil
+}
+func (f *fakeCloneDocker) GetValFromImage(image string, key ...string) string {
+	if len(key) > 0 && key[len(key)-1] == "RepoDigests" {
+		return f.repoDigests
+	}
+	return ""
+}
 func (f *fakeCloneDocker) Pull(image string) (string, error) {
-	f.pullCalls++
-	return "", f.pullErr
+	f.pulledRefs = append(f.pulledRefs, image)
+	if err, ok := f.pullErrFor[image]; ok && err != nil {
+		return "", err
+	}
+	if f.pullErr != nil {
+		return "", f.pullErr
+	}
+	if f.pullMakesPresent {
+		f.inspectErr = nil
+	}
+	return "", nil
+}
+func (f *fakeCloneDocker) Tag(source, target string) (string, error) {
+	f.tagCalls = append(f.tagCalls, [2]string{source, target})
+	return "", f.tagErr
 }
 
 func makeCallbacks(runErr error) (cb CloneCallbacks, calls *cloneCallCounts) {
@@ -54,7 +90,7 @@ func TestClone_CreateRepositoryError(t *testing.T) {
 	output := captureStdout(func() {
 		didExit, code = captureExit(t, func() {
 			withDocker(t, &fakeCloneDocker{}, func() {
-				Clone("http://x.com/o/myrepo", "", "", nil, nil, false, nil, port, "ctx", cb)
+				Clone("http://x.com/o/myrepo", "", "", nil, nil, false, nil, PullMissing, port, "ctx", cb)
 			})
 		})
 	})
@@ -76,7 +112,7 @@ func TestClone_EmptyRemoteCommitsRemovesRepo(t *testing.T) {
 	output := captureStdout(func() {
 		didExit, code = captureExit(t, func() {
 			withDocker(t, &fakeCloneDocker{}, func() {
-				Clone("http://example.com/o/myrepo", "", "", nil, nil, false, nil, port, "ctx", cb)
+				Clone("http://example.com/o/myrepo", "", "", nil, nil, false, nil, PullMissing, port, "ctx", cb)
 			})
 		})
 	})
@@ -105,7 +141,7 @@ func TestClone_ImagePullFailsExits(t *testing.T) {
 	output := captureStdout(func() {
 		didExit, code = captureExit(t, func() {
 			withDocker(t, d, func() {
-				Clone("http://example.com/o/myrepo", "", "", nil, nil, false, nil, port, "ctx", cb)
+				Clone("http://example.com/o/myrepo", "", "", nil, nil, false, nil, PullMissing, port, "ctx", cb)
 			})
 		})
 	})
@@ -113,8 +149,41 @@ func TestClone_ImagePullFailsExits(t *testing.T) {
 	if !didExit || code != 1 {
 		t.Errorf("expected osExit(1) on image pull failure; got didExit=%v code=%d", didExit, code)
 	}
-	if !strings.Contains(output, "Unable to find image") {
+	if !strings.Contains(output, "not found locally") {
 		t.Errorf("expected pull-failure message, got %q", output)
+	}
+}
+
+// Regression for #247: an image that exists only in the local docker cache
+// (never pushed, or pushed to a registry that is now unreachable) must be
+// usable by clone exactly as it is by run. Inspect succeeds, every pull
+// fails, and clone must still start the container without pulling.
+func TestClone_LocalImageUnreachableRegistryDefaultPolicy(t *testing.T) {
+	port := startMockServer(t, statefulClone(true))
+
+	cb, calls := makeCallbacks(nil)
+	d := &fakeCloneDocker{pullErr: errors.New("manifest unknown")}
+	var didExit bool
+	var code int
+	output := captureStdout(func() {
+		didExit, code = captureExit(t, func() {
+			withDocker(t, d, func() {
+				Clone("http://example.com/o/myrepo", "", "", nil, nil, false, nil, PullMissing, port, "ctx", cb)
+			})
+		})
+	})
+
+	if didExit {
+		t.Errorf("clone must not exit when the image is present locally; got code=%d output=%q", code, output)
+	}
+	if len(d.pulledRefs) != 0 {
+		t.Errorf("expected no pull for a locally present image, got %v", d.pulledRefs)
+	}
+	if calls.runCalls != 1 {
+		t.Errorf("expected one Run call, got %d", calls.runCalls)
+	}
+	if strings.Contains(output, "Failed to pull image") {
+		t.Errorf("unexpected pull failure message: %q", output)
 	}
 }
 
@@ -127,7 +196,7 @@ func TestClone_RunCallbackErrorRemovesRepo(t *testing.T) {
 	output := captureStdout(func() {
 		didExit, code = captureExit(t, func() {
 			withDocker(t, &fakeCloneDocker{}, func() {
-				Clone("http://example.com/o/myrepo", "", "", nil, nil, false, nil, port, "ctx", cb)
+				Clone("http://example.com/o/myrepo", "", "", nil, nil, false, nil, PullMissing, port, "ctx", cb)
 			})
 		})
 	})
@@ -153,7 +222,7 @@ func TestClone_TagsWithCommitIdWarn(t *testing.T) {
 	output := captureStdout(func() {
 		_, _ = captureExit(t, func() {
 			withDocker(t, &fakeCloneDocker{}, func() {
-				Clone("http://example.com/o/myrepo", "", "c1", nil, nil, false, []string{"v1"}, port, "ctx", cb)
+				Clone("http://example.com/o/myrepo", "", "c1", nil, nil, false, []string{"v1"}, PullMissing, port, "ctx", cb)
 			})
 		})
 	})
@@ -171,7 +240,7 @@ func TestClone_HappyPath(t *testing.T) {
 	output := captureStdout(func() {
 		didExit, _ = captureExit(t, func() {
 			withDocker(t, &fakeCloneDocker{}, func() {
-				Clone("http://example.com/o/myrepo", "", "", nil, nil, false, nil, port, "ctx", cb)
+				Clone("http://example.com/o/myrepo", "", "", nil, nil, false, nil, PullMissing, port, "ctx", cb)
 			})
 		})
 	})
@@ -196,7 +265,7 @@ func TestClone_GetRemoteCommitErrorRemovesRepo(t *testing.T) {
 	output := captureStdout(func() {
 		didExit, code = captureExit(t, func() {
 			withDocker(t, &fakeCloneDocker{}, func() {
-				Clone("http://example.com/o/myrepo", "", "c1", nil, nil, false, nil, port, "ctx", cb)
+				Clone("http://example.com/o/myrepo", "", "c1", nil, nil, false, nil, PullMissing, port, "ctx", cb)
 			})
 		})
 	})
@@ -239,6 +308,12 @@ func cloneHandlerWithCommitError() http.HandlerFunc {
 // remote. If hasCommit is true the /remotes/origin/commits list returns one
 // commit; otherwise an empty list (triggering removeRepo).
 func statefulClone(hasCommit bool) http.HandlerFunc {
+	return statefulCloneWithProps(hasCommit, "{}")
+}
+
+// statefulCloneWithProps is statefulClone with the commit properties JSON
+// the remote returns, so tests can supply v2 image metadata.
+func statefulCloneWithProps(hasCommit bool, commitProps string) http.HandlerFunc {
 	createdRemote := false
 	return func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
@@ -266,10 +341,10 @@ func statefulClone(hasCommit bool) http.HandlerFunc {
 			createdRemote = true
 			_, _ = w.Write([]byte(cloneRemoteJSON))
 		case r.Method == http.MethodPost && strings.HasSuffix(r.URL.Path, "/remotes/origin/commits/c1"):
-			_, _ = w.Write([]byte(`{"id":"c1","properties":{}}`))
+			_, _ = w.Write([]byte(`{"id":"c1","properties":` + commitProps + `}`))
 		case r.Method == http.MethodPost && strings.HasSuffix(r.URL.Path, "/remotes/origin/commits"):
 			if hasCommit {
-				_, _ = w.Write([]byte(`[{"id":"c1","properties":{}}]`))
+				_, _ = w.Write([]byte(`[{"id":"c1","properties":` + commitProps + `}]`))
 			} else {
 				_, _ = w.Write([]byte(`[]`))
 			}

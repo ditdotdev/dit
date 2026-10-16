@@ -105,6 +105,7 @@ Requires: Docker, dit binary, AWS credentials (for S3 tests), SSH key (for SSH t
 | `test-s3-workflow` | `remotes/s3/s3-workflow.bats` |
 | `test-push-pull-options` | `push-pull/push-pull-options.bats` |
 | `test-ssh-workflow` | `remotes/ssh/ssh-workflow.bats` |
+| `test-image-pull` | `image-pull/image-pull-policy.bats` |
 | `test-uninstall` | `infrastructure/uninstall.bats` |
 
 ### `make e2e-server` (remote server functionality)
@@ -162,6 +163,7 @@ Requires: Docker, dit binary, dit-remote-server running locally
 | `--context` | (global) | multi-context |
 | `--registry` | install | Not tested (infrastructure-specific) |
 | `--privileged` | run | Not tested (requires privileged Docker) |
+| `--pull` | run, clone | image-pull-policy (missing/always/never, digest match and mismatch) |
 | `--path` | upgrade | Not tested (requires version mismatch) |
 
 ## Provider Coverage

@@ -38,13 +38,15 @@ func (k kubernetes) Checkout(repo string, guid string, tags []string) {
 	k8s.Checkout(repo, guid, tags, k.portNum)
 }
 
-func (k kubernetes) Clone(uri string, repo string, commit string, params []string, arguments []string, disablePortMap bool, tags []string) {
+func (k kubernetes) Clone(uri string, repo string, commit string, params []string, arguments []string, disablePortMap bool, tags []string, pull cmn.PullPolicy) {
 	cb := cmn.CloneCallbacks{
 		Run: func(image, repoName string, envs, args []string, disablePortMap, privileged bool) (string, error) {
 			// k8s.Run prints its own progress and returns nothing; the empty
 			// string keeps cmn.Clone from printing a second status line, and
 			// nil-error means common.Clone treats it as success.
-			k8s.Run(image, repoName, envs, args, disablePortMap, privileged, false, k.portNum, k.contextName)
+			// cmn.Clone has already applied the pull policy; PullMissing
+			// here finds the image present and avoids a second pull.
+			k8s.Run(image, repoName, envs, args, disablePortMap, privileged, cmn.PullMissing, false, k.portNum, k.contextName)
 			return "", nil
 		},
 		Checkout: func(repoName, commitId string) {
@@ -54,7 +56,7 @@ func (k kubernetes) Clone(uri string, repo string, commit string, params []strin
 			k8s.Remove(repoName, force, k.portNum)
 		},
 	}
-	cmn.Clone(uri, repo, commit, params, arguments, disablePortMap, tags, k.portNum, k.contextName, cb)
+	cmn.Clone(uri, repo, commit, params, arguments, disablePortMap, tags, pull, k.portNum, k.contextName, cb)
 }
 
 func (k kubernetes) Commit(repo string, message string, tags []string) {
@@ -130,8 +132,8 @@ func (k kubernetes) Remove(repo string, force bool) {
 	k8s.Remove(repo, force, k.portNum)
 }
 
-func (k kubernetes) Run(image string, repo string, environments []string, arguments []string, disablePortMap bool, privileged bool) {
-	k8s.Run(image, repo, environments, arguments, disablePortMap, privileged, true, k.portNum, k.contextName)
+func (k kubernetes) Run(image string, repo string, environments []string, arguments []string, disablePortMap bool, privileged bool, pull cmn.PullPolicy) {
+	k8s.Run(image, repo, environments, arguments, disablePortMap, privileged, pull, true, k.portNum, k.contextName)
 }
 
 func (k kubernetes) Start(repo string) {

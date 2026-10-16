@@ -13,7 +13,6 @@ import (
 	"strconv"
 	"strings"
 	"testing"
-	"time"
 
 	cmn "github.com/ditdotdev/dit/internal/app/providers/common"
 	k8s "github.com/ditdotdev/dit/internal/app/providers/kubernetes"
@@ -281,30 +280,22 @@ func TestLocal_Start_ExitOnLclError(t *testing.T) {
 }
 
 func TestLocal_Run_ExitOnLclError(t *testing.T) {
-	// lcl.Run shells out to `docker run` with a non-existent image,
-	// which on dev workstations with Docker Desktop takes 5-15s to fail.
-	// The dispatch line in providers/Local.Run is what we want covered;
-	// once it's reached, we don't need to wait for the docker timeout —
-	// run inside a goroutine and time out aggressively. The dispatch is
-	// already recorded on the line that calls lcl.Run().
+	// With --pull never, lcl.Run exits as soon as `docker inspect` cannot
+	// find the image, so this never reaches `docker run` or the network
+	// and returns in well under a second. The test used to abandon the
+	// call in a goroutine after 1s to dodge a slow `docker run` failure;
+	// that goroutine then restored the exit seams while the next test
+	// was swapping them, which the race detector flagged.
 	p := Local("ctx", "h", 1)
-	_ = captureStdout(t, func() {
-		done := make(chan struct{})
-		go func() {
-			defer close(done)
-			defer func() { _ = recover() }()
-			_, _ = captureExit(t, func() {
-				p.Run("nope:nope", "repo", nil, nil, false, false)
-			})
-		}()
-		// Wait up to 1s — the dispatch line ran the moment we called.
-		select {
-		case <-done:
-		case <-time.After(1 * time.Second):
-			// Fine — coverage on the dispatch line is recorded as soon as
-			// the line was executed.
-		}
+	var didExit bool
+	output := captureStdout(t, func() {
+		didExit, _ = captureExit(t, func() {
+			p.Run("nope:nope", "repo", nil, nil, false, false, cmn.PullNever)
+		})
 	})
+	if !didExit {
+		t.Errorf("expected Run to exit when the image is absent under --pull never; output=%q", output)
+	}
 }
 
 // ---------------------------------------------------------------------------
@@ -340,7 +331,7 @@ func TestLocal_AllDelegators_CoverDispatch(t *testing.T) {
 	}{
 		{"Abort", func() { p.Abort("repo") }},
 		{"Checkout", func() { p.Checkout("repo", "abc", nil) }},
-		{"Clone", func() { p.Clone("ssh://u", "repo", "abc", nil, nil, false, nil) }},
+		{"Clone", func() { p.Clone("ssh://u", "repo", "abc", nil, nil, false, nil, cmn.PullMissing) }},
 		{"Commit", func() { p.Commit("repo", "msg", nil) }},
 		{"Copy", func() { p.Copy("repo", "local", "/src", "/dst") }},
 		{"Fork", func() { p.Fork("ssh://u", "org", "name") }},
