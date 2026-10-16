@@ -17,7 +17,12 @@ type fakeCloneDocker struct {
 	pullCalls  int
 }
 
-func (f *fakeCloneDocker) InspectImage(image string) (string, error) { return "", f.inspectErr }
+func (f *fakeCloneDocker) InspectImage(image string) (string, error) {
+	if f.inspectErr != nil {
+		return "", f.inspectErr
+	}
+	return `[{"Id":"sha256:local"}]`, nil
+}
 func (f *fakeCloneDocker) Pull(image string) (string, error) {
 	f.pullCalls++
 	return "", f.pullErr
@@ -115,6 +120,39 @@ func TestClone_ImagePullFailsExits(t *testing.T) {
 	}
 	if !strings.Contains(output, "Unable to find image") {
 		t.Errorf("expected pull-failure message, got %q", output)
+	}
+}
+
+// Regression for #247: an image that exists only in the local docker cache
+// (never pushed, or pushed to a registry that is now unreachable) must be
+// usable by clone exactly as it is by run. Inspect succeeds, every pull
+// fails, and clone must still start the container without pulling.
+func TestClone_LocalImageUnreachableRegistryDefaultPolicy(t *testing.T) {
+	port := startMockServer(t, statefulClone(true))
+
+	cb, calls := makeCallbacks(nil)
+	d := &fakeCloneDocker{pullErr: errors.New("manifest unknown")}
+	var didExit bool
+	var code int
+	output := captureStdout(func() {
+		didExit, code = captureExit(t, func() {
+			withDocker(t, d, func() {
+				Clone("http://example.com/o/myrepo", "", "", nil, nil, false, nil, port, "ctx", cb)
+			})
+		})
+	})
+
+	if didExit {
+		t.Errorf("clone must not exit when the image is present locally; got code=%d output=%q", code, output)
+	}
+	if d.pullCalls != 0 {
+		t.Errorf("expected no pull for a locally present image, got %d", d.pullCalls)
+	}
+	if calls.runCalls != 1 {
+		t.Errorf("expected one Run call, got %d", calls.runCalls)
+	}
+	if strings.Contains(output, "Failed to pull image") {
+		t.Errorf("unexpected pull failure message: %q", output)
 	}
 }
 
