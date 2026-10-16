@@ -93,6 +93,7 @@ type fakeDocker struct {
 	volumeExists        map[string]bool
 
 	PullCalls   int
+	PulledRefs  []string
 	RemoveCalls int
 	// RemovedNames records the container names passed to Remove, so tests
 	// can assert the cleanup targets context-derived names (#214).
@@ -119,7 +120,11 @@ func (f *fakeDocker) InspectImage(string) (string, error) {
 func (f *fakeDocker) LaunchDitKubernetesServers() (string, error) {
 	return f.launchK8sOut, f.launchK8sErr
 }
-func (f *fakeDocker) Pull(string) (string, error) { f.PullCalls++; return "", f.pullErr }
+func (f *fakeDocker) Pull(ref string) (string, error) {
+	f.PullCalls++
+	f.PulledRefs = append(f.PulledRefs, ref)
+	return "", f.pullErr
+}
 func (f *fakeDocker) Remove(name string, _ bool) (string, error) {
 	f.RemoveCalls++
 	f.RemovedNames = append(f.RemovedNames, name)

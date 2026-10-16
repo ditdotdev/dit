@@ -721,3 +721,19 @@ func TestMetadata_MapV2_MultipleVolumes(t *testing.T) {
 		t.Errorf("MapV2() volumes[1] = %+v, want {logs /var/log}", result.volumes[1])
 	}
 }
+
+func TestMetadata_Load_V2MissingDigestIsEmpty(t *testing.T) {
+	metaMap := map[string]interface{}{
+		"v2": map[string]interface{}{
+			"image":   map[string]interface{}{"image": "redis", "tag": "7-alpine"},
+			"volumes": []interface{}{},
+		},
+	}
+	m := Metadata{}.Load(metaMap)
+	if m.image.Digest != "" {
+		t.Errorf("missing digest should load as empty, got %q", m.image.Digest)
+	}
+	if m.image.Image != "redis" || m.image.Tag != "7-alpine" {
+		t.Errorf("image/tag wrong: %+v", m.image)
+	}
+}

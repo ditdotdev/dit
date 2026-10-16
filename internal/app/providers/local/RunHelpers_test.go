@@ -77,22 +77,3 @@ func TestPortRunArgs(t *testing.T) {
 		}
 	})
 }
-
-func TestFirstRepoDigest(t *testing.T) {
-	cases := []struct {
-		name string
-		raw  string
-		want string
-	}{
-		{"single digest", "[\"postgres@sha256:abc\"]\n", "postgres@sha256:abc"},
-		{"multiple digests takes first", `["a@sha256:1", "b@sha256:2"]`, "a@sha256:1"},
-		{"empty", "[]", ""},
-	}
-	for _, tc := range cases {
-		t.Run(tc.name, func(t *testing.T) {
-			if got := firstRepoDigest(tc.raw); got != tc.want {
-				t.Errorf("firstRepoDigest(%q) = %q, want %q", tc.raw, got, tc.want)
-			}
-		})
-	}
-}

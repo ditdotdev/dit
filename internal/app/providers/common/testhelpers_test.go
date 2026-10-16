@@ -71,8 +71,10 @@ type stubDocker struct{}
 func (stubDocker) GetValFromContainer(c string, key ...string) (string, error) {
 	return "", nil
 }
-func (stubDocker) InspectImage(image string) (string, error) { return "", nil }
-func (stubDocker) Pull(image string) (string, error)         { return "", nil }
+func (stubDocker) GetValFromImage(image string, key ...string) string { return "" }
+func (stubDocker) InspectImage(image string) (string, error)          { return "", nil }
+func (stubDocker) Pull(image string) (string, error)                  { return "", nil }
+func (stubDocker) Tag(source, target string) (string, error)          { return "", nil }
 
 // withDocker swaps newDocker for the duration of fn. Returns no value; just
 // for ergonomics inside test bodies.

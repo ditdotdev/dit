@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"github.com/ditdotdev/dit/internal/app/providers"
+	cmn "github.com/ditdotdev/dit/internal/app/providers/common"
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
@@ -45,8 +46,8 @@ func (f *fakeProvider) Abort(repo string) { f.record("Abort", repo) }
 func (f *fakeProvider) Checkout(repo, guid string, tags []string) {
 	f.record("Checkout", repo, guid, tags)
 }
-func (f *fakeProvider) Clone(uri, repo, commit string, params, arguments []string, disablePortMap bool, tags []string) {
-	f.record("Clone", uri, repo, commit, params, arguments, disablePortMap, tags)
+func (f *fakeProvider) Clone(uri, repo, commit string, params, arguments []string, disablePortMap bool, tags []string, pull cmn.PullPolicy) {
+	f.record("Clone", uri, repo, commit, params, arguments, disablePortMap, tags, pull)
 }
 func (f *fakeProvider) Commit(repo, message string, tags []string) {
 	f.record("Commit", repo, message, tags)
@@ -84,8 +85,8 @@ func (f *fakeProvider) RemoteLog(repo, remoteName string, tags []string) {
 }
 func (f *fakeProvider) RemoteRemove(repo, remote string) { f.record("RemoteRemove", repo, remote) }
 func (f *fakeProvider) Remove(repo string, force bool)   { f.record("Remove", repo, force) }
-func (f *fakeProvider) Run(image, repo string, environments, arguments []string, disablePortMap, privileged bool) {
-	f.record("Run", image, repo, environments, arguments, disablePortMap, privileged)
+func (f *fakeProvider) Run(image, repo string, environments, arguments []string, disablePortMap, privileged bool, pull cmn.PullPolicy) {
+	f.record("Run", image, repo, environments, arguments, disablePortMap, privileged, pull)
 }
 func (f *fakeProvider) Start(repo string)                      { f.record("Start", repo) }
 func (f *fakeProvider) Status(repo string)                     { f.record("Status", repo) }
@@ -142,6 +143,7 @@ func resetGlobalFlags() {
 	verbose = false
 	message = ""
 	disablePortMap = false
+	pull = "missing"
 	context = ""
 
 	// Walk every command's flag set and clear the Changed bit so a flag
@@ -384,6 +386,37 @@ func TestRunCmd_WithExtraArgs(t *testing.T) {
 	}
 }
 
+func TestRunCmd_PullFlag(t *testing.T) {
+	resetGlobalFlags()
+	fp := withFakeProvider(t)
+	if _, err := execCmd("run", "postgres:latest", "-n", "test-ctx/demo", "--pull", "never"); err != nil {
+		t.Fatalf("run: %v", err)
+	}
+	if c := lastCall(fp); c.Method != "Run" || c.Args[6] != cmn.PullNever {
+		t.Errorf("run --pull never not forwarded: %+v", c)
+	}
+
+	resetGlobalFlags()
+	if _, err := execCmd("run", "postgres:latest", "-n", "test-ctx/demo"); err != nil {
+		t.Fatalf("run: %v", err)
+	}
+	if c := lastCall(fp); c.Args[6] != cmn.PullMissing {
+		t.Errorf("run default pull policy should be missing: %+v", c)
+	}
+}
+
+func TestRunCmd_InvalidPullValueErrors(t *testing.T) {
+	resetGlobalFlags()
+	fp := withFakeProvider(t)
+	_, err := execCmd("run", "postgres:latest", "-n", "test-ctx/demo", "--pull", "sometimes")
+	if err == nil || !strings.Contains(err.Error(), "invalid --pull value") {
+		t.Fatalf("expected invalid --pull error, got %v", err)
+	}
+	if len(fp.Calls) != 0 {
+		t.Errorf("provider must not be called on a bad flag value, got %+v", fp.Calls)
+	}
+}
+
 func TestRunCmd_RequiresArg(t *testing.T) {
 	resetGlobalFlags()
 	withFakeProvider(t)
@@ -441,6 +474,37 @@ func TestCloneCmd_WithFlags(t *testing.T) {
 	c := lastCall(fp)
 	if c.Method != "Clone" || c.Args[0] != "ssh://uri" || c.Args[1] != "myrepo" || c.Args[2] != "deadbeef" || c.Args[5] != true {
 		t.Errorf("clone wrong: %+v", c)
+	}
+}
+
+func TestCloneCmd_PullFlag(t *testing.T) {
+	resetGlobalFlags()
+	fp := withFakeProvider(t)
+	if _, err := execCmd("clone", "ssh://uri", "-n", "myrepo", "--pull", "always"); err != nil {
+		t.Fatalf("clone: %v", err)
+	}
+	if c := lastCall(fp); c.Method != "Clone" || c.Args[7] != cmn.PullAlways {
+		t.Errorf("clone --pull always not forwarded: %+v", c)
+	}
+
+	resetGlobalFlags()
+	if _, err := execCmd("clone", "ssh://uri", "-n", "myrepo"); err != nil {
+		t.Fatalf("clone: %v", err)
+	}
+	if c := lastCall(fp); c.Args[7] != cmn.PullMissing {
+		t.Errorf("clone default pull policy should be missing: %+v", c)
+	}
+}
+
+func TestCloneCmd_InvalidPullValueErrors(t *testing.T) {
+	resetGlobalFlags()
+	fp := withFakeProvider(t)
+	_, err := execCmd("clone", "ssh://uri", "-n", "myrepo", "--pull", "sometimes")
+	if err == nil || !strings.Contains(err.Error(), "invalid --pull value") {
+		t.Fatalf("expected invalid --pull error, got %v", err)
+	}
+	if len(fp.Calls) != 0 {
+		t.Errorf("provider must not be called on a bad flag value, got %+v", fp.Calls)
 	}
 }
 

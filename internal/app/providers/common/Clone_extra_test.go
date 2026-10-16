@@ -4,17 +4,30 @@
 package common
 
 import (
+	"encoding/json"
 	"errors"
 	"net/http"
 	"strings"
 	"testing"
 )
 
+// fakeCloneDocker models the image side of a docker daemon:
+//   - inspectErr != nil means the image is absent;
+//   - repoDigests is the raw [0].RepoDigests inspect text ("" for an image
+//     that was built locally and never pushed);
+//   - pullErr fails every pull, pullErrFor fails pulls of specific refs;
+//   - pullMakesPresent makes a successful pull clear inspectErr.
 type fakeCloneDocker struct {
 	stubDocker
-	inspectErr error
-	pullErr    error
-	pullCalls  int
+	inspectErr       error
+	pullErr          error
+	pullErrFor       map[string]error
+	pullMakesPresent bool
+	repoDigests      string
+	tagErr           error
+
+	pulledRefs []string
+	tagCalls   [][2]string
 }
 
 func (f *fakeCloneDocker) InspectImage(image string) (string, error) {
@@ -23,9 +36,28 @@ func (f *fakeCloneDocker) InspectImage(image string) (string, error) {
 	}
 	return `[{"Id":"sha256:local"}]`, nil
 }
+func (f *fakeCloneDocker) GetValFromImage(image string, key ...string) string {
+	if len(key) > 0 && key[len(key)-1] == "RepoDigests" {
+		return f.repoDigests
+	}
+	return ""
+}
 func (f *fakeCloneDocker) Pull(image string) (string, error) {
-	f.pullCalls++
-	return "", f.pullErr
+	f.pulledRefs = append(f.pulledRefs, image)
+	if err, ok := f.pullErrFor[image]; ok && err != nil {
+		return "", err
+	}
+	if f.pullErr != nil {
+		return "", f.pullErr
+	}
+	if f.pullMakesPresent {
+		f.inspectErr = nil
+	}
+	return "", nil
+}
+func (f *fakeCloneDocker) Tag(source, target string) (string, error) {
+	f.tagCalls = append(f.tagCalls, [2]string{source, target})
+	return "", f.tagErr
 }
 
 func makeCallbacks(runErr error) (cb CloneCallbacks, calls *cloneCallCounts) {
@@ -145,8 +177,8 @@ func TestClone_LocalImageUnreachableRegistryDefaultPolicy(t *testing.T) {
 	if didExit {
 		t.Errorf("clone must not exit when the image is present locally; got code=%d output=%q", code, output)
 	}
-	if d.pullCalls != 0 {
-		t.Errorf("expected no pull for a locally present image, got %d", d.pullCalls)
+	if len(d.pulledRefs) != 0 {
+		t.Errorf("expected no pull for a locally present image, got %v", d.pulledRefs)
 	}
 	if calls.runCalls != 1 {
 		t.Errorf("expected one Run call, got %d", calls.runCalls)
@@ -250,6 +282,15 @@ func TestClone_GetRemoteCommitErrorRemovesRepo(t *testing.T) {
 	}
 }
 
+// decodeRemoteProps returns the "properties" map of a CreateRemote request body.
+func decodeRemoteProps(r *http.Request) map[string]interface{} {
+	var body struct {
+		Properties map[string]interface{} `json:"properties"`
+	}
+	_ = json.NewDecoder(r.Body).Decode(&body)
+	return body.Properties
+}
+
 // cloneRemoteJSON includes the api_base_url so the inner Pull call from Clone
 // can hit ensureRemoteRepoExists (which Push uses, not Pull — but the field
 // is harmless to include here).
@@ -277,6 +318,12 @@ func cloneHandlerWithCommitError() http.HandlerFunc {
 // remote. If hasCommit is true the /remotes/origin/commits list returns one
 // commit; otherwise an empty list (triggering removeRepo).
 func statefulClone(hasCommit bool) http.HandlerFunc {
+	return statefulCloneWithProps(hasCommit, "{}")
+}
+
+// statefulCloneWithProps is statefulClone with the commit properties JSON
+// the remote returns, so tests can supply v2 image metadata.
+func statefulCloneWithProps(hasCommit bool, commitProps string) http.HandlerFunc {
 	createdRemote := false
 	return func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
@@ -304,10 +351,10 @@ func statefulClone(hasCommit bool) http.HandlerFunc {
 			createdRemote = true
 			_, _ = w.Write([]byte(cloneRemoteJSON))
 		case r.Method == http.MethodPost && strings.HasSuffix(r.URL.Path, "/remotes/origin/commits/c1"):
-			_, _ = w.Write([]byte(`{"id":"c1","properties":{}}`))
+			_, _ = w.Write([]byte(`{"id":"c1","properties":` + commitProps + `}`))
 		case r.Method == http.MethodPost && strings.HasSuffix(r.URL.Path, "/remotes/origin/commits"):
 			if hasCommit {
-				_, _ = w.Write([]byte(`[{"id":"c1","properties":{}}]`))
+				_, _ = w.Write([]byte(`[{"id":"c1","properties":` + commitProps + `}]`))
 			} else {
 				_, _ = w.Write([]byte(`[]`))
 			}
