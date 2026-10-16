@@ -23,8 +23,8 @@ This document tracks E2E test coverage for every dit CLI command and user path.
 | `dit stop` | Covered | `container-lifecycle/container-lifecycle.bats` | Stop running container |
 | `dit status` | Covered | `container-lifecycle/container-lifecycle.bats`, `remotes/dit/dit-workflow.bats` | Running and stopped states |
 | `dit rm` | Covered | `getting-started/getting-started.bats`, `remotes/ssh/ssh-workflow.bats` | `-f` flag tested |
-| `dit commit` | Covered | `getting-started/getting-started.bats`, `remotes/s3/s3-workflow.bats` | `-m`, `-t` flags tested |
-| `dit checkout` | Covered | `getting-started/getting-started.bats`, `tags/tag-management.bats` | `--commit` and `--tags` tested |
+| `dit commit` | Covered | `getting-started/getting-started.bats`, `remotes/s3/s3-workflow.bats`, `context/kubernetes/kubernetes-tests.bats` | `-m`, `-t` flags tested; on kubernetes the VolumeSnapshot must be ReadyToUse the moment `dit commit` returns (dit-server#313) |
+| `dit checkout` | Covered | `getting-started/getting-started.bats`, `tags/tag-management.bats`, `context/kubernetes/kubernetes-tests.bats` | `--commit` and `--tags` tested; kubernetes checkout drops a row written right after `dit commit` returned (dit-server#313) |
 | `dit log` | Covered | `remotes/ssh/ssh-workflow.bats`, `tags/tag-management.bats` | `--tags` filter tested |
 | `dit clone` | Covered | `getting-started/getting-started.bats`, `remotes/dit/clone-commit-workflow.bats` | `-c`, `-n`, `-P`, `-t` tested |
 | `dit cp` | Covered | `data-import/data-import.bats` | `-s`, `-d` flags tested |
