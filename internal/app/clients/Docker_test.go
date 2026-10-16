@@ -199,7 +199,7 @@ func (f *fakeCE) record(name string, arg []string) {
 	f.calls = append(f.calls, f.last)
 }
 
-func isRunArgs(arg []string) bool { return len(arg) > 0 && arg[0] == "run" }
+func isRunArgs(arg []string) bool { return len(arg) > 0 && arg[0] == dockerRun }
 
 func (f *fakeCE) Exec(name string, arg ...string) (string, error) {
 	f.record(name, arg)

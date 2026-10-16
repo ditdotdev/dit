@@ -4,6 +4,8 @@
 package clients
 
 import (
+	"context"
+	"errors"
 	"fmt"
 	"github.com/buger/jsonparser"
 	"github.com/ditdotdev/dit/internal/app"
@@ -11,6 +13,7 @@ import (
 	"runtime"
 	"strconv"
 	"strings"
+	"time"
 )
 
 const EOL = "\n"
@@ -24,6 +27,18 @@ const defaultDockerHubRegistry = "ditdotdev"
 // out to. Extracted so goconst doesn't flag the literal across the dozen
 // ce.Exec(dockerCmd, ...) call sites below.
 const dockerCmd = "docker"
+
+// dockerRun is the `docker run` subcommand; shared with tests that
+// inspect recorded argv.
+const dockerRun = "run"
+
+// dockerRestartFlag is the `docker run --restart` flag; it is set for the
+// launch container and stripped again for the one-shot teardown run.
+const dockerRestartFlag = "--restart"
+
+// dockerRestartAlways is the `--restart` policy used for the launch
+// container.
+const dockerRestartAlways = "always"
 
 // localRegistry is the sentinel registry value that means "use the image
 // name as-is without prepending a registry namespace". Used by callers
@@ -104,7 +119,7 @@ func (d docker) getLocalLaunchArgs() []string {
 		"--pid=host",
 		"--network=host",
 		"-d",
-		"--restart", "always",
+		dockerRestartFlag, dockerRestartAlways,
 		"--name=dit-" + d.identity + "-launch",
 		"-v", "/var/lib:/var/lib",
 		"-v", "/run/docker:/run/docker",
@@ -219,13 +234,18 @@ func (d docker) GetSliceFromImage(image string, key ...string) []string {
 	return splitInspectList(raw)
 }
 
-func (d docker) Run(image string, entry string, args []string) (string, error) {
-	args = append([]string{"run"}, args...)
+// runArgs builds the argv (after the docker binary) for `docker run`.
+func (d docker) runArgs(image string, entry string, args []string) []string {
+	args = append([]string{dockerRun}, args...)
 	args = append(args, image)
 	if len(entry) > 0 {
 		args = append(args, strings.Split(entry, " ")...)
 	}
-	return ce.Exec(dockerCmd, args...)
+	return args
+}
+
+func (d docker) Run(image string, entry string, args []string) (string, error) {
+	return ce.Exec(dockerCmd, d.runArgs(image, entry, args)...)
 }
 
 func (d docker) FetchLogs(container string) []string {
@@ -314,7 +334,7 @@ func (d docker) getKubernetesLaunchArgs() ([]string, error) {
 	}
 	return []string{
 		"-d",
-		"--restart", "always",
+		dockerRestartFlag, dockerRestartAlways,
 		"--name=dit-" + d.identity + "-server",
 		"-v", flatKubeconfig + ":/root/.kube/config:ro",
 		"-v", "dit-" + d.identity + "-data:/var/lib/" + d.identity,
@@ -360,15 +380,66 @@ func (d docker) FetchLaunchLogs() []string {
 	return d.FetchLogs("dit-" + d.identity + "-launch")
 }
 
+// defaultTeardownTimeout bounds how long `dit uninstall` waits for the
+// ZFS teardown container. See #244: with no bound, a docker daemon that
+// wedges on the container's cleanup left the CLI waiting for 17 hours.
+const defaultTeardownTimeout = 5 * time.Minute
+
+// teardownTimeout is the effective deadline; resolved from
+// DIT_TEARDOWN_TIMEOUT at startup and overridable by tests.
+var teardownTimeout = resolveTeardownTimeout()
+
+// resolveTeardownTimeout reads DIT_TEARDOWN_TIMEOUT (a Go duration such
+// as "10m" or "90s") and falls back to the default when it is unset,
+// unparseable or not positive.
+func resolveTeardownTimeout() time.Duration {
+	if v, ok := os.LookupEnv("DIT_TEARDOWN_TIMEOUT"); ok {
+		if d, err := time.ParseDuration(strings.TrimSpace(v)); err == nil && d > 0 {
+			return d
+		}
+	}
+	return defaultTeardownTimeout
+}
+
+func (d docker) teardownContainerName() string {
+	return "dit-" + d.identity + "-teardown"
+}
+
+// TeardownDitServers runs the ZFS teardown helper container and waits
+// for it, bounded by teardownTimeout.
+//
+// The container is deliberately run under a fixed name and without
+// `--rm`. In the #244 incident the teardown script had finished but the
+// docker daemon never completed the `--rm` auto-remove, so the waiting
+// `docker run` client (and with it `dit uninstall`) blocked for 17
+// hours; `docker rm -f` on the container cleared it instantly once the
+// client was gone. Removing the container ourselves, both before the run
+// (a stale one from an earlier wedged attempt would otherwise collide on
+// the name) and after it, sidesteps the daemon's auto-remove path and
+// gives the user an addressable name if anything is still stuck.
 func (d docker) TeardownDitServers() (string, error) {
 	ditImage := d.getImageName("dit:latest")
+	name := d.teardownContainerName()
 	args := d.getLocalLaunchArgs()
 	args = RemoveFromSlice(args, "-d")
-	args = RemoveFromSlice(args, "--restart")
-	args = RemoveFromSlice(args, "always")
+	args = RemoveFromSlice(args, dockerRestartFlag)
+	args = RemoveFromSlice(args, dockerRestartAlways)
 	args = RemoveFromSlice(args, "--name=dit-"+d.identity+"-launch")
-	args = append(args, "-e", "DIT_IDENTITY=dit-"+d.identity, "--rm")
-	return d.Run(ditImage, "/bin/bash /dit/teardown", args)
+	args = append(args, "--name="+name, "-e", "DIT_IDENTITY=dit-"+d.identity)
+
+	// Best effort: clear a leftover container from a previous wedged run.
+	_, _ = ce.Exec(dockerCmd, "rm", "-f", name)
+
+	out, err := ce.ExecWithTimeout(teardownTimeout, dockerCmd, d.runArgs(ditImage, "/bin/bash /dit/teardown", args)...)
+
+	// Always remove explicitly; this replaces --rm and is what unwedges a
+	// daemon stuck on the container's cleanup.
+	_, _ = ce.Exec(dockerCmd, "rm", "-f", name)
+
+	if err != nil && errors.Is(err, context.DeadlineExceeded) {
+		err = fmt.Errorf("teardown container %s did not exit within %s; forcibly removed it: %w", name, teardownTimeout, err)
+	}
+	return out, err
 }
 
 func (d docker) RemoveDitImages(version string) (string, error) {

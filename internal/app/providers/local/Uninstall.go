@@ -56,6 +56,10 @@ func Uninstall(version string, force bool, removeImages bool, port int, context 
 	// "Tearing down Dit servers" output and can waste time on hosts
 	// where the teardown image has to pull.
 	if serverAvailable {
+		// The teardown wait is bounded (see clients.TeardownDitServers, #244):
+		// a timed-out teardown comes back here as an error carrying whatever
+		// the script printed, and uninstall carries on with the volume and
+		// image cleanup below.
 		fmt.Println("Tearing down Dit servers")
 		if output, err := docker.TeardownDitServers(); err != nil {
 			// On WSL2, the teardown container may fail to destroy the ZFS pool due to

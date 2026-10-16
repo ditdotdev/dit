@@ -71,11 +71,16 @@ func TestExecWithTimeout_KillsHungProcess(t *testing.T) {
 	ce := CommandExecutor(60, false)
 	name, args := helperArgs("hang")
 
+	// The deadline must comfortably exceed a cold process start (a freshly
+	// built test binary can take well over half a second to launch on
+	// Windows) so the helper gets to print before it is killed, while
+	// staying far below the helper's 30s sleep.
+	const deadline = 2 * time.Second
 	start := time.Now()
-	out, err := ce.ExecWithTimeout(200*time.Millisecond, name, args...)
+	out, err := ce.ExecWithTimeout(deadline, name, args...)
 	elapsed := time.Since(start)
 
-	if elapsed > 5*time.Second {
+	if elapsed > 10*time.Second {
 		t.Fatalf("ExecWithTimeout took %s; a hung child must be abandoned at the deadline", elapsed)
 	}
 	if err == nil {

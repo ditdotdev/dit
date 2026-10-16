@@ -80,7 +80,7 @@ func findCall(calls [][]string, want ...string) int {
 
 func findRun(calls [][]string) int {
 	for i, c := range calls {
-		if len(c) > 1 && c[0] == dockerCmd && c[1] == "run" {
+		if len(c) > 1 && c[0] == dockerCmd && c[1] == dockerRun {
 			return i
 		}
 	}
