@@ -5,6 +5,7 @@ package local
 
 import (
 	"fmt"
+	"github.com/ditdotdev/dit/internal/app/providers/common"
 	"strconv"
 	"strings"
 
@@ -100,24 +101,7 @@ func portRunArgs(rawPorts []string, disablePortMap bool) ([]string, []map[string
 	return portArgs, metaPorts
 }
 
-// firstRepoDigest normalizes the raw RepoDigests value from image metadata
-// and returns the first digest, or "" when the image has none.
-func firstRepoDigest(raw string) string {
-	digest := strings.ReplaceAll(raw, "[", "")
-	digest = strings.ReplaceAll(digest, "]", "")
-	digest = strings.ReplaceAll(digest, " ", "")
-	digest = strings.ReplaceAll(digest, `"`, "")
-	digest = strings.ReplaceAll(digest, "\n", "")
-	digest = strings.TrimSpace(digest)
-
-	// If multiple digests are present (separated by commas), take the first one
-	if strings.Contains(digest, ",") {
-		digest = strings.TrimSpace(strings.Split(digest, ",")[0])
-	}
-	return digest
-}
-
-func Run(container string, repository string, envVars []string, args []string, disablePortMap bool, privileged bool, createRepo bool, port int, context string) (string, error) {
+func Run(container string, repository string, envVars []string, args []string, disablePortMap bool, privileged bool, pull common.PullPolicy, createRepo bool, port int, context string) (string, error) {
 	cfg.Servers[0].URL = "http://localhost:" + strconv.Itoa(port)
 	docker := newDocker(context, port)
 
@@ -149,13 +133,11 @@ func Run(container string, repository string, envVars []string, args []string, d
 
 	image, tag := splitImageTag(container)
 
-	imageInfo, err := docker.InspectImage(image + ":" + tag)
-	if err != nil {
-		if _, err := docker.Pull(image + ":" + tag); err != nil {
-			fmt.Printf("Warning: Failed to pull image %s:%s: %v\n", image, tag, err)
-		}
-		imageInfo, _ = docker.InspectImage(image + ":" + tag)
+	if err := common.EnsureImage(docker, image+":"+tag, "", pull); err != nil {
+		fmt.Println(err)
+		osExit(1)
 	}
+	imageInfo, _ := docker.InspectImage(image + ":" + tag)
 	if len(imageInfo) == 0 {
 		fmt.Println("Image information is not available")
 		osExit(1)
@@ -201,7 +183,10 @@ func Run(container string, repository string, envVars []string, args []string, d
 		argList = append(argList, "--privileged")
 	}
 
-	repoDigest := firstRepoDigest(docker.GetValFromImage(image+":"+tag, "RepoDigests"))
+	repoDigest := ""
+	if digests := common.RepoDigests(docker.GetValFromImage(image+":"+tag, "RepoDigests")); len(digests) > 0 {
+		repoDigest = digests[0]
+	}
 
 	var dockerRunCmd string
 	if len(repoDigest) == 0 {

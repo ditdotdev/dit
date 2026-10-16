@@ -13,8 +13,10 @@ import (
 // docker daemon.
 type dockerClient interface {
 	GetValFromContainer(c string, key ...string) (string, error)
+	GetValFromImage(image string, key ...string) string
 	InspectImage(image string) (string, error)
 	Pull(image string) (string, error)
+	Tag(source string, target string) (string, error)
 }
 
 // newDocker is a var-bound factory so tests can substitute a mock dockerClient.

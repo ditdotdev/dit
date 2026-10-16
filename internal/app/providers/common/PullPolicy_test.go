@@ -73,12 +73,12 @@ const (
 	ensureOther  = "repo@sha256:bbbb"
 )
 
-func ensure(t *testing.T, d *fakeCloneDocker, stored string, policy PullPolicy) (err error, output string) {
+func ensure(t *testing.T, d *fakeCloneDocker, stored string, policy PullPolicy) (output string, err error) {
 	t.Helper()
 	output = captureStdout(func() {
 		err = EnsureImage(d, ensureRef, stored, policy)
 	})
-	return err, output
+	return output, err
 }
 
 // ---- missing ----
@@ -86,7 +86,7 @@ func ensure(t *testing.T, d *fakeCloneDocker, stored string, policy PullPolicy) 
 // Issue #247: a present image with an unreachable registry must be used as-is.
 func TestEnsureImage_MissingPresentNoPull(t *testing.T) {
 	d := &fakeCloneDocker{pullErr: errors.New("manifest unknown")}
-	err, _ := ensure(t, d, "", PullMissing)
+	_, err := ensure(t, d, "", PullMissing)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -97,7 +97,7 @@ func TestEnsureImage_MissingPresentNoPull(t *testing.T) {
 
 func TestEnsureImage_MissingAbsentPulls(t *testing.T) {
 	d := &fakeCloneDocker{inspectErr: errors.New("no such image"), pullMakesPresent: true}
-	err, _ := ensure(t, d, "", PullMissing)
+	_, err := ensure(t, d, "", PullMissing)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -108,7 +108,7 @@ func TestEnsureImage_MissingAbsentPulls(t *testing.T) {
 
 func TestEnsureImage_MissingAbsentPullFailsErrors(t *testing.T) {
 	d := &fakeCloneDocker{inspectErr: errors.New("no such image"), pullErr: errors.New("registry down")}
-	err, _ := ensure(t, d, "", PullMissing)
+	_, err := ensure(t, d, "", PullMissing)
 	if err == nil {
 		t.Fatal("expected error when image is absent and pull fails")
 	}
@@ -124,7 +124,7 @@ func TestEnsureImage_MissingAbsentPullFailsErrors(t *testing.T) {
 
 func TestEnsureImage_NeverPresentMatchNoWarning(t *testing.T) {
 	d := &fakeCloneDocker{repoDigests: `["` + ensureDigest + `"]`}
-	err, out := ensure(t, d, ensureDigest, PullNever)
+	out, err := ensure(t, d, ensureDigest, PullNever)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -138,7 +138,7 @@ func TestEnsureImage_NeverPresentMatchNoWarning(t *testing.T) {
 
 func TestEnsureImage_NeverPresentMismatchWarns(t *testing.T) {
 	d := &fakeCloneDocker{repoDigests: `["` + ensureOther + `"]`}
-	err, out := ensure(t, d, ensureDigest, PullNever)
+	out, err := ensure(t, d, ensureDigest, PullNever)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -153,7 +153,7 @@ func TestEnsureImage_NeverPresentMismatchWarns(t *testing.T) {
 func TestEnsureImage_NeverPresentUnknownDigestNoWarning(t *testing.T) {
 	for _, stored := range []string{"", "<nil>"} {
 		d := &fakeCloneDocker{repoDigests: `["` + ensureOther + `"]`}
-		err, out := ensure(t, d, stored, PullNever)
+		out, err := ensure(t, d, stored, PullNever)
 		if err != nil {
 			t.Fatalf("stored=%q unexpected error: %v", stored, err)
 		}
@@ -165,7 +165,7 @@ func TestEnsureImage_NeverPresentUnknownDigestNoWarning(t *testing.T) {
 
 func TestEnsureImage_NeverAbsentErrors(t *testing.T) {
 	d := &fakeCloneDocker{inspectErr: errors.New("no such image")}
-	err, _ := ensure(t, d, ensureDigest, PullNever)
+	_, err := ensure(t, d, ensureDigest, PullNever)
 	if err == nil {
 		t.Fatal("expected error when image is absent under --pull never")
 	}
@@ -181,7 +181,7 @@ func TestEnsureImage_NeverAbsentErrors(t *testing.T) {
 
 func TestEnsureImage_AlwaysDigestMatchSkipsPull(t *testing.T) {
 	d := &fakeCloneDocker{repoDigests: `["` + ensureDigest + `"]`}
-	err, _ := ensure(t, d, ensureDigest, PullAlways)
+	_, err := ensure(t, d, ensureDigest, PullAlways)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -192,7 +192,7 @@ func TestEnsureImage_AlwaysDigestMatchSkipsPull(t *testing.T) {
 
 func TestEnsureImage_AlwaysDigestMatchSecondEntry(t *testing.T) {
 	d := &fakeCloneDocker{repoDigests: `["` + ensureOther + `", "` + ensureDigest + `"]`}
-	err, _ := ensure(t, d, ensureDigest, PullAlways)
+	_, err := ensure(t, d, ensureDigest, PullAlways)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -203,7 +203,7 @@ func TestEnsureImage_AlwaysDigestMatchSecondEntry(t *testing.T) {
 
 func TestEnsureImage_AlwaysMismatchPullsByDigestAndTags(t *testing.T) {
 	d := &fakeCloneDocker{repoDigests: `["` + ensureOther + `"]`}
-	err, _ := ensure(t, d, ensureDigest, PullAlways)
+	_, err := ensure(t, d, ensureDigest, PullAlways)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -218,7 +218,7 @@ func TestEnsureImage_AlwaysMismatchPullsByDigestAndTags(t *testing.T) {
 func TestEnsureImage_AlwaysNoStoredDigestPullsTag(t *testing.T) {
 	for _, stored := range []string{"", "<nil>"} {
 		d := &fakeCloneDocker{repoDigests: `["` + ensureOther + `"]`}
-		err, _ := ensure(t, d, stored, PullAlways)
+		_, err := ensure(t, d, stored, PullAlways)
 		if err != nil {
 			t.Fatalf("stored=%q unexpected error: %v", stored, err)
 		}
@@ -234,7 +234,7 @@ func TestEnsureImage_AlwaysNoStoredDigestPullsTag(t *testing.T) {
 func TestEnsureImage_AlwaysLocalUntaggedPullsByDigest(t *testing.T) {
 	// A locally built image has no RepoDigests; the commit does. Pull by digest.
 	d := &fakeCloneDocker{repoDigests: "[]"}
-	err, _ := ensure(t, d, ensureDigest, PullAlways)
+	_, err := ensure(t, d, ensureDigest, PullAlways)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -245,7 +245,7 @@ func TestEnsureImage_AlwaysLocalUntaggedPullsByDigest(t *testing.T) {
 
 func TestEnsureImage_AlwaysDigestPullFailsFallsBackToTag(t *testing.T) {
 	d := &fakeCloneDocker{repoDigests: `["` + ensureOther + `"]`, pullErrFor: map[string]error{ensureDigest: errors.New("manifest unknown")}}
-	err, out := ensure(t, d, ensureDigest, PullAlways)
+	out, err := ensure(t, d, ensureDigest, PullAlways)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -262,7 +262,7 @@ func TestEnsureImage_AlwaysDigestPullFailsFallsBackToTag(t *testing.T) {
 
 func TestEnsureImage_AlwaysPullFailsWithLocalWarns(t *testing.T) {
 	d := &fakeCloneDocker{repoDigests: "[]", pullErr: errors.New("manifest unknown")}
-	err, out := ensure(t, d, "", PullAlways)
+	out, err := ensure(t, d, "", PullAlways)
 	if err != nil {
 		t.Fatalf("a present image must survive a failed refresh, got %v", err)
 	}
@@ -273,7 +273,7 @@ func TestEnsureImage_AlwaysPullFailsWithLocalWarns(t *testing.T) {
 
 func TestEnsureImage_AlwaysPullFailsNoLocalErrors(t *testing.T) {
 	d := &fakeCloneDocker{inspectErr: errors.New("no such image"), pullErr: errors.New("registry down")}
-	err, _ := ensure(t, d, ensureDigest, PullAlways)
+	_, err := ensure(t, d, ensureDigest, PullAlways)
 	if err == nil {
 		t.Fatal("expected error when image is absent and every pull fails")
 	}
@@ -287,7 +287,7 @@ func TestEnsureImage_AlwaysPullFailsNoLocalErrors(t *testing.T) {
 
 func TestEnsureImage_AlwaysAbsentPullsAndSucceeds(t *testing.T) {
 	d := &fakeCloneDocker{inspectErr: errors.New("no such image"), pullMakesPresent: true}
-	err, _ := ensure(t, d, ensureDigest, PullAlways)
+	_, err := ensure(t, d, ensureDigest, PullAlways)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}

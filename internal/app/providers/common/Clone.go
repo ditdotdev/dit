@@ -54,7 +54,7 @@ func parseRemoteParams(params []string) map[string]string {
 	return remoteParams
 }
 
-func Clone(uri string, repo string, guid string, params []string, args []string, disablePortMap bool, tags []string, port int, context string, cb CloneCallbacks) {
+func Clone(uri string, repo string, guid string, params []string, args []string, disablePortMap bool, tags []string, pull PullPolicy, port int, context string, cb CloneCallbacks) {
 	cfg.Servers[0].URL = "http://localhost:" + strconv.Itoa(port)
 	docker := newDocker(context, port)
 
@@ -81,7 +81,7 @@ func Clone(uri string, repo string, guid string, params []string, args []string,
 		Name:       repoName,
 		Properties: make(map[string]interface{}),
 	}
-	plainUri := parsedUri.Scheme + "://" + parsedUri.Host + parsedUri.Path
+	plainUri := remoteUriForAdd(parsedUri)
 	serverUrl := parsedUri.Scheme + "://" + parsedUri.Host
 	if len(parsedUri.Query()) > 0 {
 		tag := parsedUri.Query().Get("tag")
@@ -156,17 +156,10 @@ func Clone(uri string, repo string, guid string, params []string, args []string,
 	metadata := Metadata{}.Load(props)
 	// Construct image reference from image name and tag
 	imageRef := metadata.image.Image + ":" + metadata.image.Tag
-	_, err = docker.InspectImage(imageRef)
-	if err != nil {
-		_, err = docker.Pull(imageRef)
-		if err != nil {
-			fmt.Println("Unable to find image " + imageRef + " for " + metadata.image.Image)
-			osExit(1)
-		}
-	}
-	_, err = docker.Pull(imageRef)
-	if err != nil {
-		fmt.Printf("Failed to pull image %s: %v\n", imageRef, err)
+	// Resolve the image once here; the Run callback receives PullMissing
+	// so it finds the image present and never pulls a second time.
+	if err := EnsureImage(docker, imageRef, metadata.image.Digest, pull); err != nil {
+		fmt.Println(err)
 		osExit(1)
 	}
 	var envs []string
@@ -207,4 +200,17 @@ func handleRemoteError(err error, resp *http.Response, uri string) {
 func removeRepo(repoName string, cb CloneCallbacks) {
 	cb.Remove(repoName, true)
 	osExit(1)
+}
+
+// remoteUriForAdd is the URI handed to RemoteAdd: the clone URI without the
+// ?tag= query and #commit fragment that Clone consumes itself. Userinfo is
+// kept because providers such as ssh take the username (and password) from
+// the URL.
+func remoteUriForAdd(u *url.URL) string {
+	c := *u
+	c.RawQuery = ""
+	c.ForceQuery = false
+	c.Fragment = ""
+	c.RawFragment = ""
+	return c.String()
 }

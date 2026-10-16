@@ -219,7 +219,8 @@ image_id() {
 
   run "$D3" clone -n "$REMOTE_REPO" --pull always -p "skipHostCheck=true" "ssh://root:root@$SSH_HOST/remote"
   assert_success
-  refute_output --partial "Pulling"
+  # Image identity is the proof: a pull by tag or digest would replace the
+  # redis:7-alpine image ID. (The "Pulling <commit>" line is dit's data pull.)
   [ "$(image_id "$REMOTE_IMAGE")" = "$BEFORE" ]
   run "$D3" rm -f "$REMOTE_REPO"
   assert_success

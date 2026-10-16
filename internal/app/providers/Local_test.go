@@ -294,7 +294,7 @@ func TestLocal_Run_ExitOnLclError(t *testing.T) {
 			defer close(done)
 			defer func() { _ = recover() }()
 			_, _ = captureExit(t, func() {
-				p.Run("nope:nope", "repo", nil, nil, false, false)
+				p.Run("nope:nope", "repo", nil, nil, false, false, cmn.PullMissing)
 			})
 		}()
 		// Wait up to 1s — the dispatch line ran the moment we called.
@@ -340,7 +340,7 @@ func TestLocal_AllDelegators_CoverDispatch(t *testing.T) {
 	}{
 		{"Abort", func() { p.Abort("repo") }},
 		{"Checkout", func() { p.Checkout("repo", "abc", nil) }},
-		{"Clone", func() { p.Clone("ssh://u", "repo", "abc", nil, nil, false, nil) }},
+		{"Clone", func() { p.Clone("ssh://u", "repo", "abc", nil, nil, false, nil, cmn.PullMissing) }},
 		{"Commit", func() { p.Commit("repo", "msg", nil) }},
 		{"Copy", func() { p.Copy("repo", "local", "/src", "/dst") }},
 		{"Fork", func() { p.Fork("ssh://u", "org", "name") }},

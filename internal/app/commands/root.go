@@ -36,6 +36,7 @@ var (
 	updateOnly   bool
 	removeImages bool
 	privileged   bool
+	pull         string
 )
 
 // Version will be set at build time via -ldflags

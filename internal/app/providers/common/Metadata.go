@@ -169,7 +169,7 @@ func (m Metadata) MapV2(metaMap map[string]interface{}) Metadata {
 	image := image{
 		Image:  fmt.Sprintf("%v", imageMap[keyImage]),
 		Tag:    fmt.Sprintf("%v", imageMap["tag"]),
-		Digest: fmt.Sprintf("%v", imageMap["digest"]),
+		Digest: stringFromMap(imageMap, "digest"),
 	}
 
 	envCheck := meta[keyEnvironment]

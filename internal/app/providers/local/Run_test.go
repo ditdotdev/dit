@@ -4,6 +4,8 @@
 package local
 
 import (
+	"github.com/ditdotdev/dit/internal/app/providers/common"
+
 	"errors"
 	"net/http"
 	"strings"
@@ -21,7 +23,7 @@ func TestRun_InvalidRepoNameExits(t *testing.T) {
 	output := captureStdout(func() {
 		didExit, code = captureExit(t, func() {
 			withDocker(t, d, func() {
-				_, _ = Run("img", "bad name!", nil, nil, false, false, false, port, "ctx")
+				_, _ = Run("img", "bad name!", nil, nil, false, false, common.PullMissing, false, port, "ctx")
 			})
 		})
 	})
@@ -45,7 +47,7 @@ func TestRun_ContainerExistsExits(t *testing.T) {
 	output := captureStdout(func() {
 		didExit, code = captureExit(t, func() {
 			withDocker(t, d, func() {
-				_, _ = Run("img", "", nil, nil, false, false, false, port, "ctx")
+				_, _ = Run("img", "", nil, nil, false, false, common.PullMissing, false, port, "ctx")
 			})
 		})
 	})
@@ -72,7 +74,7 @@ func TestRun_ImagePullOnInspectErrorAndEmptyInfoExits(t *testing.T) {
 	output := captureStdout(func() {
 		didExit, code = captureExit(t, func() {
 			withDocker(t, d, func() {
-				_, _ = Run("img", "", nil, nil, false, false, false, port, "ctx")
+				_, _ = Run("img", "", nil, nil, false, false, common.PullMissing, false, port, "ctx")
 			})
 		})
 	})
@@ -83,8 +85,8 @@ func TestRun_ImagePullOnInspectErrorAndEmptyInfoExits(t *testing.T) {
 	if d.PullCalls < 1 {
 		t.Errorf("expected Pull attempt after Inspect failure, got %d", d.PullCalls)
 	}
-	if !strings.Contains(output, "Image information is not available") {
-		t.Errorf("expected image-info error, got %q", output)
+	if !strings.Contains(output, "not found locally") {
+		t.Errorf("expected not-found error, got %q", output)
 	}
 }
 
@@ -102,7 +104,7 @@ func TestRun_NoVolumesExits(t *testing.T) {
 	output := captureStdout(func() {
 		didExit, code = captureExit(t, func() {
 			withDocker(t, d, func() {
-				_, _ = Run("img", "", nil, nil, false, false, false, port, "ctx")
+				_, _ = Run("img", "", nil, nil, false, false, common.PullMissing, false, port, "ctx")
 			})
 		})
 	})
@@ -146,7 +148,7 @@ func TestRun_HappyPath(t *testing.T) {
 	_ = captureStdout(func() {
 		_, _ = captureExit(t, func() {
 			withDocker(t, d, func() {
-				s, err = Run("img", "", []string{"FOO=bar"}, nil, false, false, true, port, "ctx")
+				s, err = Run("img", "", []string{"FOO=bar"}, nil, false, false, common.PullMissing, true, port, "ctx")
 			})
 		})
 	})
@@ -189,7 +191,7 @@ func TestRun_CreateRepoConflictExits(t *testing.T) {
 	output := captureStdout(func() {
 		didExit, code = captureExit(t, func() {
 			withDocker(t, d, func() {
-				_, _ = Run("img", "", nil, nil, false, false, true, port, "ctx")
+				_, _ = Run("img", "", nil, nil, false, false, common.PullMissing, true, port, "ctx")
 			})
 		})
 	})
@@ -221,7 +223,7 @@ func TestRun_CreateVolumeErrorReturnsError(t *testing.T) {
 	_ = captureStdout(func() {
 		_, _ = captureExit(t, func() {
 			withDocker(t, d, func() {
-				_, err = Run("img", "", nil, nil, false, false, false, port, "ctx")
+				_, err = Run("img", "", nil, nil, false, false, common.PullMissing, false, port, "ctx")
 			})
 		})
 	})
@@ -252,7 +254,7 @@ func TestRun_DockerRunFailure(t *testing.T) {
 	output := captureStdout(func() {
 		didExit, _ = captureExit(t, func() {
 			withDocker(t, d, func() {
-				s, err = Run("img", "", nil, nil, false, true, false, port, "ctx")
+				s, err = Run("img", "", nil, nil, false, true, common.PullMissing, false, port, "ctx")
 			})
 		})
 	})

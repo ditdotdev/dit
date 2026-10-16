@@ -57,10 +57,12 @@ func (l local) Checkout(repo string, guid string, tags []string) {
 	lcl.Checkout(repo, guid, tags, l.portNum, l.contextName)
 }
 
-func (l local) Clone(uri string, repo string, commit string, params []string, arguments []string, disablePortMap bool, tags []string) {
+func (l local) Clone(uri string, repo string, commit string, params []string, arguments []string, disablePortMap bool, tags []string, pull cmn.PullPolicy) {
 	cb := cmn.CloneCallbacks{
 		Run: func(image, repoName string, envs, args []string, disablePortMap, privileged bool) (string, error) {
-			return lcl.Run(image, repoName, envs, args, disablePortMap, privileged, false, l.portNum, l.contextName)
+			// cmn.Clone has already applied the pull policy; PullMissing
+			// here finds the image present and avoids a second pull.
+			return lcl.Run(image, repoName, envs, args, disablePortMap, privileged, cmn.PullMissing, false, l.portNum, l.contextName)
 		},
 		Checkout: func(repoName, commitId string) {
 			lcl.Checkout(repoName, commitId, nil, l.portNum, l.contextName)
@@ -69,7 +71,7 @@ func (l local) Clone(uri string, repo string, commit string, params []string, ar
 			lcl.Remove(repoName, force, l.portNum, l.contextName)
 		},
 	}
-	cmn.Clone(uri, repo, commit, params, arguments, disablePortMap, tags, l.portNum, l.contextName, cb)
+	cmn.Clone(uri, repo, commit, params, arguments, disablePortMap, tags, pull, l.portNum, l.contextName, cb)
 }
 
 func (l local) Commit(repo string, message string, tags []string) {
@@ -152,8 +154,8 @@ func (l local) Remove(repo string, force bool) {
 	lcl.Remove(repo, force, l.portNum, l.contextName)
 }
 
-func (l local) Run(image string, repo string, environments []string, arguments []string, disablePortMap bool, privileged bool) {
-	s, err := lcl.Run(image, repo, environments, arguments, disablePortMap, privileged, true, l.portNum, l.contextName)
+func (l local) Run(image string, repo string, environments []string, arguments []string, disablePortMap bool, privileged bool, pull cmn.PullPolicy) {
+	s, err := lcl.Run(image, repo, environments, arguments, disablePortMap, privileged, pull, true, l.portNum, l.contextName)
 	if err != nil {
 		// s is empty on early failures (e.g. volume creation), which used
 		// to print a blank line before exiting - the error is the message.

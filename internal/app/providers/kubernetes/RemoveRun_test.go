@@ -4,6 +4,8 @@
 package kubernetes
 
 import (
+	"github.com/ditdotdev/dit/internal/app/providers/common"
+
 	"net/http"
 	"strings"
 	"testing"
@@ -103,7 +105,7 @@ func TestK8sRun_VolumeCreateFailureDeletesRepoAndExits(t *testing.T) {
 	output := captureStdout(func() {
 		didExit, code = captureExit(t, func() {
 			with(t, d, &fakeK8s{}, func() {
-				Run("img", "", nil, nil, false, false, false, port, "ctx")
+				Run("img", "", nil, nil, false, false, common.PullMissing, false, port, "ctx")
 			})
 		})
 	})
@@ -146,7 +148,7 @@ func TestK8sRun_VolumeStatusErrorDeletesRepoAndExits(t *testing.T) {
 	output := captureStdout(func() {
 		didExit, code = captureExit(t, func() {
 			with(t, d, &fakeK8s{}, func() {
-				Run("img", "", nil, nil, false, false, false, port, "ctx")
+				Run("img", "", nil, nil, false, false, common.PullMissing, false, port, "ctx")
 			})
 		})
 	})

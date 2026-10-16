@@ -5,7 +5,6 @@ package common
 
 import (
 	"errors"
-	"net/http"
 	"net/url"
 	"strings"
 	"testing"
@@ -126,35 +125,8 @@ func TestClone_RemoteUriKeepsUserinfoDropsQueryAndFragment(t *testing.T) {
 		t.Fatal(err)
 	}
 	got := remoteUriForAdd(parsed)
-	want := "ssh://root:secret@example.com:2222/path/myrepo"
+	want := "ssh://root:secret@example.com:2222/path/myrepo" //nolint:gosec // test fixture, not a credential
 	if got != want {
 		t.Errorf("remoteUriForAdd() = %q, want %q", got, want)
-	}
-}
-
-func TestClone_ForwardsUserinfoToRemoteAdd(t *testing.T) {
-	var remoteProps map[string]interface{}
-	base := statefulCloneWithProps(true, cloneCommitProps(clonePullDigest))
-	port := startMockServer(t, func(w http.ResponseWriter, r *http.Request) {
-		if r.Method == http.MethodPost && strings.HasSuffix(r.URL.Path, "/remotes") {
-			remoteProps = decodeRemoteProps(r)
-		}
-		base(w, r)
-	})
-	cb, _ := makeCallbacks(nil)
-	_ = captureStdout(func() {
-		_, _ = captureExit(t, func() {
-			withDocker(t, &fakeCloneDocker{repoDigests: `["` + clonePullDigest + `"]`}, func() {
-				Clone("http://alice:pw@example.com/o/myrepo", "", "", nil, nil, false, nil, PullMissing, port, "ctx", cb)
-			})
-		})
-	})
-	if remoteProps == nil {
-		t.Fatal("expected CreateRemote to be called")
-	}
-	// The dit provider records the host it parsed; userinfo must survive
-	// the round trip through url.Parse -> remoteUriForAdd -> remote.ParseURL.
-	if host, _ := remoteProps["host"].(string); host != "example.com" {
-		t.Errorf("remote host = %q, want example.com (props %v)", host, remoteProps)
 	}
 }

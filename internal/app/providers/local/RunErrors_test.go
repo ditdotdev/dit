@@ -4,6 +4,8 @@
 package local
 
 import (
+	"github.com/ditdotdev/dit/internal/app/providers/common"
+
 	"errors"
 	"net/http"
 	"strings"
@@ -24,7 +26,7 @@ func TestRun_ContainerExistsErrorExits(t *testing.T) {
 	output := captureStdout(func() {
 		didExit, code = captureExit(t, func() {
 			withDocker(t, d, func() {
-				_, _ = Run("img", "", nil, nil, false, false, false, port, "ctx")
+				_, _ = Run("img", "", nil, nil, false, false, common.PullMissing, false, port, "ctx")
 			})
 		})
 	})

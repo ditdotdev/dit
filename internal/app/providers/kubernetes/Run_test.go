@@ -4,6 +4,8 @@
 package kubernetes
 
 import (
+	"github.com/ditdotdev/dit/internal/app/providers/common"
+
 	"errors"
 	"net/http"
 	"strings"
@@ -20,7 +22,7 @@ func TestK8sRun_AdditionalArgsRejected(t *testing.T) {
 	output := captureStdout(func() {
 		didExit, code = captureExit(t, func() {
 			with(t, &fakeDocker{}, &fakeK8s{}, func() {
-				Run("img", "", nil, []string{"extra-arg"}, false, false, false, port, "ctx")
+				Run("img", "", nil, []string{"extra-arg"}, false, false, common.PullMissing, false, port, "ctx")
 			})
 		})
 	})
@@ -43,7 +45,7 @@ func TestK8sRun_SlashInRepoName(t *testing.T) {
 	output := captureStdout(func() {
 		didExit, code = captureExit(t, func() {
 			with(t, &fakeDocker{}, &fakeK8s{}, func() {
-				Run("img", "bad/name", nil, nil, false, false, false, port, "ctx")
+				Run("img", "bad/name", nil, nil, false, false, common.PullMissing, false, port, "ctx")
 			})
 		})
 	})
@@ -70,7 +72,7 @@ func TestK8sRun_ImagePullErrorExits(t *testing.T) {
 	output := captureStdout(func() {
 		didExit, code = captureExit(t, func() {
 			with(t, d, &fakeK8s{}, func() {
-				Run("img", "", nil, nil, false, false, false, port, "ctx")
+				Run("img", "", nil, nil, false, false, common.PullMissing, false, port, "ctx")
 			})
 		})
 	})
@@ -78,7 +80,7 @@ func TestK8sRun_ImagePullErrorExits(t *testing.T) {
 	if !didExit || code != 1 {
 		t.Errorf("expected osExit(1); got didExit=%v code=%d", didExit, code)
 	}
-	if !strings.Contains(output, "Error pulling image") {
+	if !strings.Contains(output, "not found locally") {
 		t.Errorf("expected pull error, got %q", output)
 	}
 }
@@ -97,7 +99,7 @@ func TestK8sRun_NoVolumesExits(t *testing.T) {
 	output := captureStdout(func() {
 		didExit, code = captureExit(t, func() {
 			with(t, d, &fakeK8s{}, func() {
-				Run("img", "", nil, nil, false, false, false, port, "ctx")
+				Run("img", "", nil, nil, false, false, common.PullMissing, false, port, "ctx")
 			})
 		})
 	})
@@ -142,7 +144,7 @@ func TestK8sRun_HappyPath(t *testing.T) {
 	output := captureStdout(func() {
 		_, _ = captureExit(t, func() {
 			with(t, d, k, func() {
-				Run("img", "", []string{"FOO=bar"}, nil, false, false, false, port, "ctx")
+				Run("img", "", []string{"FOO=bar"}, nil, false, false, common.PullMissing, false, port, "ctx")
 			})
 		})
 	})
@@ -187,7 +189,7 @@ func TestK8sRun_DisablePortMapSkipsForwarding(t *testing.T) {
 	_ = captureStdout(func() {
 		_, _ = captureExit(t, func() {
 			with(t, d, k, func() {
-				Run("img", "", nil, nil, true, false, false, port, "ctx")
+				Run("img", "", nil, nil, true, false, common.PullMissing, false, port, "ctx")
 			})
 		})
 	})
@@ -225,7 +227,7 @@ func TestK8sRun_CreateStatefulSetErrorExits(t *testing.T) {
 	_ = captureStdout(func() {
 		didExit, code = captureExit(t, func() {
 			with(t, d, k, func() {
-				Run("img", "", nil, nil, true, false, false, port, "ctx")
+				Run("img", "", nil, nil, true, false, common.PullMissing, false, port, "ctx")
 			})
 		})
 	})

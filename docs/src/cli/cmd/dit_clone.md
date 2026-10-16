@@ -14,6 +14,7 @@ dit clone URI [ARGS...] [flags]
   -h, --help                   help for clone
   -n, --name string            optional new name for repository
   -p, --parameters strings     provider specific parameters. key=value format
+      --pull string            image pull policy: missing (pull only if absent), always (re-pull unless the local image matches the commit), never (use the local image only) (default "missing")
   -t, --tags strings           filter latest commit by tags
 ```
 

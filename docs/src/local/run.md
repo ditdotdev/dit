@@ -33,6 +33,11 @@ There are a couple things to note here:
   we pull down and run `mongo:latest`. The only requirement is that the
   containers must have one or more `VOLUME` declarations that indicate
   where persistent data is stored.
+* If the image is already present on your docker daemon, dit uses it as-is
+  and does not contact the registry. That makes it safe to test an image you
+  built locally before pushing it. Use `--pull always` to refresh the image
+  from the registry, or `--pull never` to fail instead of pulling when the
+  image is not present.
 * In this example, dit mapped the default exposed port from the docker
   image to localhost. This is the same thing as manually adding `-p 27017:27017`
   to map the mongo port to the expected port on your laptop.

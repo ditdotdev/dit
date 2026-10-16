@@ -3,6 +3,8 @@
 
 package providers
 
+import cmn "github.com/ditdotdev/dit/internal/app/providers/common"
+
 type Provider interface {
 	GetType() string
 	//GetProperties() struct{}
@@ -11,7 +13,7 @@ type Provider interface {
 
 	Abort(repo string)
 	Checkout(repo string, guid string, tags []string)
-	Clone(uri string, repo string, commit string, params []string, arguments []string, disablePortMap bool, tags []string)
+	Clone(uri string, repo string, commit string, params []string, arguments []string, disablePortMap bool, tags []string, pull cmn.PullPolicy)
 	Commit(repo string, message string, tags []string)
 	Copy(repo string, driver string, source string, path string)
 	Delete(repo string, commit string, tags []string)
@@ -27,7 +29,7 @@ type Provider interface {
 	RemoteLog(repo string, remoteName string, tags []string)
 	RemoteRemove(repo string, remote string)
 	Remove(repo string, force bool)
-	Run(image string, repo string, environments []string, arguments []string, disablePortMap bool, privileged bool)
+	Run(image string, repo string, environments []string, arguments []string, disablePortMap bool, privileged bool, pull cmn.PullPolicy)
 	Start(repo string)
 	Status(repo string)
 	Stop(repo string)

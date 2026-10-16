@@ -10,6 +10,7 @@ run arguments and passed verbatim using '--' as the flag.
 
 Docker example: 'dit run --disable-port-mapping postgres -- -p 2345:5432'
 Privileged example: 'dit run --privileged icr.io/db2_community/db2:latest'
+Local image example: 'dit run --pull never myorg/postgres:16'
 
 ```
 dit run [IMAGE] [flags]
@@ -22,6 +23,7 @@ dit run [IMAGE] [flags]
   -e, --env strings            container specific environment variables
   -P, --disable-port-mapping   disable default port mapping from container to localhost
       --privileged             run container in privileged mode with extended permissions
+      --pull string            image pull policy: missing (pull only if absent), always (re-pull unless the local image matches the commit), never (use the local image only) (default "missing")
   -t, --tags strings           filter latest commit by tags
   -h, --help                   help for run
 ```

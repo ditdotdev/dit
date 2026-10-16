@@ -4,7 +4,6 @@
 package common
 
 import (
-	"encoding/json"
 	"errors"
 	"net/http"
 	"strings"
@@ -91,7 +90,7 @@ func TestClone_CreateRepositoryError(t *testing.T) {
 	output := captureStdout(func() {
 		didExit, code = captureExit(t, func() {
 			withDocker(t, &fakeCloneDocker{}, func() {
-				Clone("http://x.com/o/myrepo", "", "", nil, nil, false, nil, port, "ctx", cb)
+				Clone("http://x.com/o/myrepo", "", "", nil, nil, false, nil, PullMissing, port, "ctx", cb)
 			})
 		})
 	})
@@ -113,7 +112,7 @@ func TestClone_EmptyRemoteCommitsRemovesRepo(t *testing.T) {
 	output := captureStdout(func() {
 		didExit, code = captureExit(t, func() {
 			withDocker(t, &fakeCloneDocker{}, func() {
-				Clone("http://example.com/o/myrepo", "", "", nil, nil, false, nil, port, "ctx", cb)
+				Clone("http://example.com/o/myrepo", "", "", nil, nil, false, nil, PullMissing, port, "ctx", cb)
 			})
 		})
 	})
@@ -142,7 +141,7 @@ func TestClone_ImagePullFailsExits(t *testing.T) {
 	output := captureStdout(func() {
 		didExit, code = captureExit(t, func() {
 			withDocker(t, d, func() {
-				Clone("http://example.com/o/myrepo", "", "", nil, nil, false, nil, port, "ctx", cb)
+				Clone("http://example.com/o/myrepo", "", "", nil, nil, false, nil, PullMissing, port, "ctx", cb)
 			})
 		})
 	})
@@ -150,7 +149,7 @@ func TestClone_ImagePullFailsExits(t *testing.T) {
 	if !didExit || code != 1 {
 		t.Errorf("expected osExit(1) on image pull failure; got didExit=%v code=%d", didExit, code)
 	}
-	if !strings.Contains(output, "Unable to find image") {
+	if !strings.Contains(output, "not found locally") {
 		t.Errorf("expected pull-failure message, got %q", output)
 	}
 }
@@ -169,7 +168,7 @@ func TestClone_LocalImageUnreachableRegistryDefaultPolicy(t *testing.T) {
 	output := captureStdout(func() {
 		didExit, code = captureExit(t, func() {
 			withDocker(t, d, func() {
-				Clone("http://example.com/o/myrepo", "", "", nil, nil, false, nil, port, "ctx", cb)
+				Clone("http://example.com/o/myrepo", "", "", nil, nil, false, nil, PullMissing, port, "ctx", cb)
 			})
 		})
 	})
@@ -197,7 +196,7 @@ func TestClone_RunCallbackErrorRemovesRepo(t *testing.T) {
 	output := captureStdout(func() {
 		didExit, code = captureExit(t, func() {
 			withDocker(t, &fakeCloneDocker{}, func() {
-				Clone("http://example.com/o/myrepo", "", "", nil, nil, false, nil, port, "ctx", cb)
+				Clone("http://example.com/o/myrepo", "", "", nil, nil, false, nil, PullMissing, port, "ctx", cb)
 			})
 		})
 	})
@@ -223,7 +222,7 @@ func TestClone_TagsWithCommitIdWarn(t *testing.T) {
 	output := captureStdout(func() {
 		_, _ = captureExit(t, func() {
 			withDocker(t, &fakeCloneDocker{}, func() {
-				Clone("http://example.com/o/myrepo", "", "c1", nil, nil, false, []string{"v1"}, port, "ctx", cb)
+				Clone("http://example.com/o/myrepo", "", "c1", nil, nil, false, []string{"v1"}, PullMissing, port, "ctx", cb)
 			})
 		})
 	})
@@ -241,7 +240,7 @@ func TestClone_HappyPath(t *testing.T) {
 	output := captureStdout(func() {
 		didExit, _ = captureExit(t, func() {
 			withDocker(t, &fakeCloneDocker{}, func() {
-				Clone("http://example.com/o/myrepo", "", "", nil, nil, false, nil, port, "ctx", cb)
+				Clone("http://example.com/o/myrepo", "", "", nil, nil, false, nil, PullMissing, port, "ctx", cb)
 			})
 		})
 	})
@@ -266,7 +265,7 @@ func TestClone_GetRemoteCommitErrorRemovesRepo(t *testing.T) {
 	output := captureStdout(func() {
 		didExit, code = captureExit(t, func() {
 			withDocker(t, &fakeCloneDocker{}, func() {
-				Clone("http://example.com/o/myrepo", "", "c1", nil, nil, false, nil, port, "ctx", cb)
+				Clone("http://example.com/o/myrepo", "", "c1", nil, nil, false, nil, PullMissing, port, "ctx", cb)
 			})
 		})
 	})
@@ -280,15 +279,6 @@ func TestClone_GetRemoteCommitErrorRemovesRepo(t *testing.T) {
 	if !strings.Contains(output, "error communicating with remote") {
 		t.Errorf("expected remote-error message, got %q", output)
 	}
-}
-
-// decodeRemoteProps returns the "properties" map of a CreateRemote request body.
-func decodeRemoteProps(r *http.Request) map[string]interface{} {
-	var body struct {
-		Properties map[string]interface{} `json:"properties"`
-	}
-	_ = json.NewDecoder(r.Body).Decode(&body)
-	return body.Properties
 }
 
 // cloneRemoteJSON includes the api_base_url so the inner Pull call from Clone

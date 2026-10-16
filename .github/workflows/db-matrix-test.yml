@@ -520,24 +520,20 @@ jobs:
           aws-region: us-west-2
       
       - name: Prepare database image
-        # Pull the matrix image. If the tag is not on Docker Hub but a wrapper
-        # Dockerfile exists under tests/endtoend/db-matrix (named
-        # <image>-<tag>.Dockerfile), build it and push it under that ref using
-        # the Docker Hub login above. `dit clone` always pulls the repo's
-        # image (Clone.go), so a local-only build is not enough.
+        # If a wrapper Dockerfile exists under tests/endtoend/db-matrix (named
+        # <image>-<tag>.Dockerfile), build the matrix image locally and do
+        # not push it: dit run and dit clone use a locally present image
+        # without pulling (#247), and this job is the end-to-end proof.
+        # Otherwise pull the image from Docker Hub.
         run: |
-          if docker pull "$DATABASE_VERSION"; then
-            exit 0
-          fi
           name="${DATABASE_VERSION##*/}"
           dockerfile="tests/endtoend/db-matrix/${name/:/-}.Dockerfile"
-          if [[ ! -f "$dockerfile" ]]; then
-            echo "::error::Cannot pull $DATABASE_VERSION and no wrapper Dockerfile at $dockerfile"
-            exit 1
+          if [[ -f "$dockerfile" ]]; then
+            echo "Building $DATABASE_VERSION locally from $dockerfile (not pushed)"
+            docker build -t "$DATABASE_VERSION" -f "$dockerfile" tests/endtoend/db-matrix
+            exit 0
           fi
-          echo "Pull failed; building and publishing $DATABASE_VERSION from $dockerfile"
-          docker build -t "$DATABASE_VERSION" -f "$dockerfile" tests/endtoend/db-matrix
-          docker push "$DATABASE_VERSION"
+          docker pull "$DATABASE_VERSION"
         shell: bash
         env:
           DATABASE_VERSION: ${{ matrix.database }}
