@@ -2,21 +2,24 @@
 # Copyright Dit 2026
 # SPDX-License-Identifier: BUSL-1.1
 
-# Image pull policy for `dit run` and `dit clone` (issue #247).
+# Image pull policy for `dit run` and `dit clone` (issues #247 and #240).
 #
 # Exercises the decision table for --pull missing|always|never on both
-# commands against a real docker daemon and an SSH remote:
+# commands against a real docker daemon and an SSH remote. "digest" is the
+# RepoDigests entry recorded in the commit being cloned (dit run has none):
 #
-#   policy  | image present | digest state       | expected
-#   --------+---------------+--------------------+--------------------------------------------
-#   missing | yes           | any                | use local, no pull
-#   missing | no            | -                  | pull; exit 1 if pull fails
-#   never   | yes           | match / unknown    | use local
-#   never   | yes           | mismatch           | use local, print warning
-#   never   | no            | -                  | exit 1
-#   always  | yes           | match              | use local, no pull
-#   always  | yes           | mismatch / unknown | pull by digest (then tag), warn on failure
-#   always  | no            | -                  | pull; exit 1 if pull fails
+#   policy         | digest   | image:tag present | expected
+#   ---------------+----------+-------------------+--------------------------------------------
+#   missing        | unknown  | yes               | use local, no pull
+#   missing        | unknown  | no                | pull image:tag; exit 1 if pull fails
+#   missing/always | recorded | any               | run image:tag@digest; pull the digest only
+#                  |          |                   | when absent; never retag image:tag (#240)
+#   missing/always | recorded | yes, pull fails   | warn, use local image:tag
+#   never          | any      | yes               | use local; warn on digest mismatch
+#   never          | recorded | no, digest present| run image:tag@digest
+#   never          | any      | no                | exit 1
+#   always         | unknown  | yes               | pull image:tag, warn and keep local on failure
+#   always         | unknown  | no                | pull; exit 1 if pull fails
 #
 # Two fixtures drive the table:
 #   * ditdotdev/pull-policy-local:test - built here from local-only.Dockerfile,
@@ -25,7 +28,8 @@
 #   * redis:7-alpine / redis:6-alpine - real registry images with a VOLUME.
 #     Running redis:7-alpine records its digest in the commit; tagging
 #     redis:6-alpine as redis:7-alpine then gives a present image whose
-#     RepoDigests do not match the stored digest.
+#     RepoDigests do not match the stored digest - the #240 situation of a
+#     tag that moved after the data was pushed.
 
 load '../test_helper'
 
@@ -75,6 +79,17 @@ ssh_host() {
 
 image_id() {
   docker inspect --format '{{.Id}}' "$1"
+}
+
+# The image the running clone was started from, e.g. redis@sha256:...
+container_image() {
+  docker inspect --format '{{.Config.Image}}' "$1"
+}
+
+# Remove the committed redis digest from the daemon (it is only ever pulled
+# by digest here, so this drops the image) without touching redis:7-alpine.
+remove_committed_digest() {
+  docker rmi -f "$(cat "$BATS_TMPDIR/remote_digest.txt")" 2>/dev/null || true
 }
 
 # ===== dit run: local-only image =====
@@ -199,40 +214,95 @@ image_id() {
   assert_success
 }
 
-@test "clone: --pull always with mismatching local digest pulls by digest and retags" {
+@test "clone: --pull always with mismatching local digest pulls by digest and leaves the local tag alone" {
   SSH_HOST=$(ssh_host)
   EXPECTED_DIGEST=$(cat "$BATS_TMPDIR/remote_digest.txt")
+  remove_committed_digest
 
   run "$D3" clone -n "$REMOTE_REPO" --pull always -p "skipHostCheck=true" "ssh://root:root@$SSH_HOST/remote"
   assert_success
-  run docker inspect --format '{{join .RepoDigests ","}}' "$REMOTE_IMAGE"
+  # The committed digest was pulled and the clone runs it ...
+  run docker inspect --type image "$EXPECTED_DIGEST"
   assert_success
-  assert_output --partial "$EXPECTED_DIGEST"
-  [ "$(image_id "$REMOTE_IMAGE")" != "$(cat "$BATS_TMPDIR/stale_image_id.txt")" ]
+  [ "$(container_image "$REMOTE_REPO")" = "$EXPECTED_DIGEST" ]
+  # ... while redis:7-alpine still points at the redis:6-alpine image.
+  [ "$(image_id "$REMOTE_IMAGE")" = "$(cat "$BATS_TMPDIR/stale_image_id.txt")" ]
   run "$D3" rm -f "$REMOTE_REPO"
   assert_success
 }
 
-@test "clone: --pull always with matching local digest does not pull" {
-  SSH_HOST=$(ssh_host)
-  BEFORE=$(image_id "$REMOTE_IMAGE")
+# ===== dit clone: default policy runs the committed digest (issue #240) =====
 
-  run "$D3" clone -n "$REMOTE_REPO" --pull always -p "skipHostCheck=true" "ssh://root:root@$SSH_HOST/remote"
-  assert_success
-  # Image identity is the proof: a pull by tag or digest would replace the
-  # redis:7-alpine image ID. (The "Pulling <commit>" line is dit's data pull.)
-  [ "$(image_id "$REMOTE_IMAGE")" = "$BEFORE" ]
-  run "$D3" rm -f "$REMOTE_REPO"
-  assert_success
-}
-
-@test "clone: default policy with matching local digest does not pull" {
+@test "clone: default policy with mismatching local digest runs the committed digest (#240)" {
   SSH_HOST=$(ssh_host)
-  BEFORE=$(image_id "$REMOTE_IMAGE")
+  EXPECTED_DIGEST=$(cat "$BATS_TMPDIR/remote_digest.txt")
+  remove_committed_digest
 
   run "$D3" clone -n "$REMOTE_REPO" -p "skipHostCheck=true" "ssh://root:root@$SSH_HOST/remote"
   assert_success
-  [ "$(image_id "$REMOTE_IMAGE")" = "$BEFORE" ]
+  run docker inspect --type image "$EXPECTED_DIGEST"
+  assert_success
+  [ "$(container_image "$REMOTE_REPO")" = "$EXPECTED_DIGEST" ]
+  [ "$(image_id "$REMOTE_IMAGE")" = "$(cat "$BATS_TMPDIR/stale_image_id.txt")" ]
+  run "$D3" rm -f "$REMOTE_REPO"
+  assert_success
+}
+
+@test "clone: default policy with image absent pulls the committed digest, not the tag (#240)" {
+  SSH_HOST=$(ssh_host)
+  EXPECTED_DIGEST=$(cat "$BATS_TMPDIR/remote_digest.txt")
+  remove_committed_digest
+  docker rmi -f "$REMOTE_IMAGE"
+
+  run "$D3" clone -n "$REMOTE_REPO" -p "skipHostCheck=true" "ssh://root:root@$SSH_HOST/remote"
+  assert_success
+  run docker inspect --type image "$EXPECTED_DIGEST"
+  assert_success
+  [ "$(container_image "$REMOTE_REPO")" = "$EXPECTED_DIGEST" ]
+  # The tag was neither pulled nor created by a retag.
+  run docker inspect --type image "$REMOTE_IMAGE"
+  assert_failure
+  run "$D3" rm -f "$REMOTE_REPO"
+  assert_success
+}
+
+@test "clone: --pull always with the committed digest present does not pull" {
+  SSH_HOST=$(ssh_host)
+  EXPECTED_DIGEST=$(cat "$BATS_TMPDIR/remote_digest.txt")
+  BEFORE=$(image_id "$EXPECTED_DIGEST")
+
+  run "$D3" clone -n "$REMOTE_REPO" --pull always -p "skipHostCheck=true" "ssh://root:root@$SSH_HOST/remote"
+  assert_success
+  # Image identity is the proof: a pull would replace the image ID. (The
+  # "Pulling <commit>" line is dit's data pull.)
+  [ "$(image_id "$EXPECTED_DIGEST")" = "$BEFORE" ]
+  [ "$(container_image "$REMOTE_REPO")" = "$EXPECTED_DIGEST" ]
+  run docker inspect --type image "$REMOTE_IMAGE"
+  assert_failure
+  run "$D3" rm -f "$REMOTE_REPO"
+  assert_success
+}
+
+@test "clone: default policy with the committed digest present does not pull" {
+  SSH_HOST=$(ssh_host)
+  EXPECTED_DIGEST=$(cat "$BATS_TMPDIR/remote_digest.txt")
+  BEFORE=$(image_id "$EXPECTED_DIGEST")
+
+  run "$D3" clone -n "$REMOTE_REPO" -p "skipHostCheck=true" "ssh://root:root@$SSH_HOST/remote"
+  assert_success
+  [ "$(image_id "$EXPECTED_DIGEST")" = "$BEFORE" ]
+  [ "$(container_image "$REMOTE_REPO")" = "$EXPECTED_DIGEST" ]
+  run "$D3" rm -f "$REMOTE_REPO"
+  assert_success
+}
+
+@test "clone: --pull never with only the committed digest present runs it" {
+  SSH_HOST=$(ssh_host)
+  EXPECTED_DIGEST=$(cat "$BATS_TMPDIR/remote_digest.txt")
+
+  run "$D3" clone -n "$REMOTE_REPO" --pull never -p "skipHostCheck=true" "ssh://root:root@$SSH_HOST/remote"
+  assert_success
+  [ "$(container_image "$REMOTE_REPO")" = "$EXPECTED_DIGEST" ]
   run "$D3" rm -f "$REMOTE_REPO"
   assert_success
 }

@@ -20,13 +20,17 @@ const (
 )
 
 const (
-	// PullMissing uses the local image when present and pulls only when it
-	// is absent. This is the default.
+	// PullMissing uses the image already on the daemon and pulls only when
+	// it is absent. When the commit records a digest (dit clone), "the
+	// image" is that digest, not whatever image:tag points at today. This
+	// is the default.
 	PullMissing PullPolicy = "missing"
-	// PullAlways refreshes the image from the registry unless the local copy
-	// already matches the digest recorded in the commit being cloned.
+	// PullAlways refreshes the image from the registry. With a recorded
+	// digest it behaves like PullMissing (the digest is already exact);
+	// without one it re-pulls image:tag.
 	PullAlways PullPolicy = "always"
-	// PullNever uses the local image only and fails when it is absent.
+	// PullNever uses local images only and fails when nothing usable is
+	// present.
 	PullNever PullPolicy = "never"
 )
 
@@ -48,7 +52,6 @@ type ImagePuller interface {
 	InspectImage(image string) (string, error)
 	GetValFromImage(image string, key ...string) string
 	Pull(image string) (string, error)
-	Tag(source string, target string) (string, error)
 }
 
 // RepoDigests parses the raw `[0].RepoDigests` text from `docker inspect`
@@ -70,57 +73,102 @@ func RepoDigests(raw string) []string {
 	return out
 }
 
-// EnsureImage makes imageRef (image:tag) usable on the local docker daemon
-// according to policy. storedDigest is the RepoDigests entry recorded in the
-// commit metadata, or "" when unknown (dit run, or a commit written without
-// one). It prints its own warnings; a non-nil error means the image is not
-// usable and the caller should exit.
-func EnsureImage(d ImagePuller, imageRef string, storedDigest string, policy PullPolicy) error {
+// runRef turns image:tag plus a RepoDigests entry ("repo@sha256:…") into
+// "repo:tag@sha256:…". Docker resolves such a reference by the digest alone,
+// so the container starts from exactly the committed image while the tag
+// still travels along for the repository metadata. The repository name is
+// taken from the digest entry (it is the name the digest is known under on
+// this daemon, normally the same as the image's). It returns imageRef
+// unchanged when digest is empty or not of the repo@algo:hex form.
+func runRef(imageRef string, digest string) string {
+	at := strings.LastIndex(digest, "@")
+	if at < 0 {
+		return imageRef
+	}
+	repo, d := digest[:at], digest[at+1:]
+	if repo == "" || !strings.Contains(d, ":") {
+		return imageRef
+	}
+	ref := repo
+	if colon := strings.LastIndex(imageRef, ":"); colon >= 0 {
+		ref += imageRef[colon:]
+	}
+	return ref + "@" + d
+}
+
+// EnsureImage makes the image usable on the local docker daemon according
+// to policy and returns the reference the container must be started from.
+// imageRef is image:tag. storedDigest is the RepoDigests entry recorded in
+// the commit being cloned, or "" when unknown (dit run, or a commit written
+// without one). The returned reference is image:tag@digest when the
+// committed digest is used (issue #240) and image:tag otherwise. It prints
+// its own warnings; a non-nil error means nothing usable is present and the
+// caller should exit.
+func EnsureImage(d ImagePuller, imageRef string, storedDigest string, policy PullPolicy) (string, error) {
 	stored := storedDigest
 	if stored == unknownDigest {
 		// Older commit metadata loaded a missing digest as the literal "<nil>".
 		stored = ""
 	}
+	digestRef := runRef(imageRef, stored)
+	if digestRef == imageRef {
+		stored = "" // nothing usable was recorded
+	}
 	present := imagePresent(d, imageRef)
 
-	switch policy {
-	case PullNever:
-		if !present {
-			return fmt.Errorf("image %s is not present locally and --pull never was given", imageRef)
-		}
-		if stored != "" {
-			if match, local := localDigestMatches(d, imageRef, stored); !match && len(local) > 0 {
-				fmt.Printf("Warning: local image %s (%s) differs from the digest recorded in the commit (%s); --pull never keeps the local image\n",
-					imageRef, strings.Join(local, ","), stored)
+	if policy == PullNever {
+		if present {
+			if stored != "" {
+				warnOnMismatch(d, imageRef, stored, "--pull never keeps the local image")
 			}
+			return imageRef, nil
 		}
-		return nil
+		if stored != "" && imagePresent(d, stored) {
+			return digestRef, nil
+		}
+		return "", fmt.Errorf("image %s is not present locally and --pull never was given", imageRef)
+	}
 
-	case PullAlways:
-		if present && stored != "" {
-			if match, _ := localDigestMatches(d, imageRef, stored); match {
-				return nil
-			}
+	// missing / always with a recorded digest: the digest is the image.
+	if stored != "" {
+		if imagePresent(d, stored) {
+			return digestRef, nil
 		}
-		err := refreshImage(d, imageRef, stored)
+		err := pullRef(d, stored)
 		if err == nil {
-			return nil
+			return digestRef, nil
+		}
+		if present {
+			fmt.Printf("Warning: unable to pull the image recorded in the commit %s (%v); using local image %s\n", stored, err, imageRef)
+			warnOnMismatch(d, imageRef, stored, "the local image is used anyway")
+			return imageRef, nil
+		}
+		if err := pullRef(d, imageRef); err != nil {
+			return "", fmt.Errorf("unable to pull image %s or %s: %v", stored, imageRef, err)
+		}
+		return imageRef, nil
+	}
+
+	if policy == PullAlways {
+		err := pullRef(d, imageRef)
+		if err == nil {
+			return imageRef, nil
 		}
 		if present {
 			fmt.Printf("Warning: unable to pull %s (%v); using local image\n", imageRef, err)
-			return nil
+			return imageRef, nil
 		}
-		return fmt.Errorf("unable to pull image %s: %v", imageRef, err)
-
-	default: // PullMissing
-		if present {
-			return nil
-		}
-		if err := pullRef(d, imageRef); err != nil {
-			return fmt.Errorf("image %s not found locally and pull failed: %v", imageRef, err)
-		}
-		return nil
+		return "", fmt.Errorf("unable to pull image %s: %v", imageRef, err)
 	}
+
+	// PullMissing without a recorded digest
+	if present {
+		return imageRef, nil
+	}
+	if err := pullRef(d, imageRef); err != nil {
+		return "", fmt.Errorf("image %s not found locally and pull failed: %v", imageRef, err)
+	}
+	return imageRef, nil
 }
 
 func imagePresent(d ImagePuller, imageRef string) bool {
@@ -128,38 +176,27 @@ func imagePresent(d ImagePuller, imageRef string) bool {
 	return err == nil && strings.TrimSpace(out) != ""
 }
 
-// localDigestMatches reports whether any RepoDigests entry of the local image
-// equals stored, and returns the local entries for diagnostics.
-func localDigestMatches(d ImagePuller, imageRef string, stored string) (bool, []string) {
+// warnOnMismatch prints a warning when the local image:tag has RepoDigests
+// and none of them is the digest recorded in the commit.
+func warnOnMismatch(d ImagePuller, imageRef string, stored string, consequence string) {
 	local := RepoDigests(d.GetValFromImage(imageRef, "RepoDigests"))
+	if len(local) == 0 {
+		return
+	}
 	for _, l := range local {
 		if l == stored {
-			return true, local
+			return
 		}
 	}
-	return false, local
+	fmt.Printf("Warning: local image %s (%s) differs from the digest recorded in the commit (%s); %s\n",
+		imageRef, strings.Join(local, ","), stored, consequence)
 }
 
-// refreshImage pulls the commit's digest and points imageRef at it, so the
-// container started from image:tag is exactly the committed image. Pulling
-// by digest does not move the tag by itself, hence the docker tag. Without a
-// stored digest, or when the digest pull fails, it pulls the tag instead.
-func refreshImage(d ImagePuller, imageRef string, stored string) error {
-	if stored != "" {
-		if _, err := d.Pull(stored); err == nil {
-			if _, err := d.Tag(stored, imageRef); err == nil {
-				return nil
-			}
-		}
-	}
-	return pullRef(d, imageRef)
-}
-
-func pullRef(d ImagePuller, imageRef string) error {
-	if _, err := d.Pull(imageRef); err != nil {
+func pullRef(d ImagePuller, ref string) error {
+	if _, err := d.Pull(ref); err != nil {
 		return err
 	}
-	if !imagePresent(d, imageRef) {
+	if !imagePresent(d, ref) {
 		return errors.New("image still missing after pull")
 	}
 	return nil

@@ -154,6 +154,7 @@ type fakeK8s struct {
 	statefulSetStatusErr error
 
 	CreateStatefulSetCalls       int
+	CreatedImageIds              []string // imageId of each CreateStatefulSet call
 	WaitForStatefulSetCalls      int
 	StartPortForwardingCalls     int
 	StopPortForwardingCalls      int
@@ -165,6 +166,7 @@ type fakeK8s struct {
 
 func (f *fakeK8s) CreateStatefulSet(repoName, imageId string, ports []int, volumes []ditclient.Volume, environment []string) error {
 	f.CreateStatefulSetCalls++
+	f.CreatedImageIds = append(f.CreatedImageIds, imageId)
 	return f.createStatefulSetErr
 }
 func (f *fakeK8s) GetStatefulSetStatus(repoName string) (string, error) {

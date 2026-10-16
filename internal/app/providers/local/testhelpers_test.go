@@ -123,6 +123,7 @@ type fakeDocker struct {
 
 	// Call counts to assert on:
 	StopCalls, StartCalls, RunCalls int
+	RunImages                       []string // image argument of each Run call
 	RemoveCalls                     int
 	PullCalls                       int
 	PulledRefs                      []string
@@ -194,8 +195,9 @@ func (f *fakeDocker) RemoveStopped(string) (string, error) { return "", f.remove
 func (f *fakeDocker) RemoveVolume(string, bool) (string, error) {
 	return "", f.removeVolumeErr
 }
-func (f *fakeDocker) Run(string, string, []string) (string, error) {
+func (f *fakeDocker) Run(image string, _ string, _ []string) (string, error) {
 	f.RunCalls++
+	f.RunImages = append(f.RunImages, image)
 	return f.runOut, f.runErr
 }
 func (f *fakeDocker) Start(string) (string, error)        { f.StartCalls++; return "", f.startErr }

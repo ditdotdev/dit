@@ -163,7 +163,7 @@ Requires: Docker, dit binary, dit-remote-server running locally
 | `--context` | (global) | multi-context |
 | `--registry` | install | Not tested (infrastructure-specific) |
 | `--privileged` | run | Not tested (requires privileged Docker) |
-| `--pull` | run, clone | image-pull-policy (missing/always/never, digest match and mismatch) |
+| `--pull` | run, clone | image-pull-policy (missing/always/never; clone runs the committed digest, #240), getting-started |
 | `--path` | upgrade | Not tested (requires version mismatch) |
 
 ## Provider Coverage

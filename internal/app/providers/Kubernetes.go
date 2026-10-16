@@ -45,7 +45,8 @@ func (k kubernetes) Clone(uri string, repo string, commit string, params []strin
 			// string keeps cmn.Clone from printing a second status line, and
 			// nil-error means common.Clone treats it as success.
 			// cmn.Clone has already applied the pull policy; PullMissing
-			// here finds the image present and avoids a second pull.
+			// here finds the image present and avoids a second pull. image
+			// carries the committed digest (image:tag@sha256:…) when known.
 			k8s.Run(image, repoName, envs, args, disablePortMap, privileged, cmn.PullMissing, false, k.portNum, k.contextName)
 			return "", nil
 		},

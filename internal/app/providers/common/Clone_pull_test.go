@@ -16,7 +16,14 @@ const (
 	clonePullRef    = clonePullImage + ":" + clonePullTag
 	clonePullDigest = "redis@sha256:1111"
 	clonePullOther  = "redis@sha256:2222"
+	// What the Run callback must receive when the committed digest is used.
+	clonePullRunRef = clonePullRef + "@sha256:1111"
 )
+
+// mismatchDocker holds some other redis:7-alpine and not the committed digest.
+func mismatchDocker() *fakeCloneDocker {
+	return &fakeCloneDocker{repoDigests: `["` + clonePullOther + `"]`, absent: map[string]bool{clonePullDigest: true}, pullMakesPresent: true}
+}
 
 // cloneCommitProps returns v2 commit properties for the clone image tests.
 // digest "" omits the key entirely (older servers), which must not load as
@@ -55,11 +62,14 @@ func TestClone_PullAlwaysMatchingDigestNoPull(t *testing.T) {
 	if calls.runCalls != 1 {
 		t.Errorf("expected one Run call, got %d", calls.runCalls)
 	}
+	if calls.runImage != clonePullRunRef {
+		t.Errorf("Run must receive the committed digest reference %s, got %s", clonePullRunRef, calls.runImage)
+	}
 }
 
 func TestClone_PullAlwaysMismatchPullsByDigestOnce(t *testing.T) {
 	// The inner Run callback must not pull again after Clone resolved the image.
-	d := &fakeCloneDocker{repoDigests: `["` + clonePullOther + `"]`}
+	d := mismatchDocker()
 	didExit, code, output, calls := runClone(t, cloneCommitProps(clonePullDigest), d, PullAlways)
 	if didExit {
 		t.Fatalf("unexpected exit %d: %q", code, output)
@@ -69,6 +79,54 @@ func TestClone_PullAlwaysMismatchPullsByDigestOnce(t *testing.T) {
 	}
 	if calls.runCalls != 1 {
 		t.Errorf("expected one Run call, got %d", calls.runCalls)
+	}
+	if calls.runImage != clonePullRunRef {
+		t.Errorf("Run must receive the committed digest reference %s, got %s", clonePullRunRef, calls.runImage)
+	}
+}
+
+// Issue #240: the default policy must start the committed image, not
+// whatever image:tag resolves to on this daemon.
+
+func TestClone_DefaultPolicyMismatchRunsCommittedDigest(t *testing.T) {
+	d := mismatchDocker()
+	didExit, code, output, calls := runClone(t, cloneCommitProps(clonePullDigest), d, PullMissing)
+	if didExit {
+		t.Fatalf("unexpected exit %d: %q", code, output)
+	}
+	if len(d.pulledRefs) != 1 || d.pulledRefs[0] != clonePullDigest {
+		t.Errorf("expected exactly one pull by digest, got %v", d.pulledRefs)
+	}
+	if calls.runImage != clonePullRunRef {
+		t.Errorf("Run must receive the committed digest reference %s, got %s", clonePullRunRef, calls.runImage)
+	}
+}
+
+func TestClone_DefaultPolicyAbsentPullsDigestNotTag(t *testing.T) {
+	d := &fakeCloneDocker{inspectErr: errors.New("no such image"), pullMakesPresent: true}
+	didExit, code, output, calls := runClone(t, cloneCommitProps(clonePullDigest), d, PullMissing)
+	if didExit {
+		t.Fatalf("unexpected exit %d: %q", code, output)
+	}
+	if len(d.pulledRefs) != 1 || d.pulledRefs[0] != clonePullDigest {
+		t.Errorf("expected exactly one pull by digest, never by tag, got %v", d.pulledRefs)
+	}
+	if calls.runImage != clonePullRunRef {
+		t.Errorf("Run must receive the committed digest reference %s, got %s", clonePullRunRef, calls.runImage)
+	}
+}
+
+func TestClone_DefaultPolicyMatchingDigestNoPull(t *testing.T) {
+	d := &fakeCloneDocker{repoDigests: `["` + clonePullDigest + `"]`}
+	didExit, code, output, calls := runClone(t, cloneCommitProps(clonePullDigest), d, PullMissing)
+	if didExit {
+		t.Fatalf("unexpected exit %d: %q", code, output)
+	}
+	if len(d.pulledRefs) != 0 {
+		t.Errorf("matching digest must not pull, got %v", d.pulledRefs)
+	}
+	if calls.runImage != clonePullRunRef {
+		t.Errorf("Run must receive the committed digest reference %s, got %s", clonePullRunRef, calls.runImage)
 	}
 }
 
@@ -90,7 +148,7 @@ func TestClone_PullNeverAbsentExits(t *testing.T) {
 }
 
 func TestClone_PullNeverMismatchWarnsAndRuns(t *testing.T) {
-	d := &fakeCloneDocker{repoDigests: `["` + clonePullOther + `"]`}
+	d := mismatchDocker()
 	didExit, code, output, calls := runClone(t, cloneCommitProps(clonePullDigest), d, PullNever)
 	if didExit {
 		t.Fatalf("unexpected exit %d: %q", code, output)
@@ -100,6 +158,9 @@ func TestClone_PullNeverMismatchWarnsAndRuns(t *testing.T) {
 	}
 	if calls.runCalls != 1 {
 		t.Errorf("expected one Run call, got %d", calls.runCalls)
+	}
+	if calls.runImage != clonePullRef {
+		t.Errorf("--pull never must run the local tag image %s, got %s", clonePullRef, calls.runImage)
 	}
 }
 

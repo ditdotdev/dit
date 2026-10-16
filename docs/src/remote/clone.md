@@ -18,13 +18,18 @@ not and can be specified with the `--` argument flag. See [dit clone](../cli/cmd
 for more details.
 
 > **Note:**
-> Clone uses the image already on your docker daemon when it is present and
-> pulls it only when it is missing, the same as `dit run`. Pass
-> `--pull always` to refresh it from the registry: dit compares the local
-> image's digest with the digest recorded in the commit and only pulls when
-> they differ, so a clone of an unchanged image never touches the network.
-> Pass `--pull never` to refuse to pull at all; if the local image differs
-> from the committed digest, dit prints a warning and keeps the local image.
+> Clone starts the repository from the exact image the commit was made
+> with. Each commit records the image digest, and clone runs
+> `image:tag@sha256:...` rather than whatever `image:tag` resolves to today,
+> so a tag that moved to a newer database version after the data was pushed
+> cannot start that newer version over older data files. The digest is
+> pulled only when it is not already on your docker daemon, and the local
+> `image:tag` is never changed. If the digest cannot be pulled, dit warns and
+> falls back to the local `image:tag`. Pass `--pull never` to refuse to pull
+> at all: the local `image:tag` is used (with a warning if it differs from
+> the committed digest), or the digest if only that is present. Commits
+> pushed by older versions of dit may carry no digest; those clone by tag,
+> and `--pull always` re-pulls the tag from the registry.
 
 > **Note:**
 > The clone command uses the latest commit by default. To clone a specific
