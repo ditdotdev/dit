@@ -53,21 +53,6 @@ wait_pod_ready() {
   return 1
 }
 
-# Wait for a VolumeSnapshot's status.readyToUse to flip to true.
-# Default 60 iterations × 5s = 300s. csi-hostpath on minikube-on-GHA
-# can take minutes; on a real CSI it's sub-second.
-wait_snapshot_ready() {
-  local snap="$1"
-  local iters="${2:-60}"
-  for _ in $(seq 1 "$iters"); do
-    if [ "$(kubectl get "volumesnapshot/$snap" -o jsonpath='{.status.readyToUse}' 2>/dev/null)" = "true" ]; then
-      return 0
-    fi
-    sleep 5
-  done
-  return 1
-}
-
 # Wait for postgres in the given pod to actually accept psql
 # connections. Pod-Ready (per wait_pod_ready) only means the postgres
 # process started; this fills the postgres-startup-to-listening gap
@@ -367,7 +352,7 @@ setup() {
 
 COMMIT_STATE="/tmp/dit-k8s-bats-commit-${REPO}"
 
-@test "dit commit: produces a VolumeSnapshot that becomes ReadyToUse" {
+@test "dit commit: returns only after the VolumeSnapshot is ReadyToUse (dit-server#313)" {
   if ! kubectl get crd volumesnapshots.snapshot.storage.k8s.io >/dev/null 2>&1; then
     skip "VolumeSnapshot CRD not installed (enable minikube addons: volumesnapshots, csi-hostpath-driver)"
   fi
@@ -388,26 +373,41 @@ COMMIT_STATE="/tmp/dit-k8s-bats-commit-${REPO}"
   }
   echo "$COMMIT_ID" > "$COMMIT_STATE"
 
+  # dit-server#313: `dit commit` must not return until the CSI driver has
+  # actually cut the snapshot. Before the fix the server answered 201 as
+  # soon as the VolumeSnapshot was applied, so a write landing between
+  # "Commit <id>" and the driver's snapshot point was captured by the
+  # commit and a later checkout did not roll it back. Hence: NO waiting
+  # here: readyToUse and creationTime must already be set the moment
+  # dit commit returns.
+  #
   # The server names snapshots <volumeSet>-<volume>-<commitId> and labels
-  # them with ditCommit; pick by label so we don't have to know
-  # the volumeSet UUID.
-  for _ in $(seq 1 60); do
-    snap=$(kubectl get volumesnapshot -l "ditCommit=$COMMIT_ID" \
-      -o jsonpath='{.items[0].metadata.name}' 2>/dev/null)
-    if [ -n "$snap" ]; then break; fi
-    sleep 1
-  done
+  # them with ditCommit; pick by label so we don't have to know the
+  # volumeSet UUID.
+  snap=$(kubectl get volumesnapshot -l "ditCommit=$COMMIT_ID" \
+    -o jsonpath='{.items[0].metadata.name}' 2>/dev/null)
   [ -n "$snap" ] || {
-    echo "no VolumeSnapshot with ditCommit=$COMMIT_ID after 60s"
+    echo "no VolumeSnapshot with ditCommit=$COMMIT_ID right after dit commit returned"
     kubectl get volumesnapshot
     return 1
   }
 
-  # csi-hostpath on minikube-on-GHA-runners can take several minutes
-  # to flush a snapshot to ReadyToUse; on a real CSI backend (GKE pd,
-  # EBS, etc.) it's sub-second. Default helper iters = 60 × 5s = 300s.
-  if ! wait_snapshot_ready "$snap"; then
-    echo "VolumeSnapshot $snap did not become ReadyToUse"
+  ready=$(kubectl get "volumesnapshot/$snap" -o jsonpath='{.status.readyToUse}' 2>/dev/null)
+  created=$(kubectl get "volumesnapshot/$snap" -o jsonpath='{.status.creationTime}' 2>/dev/null)
+
+  # The race from dit-server#313: a write made immediately after dit commit
+  # returns must NOT be in the commit; the checkout test asserts that row
+  # 99 is gone after restoring this commit. Done before the readiness
+  # assertion below so that, against a server that still returns early,
+  # BOTH the mechanism (this test) and the user-visible symptom (checkout
+  # bringing row 99 back) fail.
+  run kubectl exec "${REPO}-0" -- psql -U postgres -c \
+    "INSERT INTO bats_baseline VALUES (99);"
+  assert_success
+
+  if [ "$ready" != "true" ] || [ -z "$created" ]; then
+    echo "dit commit returned before VolumeSnapshot $snap was cut (dit-server#313):"
+    echo "  status.readyToUse='$ready' status.creationTime='$created'"
     echo "--- kubectl describe volumesnapshot/$snap ---"
     kubectl describe "volumesnapshot/$snap" || true
     echo "--- kubectl describe volumesnapshotcontent (linked from snap) ---"
@@ -483,6 +483,9 @@ COMMIT_STATE="/tmp/dit-k8s-bats-commit-${REPO}"
     "SELECT id FROM bats_baseline;"
   assert_success
   assert_output --partial "42"
+  # Row 99 was inserted right after dit commit returned (dit-server#313);
+  # a synchronous commit must not have captured it.
+  refute_output --partial "99"
 
   rm -f "$COMMIT_STATE"
 }
