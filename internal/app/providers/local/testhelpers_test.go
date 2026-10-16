@@ -99,26 +99,26 @@ type fakeDocker struct {
 	inspectImageErr         error
 	// inspectAfterPull, when set, makes a successful Pull turn InspectImage
 	// into a success returning this text (image became present).
-	inspectAfterPull string
-	launchOut               string
-	launchErr               error
-	listVolumes             []string
-	pullErr                 error
-	removeErr               error
-	removeDitImagesErr      error
-	removeDitLaunchErr      error
-	removeDitServerErr      error
-	removeDitVolumeErr      error
-	removeStoppedErr        error
-	removeVolumeErr         error
-	runOut                  string
-	runErr                  error
-	startErr                error
-	stopErr                 error
-	tagErr                  error
-	teardownErr             error
-	versionErr              error
-	volumeExists            map[string]bool
+	inspectAfterPull   string
+	launchOut          string
+	launchErr          error
+	listVolumes        []string
+	pullErr            error
+	removeErr          error
+	removeDitImagesErr error
+	removeDitLaunchErr error
+	removeDitServerErr error
+	removeDitVolumeErr error
+	removeStoppedErr   error
+	removeVolumeErr    error
+	runOut             string
+	runErr             error
+	startErr           error
+	stopErr            error
+	tagErr             error
+	teardownErr        error
+	versionErr         error
+	volumeExists       map[string]bool
 
 	// Call counts to assert on:
 	StopCalls, StartCalls, RunCalls int
@@ -171,8 +171,8 @@ func (f *fakeDocker) InspectContainer(string) (string, error) {
 func (f *fakeDocker) InspectImage(string) (string, error) {
 	return f.inspectImageOut, f.inspectImageErr
 }
-func (f *fakeDocker) LaunchDitServers() (string, error)   { return f.launchOut, f.launchErr }
-func (f *fakeDocker) ListVolumes(string) []string         { return f.listVolumes }
+func (f *fakeDocker) LaunchDitServers() (string, error) { return f.launchOut, f.launchErr }
+func (f *fakeDocker) ListVolumes(string) []string       { return f.listVolumes }
 func (f *fakeDocker) Pull(ref string) (string, error) {
 	f.PullCalls++
 	f.PulledRefs = append(f.PulledRefs, ref)
