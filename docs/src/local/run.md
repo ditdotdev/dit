@@ -15,16 +15,25 @@ To run a repository, you simply take the arguments you'd normally supply to
 ```bash
 $ dit run mongo
 Creating repository mongo
-Creating docker volume mongo/v0 with path /data/configdb
-Creating docker volume mongo/v1 with path /data/db
+Creating docker volume mongo_v0 with path /data/configdb
+Creating docker volume mongo_v1 with path /data/db
 Running controlled container mongo
-$ docker ps | grep mongo
-755f23d7bbc9        mongo               "docker-entrypoint.s…"   6 seconds ago       Up 5 seconds         0.0.0.0:27017->27017/tcp                mongo
-$ docker exec -it mongo mongo --quiet
-> db.names.insert({ firstName: "Dorothy", lastName: "Vaughan" })
-WriteResult({ "nInserted" : 1 })
-> db.names.find()
-{ "_id" : ObjectId("5d8d011a81973f4255f6bf25"), "firstName" : "Dorothy", "lastName" : "Vaughan" }
+$ docker ps --filter name=mongo --format '{{.Names}}  {{.Status}}  {{.Ports}}'
+mongo  Up 5 seconds  0.0.0.0:27017->27017/tcp, [::]:27017->27017/tcp
+$ docker exec -it mongo mongosh --quiet
+test> db.names.insertOne({ firstName: "Dorothy", lastName: "Vaughan" })
+{
+  acknowledged: true,
+  insertedId: ObjectId('6ad2848c7cf5efb648c869e4')
+}
+test> db.names.find()
+[
+  {
+    _id: ObjectId('6ad2848c7cf5efb648c869e4'),
+    firstName: 'Dorothy',
+    lastName: 'Vaughan'
+  }
+]
 ```
 
 There are a couple things to note here:

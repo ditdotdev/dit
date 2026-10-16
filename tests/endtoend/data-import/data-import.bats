@@ -63,9 +63,13 @@ teardown_file() {
 # ========================================
 
 @test "run unmanaged docker container for migrate" {
-  run docker run -d --name migrate-src mongo:4
+  run docker run -d --name migrate-src mongo
   assert_success
-  sleep 5
+}
+
+@test "check to see if migrate-src database is up and running" {
+  run bash -c 'for i in {1..18}; do docker exec migrate-src mongosh --quiet --eval "db.runCommand({ping:1}).ok" | grep -q 1 && break || sleep 5; done'
+  assert_success
 }
 
 @test "stop unmanaged container before migrate" {
