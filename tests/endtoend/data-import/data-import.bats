@@ -61,15 +61,50 @@ teardown_file() {
 # ========================================
 # dit migrate tests
 # ========================================
+#
+# The source is an unmanaged PostgreSQL container loaded with the Pagila
+# sample schema (tests/endtoend/data-import/pagila/, PostgreSQL License).
+# The schema depends on the pgvector extension, so the source image is the
+# pgvector-maintained build of postgres:18. Migrating must carry the Pagila
+# database across; a migrated repo that comes up as a fresh, empty cluster is
+# the bug tracked in ditdotdev/dit#256.
+
+PAGILA_SCHEMA="${BATS_TEST_DIRNAME}/pagila/pagila-schema.sql"
+MIGRATE_SRC_IMAGE="pgvector/pgvector:pg18"
+
+# Wait until PostgreSQL in the given container accepts connections.
+wait_for_postgres() {
+  local container="$1"
+  for _ in $(seq 1 30); do
+    if docker exec "$container" pg_isready -U postgres -q; then
+      return 0
+    fi
+    sleep 2
+  done
+  return 1
+}
 
 @test "run unmanaged docker container for migrate" {
-  run docker run -d --name migrate-src mongo
+  run docker run -d --name migrate-src -e POSTGRES_PASSWORD=secret "$MIGRATE_SRC_IMAGE"
   assert_success
 }
 
 @test "check to see if migrate-src database is up and running" {
-  run bash -c 'for i in {1..18}; do docker exec migrate-src mongosh --quiet --eval "db.runCommand({ping:1}).ok" | grep -q 1 && break || sleep 5; done'
+  run wait_for_postgres migrate-src
   assert_success
+}
+
+@test "load the pagila schema into migrate-src" {
+  run docker exec migrate-src psql -U postgres -v ON_ERROR_STOP=1 -c 'CREATE DATABASE pagila;'
+  assert_success
+  run bash -c "docker exec -i migrate-src psql -U postgres -d pagila -v ON_ERROR_STOP=1 -q < '$PAGILA_SCHEMA'"
+  assert_success
+}
+
+@test "migrate-src holds the pagila film table before migration" {
+  run docker exec migrate-src psql -U postgres -d pagila -tAc "SELECT to_regclass('public.film');"
+  assert_success
+  assert_output "film"
 }
 
 @test "stop unmanaged container before migrate" {
@@ -80,6 +115,7 @@ teardown_file() {
 @test "dit migrate captures unmanaged container" {
   run "$D3" migrate -s migrate-src migrate-dest
   assert_success
+  refute_output --partial "Failed to copy data"
 }
 
 @test "dit ls shows migrated repository" {
@@ -92,6 +128,20 @@ teardown_file() {
   run "$D3" status migrate-dest
   assert_success
   assert_output --partial "running"
+}
+
+@test "migrated repo still holds the pagila database" {
+  run wait_for_postgres migrate-dest
+  assert_success
+  run docker exec migrate-dest psql -U postgres -tAc "SELECT datname FROM pg_database WHERE datname = 'pagila';"
+  assert_success
+  assert_output "pagila"
+}
+
+@test "migrated repo still holds the pagila film table" {
+  run docker exec migrate-dest psql -U postgres -d pagila -tAc "SELECT to_regclass('public.film');"
+  assert_success
+  assert_output "film"
 }
 
 @test "dit commit on migrated repo succeeds" {
