@@ -195,3 +195,53 @@ func TestCopy_RunningContainerStopsAndStarts(t *testing.T) {
 		t.Errorf("expected restart message, got %q", output)
 	}
 }
+
+// A failed host-path docker cp is an error, not a warning: dit cp exits 1
+// after restoring the container to its previous state (#256).
+func TestCopy_CpFailureExits(t *testing.T) {
+	port := startMockServer(t, func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		switch {
+		case strings.Contains(r.URL.Path, "/volumes/v0"):
+			if r.Method == http.MethodGet {
+				_, _ = w.Write([]byte(`{"name":"v0","properties":{"path":"/data"},"config":{"mountpoint":"/mnt"}}`))
+			} else {
+				w.WriteHeader(http.StatusOK)
+			}
+		default:
+			w.WriteHeader(http.StatusNotFound)
+		}
+	})
+
+	d := &fakeDocker{
+		inspectContainerOut: "{}",
+		getValFromContainer: map[string]string{
+			"repo:Mounts":        `[{"Type":"volume","Name":"repo_v0","Destination":"/data"}]`,
+			"repo:State.Running": "true",
+		},
+		cpErr: errors.New(`GetFileAttributesEx C:\nope: The system cannot find the file specified.`),
+	}
+
+	var didExit bool
+	var code int
+	output := captureStdout(func() {
+		didExit, code = captureExit(t, func() {
+			withDocker(t, d, func() {
+				Copy("repo", "", "/local/src", "", port, "ctx")
+			})
+		})
+	})
+
+	if !didExit || code != 1 {
+		t.Errorf("expected osExit(1) on cp failure; got didExit=%v code=%d output=%q", didExit, code, output)
+	}
+	if !strings.Contains(output, "Error: failed to copy data to volume v0") || !strings.Contains(output, "GetFileAttributesEx") {
+		t.Errorf("expected copy error with docker detail, got %q", output)
+	}
+	if strings.Contains(output, "Warning") || strings.Contains(output, "running with data from") {
+		t.Errorf("must not downgrade to a warning or report success: %q", output)
+	}
+	if d.StartCalls != 1 {
+		t.Errorf("expected the running container to be restarted before exiting, got %d Start calls", d.StartCalls)
+	}
+}

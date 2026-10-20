@@ -13,6 +13,8 @@ teardown_file() {
   "$D3" rm -f cp-test 2>/dev/null || true
   "$D3" rm -f migrate-dest 2>/dev/null || true
   docker rm -f migrate-src 2>/dev/null || true
+  "$D3" rm -f migrate-bad-dest 2>/dev/null || true
+  docker rm -f migrate-bad 2>/dev/null || true
 }
 
 # ========================================
@@ -150,8 +152,51 @@ wait_for_postgres() {
   assert_output --partial "Commit"
 }
 
+# ----------------------------------------
+# Rollback when the data copy fails
+# ----------------------------------------
+#
+# Bind-mount a file, not a directory, at the image's declared volume path.
+# docker cp cannot read a directory listing from it, so the copy fails and
+# migrate must remove the repository and volumes it had created (#256).
+
+@test "create unmanaged container whose volume path cannot be copied" {
+  local license
+  license="$(get_docker_path "${BATS_TEST_DIRNAME}/pagila")/LICENSE.txt"
+  run docker create --name migrate-bad -v "${license}:/var/lib/postgresql" "$MIGRATE_SRC_IMAGE"
+  assert_success
+}
+
+@test "dit migrate fails and rolls back when the data copy fails" {
+  run "$D3" migrate -s migrate-bad migrate-bad-dest
+  assert_failure
+  assert_output --partial "Error: failed to copy data to volume v0"
+  assert_output --partial "Rolled back repository migrate-bad-dest; migrate-bad is unchanged"
+  refute_output --partial "migrated to controlled environment"
+}
+
+@test "rolled back repository is not listed" {
+  run "$D3" ls
+  assert_success
+  refute_output --partial "migrate-bad-dest"
+}
+
+@test "rolled back repository left no docker volume behind" {
+  run docker volume ls --format '{{.Name}}'
+  assert_success
+  refute_output --partial "migrate-bad-dest_v0"
+}
+
+@test "rolled back repository left no container behind" {
+  run docker ps -a --format '{{.Names}}'
+  assert_success
+  refute_output --partial "migrate-bad-dest"
+  assert_output --partial "migrate-bad"
+}
+
 @test "cleanup migrated repo" {
   "$D3" rm -f migrate-dest 2>/dev/null || true
   docker rm -f migrate-src 2>/dev/null || true
+  docker rm -f migrate-bad 2>/dev/null || true
   true
 }

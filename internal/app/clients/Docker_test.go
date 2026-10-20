@@ -5,7 +5,9 @@ package clients
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"reflect"
 	"strings"
 	"testing"
 	"time"
@@ -355,4 +357,37 @@ func TestDocker_LaunchKubernetes_HandlesMissingKubeconfig(t *testing.T) {
 		}
 	}()
 	_, _ = d.LaunchDitKubernetesServers()
+}
+
+// CpFromContainer must run entirely inside the dit server: docker cp
+// streams the source container's path as a tar and tar extracts it onto
+// the ZFS mountpoint, preserving uid/gid. No host path may appear, which
+// is what broke migrate on Docker Desktop (#256).
+func TestCpFromContainer_Argv(t *testing.T) {
+	fake := &fakeCE{}
+	withFakeCE(t, fake)
+	d := Docker("docker", 5001)
+
+	if _, err := d.CpFromContainer("migrate-src", "/var/lib/postgresql", "/var/lib/dit-docker/mnt/newrepo/v0"); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	want := []string{"docker", "exec", "dit-docker-server", "bash", "-c",
+		"set -o pipefail; docker cp 'migrate-src:/var/lib/postgresql/.' - | tar -x -p -C '/var/lib/dit-docker/mnt/newrepo/v0'"}
+	if len(fake.calls) != 1 || !reflect.DeepEqual(fake.calls[0], want) {
+		t.Errorf("argv mismatch\n got: %q\nwant: %q", fake.calls, want)
+	}
+}
+
+func TestCpFromContainer_ReturnsExecError(t *testing.T) {
+	fake := &fakeCE{err: errors.New("exit status 1"), out: "Error response from daemon: Could not find the file"}
+	withFakeCE(t, fake)
+	d := Docker("docker", 5001)
+
+	out, err := d.CpFromContainer("src", "/data", "/mnt")
+	if err == nil {
+		t.Fatal("expected the docker error to propagate")
+	}
+	if !strings.Contains(out+err.Error(), "Could not find the file") {
+		t.Errorf("expected docker output to be surfaced, got out=%q err=%v", out, err)
+	}
 }

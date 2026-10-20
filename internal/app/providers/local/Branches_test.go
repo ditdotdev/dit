@@ -199,6 +199,10 @@ func TestMigrate_HappyPathWithHostIp(t *testing.T) {
 		switch {
 		case r.Method == http.MethodPost && strings.HasSuffix(r.URL.Path, "/v1/repositories"):
 			_, _ = w.Write([]byte(`{"name":"newrepo","properties":{}}`))
+		case strings.Contains(r.URL.Path, "/volumes/v0/activate"), strings.Contains(r.URL.Path, "/volumes/v0/deactivate"):
+			w.WriteHeader(http.StatusOK)
+		case strings.HasSuffix(r.URL.Path, "/volumes/v0"):
+			_, _ = w.Write([]byte(`{"name":"v0","properties":{"path":"/data"},"config":{"mountpoint":"/mnt/v0"}}`))
 		case strings.HasSuffix(r.URL.Path, "/repositories/newrepo"):
 			_, _ = w.Write([]byte(`{"name":"newrepo","properties":{}}`))
 		default:

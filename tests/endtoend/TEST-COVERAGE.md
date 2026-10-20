@@ -28,7 +28,7 @@ This document tracks E2E test coverage for every dit CLI command and user path.
 | `dit log` | Covered | `remotes/ssh/ssh-workflow.bats`, `tags/tag-management.bats` | `--tags` filter tested |
 | `dit clone` | Covered | `getting-started/getting-started.bats`, `remotes/dit/clone-commit-workflow.bats` | `-c`, `-n`, `-P`, `-t` tested |
 | `dit cp` | Covered | `data-import/data-import.bats` | `-s`, `-d` flags tested |
-| `dit migrate` | Covered | `data-import/data-import.bats` | Unmanaged PostgreSQL container with the Pagila schema; asserts the database survives migration |
+| `dit migrate` | Covered | `data-import/data-import.bats` | Unmanaged PostgreSQL container with the Pagila schema; asserts the database survives migration, and that a failed copy rolls the repository back |
 | `dit tag` | Covered | `tags/tag-management.bats` | Standalone `dit tag` with `-c`, `-t` |
 | `dit delete` | Covered | `remotes/ssh/ssh-workflow.bats`, `tags/tag-management.bats` | Full delete and `--tags` removal |
 

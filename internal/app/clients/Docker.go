@@ -492,6 +492,24 @@ func (d docker) Start(repo string) (string, error) {
 	return ce.Exec(dockerCmd, "start", repo)
 }
 
+// shellQuote wraps s in single quotes for use inside a `bash -c` script.
+func shellQuote(s string) string {
+	return "'" + strings.ReplaceAll(s, "'", `'\''`) + "'"
+}
+
+// CpFromContainer copies the contents of path inside the (stopped or
+// running) source container onto mountpoint, a directory inside the dit
+// server container. The whole pipeline runs inside the server: docker cp
+// streams the source path as a tar archive and tar extracts it in place,
+// preserving uid/gid and permissions. No host path is involved, so it
+// behaves the same on native Linux and on Docker Desktop, where
+// /var/lib/docker lives inside the VM (#256).
+func (d docker) CpFromContainer(source string, path string, mountpoint string) (string, error) {
+	script := "set -o pipefail; docker cp " + shellQuote(source+":"+path+"/.") +
+		" - | tar -x -p -C " + shellQuote(mountpoint)
+	return ce.Exec(dockerCmd, "exec", "dit-"+d.identity+"-server", "bash", "-c", script)
+}
+
 func (d docker) Cp(source string, target string) (string, error) {
 	// On Windows, convert MSYS2/Git Bash paths (e.g. /c/dev/...) to Windows paths (C:/dev/...)
 	// so Docker Desktop can find the source files.
