@@ -69,4 +69,8 @@ data files prior to running the command.
 > If your repository has multiple persistent volumes, you will need to use
 > the `-d` destination parameter to specify where the data should go,
 > such as `dit cp -s /path/to/mongo/db -d /data/db mymongo`. You may
-> need to run multiple such commands if you need to migrate
+> need to run multiple such commands if you need to migrate data into
+> more than one volume.
+
+If the copy fails, `dit cp` reports the error, restarts the repository if it
+was running before, and exits with a non-zero status.

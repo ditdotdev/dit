@@ -81,6 +81,7 @@ type fakeDocker struct {
 	containerIsRunning      map[string]bool
 	containerExistsErr      error
 	cpErr                   error
+	cpFromContainerErr      error
 	createVolumeErr         error
 	ditLatestIsDownloaded   bool
 	ditLaunchAvailable      bool
@@ -127,6 +128,10 @@ type fakeDocker struct {
 	RemoveCalls                     int
 	PullCalls                       int
 	PulledRefs                      []string
+	// CpFromContainerCalls records (source, path, mountpoint) per call.
+	CpFromContainerCalls [][3]string
+	CpCalls              int
+	RemoveVolumeNames    []string
 }
 
 func (f *fakeDocker) ContainerExists(c string) (bool, error) {
@@ -135,7 +140,11 @@ func (f *fakeDocker) ContainerExists(c string) (bool, error) {
 func (f *fakeDocker) ContainerIsRunning(c string) (bool, error) {
 	return f.containerIsRunning[c], nil
 }
-func (f *fakeDocker) Cp(s, t string) (string, error)           { return "", f.cpErr }
+func (f *fakeDocker) Cp(s, t string) (string, error) { f.CpCalls++; return "", f.cpErr }
+func (f *fakeDocker) CpFromContainer(src, path, mountpoint string) (string, error) {
+	f.CpFromContainerCalls = append(f.CpFromContainerCalls, [3]string{src, path, mountpoint})
+	return "", f.cpFromContainerErr
+}
 func (f *fakeDocker) CreateVolume(n, p string) (string, error) { return "", f.createVolumeErr }
 func (f *fakeDocker) DitLatestIsDownloaded(string, app.Version) bool {
 	return f.ditLatestIsDownloaded
@@ -192,7 +201,8 @@ func (f *fakeDocker) RemoveDitLaunch() (string, error)     { return "", f.remove
 func (f *fakeDocker) RemoveDitServer() (string, error)     { return "", f.removeDitServerErr }
 func (f *fakeDocker) RemoveDitVolume() (string, error)     { return "", f.removeDitVolumeErr }
 func (f *fakeDocker) RemoveStopped(string) (string, error) { return "", f.removeStoppedErr }
-func (f *fakeDocker) RemoveVolume(string, bool) (string, error) {
+func (f *fakeDocker) RemoveVolume(name string, _ bool) (string, error) {
+	f.RemoveVolumeNames = append(f.RemoveVolumeNames, name)
 	return "", f.removeVolumeErr
 }
 func (f *fakeDocker) Run(image string, _ string, _ []string) (string, error) {

@@ -17,6 +17,7 @@ type dockerClient interface {
 	ContainerExists(container string) (bool, error)
 	ContainerIsRunning(container string) (bool, error)
 	Cp(source string, target string) (string, error)
+	CpFromContainer(source string, path string, mountpoint string) (string, error)
 	CreateVolume(name string, path string) (string, error)
 	DitLatestIsDownloaded(registry string, latest app.Version) bool
 	DitLaunchIsAvailable() (bool, error)

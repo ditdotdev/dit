@@ -12,14 +12,38 @@ import (
 	ditclient "github.com/ditdotdev/dit-client-go"
 )
 
-func getLocalSrcFromPath(path string, mounts []mount) string {
-	var r string
-	for _, m := range mounts {
-		if m.Destination == path {
-			r = m.Source
-		}
+// copyVolumeFromContainer activates dit volume v of repository name, copies
+// the source container's path onto its ZFS mountpoint, and deactivates it
+// again. The deactivate is best effort on the failure path so the caller
+// can roll back.
+func copyVolumeFromContainer(docker dockerClient, container string, name string, v string, path string) error {
+	if _, err := volumesApi.ActivateVolume(ctx, name, v).Execute(); err != nil {
+		return fmt.Errorf("activate: %w", err)
 	}
-	return r
+	vol, _, err := volumesApi.GetVolume(ctx, name, v).Execute()
+	if err != nil {
+		_, _ = volumesApi.DeactivateVolume(ctx, name, v).Execute()
+		return fmt.Errorf("get volume: %w", err)
+	}
+	target := fmt.Sprintf("%v", vol.Config["mountpoint"])
+	if _, err := docker.CpFromContainer(container, path, target); err != nil {
+		_, _ = volumesApi.DeactivateVolume(ctx, name, v).Execute()
+		return err
+	}
+	if _, err := volumesApi.DeactivateVolume(ctx, name, v).Execute(); err != nil {
+		return fmt.Errorf("deactivate: %w", err)
+	}
+	return nil
+}
+
+// rollbackMigrate removes everything Migrate created before the data copy
+// failed: the dit volumes and the repository record. The repository
+// container has not been started at that point, and the source container
+// is never touched.
+func rollbackMigrate(container string, name string, port int, context string) {
+	fmt.Println("Rolling back repository " + name)
+	Remove(name, true, port, context)
+	fmt.Println("Rolled back repository " + name + "; " + container + " is unchanged")
 }
 
 type Commit func(string, string, []string, string, string, int)
@@ -67,12 +91,6 @@ func Migrate(container string, name string, user string, email string, commit Co
 		fmt.Printf("Error creating repository: %v\n", err)
 		return
 	}
-	m, _ := docker.GetValFromContainer(container, "Mounts")
-	var mounts []mount
-	if err = json.Unmarshal([]byte(m), &mounts); err != nil {
-		fmt.Printf("Error unmarshaling mounts: %v\n", err)
-		return
-	}
 	for i, p := range vols {
 		path := strings.Split(p, ":")[0]
 		path = strings.ReplaceAll(path, `"`, "")
@@ -83,21 +101,16 @@ func Migrate(container string, name string, user string, email string, commit Co
 			fmt.Printf("Error creating volume %s: %v\n", volName, err)
 			continue
 		}
-		localSrc := getLocalSrcFromPath(path, mounts)
-		if localSrc != "" {
-			fmt.Println("Copying data to " + volName)
-			if _, err := volumesApi.ActivateVolume(ctx, name, v).Execute(); err != nil {
-				fmt.Printf("Warning: Failed to activate volume %s: %v\n", v, err)
-				continue
-			}
-			vol, _, _ := volumesApi.GetVolume(ctx, name, v).Execute()
-			target := fmt.Sprintf("%v", vol.Config["mountpoint"])
-			if _, err := docker.Cp(localSrc, target); err != nil {
-				fmt.Printf("Warning: Failed to copy data to volume: %v\n", err)
-			}
-			if _, err := volumesApi.DeactivateVolume(ctx, name, v).Execute(); err != nil {
-				fmt.Printf("Warning: Failed to deactivate volume %s: %v\n", v, err)
-			}
+		// Copy whatever the source container holds at path, however Docker
+		// backs it (anonymous volume, named volume, bind mount, or the
+		// writable layer). The copy runs inside the dit server, so no host
+		// path is involved (#256).
+		fmt.Println("Copying data to " + volName)
+		if err := copyVolumeFromContainer(docker, container, name, v, path); err != nil {
+			fmt.Printf("Error: failed to copy data to volume %s: %v\n", v, err)
+			rollbackMigrate(container, name, port, context)
+			osExit(1)
+			return
 		}
 		args = append(args, "--mount", "type=volume,src="+volName+",dst="+path+",volume-driver=dit-"+docker.GetIdentity())
 	}
