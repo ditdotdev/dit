@@ -65,13 +65,13 @@ teardown_file() {
 # ========================================
 #
 # The source is an unmanaged PostgreSQL container loaded with the Pagila
-# sample schema (tests/endtoend/data-import/pagila/, PostgreSQL License).
+# sample schema (tests/endtoend/data-import/third_party/pagila/, PostgreSQL License).
 # The schema depends on the pgvector extension, so the source image is the
 # pgvector-maintained build of postgres:18. Migrating must carry the Pagila
 # database across; a migrated repo that comes up as a fresh, empty cluster is
 # the bug tracked in ditdotdev/dit#256.
 
-PAGILA_SCHEMA="${BATS_TEST_DIRNAME}/pagila/pagila-schema.sql"
+PAGILA_SCHEMA="${BATS_TEST_DIRNAME}/third_party/pagila/pagila-schema.sql"
 MIGRATE_SRC_IMAGE="pgvector/pgvector:pg18"
 
 # Wait until PostgreSQL in the given container accepts connections.
@@ -162,7 +162,7 @@ wait_for_postgres() {
 
 @test "create unmanaged container whose volume path cannot be copied" {
   local license
-  license="$(get_docker_path "${BATS_TEST_DIRNAME}/pagila")/LICENSE.txt"
+  license="$(get_docker_path "${BATS_TEST_DIRNAME}/third_party/pagila")/LICENSE.txt"
   run docker create --name migrate-bad -v "${license}:/var/lib/postgresql" "$MIGRATE_SRC_IMAGE"
   assert_success
 }
