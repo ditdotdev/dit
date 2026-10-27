@@ -35,81 +35,20 @@ test_database() {
   
   echo "  Testing $db:$version"
   
-  # Run - handle special database requirements
-  if [[ "$db_version" == *"mssql"* ]]; then
-    # SQL Server requires EULA acceptance and SA password
-    "$D3" run -n "$repo_name" \
-      -e "ACCEPT_EULA=Y" \
-      -e "MSSQL_SA_PASSWORD=YourStrong!Passw0rd" \
-      -e "MSSQL_PID=Developer" \
-      "$db_version" || return 1
-  elif [[ "$db_version" == *"db2"* ]]; then
-    # IBM Db2 requires both --privileged (to remount /database with suid) and
-    # --disable-port-mapping (port 22/SSH conflicts with runner's sshd).
-    "$D3" run -n "$repo_name" \
-      --privileged \
-      --disable-port-mapping \
-      -e "LICENSE=accept" \
-      -e "DB2INST1_PASSWORD=YourStrong!Passw0rd" \
-      -e "DBNAME=testdb" \
-      "$db_version" || return 1
-  elif [[ "$db_version" == *"dynamodb"* ]]; then
-    # DynamoDB Local - disable port mapping to avoid conflicts
-    "$D3" run -n "$repo_name" \
-      --disable-port-mapping \
-      "$db_version" || return 1
-  elif [[ "$db_version" == *"oracle"* ]]; then
-    # Oracle requires password and has no exposed ports
-    "$D3" run -n "$repo_name" \
-      --disable-port-mapping \
-      -e "ORACLE_PASSWORD=YourStrong!Passw0rd" \
-      "$db_version" || return 1
-  elif [[ "$db_version" == *"minio"* ]]; then
-    # MinIO requires root user credentials
-    "$D3" run -n "$repo_name" \
-      -e "MINIO_ROOT_USER=minioadmin" \
-      -e "MINIO_ROOT_PASSWORD=minioadmin" \
-      "$db_version" || return 1
-  elif [[ "$db_version" == *"arangodb"* ]]; then
-    # ArangoDB requires auth configuration
-    "$D3" run -n "$repo_name" \
-      -e "ARANGO_NO_AUTH=1" \
-      "$db_version" || return 1
-  elif [[ "$db_version" == *"tigergraph"* ]]; then
-    # TigerGraph runs sshd on port 22 (conflicts with runner).
-    # Services must be started manually via gadmin after container launch.
-    "$D3" run -n "$repo_name" \
-      --disable-port-mapping \
-      "$db_version" || return 1
-    # Wait for container to be running, then start TigerGraph services
-    local tg_timeout=30
-    local tg_elapsed=0
-    while ! docker ps --filter "name=$repo_name" --format "{{.Status}}" | grep -q "Up"; do
-      if [ $tg_elapsed -ge $tg_timeout ]; then
-        echo "Timeout waiting for container $repo_name to start"
-        return 1
-      fi
-      sleep 1
-      tg_elapsed=$((tg_elapsed + 1))
-    done
+  # Run. Every image's boot requirements (env, flags, container command) live
+  # in the db_* tables below so the unmanaged docker run in test_migrate
+  # starts the engine the same way.
+  # shellcheck disable=SC2046  # the table output is deliberately word-split
+  "$D3" run -n "$repo_name" $(db_dit_flags "$db_version") $(db_env_args "$db_version") \
+    "$db_version" || return 1
+  if [[ "$db_version" == *"tigergraph"* ]]; then
+    # TigerGraph services must be started manually via gadmin after launch.
+    wait_for_up "$repo_name" 60 || return 1
     echo "  Starting TigerGraph services..."
     local tg_gadmin=/home/tigergraph/tigergraph/app/cmd/gadmin
-    echo "  Starting TigerGraph infrastructure..."
     docker exec -u tigergraph "$repo_name" bash -c "$tg_gadmin start infra" || return 1
     docker exec -u tigergraph "$repo_name" bash -c "$tg_gadmin start all" || return 1
     echo "  TigerGraph services started"
-  elif [[ "$db_version" == postgres:* ]]; then
-    # The official image exits at once unless a superuser password policy is
-    # set; trust auth keeps the matrix free of secrets.
-    "$D3" run -n "$repo_name"       -e "POSTGRES_HOST_AUTH_METHOD=trust"       "$db_version" || return 1
-  elif [[ "$db_version" == mysql:* ]]; then
-    # MySQL refuses to start without a root password policy; allow empty.
-    "$D3" run -n "$repo_name"       -e "MYSQL_ALLOW_EMPTY_PASSWORD=yes"       "$db_version" || return 1
-  elif [[ "$db_version" == mariadb:* ]]; then
-    # MariaDB likewise needs an explicit root password policy.
-    "$D3" run -n "$repo_name"       -e "MARIADB_ALLOW_EMPTY_ROOT_PASSWORD=yes"       "$db_version" || return 1
-  else
-    "$D3" run -n "$repo_name" "$db_version" || return 1
   fi
   wait_for_up "$repo_name" 60 || return 1
 
@@ -270,27 +209,53 @@ test_database() {
   echo "  ✓ $db:$version completed"
 }
 
-# Environment every image needs to boot when started outside dit. These mirror
-# the -e values the dit run branches in test_database pass; keep both in sync.
+# Per-image boot requirements, shared by the dit run in test_database and the
+# unmanaged docker run in test_migrate: environment (-e pairs, valid for both
+# dit run and docker run) and flags that only one of them understands. Images
+# whose entrypoint needs a command (cockroach, yugabyte, surrealdb) get it from
+# the CMD in their wrapper Dockerfile in this directory, because dit run has
+# no way to pass one: its trailing arguments are docker flags.
+# Everything the matrix learned the hard way: without these, the engine exits
+# within a second and every "is it Up" check is a race.
 db_env_args() {
   local db_version="$1"
-  if [[ "$db_version" == *"mssql"* ]]; then
-    echo "-e ACCEPT_EULA=Y -e MSSQL_SA_PASSWORD=YourStrong!Passw0rd -e MSSQL_PID=Developer"
-  elif [[ "$db_version" == *"db2"* ]]; then
-    echo "--privileged -e LICENSE=accept -e DB2INST1_PASSWORD=YourStrong!Passw0rd -e DBNAME=testdb"
-  elif [[ "$db_version" == *"oracle"* ]]; then
-    echo "-e ORACLE_PASSWORD=YourStrong!Passw0rd"
-  elif [[ "$db_version" == *"minio"* ]]; then
-    echo "-e MINIO_ROOT_USER=minioadmin -e MINIO_ROOT_PASSWORD=minioadmin"
-  elif [[ "$db_version" == *"arangodb"* ]]; then
-    echo "-e ARANGO_NO_AUTH=1"
-  elif [[ "$db_version" == postgres:* ]]; then
-    echo "-e POSTGRES_HOST_AUTH_METHOD=trust"
-  elif [[ "$db_version" == mysql:* ]]; then
-    echo "-e MYSQL_ALLOW_EMPTY_PASSWORD=yes"
-  elif [[ "$db_version" == mariadb:* ]]; then
-    echo "-e MARIADB_ALLOW_EMPTY_ROOT_PASSWORD=yes"
-  fi
+  case "$db_version" in
+    *mssql*)       echo "-e ACCEPT_EULA=Y -e MSSQL_SA_PASSWORD=YourStrong!Passw0rd -e MSSQL_PID=Developer" ;;
+    *db2*)         echo "-e LICENSE=accept -e DB2INST1_PASSWORD=YourStrong!Passw0rd -e DBNAME=testdb" ;;
+    *oracle*)      echo "-e ORACLE_PASSWORD=YourStrong!Passw0rd" ;;
+    *minio*)       echo "-e MINIO_ROOT_USER=minioadmin -e MINIO_ROOT_PASSWORD=minioadmin" ;;
+    *arangodb*)    echo "-e ARANGO_NO_AUTH=1" ;;
+    postgres:*|*timescaledb*)
+                   echo "-e POSTGRES_HOST_AUTH_METHOD=trust" ;;
+    mysql:*)       echo "-e MYSQL_ALLOW_EMPTY_PASSWORD=yes" ;;
+    mariadb:*)     echo "-e MARIADB_ALLOW_EMPTY_ROOT_PASSWORD=yes" ;;
+    couchdb:*)     echo "-e COUCHDB_USER=admin -e COUCHDB_PASSWORD=password" ;;
+    *influxdb*)    echo "-e INFLUXDB3_NODE_IDENTIFIER_PREFIX=node0 -e INFLUXDB3_OBJECT_STORE=file -e INFLUXDB3_DB_DIR=/var/lib/influxdb3" ;;
+    *typesense*)   echo "-e TYPESENSE_DATA_DIR=/data -e TYPESENSE_API_KEY=dit-matrix" ;;
+  esac
+}
+
+# Flags only dit run understands (port mapping is dit's own default; docker
+# run publishes nothing unless asked, so the unmanaged side needs none).
+db_dit_flags() {
+  local db_version="$1"
+  case "$db_version" in
+    # Db2 needs --privileged to remount /database with suid, and port 22 /
+    # SSH conflicts with the runner's sshd.
+    *db2*)         echo "--privileged --disable-port-mapping" ;;
+    # Oracle has no exposed ports; DynamoDB Local avoids a port clash;
+    # TigerGraph runs sshd on port 22.
+    *oracle*|*dynamodb*|*tigergraph*)
+                   echo "--disable-port-mapping" ;;
+  esac
+}
+
+# Flags only docker run understands for the unmanaged migrate source.
+db_docker_flags() {
+  local db_version="$1"
+  case "$db_version" in
+    *db2*)         echo "--privileged" ;;
+  esac
 }
 
 # Print the contents of a file inside a running dit-managed container.
@@ -354,7 +319,8 @@ test_migrate() {
   "$D3" rm -f "$dest" >/dev/null 2>&1 || true
 
   # shellcheck disable=SC2046  # env args are deliberately word-split
-  docker run -d --name "$src" $(db_env_args "$db_version") "$db_version" >/dev/null || return 1
+  docker run -d --name "$src" $(db_docker_flags "$db_version") $(db_env_args "$db_version") \
+    "$db_version" >/dev/null || return 1
   wait_for_up "$src" 60 || return 1
 
   # The volumes migrate will carry over are the ones the image declares.
