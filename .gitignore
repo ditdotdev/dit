@@ -46,3 +46,6 @@ cov*.out
 /dit.exe
 /d3
 /d3.exe
+# db-matrix e2e scratch marker directories (tests/endtoend/db-matrix)
+.dit-cp-check-*
+.dit-migrate-check-*
