@@ -27,8 +27,8 @@ This document tracks E2E test coverage for every dit CLI command and user path.
 | `dit checkout` | Covered | `getting-started/getting-started.bats`, `tags/tag-management.bats`, `context/kubernetes/kubernetes-tests.bats` | `--commit` and `--tags` tested; kubernetes checkout drops a row written right after `dit commit` returned (dit-server#313) |
 | `dit log` | Covered | `remotes/ssh/ssh-workflow.bats`, `tags/tag-management.bats` | `--tags` filter tested |
 | `dit clone` | Covered | `getting-started/getting-started.bats`, `remotes/dit/clone-commit-workflow.bats` | `-c`, `-n`, `-P`, `-t` tested |
-| `dit cp` | Covered | `data-import/data-import.bats` | `-s`, `-d` flags tested |
-| `dit migrate` | Covered | `data-import/data-import.bats` | Unmanaged PostgreSQL container with the Pagila schema; asserts the database survives migration, and that a failed copy rolls the repository back |
+| `dit cp` | Covered | `data-import/data-import.bats`, `db-matrix/db-matrix.bats` | `-s`, `-d` flags tested; the db-matrix suite copies a marker into every declared volume of every matrix image and reads it back after commit and checkout |
+| `dit migrate` | Covered | `data-import/data-import.bats`, `db-matrix/db-matrix.bats` | Unmanaged PostgreSQL container with the Pagila schema; asserts the database survives migration, and that a failed copy rolls the repository back. The db-matrix suite migrates an unmanaged container of every matrix image and verifies a marker planted in each declared volume survives |
 | `dit tag` | Covered | `tags/tag-management.bats` | Standalone `dit tag` with `-c`, `-t` |
 | `dit delete` | Covered | `remotes/ssh/ssh-workflow.bats`, `tags/tag-management.bats` | Full delete and `--tags` removal |
 

@@ -3,3 +3,5 @@
 
 FROM cockroachdb/cockroach:v24.3.30
 VOLUME /cockroach/cockroach-data
+# The entrypoint is the bare cockroach CLI; without a mode it prints usage and exits.
+CMD ["start-single-node", "--insecure"]
