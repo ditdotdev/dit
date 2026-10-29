@@ -157,8 +157,10 @@ db_ready() {
       docker exec "$c" healthcheck.sh ;;
     *db2*)
       # The entrypoint keeps configuring the instance after the database
-      # first accepts connections (and bounces it); wait for it to exit.
-      ! docker exec "$c" pgrep -f setup_db2_instance >/dev/null \
+      # first accepts connections, ending with a db2stop/db2start bounce.
+      # It is PID 1 and never exits; its last act is a tail -f of the diag
+      # log, so that process existing means setup is done.
+      docker exec "$c" pgrep -x tail >/dev/null \
         && docker exec "$c" su - db2inst1 -c 'db2 connect to testdb' ;;
     *cockroach*)
       docker exec "$c" /cockroach/cockroach sql --insecure -e 'select 1' ;;
