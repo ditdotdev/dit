@@ -4,13 +4,20 @@
 #
 # Local harness for the per-image tables in db-matrix-engines.bash (#262).
 # For each image given on the command line it builds the wrapper Dockerfile if
-# one exists (the same rule the workflow uses), starts a plain container with
-# the image's boot table, waits for the engine, writes the check object,
-# restarts the container the way dit cp and dit checkout do, waits again and
-# reads the object back. No dit install is needed, so a new engine's table can
-# be developed here before it costs a full matrix run.
+# one exists here (so a Dockerfile change can be checked before it is
+# published), starts a plain container with the image's boot table, waits for
+# the engine, writes the check object, restarts the container the way dit cp
+# and dit checkout do, waits again and reads the object back. No dit install
+# is needed, so a new engine's table can be developed here before it costs a
+# full matrix run.
 #
 #   tests/endtoend/db-matrix/check-engines.sh postgres:16 mongo:7 ditdotdev/redis:7
+#
+# The workflow itself only pulls: once a wrapper Dockerfile passes here, push
+# it to Docker Hub for both runner architectures before the matrix runs:
+#
+#   docker buildx build --platform linux/amd64,linux/arm64 \
+#     -t ditdotdev/<image>:<tag> -f <image>-<tag>.Dockerfile --push .
 #
 # Prints one PASS / FAIL / NO-CLIENT line per image and exits non-zero if any
 # image failed.
