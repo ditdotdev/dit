@@ -38,7 +38,7 @@ for img in "$@"; do
   docker rm -f "$c" >/dev/null 2>&1 || true
 
   if [[ -f "$dockerfile" ]]; then
-    docker build -q -t "$img" -f "$dockerfile" "$context" >/dev/null || { echo "FAIL      $img (build)"; failed=1; continue; }
+    docker build -q -t "$img" -f "$context/${name/:/-}.Dockerfile" "$context" >/dev/null || { echo "FAIL      $img (build)"; failed=1; continue; }
   else
     docker pull -q "$img" >/dev/null || { echo "FAIL      $img (pull)"; failed=1; continue; }
   fi

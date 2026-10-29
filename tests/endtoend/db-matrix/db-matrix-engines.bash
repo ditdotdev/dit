@@ -67,10 +67,11 @@ db_env_args() {
     # RabbitMQ keys its metadata store on the node name, which defaults to
     # rabbit@<hostname>; a clone gets a new hostname and so an empty store.
     *rabbitmq*)    echo "-e RABBITMQ_NODENAME=rabbit@localhost" ;;
-    # surreal start defaults to the in-memory store; point it at the declared
-    # /data volume so there is something to version, and give it a root user
-    # for the surreal sql client.
-    *surrealdb*)   echo "-e SURREAL_PATH=rocksdb:/data/dit -e SURREAL_USER=root -e SURREAL_PASS=root" ;;
+    # surreal start defaults to the in-memory store; point it at the volume
+    # the wrapper creates owned by the image's nonroot user (the upstream
+    # /data volume is root-owned and unwritable), and give it a root user for
+    # the surreal sql client.
+    *surrealdb*)   echo "-e SURREAL_PATH=rocksdb:/var/lib/surrealdb/dit -e SURREAL_USER=root -e SURREAL_PASS=root" ;;
   esac
 }
 
