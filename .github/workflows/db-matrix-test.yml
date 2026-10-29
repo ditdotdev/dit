@@ -269,10 +269,14 @@ jobs:
 
         # SurrealDB
         # https://hub.docker.com/r/surrealdb/surrealdb
+        # https://hub.docker.com/r/ditdotdev/surrealdb
+        # Wrapped versions of surrealdb/surrealdb: the entrypoint is the bare
+        # surreal CLI, so the wrapper adds CMD start.
+        # Source Dockerfiles: tests/endtoend/db-matrix/surrealdb-*.Dockerfile
         # Multi-model database (document, graph, relational)
-        - surrealdb/surrealdb:v3.3.5
-        - surrealdb/surrealdb:v3.0.5
-        - surrealdb/surrealdb:v3
+        - ditdotdev/surrealdb:v3.3.5
+        - ditdotdev/surrealdb:v3.0.5
+        - ditdotdev/surrealdb:v3
 
         # TiDB
         # https://hub.docker.com/r/pingcap/tidb
@@ -308,11 +312,15 @@ jobs:
 
         # YugabyteDB
         # https://hub.docker.com/r/yugabytedb/yugabyte
+        # https://hub.docker.com/r/ditdotdev/yugabyte
+        # Wrapped versions of yugabytedb/yugabyte: the entrypoint is tini with
+        # no command, so the wrapper adds CMD yugabyted start.
+        # Source Dockerfiles: tests/endtoend/db-matrix/yugabyte-*.Dockerfile
         # PostgreSQL-compatible distributed SQL database
-        - yugabytedb/yugabyte:2026.1.2.0-b137
-        - yugabytedb/yugabyte:2025.2.8.0-b60
-        - yugabytedb/yugabyte:2025.2.2.2-b11
-        - yugabytedb/yugabyte:2025.1.3.2-b1
+        - ditdotdev/yugabyte:2026.1.2.0-b137
+        - ditdotdev/yugabyte:2025.2.8.0-b60
+        - ditdotdev/yugabyte:2025.2.2.2-b11
+        - ditdotdev/yugabyte:2025.1.3.2-b1
 
         # Apache Kafka (KRaft mode - standalone, no Zookeeper required)
         # https://hub.docker.com/r/apache/kafka

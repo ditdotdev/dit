@@ -148,7 +148,10 @@ db_ready() {
     *oracle*)
       docker exec "$c" healthcheck.sh ;;
     *db2*)
-      docker exec "$c" su - db2inst1 -c 'db2 connect to testdb' ;;
+      # The entrypoint keeps configuring the instance after the database
+      # first accepts connections (and bounces it); wait for it to exit.
+      ! docker exec "$c" pgrep -f setup_db2_instance >/dev/null \
+        && docker exec "$c" su - db2inst1 -c 'db2 connect to testdb' ;;
     *cockroach*)
       docker exec "$c" /cockroach/cockroach sql --insecure -e 'select 1' ;;
     *yugabyte*)
@@ -170,7 +173,10 @@ db_ready() {
     *elasticsearch*|*opensearch*)
       docker exec "$c" curl -sf 'http://localhost:9200/_cluster/health?wait_for_status=yellow&timeout=5s' ;;
     *solr*)
-      docker exec "$c" curl -sf 'http://localhost:8983/solr/admin/cores?action=STATUS' ;;
+      # Core STATUS answers while cores are still loading after a restart;
+      # a core that is not loaded yet 404s on select.
+      docker exec "$c" curl -sf 'http://localhost:8983/solr/admin/cores?action=STATUS&wt=json' | grep -q '"status"' \
+        && ! docker exec "$c" curl -sf 'http://localhost:8983/solr/admin/cores?action=STATUS&wt=json' | grep -q '"isLoaded":"false"' ;;
     couchdb:*)
       docker exec "$c" curl -sf http://admin:password@localhost:5984/_up ;;
     *neo4j*)
@@ -190,7 +196,10 @@ db_ready() {
     *surrealdb*)
       docker exec "$c" /surreal is-ready --endpoint http://127.0.0.1:8000 ;;
     *rabbitmq*)
-      docker exec "$c" rabbitmqctl await_startup ;;
+      # As the rabbitmq user: run as root, rabbitmqctl creates the Erlang
+      # cookie owned by root before the server has written its own, and the
+      # server then dies on eacces reading it.
+      docker exec -u rabbitmq "$c" rabbitmqctl await_startup ;;
     *)
       return 0 ;;
   esac
@@ -220,7 +229,9 @@ db_write() {
       # SYSTEM tablespace under /opt/oracle/oradata, which is the volume.
       docker exec "$c" bash -c "printf \"whenever sqlerror exit failure\ncreate table system.dit_check(v varchar2(255));\ninsert into system.dit_check values('$v');\ncommit;\n\" | sqlplus -s / as sysdba" ;;
     *db2*)
-      docker exec "$c" su - db2inst1 -c "db2 connect to testdb && db2 'create table dit_check(v varchar(255))' ; db2 \"insert into dit_check values('$v')\"" ;;
+      # One su shell so the CLP connection carries across the commands; the
+      # trailing select echoes what the table holds for the log.
+      docker exec "$c" su - db2inst1 -c "db2 connect to testdb && { db2 'create table dit_check(v varchar(255))' || true; } && db2 \"insert into dit_check values('$v')\" && db2 -x 'select v from dit_check'" ;;
     *cockroach*)
       docker exec "$c" /cockroach/cockroach sql --insecure -e "create table if not exists dit_check(v string); insert into dit_check values('$v')" ;;
     *yugabyte*)
@@ -284,8 +295,8 @@ db_write() {
       # plugin), so the object is a vhost: a durable entry in the broker's
       # metadata store under /var/lib/rabbitmq. The vhost name carries the
       # image reference, slashes replaced since vhost names cannot nest them.
-      docker exec "$c" rabbitmqctl -q add_vhost "dit_check_${v//\//_}" >/dev/null 2>&1 || true
-      docker exec "$c" rabbitmqctl -q list_vhosts | grep -qF "dit_check_${v//\//_}" ;;
+      docker exec -u rabbitmq "$c" rabbitmqctl -q add_vhost "dit_check_${v//\//_}" >/dev/null 2>&1 || true
+      docker exec -u rabbitmq "$c" rabbitmqctl -q list_vhosts | grep -qF "dit_check_${v//\//_}" ;;
     # No client in the image and no HTTP API reachable without one:
     #   dynamodb-local  Java image, no shell beyond the JVM, SDK-only wire protocol
     #   nats            scratch image: nats-server only, no nats CLI
@@ -366,7 +377,7 @@ db_verify() {
       printf "use ns dit; use db dit; select v from dit_check:1;\n" \
         | docker exec -i "$c" /surreal sql --endpoint http://127.0.0.1:8000 -u root -p root --ns dit --db dit --hide-welcome | grep -qF "$v" ;;
     *rabbitmq*)
-      docker exec "$c" rabbitmqctl -q list_vhosts | grep -qxF "dit_check_${v//\//_}" ;;
+      docker exec -u rabbitmq "$c" rabbitmqctl -q list_vhosts | grep -qxF "dit_check_${v//\//_}" ;;
     *)
       return "$DB_NO_CLIENT" ;;
   esac

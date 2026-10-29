@@ -260,7 +260,12 @@ create_object() {
     return 1
   fi
   # Read it straight back so a verify failure later is about dit, not the table.
-  db_verify "$c" "$img" || { echo "  Check object not readable right after writing it in $c ($img)"; return 1; }
+  if ! db_verify "$c" "$img"; then
+    echo "  Check object not readable right after writing it in $c ($img). Write output:"
+    echo "$out" | tail -10 | sed 's/^/    | /'
+    docker logs --tail 20 "$c" 2>&1 | sed 's/^/    | /'
+    return 1
+  fi
   OBJECT_WRITTEN=1
   echo "  Check object written to $img through its client"
 }
