@@ -248,7 +248,9 @@ db_write() {
     *elasticsearch*|*opensearch*)
       docker exec "$c" curl -sf -XPUT 'http://localhost:9200/dit_check/_doc/1?refresh=true' -H 'Content-Type: application/json' -d "{\"v\":\"$v\"}" ;;
     *solr*)
-      docker exec "$c" solr create -c dit_check >/dev/null 2>&1
+      # Core admin API rather than the solr CLI: the CLI's flags changed
+      # between Solr 9 and 10, the API did not.
+      docker exec "$c" curl -sf 'http://localhost:8983/solr/admin/cores?action=CREATE&name=dit_check&configSet=_default' >/dev/null 2>&1
       docker exec "$c" curl -sf 'http://localhost:8983/solr/dit_check/update?commit=true' -H 'Content-Type: application/json' -d "[{\"id\":\"1\",\"v_s\":\"$v\"}]" ;;
     couchdb:*)
       docker exec "$c" curl -sf -XPUT http://admin:password@localhost:5984/dit_check >/dev/null 2>&1

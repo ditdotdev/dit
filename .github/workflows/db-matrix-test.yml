@@ -29,6 +29,7 @@ jobs:
         # https://hub.docker.com/r/ditdotdev/dynamodb-local
         # Wrapped versions of amazon/dynamodb-local with VOLUME directives
         # Source Dockerfiles: tests/endtoend/db-matrix/dynamodb-local-*.Dockerfile
+        - ditdotdev/dynamodb-local:3.3.2
         - ditdotdev/dynamodb-local:latest
         - ditdotdev/dynamodb-local:3.3.0
         - ditdotdev/dynamodb-local:3.2.0
@@ -50,12 +51,16 @@ jobs:
 
         # ClickHouse
         # https://hub.docker.com/r/clickhouse/clickhouse-server
+        - clickhouse/clickhouse-server:26.10
+        - clickhouse/clickhouse-server:26.8
         - clickhouse/clickhouse-server:26.3
         - clickhouse/clickhouse-server:26.2
         - clickhouse/clickhouse-server:26.1
 
         # Couchbase Enterprise
         # https://hub.docker.com/_/couchbase
+        - couchbase:enterprise-8.0.3
+        - couchbase:enterprise-7.6.12
         - couchbase:enterprise-8.0.1
         - couchbase:enterprise-7.6.10
         - couchbase:enterprise-7.2.9
@@ -65,6 +70,11 @@ jobs:
         # https://hub.docker.com/r/ditdotdev/cockroach
         # Wrapped versions of cockroachdb/cockroach with VOLUME directives
         # Source Dockerfiles: tests/endtoend/db-matrix/cockroach-*.Dockerfile
+        - ditdotdev/cockroach:v26.3.4
+        - ditdotdev/cockroach:v26.2.9
+        - ditdotdev/cockroach:v25.4.18
+        - ditdotdev/cockroach:v25.2.25
+        - ditdotdev/cockroach:v24.3.37
         - ditdotdev/cockroach:v26.1.2
         - ditdotdev/cockroach:v25.4.8
         - ditdotdev/cockroach:v25.2.16
@@ -79,12 +89,16 @@ jobs:
         # Dragonfly
         # https://hub.docker.com/r/dragonflydb/dragonfly
         # Redis-compatible, multi-threaded in-memory datastore
+        - docker.dragonflydb.io/dragonflydb/dragonfly:v2.0.2
         - docker.dragonflydb.io/dragonflydb/dragonfly:v1.38.0
 
         # Elasticsearch
         # https://hub.docker.com/r/ditdotdev/elasticsearch
         # Wrapped versions of elasticsearch with VOLUME directives
         # Source Dockerfiles: tests/endtoend/db-matrix/elasticsearch-*.Dockerfile
+        - ditdotdev/elasticsearch:9.5.5
+        - ditdotdev/elasticsearch:9.4.8
+        - ditdotdev/elasticsearch:8.19.23
         - ditdotdev/elasticsearch:9.3.3
         - ditdotdev/elasticsearch:9.2.8
         - ditdotdev/elasticsearch:8.19.14
@@ -102,6 +116,7 @@ jobs:
 
         # MariaDB
         # https://hub.docker.com/_/mariadb
+        - mariadb:13
         - mariadb:12
         - mariadb:11
         - mariadb:11.4
@@ -123,6 +138,8 @@ jobs:
         - ditdotdev/mssql-server:2017
 
         # MongoDB
+        - mongo:9
+        - mongo:9.0
         - mongo:latest
         - mongo:8
         - mongo:8.2
@@ -130,6 +147,7 @@ jobs:
         - mongo:7
 
         # MySQL
+        - mysql:26.10
         - mysql:9
         - mysql:8
 
@@ -190,6 +208,7 @@ jobs:
         #- ditdotdev/oracle-free:23.26.0
         #- ditdotdev/oracle-free:23.26.0-faststart
         #- ditdotdev/oracle-free:23.26.0-slim
+        - ditdotdev/oracle-free:23.26.3-slim-faststart
         - ditdotdev/oracle-free:23.26.1-slim-faststart
         - ditdotdev/oracle-free:23.26.0-slim-faststart
         #- ditdotdev/oracle-free:23.26.0-full
@@ -200,6 +219,9 @@ jobs:
         # https://hub.docker.com/r/ditdotdev/opensearch
         # Wrapped versions of opensearchproject/opensearch with VOLUME directives
         # Source Dockerfiles: tests/endtoend/db-matrix/opensearch-*.Dockerfile
+        - ditdotdev/opensearch:3.9.0
+        - ditdotdev/opensearch:3.8.0
+        - ditdotdev/opensearch:2.19.7
         - ditdotdev/opensearch:3.6.0
         - ditdotdev/opensearch:3.5.0
         - ditdotdev/opensearch:2.19.5
@@ -216,6 +238,8 @@ jobs:
         # https://hub.docker.com/r/ditdotdev/qdrant
         # Wrapped versions of qdrant/qdrant with VOLUME directives
         # Source Dockerfiles: tests/endtoend/db-matrix/qdrant-*.Dockerfile
+        - ditdotdev/qdrant:v1.20
+        - ditdotdev/qdrant:v1.19
         - ditdotdev/qdrant:v1.17
         - ditdotdev/qdrant:v1.16
 
@@ -238,6 +262,7 @@ jobs:
         # ScyllaDB
         # https://hub.docker.com/r/scylladb/scylla
         # Cassandra-compatible high-performance database
+        - scylladb/scylla:2026.3
         - scylladb/scylla:2026.1
         - scylladb/scylla:2025.4
         - scylladb/scylla:2025.3
@@ -245,6 +270,7 @@ jobs:
         # SurrealDB
         # https://hub.docker.com/r/surrealdb/surrealdb
         # Multi-model database (document, graph, relational)
+        - surrealdb/surrealdb:v3.3.5
         - surrealdb/surrealdb:v3.0.5
         - surrealdb/surrealdb:v3
 
@@ -253,6 +279,7 @@ jobs:
         # https://hub.docker.com/r/ditdotdev/tidb
         # Wrapped versions of pingcap/tidb with VOLUME directives
         # Source Dockerfiles: tests/endtoend/db-matrix/tidb-*.Dockerfile
+        - ditdotdev/tidb:v8.5.8
         - ditdotdev/tidb:v8.5.6
         - ditdotdev/tidb:v8.1.2
 
@@ -265,12 +292,16 @@ jobs:
         # Moving to CE because it has the same functionality needed for dit. Keeping the old Enterprise images around for now in case we need to revert.
         # - ditdotdev/tigergraph:latest
         # - ditdotdev/tigergraph:4.2.2
+        - ditdotdev/tigergraph-ce:4.2.5
         - ditdotdev/tigergraph-ce:4.2.2
         # - ditdotdev/tigergraph:4.1.4
 
         # TimescaleDB
         # https://hub.docker.com/r/timescale/timescaledb
         # PostgreSQL extension for time-series data
+        - timescale/timescaledb:2.31.0-pg18
+        - timescale/timescaledb:2.31.0-pg17
+        - timescale/timescaledb:2.31.0-pg16
         - timescale/timescaledb:2.26.3-pg18
         - timescale/timescaledb:2.26.3-pg17
         - timescale/timescaledb:2.26.3-pg16
@@ -278,22 +309,28 @@ jobs:
         # YugabyteDB
         # https://hub.docker.com/r/yugabytedb/yugabyte
         # PostgreSQL-compatible distributed SQL database
+        - yugabytedb/yugabyte:2026.1.2.0-b137
+        - yugabytedb/yugabyte:2025.2.8.0-b60
         - yugabytedb/yugabyte:2025.2.2.2-b11
         - yugabytedb/yugabyte:2025.1.3.2-b1
 
         # Apache Kafka (KRaft mode - standalone, no Zookeeper required)
         # https://hub.docker.com/r/apache/kafka
         # Event streaming platform for cloud-native microservices
+        - apache/kafka:4.4.0
         - apache/kafka:4.0.2
 
         # Apache Solr
         # https://hub.docker.com/_/solr
         # Enterprise search platform
+        - solr:10.1.0
+        - solr:9.11.0
         - solr:9.10.1
 
         # ArangoDB
         # https://hub.docker.com/_/arangodb
         # Multi-model database (document, graph, key-value)
+        - arangodb:3.12.12
         - arangodb:3.12.9
 
         # Chroma
@@ -302,11 +339,13 @@ jobs:
         # Wrapped version of chromadb/chroma with VOLUME directive
         # Source Dockerfile: tests/endtoend/db-matrix/chroma-*.Dockerfile
         # AI-native vector database for embeddings and RAG
+        - ditdotdev/chroma:1.5.9
         - ditdotdev/chroma:1.5.7
 
         # CrateDB
         # https://hub.docker.com/r/crate/crate
         # Distributed SQL database for IoT and machine data
+        - crate/crate:6.5.0
         - crate/crate:6.3.1
 
         # InfluxDB
@@ -315,6 +354,7 @@ jobs:
         # Wrapped version of influxdb with VOLUME directive
         # Source Dockerfile: tests/endtoend/db-matrix/influxdb-*.Dockerfile
         # Time-series database for monitoring and observability
+        - ditdotdev/influxdb:3.12.1-core
         - ditdotdev/influxdb:3.9.1-core
 
         # Meilisearch
@@ -323,6 +363,7 @@ jobs:
         # Wrapped version of getmeili/meilisearch with VOLUME directive
         # Source Dockerfile: tests/endtoend/db-matrix/meilisearch-*.Dockerfile
         # Fast, typo-tolerant search engine
+        - ditdotdev/meilisearch:v1.56.0
         - ditdotdev/meilisearch:v1.42.1
 
         # MinIO
@@ -343,6 +384,7 @@ jobs:
         # Wrapped version of nats with VOLUME directive
         # Source Dockerfile: tests/endtoend/db-matrix/nats-*.Dockerfile
         # Cloud-native messaging system with persistence
+        - ditdotdev/nats:2.15.2
         - ditdotdev/nats:2.12.7
 
         # QuestDB
@@ -351,11 +393,13 @@ jobs:
         # Wrapped version of questdb/questdb with VOLUME directive
         # Source Dockerfile: tests/endtoend/db-matrix/questdb-*.Dockerfile
         # High-performance time-series database
+        - ditdotdev/questdb:10.1.0
         - ditdotdev/questdb:9.3.5
 
         # RabbitMQ
         # https://hub.docker.com/_/rabbitmq
         # Message broker for distributed systems
+        - rabbitmq:4.4.0
         - rabbitmq:4.0.9
 
         # StarRocks
@@ -364,6 +408,7 @@ jobs:
         # Wrapped version of starrocks/allin1-ubuntu with VOLUME directive
         # Source Dockerfile: tests/endtoend/db-matrix/starrocks-*.Dockerfile
         # High-performance OLAP database
+        - ditdotdev/starrocks:4.1.7
         - ditdotdev/starrocks:4.1.0
 
         # Typesense
@@ -380,6 +425,7 @@ jobs:
         # Wrapped version of semitechnologies/weaviate with VOLUME directive
         # Source Dockerfile: tests/endtoend/db-matrix/weaviate-*.Dockerfile
         # AI-native vector database for semantic search
+        - ditdotdev/weaviate:1.40.3
         - ditdotdev/weaviate:1.37.0
 
         # Snowflake
