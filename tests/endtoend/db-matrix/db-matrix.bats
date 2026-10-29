@@ -4,6 +4,10 @@
 
 # Load shared test helpers
 load '../test_helper'
+# Per-image boot tables and client tables (db_env_args, db_ready, db_write,
+# db_verify, ...). Kept in a plain bash file so check-engines.sh can run them
+# against a container without the dit flow.
+load 'db-matrix-engines'
 
 # S3 URI base for testing — unique per run to avoid collisions between
 # concurrent runs. See issue ditdotdev/dit-server#118.
@@ -36,8 +40,8 @@ test_database() {
   echo "  Testing $db:$version"
   
   # Run. Every image's boot requirements (env, flags, container command) live
-  # in the db_* tables below so the unmanaged docker run in test_migrate
-  # starts the engine the same way.
+  # in the db_* tables in db-matrix-engines.bash so the unmanaged docker run
+  # in test_migrate starts the engine the same way.
   # shellcheck disable=SC2046  # the table output is deliberately word-split
   "$D3" run -n "$repo_name" $(db_dit_flags "$db_version") $(db_env_args "$db_version") \
     "$db_version" || return 1
@@ -52,6 +56,23 @@ test_database() {
   fi
   wait_for_up "$repo_name" 60 || return 1
 
+  # The volumes dit manages are the ones the image declares. Everything below
+  # that proves data survived (the cp marker and the client object) lives in
+  # them; an image with none has nothing dit can carry, so only the flow runs.
+  local cp_vols
+  cp_vols=$(docker image inspect "$db_version" --format '{{range $p, $_ := .Config.Volumes}}{{$p}} {{end}}')
+
+  # Create one object through the engine's own client (#262). It is read back
+  # after checkout, after clone and (in test_migrate) after migrate, so each
+  # of those proves the engine's real storage came through and the engine
+  # answers queries, not just that the files moved. Images with no usable
+  # client keep the marker-only coverage and say so in the log.
+  local verify_object=0
+  if [[ -n "$cp_vols" ]]; then
+    create_object "$repo_name" "$db_version" || return 1
+    verify_object=$OBJECT_WRITTEN
+  fi
+
   # dit cp: load a marker directory from the host into every volume the image
   # declares. dit cp stops the container, copies, and starts it again, so this
   # also proves the engine tolerates a foreign entry in its data directory and
@@ -63,8 +84,6 @@ test_database() {
   rm -rf "$cp_src"
   mkdir -p "$cp_src/.dit-cp-check"
   echo "$db_version" > "$cp_src/.dit-cp-check/marker"
-  local cp_vols
-  cp_vols=$(docker image inspect "$db_version" --format '{{range $p, $_ := .Config.Volumes}}{{$p}} {{end}}')
   local cp_vol
   for cp_vol in $cp_vols; do
     "$D3" cp -s "$cp_src" -d "$cp_vol" "$repo_name" || { rm -rf "$cp_src"; return 1; }
@@ -100,6 +119,10 @@ test_database() {
       return 1
     fi
   done
+  # And the engine must answer with the object it was given before the commit.
+  if [[ "$verify_object" == 1 ]]; then
+    check_object "$repo_name" "$db_version" "checkout" || return 1
+  fi
 
   # Remote add
   "$D3" remote add -r s3 "$URI" "$repo_name" || return 1
@@ -185,7 +208,12 @@ test_database() {
   
   # Log - has commit (after clone)
   "$D3" log "$repo_name" | grep -q "commit $commit_guid" || return 1
-  
+
+  # The clone was built from the pushed archive; the object must be in it.
+  if [[ "$verify_object" == 1 ]]; then
+    check_object "$repo_name" "$db_version" "clone" || return 1
+  fi
+
   # Remove S3 assets
   aws s3 rm "$URI" --recursive || return 1
   
@@ -209,53 +237,44 @@ test_database() {
   echo "  ✓ $db:$version completed"
 }
 
-# Per-image boot requirements, shared by the dit run in test_database and the
-# unmanaged docker run in test_migrate: environment (-e pairs, valid for both
-# dit run and docker run) and flags that only one of them understands. Images
-# whose entrypoint needs a command (cockroach, yugabyte, surrealdb) get it from
-# the CMD in their wrapper Dockerfile in this directory, because dit run has
-# no way to pass one: its trailing arguments are docker flags.
-# Everything the matrix learned the hard way: without these, the engine exits
-# within a second and every "is it Up" check is a race.
-db_env_args() {
-  local db_version="$1"
-  case "$db_version" in
-    *mssql*)       echo "-e ACCEPT_EULA=Y -e MSSQL_SA_PASSWORD=YourStrong!Passw0rd -e MSSQL_PID=Developer" ;;
-    *db2*)         echo "-e LICENSE=accept -e DB2INST1_PASSWORD=YourStrong!Passw0rd -e DBNAME=testdb" ;;
-    *oracle*)      echo "-e ORACLE_PASSWORD=YourStrong!Passw0rd" ;;
-    *minio*)       echo "-e MINIO_ROOT_USER=minioadmin -e MINIO_ROOT_PASSWORD=minioadmin" ;;
-    *arangodb*)    echo "-e ARANGO_NO_AUTH=1" ;;
-    postgres:*|*timescaledb*)
-                   echo "-e POSTGRES_HOST_AUTH_METHOD=trust" ;;
-    mysql:*)       echo "-e MYSQL_ALLOW_EMPTY_PASSWORD=yes" ;;
-    mariadb:*)     echo "-e MARIADB_ALLOW_EMPTY_ROOT_PASSWORD=yes" ;;
-    couchdb:*)     echo "-e COUCHDB_USER=admin -e COUCHDB_PASSWORD=password" ;;
-    *influxdb*)    echo "-e INFLUXDB3_NODE_IDENTIFIER_PREFIX=node0 -e INFLUXDB3_OBJECT_STORE=file -e INFLUXDB3_DB_DIR=/var/lib/influxdb3" ;;
-    *typesense*)   echo "-e TYPESENSE_DATA_DIR=/data -e TYPESENSE_API_KEY=dit-matrix" ;;
-  esac
+# Create the per-engine check object in a running container (#262). Sets
+# OBJECT_WRITTEN=1 when the object exists, 0 when the image has no usable
+# client (the marker checks are then the only data coverage, and the log says
+# so). Returns non-zero when the engine never became ready or the write
+# failed, both of which are findings in their own right.
+OBJECT_WRITTEN=0
+create_object() {
+  local c="$1" img="$2"
+  OBJECT_WRITTEN=0
+  db_wait_ready "$c" "$img" || return 1
+  local out rc
+  out=$(db_write "$c" "$img" 2>&1)
+  rc=$?
+  if [[ $rc -eq $DB_NO_CLIENT ]]; then
+    echo "  $img ships no client; data coverage is the volume marker only"
+    return 0
+  fi
+  if [[ $rc -ne 0 ]]; then
+    echo "  Failed to create the check object in $c ($img):"
+    echo "$out" | tail -10 | sed 's/^/    | /'
+    return 1
+  fi
+  # Read it straight back so a verify failure later is about dit, not the table.
+  db_verify "$c" "$img" || { echo "  Check object not readable right after writing it in $c ($img)"; return 1; }
+  OBJECT_WRITTEN=1
+  echo "  Check object written to $img through its client"
 }
 
-# Flags only dit run understands (port mapping is dit's own default; docker
-# run publishes nothing unless asked, so the unmanaged side needs none).
-db_dit_flags() {
-  local db_version="$1"
-  case "$db_version" in
-    # Db2 needs --privileged to remount /database with suid, and port 22 /
-    # SSH conflicts with the runner's sshd.
-    *db2*)         echo "--privileged --disable-port-mapping" ;;
-    # Oracle has no exposed ports; DynamoDB Local avoids a port clash;
-    # TigerGraph runs sshd on port 22.
-    *oracle*|*dynamodb*|*tigergraph*)
-                   echo "--disable-port-mapping" ;;
-  esac
-}
-
-# Flags only docker run understands for the unmanaged migrate source.
-db_docker_flags() {
-  local db_version="$1"
-  case "$db_version" in
-    *db2*)         echo "--privileged" ;;
-  esac
+# Wait for the engine and read the check object back after <stage>.
+check_object() {
+  local c="$1" img="$2" stage="$3"
+  db_wait_ready "$c" "$img" || { echo "  $img did not accept connections after $stage"; return 1; }
+  if ! db_verify "$c" "$img"; then
+    echo "  Check object missing or wrong in $c after $stage: $stage did not preserve the engine's data"
+    docker logs --tail 20 "$c" 2>&1 | sed 's/^/    | /'
+    return 1
+  fi
+  echo "  Check object verified after $stage"
 }
 
 # Print the contents of a file inside a running dit-managed container.
@@ -296,12 +315,15 @@ wait_for_up() {
 
 # dit migrate: start the image as a plain, unmanaged docker container, stop
 # it, migrate it into a dit repository, and prove the declared volumes came
-# across. The proof is a marker file dropped into every declared volume of the
+# across. Two proofs: a marker file dropped into every declared volume of the
 # stopped source with docker cp (works on stopped containers and on images
-# with no shell) and read back the same way from the migrated container. If
+# with no shell) and read back the same way from the migrated container, and
+# an object created through the engine's own client while the source was
+# running, read back through the client in the migrated container (#262). If
 # the marker is missing the copy did not happen, whatever else looks healthy
 # (ditdotdev/dit#256 shipped an empty database for weeks because nothing
-# checked this).
+# checked this); if the object is missing the copy was incomplete or the
+# engine cannot use what was copied.
 test_migrate() {
   local db_version="$1"
   local db="$2"
@@ -336,9 +358,12 @@ test_migrate() {
     return 0
   fi
 
-  # Give the database a moment to initialize its data directory, then stop it
-  # cleanly so the files are consistent, and plant a marker in every volume.
-  sleep 5
+  # Create the check object through the client once the engine answers (this
+  # also replaces the old fixed sleep: an engine that accepts a write has
+  # initialized its data directory), then stop cleanly so the files are
+  # consistent, and plant a marker in every volume.
+  create_object "$src" "$db_version" || return 1
+  local verify_object=$OBJECT_WRITTEN
   docker stop -t 60 "$src" >/dev/null || return 1
   local vol
   local marker_host
@@ -361,6 +386,9 @@ test_migrate() {
       return 1
     fi
   done
+  if [[ "$verify_object" == 1 ]]; then
+    check_object "$dest" "$db_version" "migrate" || return 1
+  fi
 
   # The migrated repository must be usable as a normal dit repository.
   "$D3" commit -m "After migrate" "$dest" | grep -q "Commit" || return 1
