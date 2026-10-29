@@ -54,7 +54,9 @@ db_env_args() {
     mysql:*)       echo "-e MYSQL_ALLOW_EMPTY_PASSWORD=yes" ;;
     mariadb:*)     echo "-e MARIADB_ALLOW_EMPTY_ROOT_PASSWORD=yes" ;;
     couchdb:*)     echo "-e COUCHDB_USER=admin -e COUCHDB_PASSWORD=password" ;;
-    *influxdb*)    echo "-e INFLUXDB3_NODE_IDENTIFIER_PREFIX=node0 -e INFLUXDB3_OBJECT_STORE=file -e INFLUXDB3_DB_DIR=/var/lib/influxdb3" ;;
+    # 3.12 ignores the deprecated INFLUXDB3_DB_DIR when INFLUXDB3_DATA_DIR is
+    # set (and the image sets it, outside the volume); 3.9 only knows DB_DIR.
+    *influxdb*)    echo "-e INFLUXDB3_NODE_IDENTIFIER_PREFIX=node0 -e INFLUXDB3_OBJECT_STORE=file -e INFLUXDB3_DB_DIR=/var/lib/influxdb3 -e INFLUXDB3_DATA_DIR=/var/lib/influxdb3" ;;
     *typesense*)   echo "-e TYPESENSE_DATA_DIR=/data -e TYPESENSE_API_KEY=dit-matrix" ;;
     # Single node, security off, so curl inside the container can index.
     *elasticsearch*)
@@ -62,6 +64,9 @@ db_env_args() {
     *opensearch*)  echo "-e discovery.type=single-node -e DISABLE_SECURITY_PLUGIN=true -e DISABLE_INSTALL_DEMO_CONFIG=true" ;;
     # cypher-shell without a forced password change.
     *neo4j*)       echo "-e NEO4J_AUTH=none" ;;
+    # RabbitMQ keys its metadata store on the node name, which defaults to
+    # rabbit@<hostname>; a clone gets a new hostname and so an empty store.
+    *rabbitmq*)    echo "-e RABBITMQ_NODENAME=rabbit@localhost" ;;
     # surreal start defaults to the in-memory store; point it at the declared
     # /data volume so there is something to version, and give it a root user
     # for the surreal sql client.
@@ -140,7 +145,9 @@ db_ready() {
     *tidb*)
       docker exec "$c" mysql -h127.0.0.1 -P4000 -uroot -e 'select 1' ;;
     *starrocks*)
-      docker exec "$c" mysql -h127.0.0.1 -P9030 -uroot -e 'show backends' | grep -q true ;;
+      # The FE answers before any BE has registered; creating a table is the
+      # only probe that proves a backend can take data.
+      docker exec "$c" mysql -h127.0.0.1 -P9030 -uroot -e "create database if not exists dit; create table if not exists dit.dit_ready(v int) duplicate key(v) properties('replication_num'='1')" ;;
     mongo:*)
       docker exec "$c" mongosh --quiet --eval 'db.runCommand({ping:1}).ok' | grep -q 1 ;;
     *mssql*)
@@ -260,7 +267,10 @@ db_write() {
       docker exec "$c" curl -sf -XPUT 'http://localhost:9200/dit_check/_doc/1?refresh=true' -H 'Content-Type: application/json' -d "{\"v\":\"$v\"}" ;;
     *solr*)
       # Core admin API rather than the solr CLI: the CLI's flags changed
-      # between Solr 9 and 10, the API did not.
+      # between Solr 9 and 10, the API did not. The API only sees configsets
+      # under SOLR_HOME, so copy the shipped _default there first (the CLI
+      # does the same).
+      docker exec "$c" sh -c 'mkdir -p /var/solr/data/configsets && cp -rn /opt/solr/server/solr/configsets/_default /var/solr/data/configsets/' >/dev/null 2>&1
       docker exec "$c" curl -sf 'http://localhost:8983/solr/admin/cores?action=CREATE&name=dit_check&configSet=_default' >/dev/null 2>&1
       docker exec "$c" curl -sf 'http://localhost:8983/solr/dit_check/update?commit=true' -H 'Content-Type: application/json' -d "[{\"id\":\"1\",\"v_s\":\"$v\"}]" ;;
     couchdb:*)
