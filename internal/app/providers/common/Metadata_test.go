@@ -584,6 +584,24 @@ func TestMetadata_MapV1_RuntimeParsing(t *testing.T) {
 	}
 }
 
+// Migrated repositories carry a V1 runtime string; a privileged source must
+// come back privileged so a clone can start the engine (#262).
+func TestMetadata_MapV1_RuntimePrivileged(t *testing.T) {
+	m := Metadata{}
+	if got := m.MapV1(map[string]interface{}{
+		"container": "db2:latest",
+		"runtime":   "[-d --label dev.dit.dit -e LICENSE=accept --privileged --name db2]",
+	}).GetPrivileged(); !got {
+		t.Errorf("MapV1() with --privileged in runtime: GetPrivileged() = false, want true")
+	}
+	if got := m.MapV1(map[string]interface{}{
+		"container": "postgres:latest",
+		"runtime":   "[-e POSTGRES_PASSWORD=secret -p 5432:5432]",
+	}).GetPrivileged(); got {
+		t.Errorf("MapV1() without --privileged in runtime: GetPrivileged() = true, want false")
+	}
+}
+
 func TestMetadata_GetPrivileged(t *testing.T) {
 	tests := []struct {
 		name       string

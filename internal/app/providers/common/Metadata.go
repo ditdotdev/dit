@@ -317,8 +317,12 @@ func (m Metadata) MapV1(metaMap map[string]interface{}) Metadata {
 	var envs []interface{}
 	var ports []port
 	var volumes []volume
+	var privileged bool
 
 	for i, n := range runtime {
+		if n == "--privileged" {
+			privileged = true
+		}
 		if strings.Contains(n, "--env") || strings.Contains(n, "-e") {
 			envs = append(envs, runtime[i+1])
 		}
@@ -365,5 +369,6 @@ func (m Metadata) MapV1(metaMap map[string]interface{}) Metadata {
 		environment: envs,
 		ports:       ports,
 		volumes:     volumes,
+		privileged:  privileged,
 	}
 }

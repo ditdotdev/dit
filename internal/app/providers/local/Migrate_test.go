@@ -4,8 +4,10 @@
 package local
 
 import (
+	"encoding/json"
 	"errors"
 	"net/http"
+	"slices"
 	"strings"
 	"testing"
 )
@@ -249,6 +251,77 @@ func TestMigrate_HappyPath(t *testing.T) {
 	}
 	if d.CpCalls != 0 {
 		t.Errorf("host-path Cp must not be used by migrate, got %d calls", d.CpCalls)
+	}
+}
+
+// A privileged source container (Db2 cannot start without it) must be
+// migrated to a privileged repository container, and the flag must reach the
+// runtime metadata so a later clone keeps it (#262, run 40944006279).
+func TestMigrate_KeepsPrivileged(t *testing.T) {
+	for _, tc := range []struct {
+		name       string
+		privileged string
+		want       bool
+	}{
+		{"privileged source", "true", true},
+		{"unprivileged source", "false", false},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			var runtime string
+			port := startMockServer(t, func(w http.ResponseWriter, r *http.Request) {
+				w.Header().Set("Content-Type", "application/json")
+				switch {
+				case r.Method == http.MethodPost && strings.HasSuffix(r.URL.Path, "/v1/repositories"):
+					_, _ = w.Write([]byte(`{"name":"newrepo","properties":{}}`))
+				case r.Method == http.MethodPost && strings.HasSuffix(r.URL.Path, "/repositories/newrepo"):
+					var body struct {
+						Properties map[string]interface{} `json:"properties"`
+					}
+					_ = json.NewDecoder(r.Body).Decode(&body)
+					runtime, _ = body.Properties["runtime"].(string)
+					_, _ = w.Write([]byte(`{"name":"newrepo","properties":{}}`))
+				case strings.Contains(r.URL.Path, "/volumes/v0/activate"), strings.Contains(r.URL.Path, "/volumes/v0/deactivate"):
+					w.WriteHeader(http.StatusOK)
+				case strings.HasSuffix(r.URL.Path, "/volumes/v0") && r.Method == http.MethodGet:
+					_, _ = w.Write([]byte(`{"name":"v0","properties":{"path":"/database"},"config":{"mountpoint":"/var/lib/dit-docker/mnt/newrepo/v0"}}`))
+				default:
+					w.WriteHeader(http.StatusNotFound)
+				}
+			})
+
+			d := &fakeDocker{
+				inspectContainerOut: "{}",
+				inspectImageOut:     "{}",
+				getValFromContainer: map[string]string{
+					"c1:State.Running":           "false",
+					"c1:Image":                   "icr.io/db2_community/db2:latest",
+					"c1:HostConfig.Privileged":   tc.privileged,
+					"c1:HostConfig.PortBindings": `{}`,
+				},
+				getSliceFromImage: map[string][]string{
+					"icr.io/db2_community/db2:latest:Config.Volumes": {"/database"},
+					"icr.io/db2_community/db2:latest:RepoDigests":    {"icr.io/db2_community/db2@sha256:abc"},
+				},
+			}
+
+			captureStdout(func() {
+				_, _ = captureExit(t, func() {
+					withDocker(t, d, func() {
+						Migrate("c1", "newrepo", "user", "user@x", func(string, string, []string, string, string, int) {}, port, "ctx")
+					})
+				})
+			})
+
+			if len(d.RunArgs) != 1 {
+				t.Fatalf("expected one Run call, got %d", len(d.RunArgs))
+			}
+			if got := slices.Contains(d.RunArgs[0], "--privileged"); got != tc.want {
+				t.Errorf("Run args %v: --privileged present = %v, want %v", d.RunArgs[0], got, tc.want)
+			}
+			if got := strings.Contains(runtime, "--privileged"); got != tc.want {
+				t.Errorf("runtime metadata %q: --privileged present = %v, want %v", runtime, got, tc.want)
+			}
+		})
 	}
 }
 
