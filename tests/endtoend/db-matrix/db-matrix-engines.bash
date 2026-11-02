@@ -122,7 +122,9 @@ db_wait_ready() {
   while ! timeout 30 bash -c 'db_ready "$@"' _ "$c" "$img" >/dev/null 2>&1; do
     if [ "$elapsed" -ge "$timeout" ]; then
       echo "  Timeout (${timeout}s) waiting for $img in $c to accept connections"
-      docker logs --tail 30 "$c" 2>&1 | sed 's/^/    | /'
+      # Enough log to reach the cause: db2 alone prints dozens of lines of
+      # db2support output after a failed start (#271).
+      docker logs --tail 60 "$c" 2>&1 | sed 's/^/    | /'
       return 1
     fi
     sleep 2
@@ -159,9 +161,14 @@ db_ready() {
       # The entrypoint keeps configuring the instance after the database
       # first accepts connections, ending with a db2stop/db2start bounce.
       # It is PID 1 and never exits; its last act is a tail -f of the diag
-      # log, so that process existing means setup is done.
+      # log, so that process existing means setup is done. 11.5.8 and 11.5.9
+      # still bounced the instance once more after that, between two CLP
+      # commands of the check write (SQL1024N, #271), so the engine must also
+      # have been up for a while: a bounce restarts every db2sysc process and
+      # resets its elapsed time.
       docker exec "$c" pgrep -x tail >/dev/null \
-        && docker exec "$c" su - db2inst1 -c 'db2 connect to testdb' ;;
+        && docker exec "$c" su - db2inst1 -c 'db2 connect to testdb' \
+        && [ "$(docker exec "$c" ps -o etimes= -C db2sysc 2>/dev/null | sort -n | head -1 | tr -d ' ')" -ge 45 ] 2>/dev/null ;;
     *cockroach*)
       docker exec "$c" /cockroach/cockroach sql --insecure -e 'select 1' ;;
     *yugabyte*)
