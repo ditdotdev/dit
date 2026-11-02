@@ -120,6 +120,13 @@ func Migrate(container string, name string, user string, email string, commit Co
 		args = append(args, "-e", strings.Trim(env, "\""))
 	}
 
+	// A source that ran privileged (Db2 needs it to start) must stay
+	// privileged, or the migrated engine never comes up. The flag is kept
+	// in the runtime metadata too, so a clone of the repository gets it.
+	if priv, _ := docker.GetValFromContainer(container, "HostConfig", "Privileged"); priv == "true" {
+		args = append(args, "--privileged")
+	}
+
 	p, _ := docker.GetValFromContainer(container, "HostConfig", "PortBindings")
 	var ports map[string][]map[string]string
 	if err := json.Unmarshal([]byte(p), &ports); err != nil {
