@@ -98,6 +98,82 @@ bash scripts/setup-zfs-pools.sh
 make e2e
 ```
 
+### Database Matrix
+
+The Database Matrix workflow (`.github/workflows/db-matrix-test.yml`) runs
+`tests/endtoend/db-matrix/db-matrix.bats` against every database image we
+claim to support, one job per image, weekly and on `workflow_dispatch`. For
+each image it runs the whole dit flow (run, cp, commit, checkout, push, pull,
+clone, migrate) and proves the data survived twice: a marker file planted in
+every declared volume, and one object created through the engine's own client
+(one row, document, key, node, index entry or bucket object) that is read back
+after checkout, clone and migrate.
+
+The workflow only pulls images. It never builds the image it is about to
+test. Images that need a change to work with dit (a `VOLUME` declaration, a
+container command, or a client the test uses) are wrapped by a Dockerfile in
+`tests/endtoend/db-matrix/` and published to Docker Hub under `ditdotdev/`.
+
+To add a database, or a new version of one:
+
+1. **Pick the image.** If the upstream image declares a `VOLUME` for its data
+   directory and starts with its default command, use the upstream tag as is.
+   Otherwise add `tests/endtoend/db-matrix/<image>-<tag>.Dockerfile` that
+   starts `FROM` the upstream image and adds what is missing: `VOLUME` for the
+   data directory, `CMD` when the entrypoint needs a subcommand (`dit run`
+   cannot pass a container command; its trailing arguments are docker flags),
+   and the client package when the image ships none (curl for HTTP APIs, the
+   `mysql` client for MySQL-protocol engines). Keep the name
+   `<image>-<tag>.Dockerfile`; the local harness finds it that way.
+
+2. **Add the boot table entries** in
+   `tests/endtoend/db-matrix/db-matrix-engines.bash`: `db_env_args` for
+   environment the engine needs to start and to accept the client without
+   interactive setup (passwords, trust auth, single-node mode), `db_dit_flags`
+   for flags only `dit run` takes (`--privileged`, `--disable-port-mapping`),
+   and `db_docker_flags` for flags only the unmanaged `docker run` in the
+   migrate test takes.
+
+3. **Add the client table entries** in the same file: `db_ready` (one cheap
+   query that succeeds only when the engine answers; "Up" is not enough),
+   `db_write` (create the object, idempotent, value is the image reference),
+   and `db_verify` (read it back, non-zero if missing or wrong). Add a
+   `db_ready_timeout` entry if a cold boot takes longer than three minutes.
+   If the image has no client and no HTTP API reachable from inside the
+   container, leave it to the default case and add it to the comment there
+   so the gap is visible, and note it in `tests/endtoend/TEST-COVERAGE.md`.
+
+4. **Check it locally** without a dit install. The harness builds the wrapper
+   if there is one, starts a plain container with the boot table, waits for
+   the engine, writes, restarts the container the way `dit cp` and
+   `dit checkout` do, and reads the object back:
+
+   ```bash
+   tests/endtoend/db-matrix/check-engines.sh postgres:16 ditdotdev/redis:7
+   ```
+
+5. **Publish the wrapper** for both runner architectures once it passes. The
+   Docker Hub user is the one in the org's `DOCKER_USER` secret; your personal
+   login cannot push to `ditdotdev/`.
+
+   ```bash
+   cd tests/endtoend/db-matrix
+   docker buildx build --platform linux/amd64,linux/arm64 \
+     -t ditdotdev/<image>:<tag> -f <image>-<tag>.Dockerfile --push .
+   ```
+
+   Republish the same way whenever the Dockerfile changes; the matrix pulls
+   whatever is on Docker Hub under that tag.
+
+6. **Add the matrix entry** in `.github/workflows/db-matrix-test.yml` under
+   the vendor's comment block, using the `ditdotdev/` tag if you published a
+   wrapper, and run the workflow on your branch with `workflow_dispatch`
+   before opening the PR:
+
+   ```bash
+   gh workflow run db-matrix-test.yml --ref <branch>
+   ```
+
 
 ## Releasing
 ```bash
