@@ -28,7 +28,6 @@ jobs:
   db-matrix:
     name: Test ${{ matrix.database }}
     runs-on: ubuntu-22.04
-    if: ${{ !inputs.database || contains(matrix.database, inputs.database) }}
     strategy:
       fail-fast: false
       matrix:
@@ -460,11 +459,13 @@ jobs:
 
     steps:
       - name: Checkout code
+        if: ${{ !inputs.database || contains(matrix.database, inputs.database) }}
         uses: actions/checkout@v7
         with:
           token: ${{ secrets.GO_MODULES_TOKEN }}
 
       - name: Configure Git for private modules
+        if: ${{ !inputs.database || contains(matrix.database, inputs.database) }}
         run: |
           git config --global url."https://x-access-token:${{ secrets.GO_MODULES_TOKEN }}@github.com/".insteadOf "https://github.com/"
           git config --global credential.helper store
@@ -472,16 +473,19 @@ jobs:
         shell: bash
 
       - name: Configure Git user
+        if: ${{ !inputs.database || contains(matrix.database, inputs.database) }}
         run: |
           git config --global user.name "test.runner"
           git config --global user.email "test@runner.com"
 
       - name: Set up Go
+        if: ${{ !inputs.database || contains(matrix.database, inputs.database) }}
         uses: actions/setup-go@v7
         with:
           go-version: '1.26.10'
 
       - name: Configure Go for private repos
+        if: ${{ !inputs.database || contains(matrix.database, inputs.database) }}
         run: |
           go env -w GOPRIVATE=github.com/ditdotdev/*
           go env -w GONOPROXY=github.com/ditdotdev/*
@@ -494,11 +498,13 @@ jobs:
           GONOSUMDB: github.com/ditdotdev/*
 
       - name: Output Kernel Info
+        if: ${{ !inputs.database || contains(matrix.database, inputs.database) }}
         run: |
           docker pull busybox
           docker run busybox uname -a
 
       - name: Build Dit from source
+        if: ${{ !inputs.database || contains(matrix.database, inputs.database) }}
         run: |
           VERSION=$(gh release view --json tagName -q .tagName)
           echo "Building with version: $VERSION"
@@ -509,6 +515,7 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       
       - name: Install OpenZFS
+        if: ${{ !inputs.database || contains(matrix.database, inputs.database) }}
         run: |
           echo "Installing ZFS for Ubuntu $(lsb_release -rs) kernel $(uname -r)..."
           sudo apt-get update
@@ -535,6 +542,7 @@ jobs:
           echo "ZFS installation and test completed successfully!"
       
       - name: Free up disk space
+        if: ${{ !inputs.database || contains(matrix.database, inputs.database) }}
         run: |
           echo "Before cleanup:"
           df -h
@@ -547,6 +555,7 @@ jobs:
           df -h
       
       - name: Setup Test Requirements
+        if: ${{ !inputs.database || contains(matrix.database, inputs.database) }}
         run: |
           # Install BATS test framework
           sudo npm install -g bats
@@ -559,17 +568,20 @@ jobs:
       # without hitting the anonymous pull rate-limit on shared runner IPs (#167).
       # Read-only use: nothing in this workflow pushes to Docker Hub (#250).
       - name: Log in to Docker Hub
+        if: ${{ !inputs.database || contains(matrix.database, inputs.database) }}
         uses: docker/login-action@v4
         with:
           username: ${{ secrets.DOCKER_USER }}
           password: ${{ secrets.DOCKER_PASSWORD }}
 
       - name: Install Dit infrastructure
+        if: ${{ !inputs.database || contains(matrix.database, inputs.database) }}
         run: |
           export PATH=$GITHUB_WORKSPACE/build:$PATH
           build/dit install --verbose
 
       - name: Wait for Dit server to be ready
+        if: ${{ !inputs.database || contains(matrix.database, inputs.database) }}
         run: |
           echo "Waiting for dit-docker-server container to start..."
           timeout 120 bash -c 'until docker inspect dit-docker-server --format "{{.State.Running}}" 2>/dev/null | grep -q true; do sleep 1; done'
@@ -578,6 +590,7 @@ jobs:
           echo "Dit server is ready"
 
       - name: Configure AWS credentials
+        if: ${{ !inputs.database || contains(matrix.database, inputs.database) }}
         uses: aws-actions/configure-aws-credentials@v6
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
@@ -585,6 +598,7 @@ jobs:
           aws-region: us-west-2
       
       - name: Pull database image
+        if: ${{ !inputs.database || contains(matrix.database, inputs.database) }}
         # Every matrix entry is pulled as published. The ditdotdev/* wrappers
         # are built from tests/endtoend/db-matrix/<image>-<tag>.Dockerfile and
         # pushed to Docker Hub when the Dockerfile changes (multi-arch, see
@@ -597,6 +611,7 @@ jobs:
           DATABASE_VERSION: ${{ matrix.database }}
 
       - name: Run database matrix test for ${{ matrix.database }}
+        if: ${{ !inputs.database || contains(matrix.database, inputs.database) }}
         run: |
           export PATH=$GITHUB_WORKSPACE/build:$PATH
           echo "Testing database: $DATABASE_VERSION"
@@ -610,7 +625,7 @@ jobs:
           E2E_RUN_SUFFIX: run-${{ github.run_id }}-${{ github.run_attempt }}
 
       - name: Cleanup database-specific S3 prefix
-        if: always()
+        if: ${{ always() && (!inputs.database || contains(matrix.database, inputs.database)) }}
         run: |
           # Compute the same S3 path that db-matrix.bats uses for this database
           DB_VERSION="${{ matrix.database }}"
@@ -632,13 +647,13 @@ jobs:
           AWS_REGION: us-west-2
 
       - name: Cleanup on failure
-        if: failure()
+        if: ${{ failure() && (!inputs.database || contains(matrix.database, inputs.database)) }}
         run: |
           export PATH=$GITHUB_WORKSPACE/build:$PATH
           build/dit uninstall --force || true
       
       - name: Cleanup Docker resources
-        if: always()
+        if: ${{ always() && (!inputs.database || contains(matrix.database, inputs.database)) }}
         run: |
           echo "Cleaning up Docker images and containers..."
           docker system prune -af --volumes
