@@ -183,10 +183,15 @@ db_ready() {
     *elasticsearch*|*opensearch*)
       docker exec "$c" curl -sf 'http://localhost:9200/_cluster/health?wait_for_status=yellow&timeout=5s' ;;
     *solr*)
-      # Core STATUS answers while cores are still loading after a restart;
-      # a core that is not loaded yet 404s on select.
-      docker exec "$c" curl -sf 'http://localhost:8983/solr/admin/cores?action=STATUS&wt=json' | grep -q '"status"' \
-        && ! docker exec "$c" curl -sf 'http://localhost:8983/solr/admin/cores?action=STATUS&wt=json' | grep -q '"isLoaded":"false"' ;;
+      # Core STATUS answers while cores are still loading after a restart,
+      # before the loading core is even listed, and a select against it 404s
+      # until it is (run 40944006279). So once the check index exists on
+      # disk it must also answer a query. The same holds in SolrCloud mode
+      # (Solr 10), where a replica that is still recovering 503s.
+      docker exec "$c" curl -sf 'http://localhost:8983/solr/admin/cores?action=STATUS&wt=json' | grep -q '"status"' || return 1
+      if docker exec "$c" sh -c 'ls /var/solr/data/*/core.properties >/dev/null 2>&1'; then
+        docker exec "$c" curl -sf 'http://localhost:8983/solr/dit_check/select?q=*:*' >/dev/null
+      fi ;;
     couchdb:*)
       docker exec "$c" curl -sf http://admin:password@localhost:5984/_up ;;
     *neo4j*)
@@ -269,12 +274,18 @@ db_write() {
     *elasticsearch*|*opensearch*)
       docker exec "$c" curl -sf -XPUT 'http://localhost:9200/dit_check/_doc/1?refresh=true' -H 'Content-Type: application/json' -d "{\"v\":\"$v\"}" ;;
     *solr*)
-      # Core admin API rather than the solr CLI: the CLI's flags changed
-      # between Solr 9 and 10, the API did not. The API only sees configsets
-      # under SOLR_HOME, so copy the shipped _default there first (the CLI
-      # does the same).
-      docker exec "$c" sh -c 'mkdir -p /var/solr/data/configsets && cp -rn /opt/solr/server/solr/configsets/_default /var/solr/data/configsets/' >/dev/null 2>&1
-      docker exec "$c" curl -sf 'http://localhost:8983/solr/admin/cores?action=CREATE&name=dit_check&configSet=_default' >/dev/null 2>&1
+      # Admin APIs rather than the solr CLI: the CLI's flags changed between
+      # Solr 9 and 10, the APIs did not. Solr 10 starts in SolrCloud mode
+      # (embedded ZooKeeper under SOLR_HOME, so it is versioned too), where
+      # only the Collections API creates an index. Solr 9 is standalone,
+      # where the core API only sees configsets under SOLR_HOME, so copy the
+      # shipped _default there first (the CLI does the same).
+      if docker exec "$c" curl -sf 'http://localhost:8983/solr/admin/info/system?wt=json' | grep -q '"mode":"solrcloud"'; then
+        docker exec "$c" curl -sf 'http://localhost:8983/solr/admin/collections?action=CREATE&name=dit_check&numShards=1&replicationFactor=1' >/dev/null 2>&1
+      else
+        docker exec "$c" sh -c 'mkdir -p /var/solr/data/configsets && cp -rn /opt/solr/server/solr/configsets/_default /var/solr/data/configsets/' >/dev/null 2>&1
+        docker exec "$c" curl -sf 'http://localhost:8983/solr/admin/cores?action=CREATE&name=dit_check&configSet=_default' >/dev/null 2>&1
+      fi
       docker exec "$c" curl -sf 'http://localhost:8983/solr/dit_check/update?commit=true' -H 'Content-Type: application/json' -d "[{\"id\":\"1\",\"v_s\":\"$v\"}]" ;;
     couchdb:*)
       docker exec "$c" curl -sf -XPUT http://admin:password@localhost:5984/dit_check >/dev/null 2>&1
