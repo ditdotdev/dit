@@ -176,7 +176,8 @@ To add a database, or a new version of one:
 
    To run only the entries you are working on, pass the `database` input;
    every matrix entry whose image reference contains the text runs, the rest
-   show up as skipped jobs:
+   finish in seconds with every step skipped (a job-level `if` cannot see the
+   matrix context, so the filter sits on each step):
 
    ```bash
    gh workflow run db-matrix-test.yml --ref <branch> -f database=db2:12.1

@@ -15,8 +15,8 @@ on:
       database:
         description: >-
           Only run matrix entries containing this text (for example "db2:12.1"
-          or "ditdotdev/yugabyte"). Empty runs the whole matrix. Skipped
-          entries still appear as skipped jobs.
+          or "ditdotdev/yugabyte"). Empty runs the whole matrix. Other
+          entries finish in seconds with every step skipped.
         required: false
         default: ''
         type: string
