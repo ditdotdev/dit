@@ -165,7 +165,7 @@ db_ready() {
     *cockroach*)
       docker exec "$c" /cockroach/cockroach sql --insecure -e 'select 1' ;;
     *yugabyte*)
-      docker exec "$c" bin/ysqlsh -h "$(docker exec "$c" hostname -i)" -c 'select 1' ;;
+      docker exec "$c" bin/ysqlsh -h 127.0.0.1 -c 'select 1' ;;
     *cassandra*|*scylla*)
       docker exec "$c" cqlsh -e 'describe keyspaces' ;;
     *clickhouse*)
@@ -250,7 +250,7 @@ db_write() {
     *cockroach*)
       docker exec "$c" /cockroach/cockroach sql --insecure -e "create table if not exists dit_check(v string); insert into dit_check values('$v')" ;;
     *yugabyte*)
-      docker exec "$c" bin/ysqlsh -h "$(docker exec "$c" hostname -i)" -v ON_ERROR_STOP=1 -c "create table if not exists dit_check(v text)" -c "insert into dit_check values('$v')" ;;
+      docker exec "$c" bin/ysqlsh -h 127.0.0.1 -v ON_ERROR_STOP=1 -c "create table if not exists dit_check(v text)" -c "insert into dit_check values('$v')" ;;
     *cassandra*|*scylla*)
       docker exec "$c" cqlsh -e "create keyspace if not exists dit with replication={'class':'SimpleStrategy','replication_factor':1}; create table if not exists dit.dit_check(k int primary key, v text); insert into dit.dit_check(k,v) values(1,'$v')" \
         && docker exec "$c" nodetool flush ;;
@@ -361,7 +361,7 @@ db_verify() {
     *cockroach*)
       docker exec "$c" /cockroach/cockroach sql --insecure --format=tsv -e "select v from dit_check" | grep -qxF "$v" ;;
     *yugabyte*)
-      docker exec "$c" bin/ysqlsh -h "$(docker exec "$c" hostname -i)" -tAc "select v from dit_check" | grep -qxF "$v" ;;
+      docker exec "$c" bin/ysqlsh -h 127.0.0.1 -tAc "select v from dit_check" | grep -qxF "$v" ;;
     *cassandra*|*scylla*)
       docker exec "$c" cqlsh -e "select v from dit.dit_check where k=1" | grep -qF "$v" ;;
     *clickhouse*)
