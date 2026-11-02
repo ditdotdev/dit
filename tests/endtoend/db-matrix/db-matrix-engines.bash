@@ -122,9 +122,13 @@ db_wait_ready() {
   while ! timeout 30 bash -c 'db_ready "$@"' _ "$c" "$img" >/dev/null 2>&1; do
     if [ "$elapsed" -ge "$timeout" ]; then
       echo "  Timeout (${timeout}s) waiting for $img in $c to accept connections"
-      # Enough log to reach the cause: db2 alone prints dozens of lines of
-      # db2support output after a failed start (#271).
-      docker logs --tail 60 "$c" 2>&1 | sed 's/^/    | /'
+      # Enough log to reach the cause. Db2's entrypoint prints a few hundred
+      # lines and ends a failed start with a db2support dump that pushes the
+      # first error out of any tail (#271, #275), so for it print everything.
+      case "$img" in
+        *db2*) docker logs "$c" 2>&1 | sed 's/^/    | /' ;;
+        *)     docker logs --tail 60 "$c" 2>&1 | sed 's/^/    | /' ;;
+      esac
       return 1
     fi
     sleep 2
