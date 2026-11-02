@@ -161,13 +161,16 @@ db_ready() {
       # The entrypoint keeps configuring the instance after the database
       # first accepts connections, ending with a db2stop/db2start bounce.
       # It is PID 1 and never exits; its last act is a tail -f of the diag
-      # log, so that process existing means setup is done. 11.5.8 and 11.5.9
-      # still bounced the instance once more after that, between two CLP
-      # commands of the check write (SQL1024N, #271), so the engine must also
-      # have been up for a while: a bounce restarts every db2sysc process and
-      # resets its elapsed time.
+      # log, so that process existing means setup is done. The engine must
+      # also have been up for a while, since a late bounce restarts every
+      # db2sysc process and resets its elapsed time. Every CLP session here
+      # ends with db2 terminate: the CLP keeps a back-end process (db2bp)
+      # keyed by the calling shell's PID, a probe that just exits leaves it
+      # behind, and a later short-lived shell that reuses the PID inherits a
+      # dead session ("SQL1024N A database connection does not exist" on
+      # 11.5.8/11.5.9, #271).
       docker exec "$c" pgrep -x tail >/dev/null \
-        && docker exec "$c" su - db2inst1 -c 'db2 connect to testdb' \
+        && docker exec "$c" su - db2inst1 -c 'db2 connect to testdb; rc=$?; db2 terminate >/dev/null; exit $rc' \
         && [ "$(docker exec "$c" ps -o etimes= -C db2sysc 2>/dev/null | sort -n | head -1 | tr -d ' ')" -ge 45 ] 2>/dev/null ;;
     *cockroach*)
       docker exec "$c" /cockroach/cockroach sql --insecure -e 'select 1' ;;
@@ -247,8 +250,9 @@ db_write() {
       docker exec "$c" bash -c "printf \"whenever sqlerror exit failure\ncreate table system.dit_check(v varchar2(255));\ninsert into system.dit_check values('$v');\ncommit;\n\" | sqlplus -s / as sysdba" ;;
     *db2*)
       # One su shell so the CLP connection carries across the commands; the
-      # trailing select echoes what the table holds for the log.
-      docker exec "$c" su - db2inst1 -c "db2 connect to testdb && { db2 'create table dit_check(v varchar(255))' || true; } && db2 \"insert into dit_check values('$v')\" && db2 -x 'select v from dit_check'" ;;
+      # trailing select echoes what the table holds for the log. db2
+      # terminate releases the CLP back-end (see db_ready).
+      docker exec "$c" su - db2inst1 -c "db2 connect to testdb && { db2 'create table dit_check(v varchar(255))' || true; } && db2 \"insert into dit_check values('$v')\" && db2 -x 'select v from dit_check'; rc=\$?; db2 terminate >/dev/null; exit \$rc" ;;
     *cockroach*)
       docker exec "$c" /cockroach/cockroach sql --insecure -e "create table if not exists dit_check(v string); insert into dit_check values('$v')" ;;
     *yugabyte*)
@@ -353,7 +357,7 @@ db_verify() {
     *oracle*)
       docker exec "$c" bash -c "printf 'set heading off feedback off pagesize 0\nselect v from system.dit_check;\n' | sqlplus -s / as sysdba" | grep -qxF "$v" ;;
     *db2*)
-      docker exec "$c" su - db2inst1 -c "db2 connect to testdb >/dev/null && db2 -x 'select v from dit_check'" | grep -qF "$v" ;;
+      docker exec "$c" su - db2inst1 -c "db2 connect to testdb >/dev/null && db2 -x 'select v from dit_check'; rc=\$?; db2 terminate >/dev/null; exit \$rc" | grep -qF "$v" ;;
     *cockroach*)
       docker exec "$c" /cockroach/cockroach sql --insecure --format=tsv -e "select v from dit_check" | grep -qxF "$v" ;;
     *yugabyte*)
