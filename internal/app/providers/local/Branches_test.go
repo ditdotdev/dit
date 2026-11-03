@@ -183,7 +183,7 @@ func TestMigrate_HappyPathWithMountsAndPorts(t *testing.T) {
 	output := captureStdout(func() {
 		_, _ = captureExit(t, func() {
 			withDocker(t, d, func() {
-				Migrate("c1", "newrepo", "user", "user@x", commit, port, "ctx")
+				Migrate("c1", "newrepo", nil, "user", "user@x", commit, port, "ctx")
 			})
 		})
 	})
@@ -228,7 +228,7 @@ func TestMigrate_HappyPathWithHostIp(t *testing.T) {
 	output := captureStdout(func() {
 		_, _ = captureExit(t, func() {
 			withDocker(t, d, func() {
-				Migrate("c1", "newrepo", "user", "user@x", noopCommit, port, "ctx")
+				Migrate("c1", "newrepo", nil, "user", "user@x", noopCommit, port, "ctx")
 			})
 		})
 	})

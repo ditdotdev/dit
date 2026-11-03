@@ -100,7 +100,7 @@ func (k kubernetes) Log(repo string, tags []string) {
 	cmn.Log(repo, tags, k.portNum)
 }
 
-func (k kubernetes) Migrate(repo string, name string) {
+func (k kubernetes) Migrate(repo string, name string, volumes []string) {
 	fmt.Println("migrate is not supported in kubernetes context")
 	osExit(0)
 }

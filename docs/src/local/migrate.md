@@ -55,3 +55,29 @@ non-zero status. Nothing is left behind for you to clean up.
 > There is no way to alter the configuration of the container at the time
 > it is migrated, you must use the identical configuration as the source
 > container.
+
+## Images Without a Declared Volume
+
+Some images keep their data in the container's root filesystem without a
+`VOLUME` directive, and some keep it somewhere other than the path they
+declare. With no declared volume, `dit migrate` has nothing to tell it where
+the data lives and stops:
+
+```
+No volumes found for image <image>; pass --volume <container-path> to name the data to copy
+```
+
+Name the data paths yourself with `--volume` (short `-v`). Each path must be
+absolute and is read from the stopped container exactly as a declared volume
+would be, so it does not matter whether Docker keeps it in the writable layer,
+a named volume, or a bind mount. Repeat the flag for more than one path; the
+paths become the repository's volumes in the order given.
+
+```bash
+dit migrate -s legacy-sqlite -v /app/data sqlite-repo
+```
+
+When the image does declare volumes and you also pass `--volume`, the paths you
+give replace the declared ones and Dit prints a note listing the paths in use.
+A path that does not exist in the source container fails the copy, and the
+repository is rolled back as described above.

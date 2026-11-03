@@ -43,9 +43,24 @@ func TestSplitInspectList(t *testing.T) {
 			[]string{`"a":{}`, `"b":{`},
 		},
 		{
-			"empty body",
+			"empty object body has no elements",
 			"{}",
-			[]string{""},
+			[]string{},
+		},
+		{
+			"empty array body has no elements",
+			"[]",
+			[]string{},
+		},
+		{
+			"missing key (jsonparser returns an empty string) has no elements",
+			"",
+			[]string{},
+		},
+		{
+			"JSON null has no elements",
+			"null",
+			[]string{},
 		},
 	}
 	for _, tc := range cases {

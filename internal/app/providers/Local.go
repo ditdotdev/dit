@@ -122,9 +122,9 @@ func (l local) Log(repo string, tags []string) {
 	cmn.Log(repo, tags, l.portNum)
 }
 
-func (l local) Migrate(repo string, name string) {
+func (l local) Migrate(repo string, name string, volumes []string) {
 	u, e := gitIdentity()
-	lcl.Migrate(repo, name, u, e, cmn.Commit, l.portNum, l.contextName)
+	lcl.Migrate(repo, name, volumes, u, e, cmn.Commit, l.portNum, l.contextName)
 }
 
 func (l local) Pull(repo string, commit string, remoteName string, tags []string, metadataOnly bool) {

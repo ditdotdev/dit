@@ -69,7 +69,9 @@ func (f *fakeProvider) List(context string) {
 	}
 }
 func (f *fakeProvider) Log(repo string, tags []string) { f.record("Log", repo, tags) }
-func (f *fakeProvider) Migrate(repo, name string)      { f.record("Migrate", repo, name) }
+func (f *fakeProvider) Migrate(repo, name string, volumes []string) {
+	f.record("Migrate", repo, name, volumes)
+}
 func (f *fakeProvider) Pull(repo, commit, remoteName string, tags []string, metadataOnly bool) {
 	f.record("Pull", repo, commit, remoteName, tags, metadataOnly)
 }
@@ -135,6 +137,7 @@ func resetGlobalFlags() {
 	name = ""
 	source = ""
 	destination = ""
+	volumes = nil
 	remote = ""
 	updateOnly = false
 	removeImages = false
@@ -343,6 +346,40 @@ func TestMigrateCmd_WithSource(t *testing.T) {
 	c := lastCall(fp)
 	if c.Method != "Migrate" || c.Args[0] != "oldpg" || c.Args[1] != "newrepo" {
 		t.Errorf("migrate wrong: %+v", c)
+	}
+	if vols, ok := c.Args[2].([]string); !ok || len(vols) != 0 {
+		t.Errorf("migrate without --volume should pass no paths, got %v", c.Args[2])
+	}
+}
+
+// --volume / -v is repeatable; every path reaches the provider in order (#258).
+func TestMigrateCmd_WithVolumes(t *testing.T) {
+	resetGlobalFlags()
+	fp := withFakeProvider(t)
+	if _, err := execCmd("migrate", "-s", "legacy", "--volume", "/app/data", "-v", "/app/logs", "newrepo"); err != nil {
+		t.Fatalf("migrate: %v", err)
+	}
+	c := lastCall(fp)
+	if c.Method != "Migrate" || c.Args[0] != "legacy" || c.Args[1] != "newrepo" {
+		t.Errorf("migrate wrong: %+v", c)
+	}
+	vols, ok := c.Args[2].([]string)
+	if !ok || len(vols) != 2 || vols[0] != "/app/data" || vols[1] != "/app/logs" {
+		t.Errorf("migrate volumes wrong: %v", c.Args[2])
+	}
+}
+
+// A comma inside a path must not split it: --volume is a StringArray, not a
+// StringSlice.
+func TestMigrateCmd_VolumeKeepsCommas(t *testing.T) {
+	resetGlobalFlags()
+	fp := withFakeProvider(t)
+	if _, err := execCmd("migrate", "-s", "legacy", "-v", "/data/a,b", "newrepo"); err != nil {
+		t.Fatalf("migrate: %v", err)
+	}
+	vols, ok := lastCall(fp).Args[2].([]string)
+	if !ok || len(vols) != 1 || vols[0] != "/data/a,b" {
+		t.Errorf("migrate volumes wrong: %v", vols)
 	}
 }
 

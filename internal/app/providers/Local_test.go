@@ -336,7 +336,7 @@ func TestLocal_AllDelegators_CoverDispatch(t *testing.T) {
 		{"Copy", func() { p.Copy("repo", "local", "/src", "/dst") }},
 		{"Fork", func() { p.Fork("ssh://u", "org", "name") }},
 		{"Install", func() { p.Install([]string{"registry=local"}, false) }},
-		{"Migrate", func() { p.Migrate("src", "dst") }},
+		{"Migrate", func() { p.Migrate("src", "dst", nil) }},
 		{"Pull", func() { p.Pull("repo", "abc", "origin", nil, false) }},
 		{"Push", func() { p.Push("repo", "abc", "origin", nil, false) }},
 		{"RemoteAdd", func() { p.RemoteAdd("repo", "ssh://u", "origin", nil) }},

@@ -48,7 +48,38 @@ func rollbackMigrate(container string, name string, port int, context string) {
 
 type Commit func(string, string, []string, string, string, int)
 
-func Migrate(container string, name string, user string, email string, commit Commit, port int, context string) {
+// migratePaths returns the container paths Migrate copies into the new
+// repository, or a user-facing problem when there are none. The --volume
+// override wins over the image's declared volumes; each override path must
+// be absolute. With neither, the caller has nothing to tell dit where the
+// data lives (#258).
+func migratePaths(docker dockerClient, image string, override []string) ([]string, string) {
+	if len(override) > 0 {
+		for _, p := range override {
+			if !strings.HasPrefix(p, "/") {
+				return nil, fmt.Sprintf("--volume path %q must be absolute", p)
+			}
+		}
+		if len(docker.GetSliceFromImage(image, "Config", "Volumes")) > 0 {
+			fmt.Println("Using volume paths from --volume instead of the image's declared volumes: " + strings.Join(override, ", "))
+		}
+		return override, ""
+	}
+	var paths []string
+	for _, p := range docker.GetSliceFromImage(image, "Config", "Volumes") {
+		path := strings.Split(p, ":")[0]
+		paths = append(paths, strings.ReplaceAll(path, `"`, ""))
+	}
+	if len(paths) == 0 {
+		return nil, "No volumes found for image " + image + "; pass --volume <container-path> to name the data to copy"
+	}
+	return paths, ""
+}
+
+// Migrate creates repository name from the stopped container. volumes, when
+// non-empty, lists the container paths to copy instead of the image's
+// declared volumes.
+func Migrate(container string, name string, volumes []string, user string, email string, commit Commit, port int, context string) {
 	cfg.Servers[0].URL = "http://localhost:" + strconv.Itoa(port)
 	docker := newDocker(context, port)
 
@@ -75,10 +106,11 @@ func Migrate(container string, name string, user string, email string, commit Co
 		fmt.Println("Image information is not available")
 		osExit(1)
 	}
-	vols := docker.GetSliceFromImage(image, "Config", "Volumes")
-	if len(vols) == 0 {
-		fmt.Println("No volumes found for image " + image)
+	paths, problem := migratePaths(docker, image, volumes)
+	if problem != "" {
+		fmt.Println(problem)
 		osExit(1)
+		return
 	}
 	fmt.Println("Creating repository " + name)
 	var args []string
@@ -91,9 +123,7 @@ func Migrate(container string, name string, user string, email string, commit Co
 		fmt.Printf("Error creating repository: %v\n", err)
 		return
 	}
-	for i, p := range vols {
-		path := strings.Split(p, ":")[0]
-		path = strings.ReplaceAll(path, `"`, "")
+	for i, path := range paths {
 		v := "v" + strconv.Itoa(i)
 		volName := docker.FormatVolumeName(name, v)
 		fmt.Println("Creating docker volume " + volName + " with path " + path)

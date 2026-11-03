@@ -26,6 +26,9 @@ const defaultDockerHubRegistry = "ditdotdev"
 // dockerCmd is the name of the docker CLI binary that this client shells
 // out to. Extracted so goconst doesn't flag the literal across the dozen
 // ce.Exec(dockerCmd, ...) call sites below.
+// jsonNull is what jsonparser yields for an explicit JSON null value.
+const jsonNull = "null"
+
 const dockerCmd = "docker"
 
 // dockerRun is the `docker run` subcommand; shared with tests that
@@ -199,12 +202,21 @@ func (d docker) GetValFromContainer(c string, key ...string) (string, error) {
 // surrounding whitespace only - the previous implementation removed EVERY
 // space, corrupting values that legitimately contain one (e.g. a volume
 // path "/data/my files" became "/data/myfiles").
+//
+// A missing key (jsonparser yields ""), a JSON null, or an empty "{}" / "[]"
+// body all mean "no elements" and return an empty slice. Docker omits
+// Config.Volumes entirely for an image with no VOLUME directive, and the
+// previous [""] result made every "No volumes found" guard dead code: the
+// caller went on to create a volume with an empty path (#258).
 func splitInspectList(raw string) []string {
 	raw = strings.TrimLeft(raw, "[")
 	raw = strings.TrimLeft(raw, "{")
 	raw = strings.TrimRight(raw, "}")
 	raw = strings.TrimRight(raw, "]")
 	raw = strings.ReplaceAll(raw, EOL, "")
+	if t := strings.TrimSpace(raw); t == "" || t == jsonNull {
+		return []string{}
+	}
 	parts := strings.Split(raw, ",")
 	out := make([]string, 0, len(parts))
 	for _, p := range parts {
@@ -289,7 +301,7 @@ func (d docker) DitLatestIsDownloaded(registry string, latest app.Version) bool 
 	// are trusted as-is; registry-pulled images may be stale and should be
 	// re-pulled to pick up newer builds under the same tag.
 	repoDigests := d.GetValFromImage(image+":latest", "RepoDigests")
-	if repoDigests == "" || repoDigests == "null" {
+	if repoDigests == "" || repoDigests == jsonNull {
 		// No RepoDigests means locally-built image -- trust it
 		return true
 	}
