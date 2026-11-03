@@ -282,26 +282,15 @@ check_object() {
   echo "  Check object verified after $stage"
 }
 
-# Print the contents of a file inside a running dit-managed container.
+# Print the contents of a file inside a dit-managed container, running or not.
 #
-# Never use docker cp for this. docker cp mounts the container's volumes for
-# the copy and unmounts them afterwards; with the dit volume driver that
-# Unmount deactivates the ZFS dataset underneath the running database
-# (ditdotdev/dit#260). docker exec reads through the container's own mount.
-# Images without a shell (distroless) fall back to a stop, docker cp, start.
+# docker cp asks the volume driver to Mount the container's volumes for the
+# copy and to Unmount them afterwards. The dit volume plugin reference-counts
+# those calls (ditdotdev/dit#260), so this is safe against a running database,
+# and it works for images without a shell (distroless) where docker exec
+# cannot. The lifecycle suite covers the running-container case explicitly.
 read_marker() {
-  local container="$1" path="$2" out
-  if out=$(docker exec "$container" cat "$path" 2>/dev/null); then
-    printf '%s' "$out"
-    return 0
-  fi
-  if docker exec "$container" cat /dev/null >/dev/null 2>&1; then
-    return 1   # cat works, the file is genuinely missing
-  fi
-  docker stop "$container" >/dev/null 2>&1 || return 1
-  out=$(MSYS_NO_PATHCONV=1 docker cp "$container:$path" - 2>/dev/null | tar -xO 2>/dev/null)
-  docker start "$container" >/dev/null 2>&1
-  printf '%s' "$out"
+  MSYS_NO_PATHCONV=1 docker cp "$1:$2" - 2>/dev/null | tar -xO 2>/dev/null
 }
 
 # Wait until a container reports Up, or fail after $2 seconds.
