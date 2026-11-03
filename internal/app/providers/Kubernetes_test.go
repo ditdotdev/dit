@@ -86,7 +86,7 @@ func TestKubernetes_Copy_ExitsNotSupported(t *testing.T) {
 func TestKubernetes_Migrate_ExitsNotSupported(t *testing.T) {
 	p := Kubernetes("x", "h", 1)
 	out := captureStdout(t, func() {
-		didExit, code := captureExit(t, func() { p.Migrate("src", "dst") })
+		didExit, code := captureExit(t, func() { p.Migrate("src", "dst", nil) })
 		if !didExit || code != 0 {
 			t.Errorf("expected exit(0), got didExit=%v code=%d", didExit, code)
 		}

@@ -25,7 +25,7 @@ func TestMigrate_InspectContainerError(t *testing.T) {
 	output := captureStdout(func() {
 		didExit, code = captureExit(t, func() {
 			withDocker(t, d, func() {
-				Migrate("c1", "newrepo", "user", "user@x", noopCommit, port, "ctx")
+				Migrate("c1", "newrepo", nil, "user", "user@x", noopCommit, port, "ctx")
 			})
 		})
 	})
@@ -52,7 +52,7 @@ func TestMigrate_RunningContainerExits(t *testing.T) {
 	output := captureStdout(func() {
 		didExit, code = captureExit(t, func() {
 			withDocker(t, d, func() {
-				Migrate("c1", "newrepo", "user", "user@x", noopCommit, port, "ctx")
+				Migrate("c1", "newrepo", nil, "user", "user@x", noopCommit, port, "ctx")
 			})
 		})
 	})
@@ -79,7 +79,7 @@ func TestMigrate_InvalidRepoName(t *testing.T) {
 	output := captureStdout(func() {
 		didExit, code = captureExit(t, func() {
 			withDocker(t, d, func() {
-				Migrate("c1", "bad name!", "user", "user@x", noopCommit, port, "ctx")
+				Migrate("c1", "bad name!", nil, "user", "user@x", noopCommit, port, "ctx")
 			})
 		})
 	})
@@ -110,7 +110,7 @@ func TestMigrate_ImageInspectError(t *testing.T) {
 	output := captureStdout(func() {
 		didExit, code = captureExit(t, func() {
 			withDocker(t, d, func() {
-				Migrate("c1", "newrepo", "user", "user@x", noopCommit, port, "ctx")
+				Migrate("c1", "newrepo", nil, "user", "user@x", noopCommit, port, "ctx")
 			})
 		})
 	})
@@ -142,7 +142,7 @@ func TestMigrate_NoVolumes(t *testing.T) {
 	output := captureStdout(func() {
 		didExit, code = captureExit(t, func() {
 			withDocker(t, d, func() {
-				Migrate("c1", "newrepo", "user", "user@x", noopCommit, port, "ctx")
+				Migrate("c1", "newrepo", nil, "user", "user@x", noopCommit, port, "ctx")
 			})
 		})
 	})
@@ -152,6 +152,108 @@ func TestMigrate_NoVolumes(t *testing.T) {
 	}
 	if !strings.Contains(output, "No volumes found") {
 		t.Errorf("expected no-volumes error, got %q", output)
+	}
+	if !strings.Contains(output, "--volume") {
+		t.Errorf("expected the no-volumes error to hint at --volume, got %q", output)
+	}
+}
+
+// An image that declares no VOLUME can still be migrated when the caller
+// names the data paths with --volume; each becomes a dit volume in order (#258).
+func TestMigrate_VolumeFlagWithoutDeclaredVolumes(t *testing.T) {
+	var requests []string
+	port := migrateMockServer(t, http.StatusOK, &requests)
+	d := twoVolumeFakeDocker()
+	d.getSliceFromImage["postgres:latest:Config.Volumes"] = nil
+
+	var didExit bool
+	output := captureStdout(func() {
+		didExit, _ = captureExit(t, func() {
+			withDocker(t, d, func() {
+				Migrate("c1", "newrepo", []string{"/app/data"}, "user", "user@x", noopCommit, port, "ctx")
+			})
+		})
+	})
+
+	if didExit {
+		t.Fatalf("migrate should not exit; output=%q", output)
+	}
+	want := [3]string{"c1", "/app/data", "/var/lib/dit-docker/mnt/newrepo/v0"}
+	if len(d.CpFromContainerCalls) != 1 || d.CpFromContainerCalls[0] != want {
+		t.Errorf("expected CpFromContainer calls [%v], got %v", want, d.CpFromContainerCalls)
+	}
+	if !strings.Contains(output, "Creating docker volume newrepo_v0 with path /app/data") {
+		t.Errorf("expected v0 to be created for /app/data, got %q", output)
+	}
+	if strings.Contains(output, "No volumes found") {
+		t.Errorf("--volume must bypass the no-volumes guard, got %q", output)
+	}
+}
+
+// When the image declares volumes and --volume is also given, the flag wins
+// and the paths in use are printed.
+func TestMigrate_VolumeFlagOverridesDeclaredVolumes(t *testing.T) {
+	var requests []string
+	port := migrateMockServer(t, http.StatusOK, &requests)
+	d := twoVolumeFakeDocker()
+
+	var didExit bool
+	output := captureStdout(func() {
+		didExit, _ = captureExit(t, func() {
+			withDocker(t, d, func() {
+				Migrate("c1", "newrepo", []string{"/custom/a", "/custom/b"}, "user", "user@x", noopCommit, port, "ctx")
+			})
+		})
+	})
+
+	if didExit {
+		t.Fatalf("migrate should not exit; output=%q", output)
+	}
+	want := [][3]string{
+		{"c1", "/custom/a", "/var/lib/dit-docker/mnt/newrepo/v0"},
+		{"c1", "/custom/b", "/var/lib/dit-docker/mnt/newrepo/v1"},
+	}
+	if len(d.CpFromContainerCalls) != 2 || d.CpFromContainerCalls[0] != want[0] || d.CpFromContainerCalls[1] != want[1] {
+		t.Errorf("expected CpFromContainer calls %v, got %v", want, d.CpFromContainerCalls)
+	}
+	for _, declared := range []string{"/data", "/log"} {
+		if strings.Contains(output, "with path "+declared) {
+			t.Errorf("declared volume %s must not be used when --volume is given, got %q", declared, output)
+		}
+	}
+	if !strings.Contains(output, "Using volume paths from --volume instead of the image's declared volumes: /custom/a, /custom/b") {
+		t.Errorf("expected a note listing the override paths, got %q", output)
+	}
+}
+
+// Every --volume path must be absolute; a relative one is rejected before
+// anything is created on the server.
+func TestMigrate_VolumeFlagRejectsRelativePath(t *testing.T) {
+	var requests []string
+	port := migrateMockServer(t, http.StatusOK, &requests)
+	d := twoVolumeFakeDocker()
+
+	var didExit bool
+	var code int
+	output := captureStdout(func() {
+		didExit, code = captureExit(t, func() {
+			withDocker(t, d, func() {
+				Migrate("c1", "newrepo", []string{"/ok", "relative/path"}, "user", "user@x", noopCommit, port, "ctx")
+			})
+		})
+	})
+
+	if !didExit || code != 1 {
+		t.Errorf("expected osExit(1); got didExit=%v code=%d", didExit, code)
+	}
+	if !strings.Contains(output, "relative/path") || !strings.Contains(output, "absolute") {
+		t.Errorf("expected an absolute-path error naming the bad path, got %q", output)
+	}
+	if contains(requests, "POST /v1/repositories") {
+		t.Errorf("repository must not be created for an invalid --volume; requests=%v", requests)
+	}
+	if len(d.CpFromContainerCalls) != 0 {
+		t.Errorf("nothing should be copied, got %v", d.CpFromContainerCalls)
 	}
 }
 
@@ -181,7 +283,7 @@ func TestMigrate_CreateRepoErrorReturns(t *testing.T) {
 	output := captureStdout(func() {
 		_, _ = captureExit(t, func() {
 			withDocker(t, d, func() {
-				Migrate("c1", "newrepo", "user", "user@x", noopCommit, port, "ctx")
+				Migrate("c1", "newrepo", nil, "user", "user@x", noopCommit, port, "ctx")
 			})
 		})
 	})
@@ -234,7 +336,7 @@ func TestMigrate_HappyPath(t *testing.T) {
 	output := captureStdout(func() {
 		_, _ = captureExit(t, func() {
 			withDocker(t, d, func() {
-				Migrate("c1", "newrepo", "user", "user@x", commit, port, "ctx")
+				Migrate("c1", "newrepo", nil, "user", "user@x", commit, port, "ctx")
 			})
 		})
 	})
@@ -307,7 +409,7 @@ func TestMigrate_KeepsPrivileged(t *testing.T) {
 			captureStdout(func() {
 				_, _ = captureExit(t, func() {
 					withDocker(t, d, func() {
-						Migrate("c1", "newrepo", "user", "user@x", func(string, string, []string, string, string, int) {}, port, "ctx")
+						Migrate("c1", "newrepo", nil, "user", "user@x", func(string, string, []string, string, string, int) {}, port, "ctx")
 					})
 				})
 			})
@@ -353,7 +455,7 @@ func TestMigrate_RunFailureExits(t *testing.T) {
 	output := captureStdout(func() {
 		didExit, code = captureExit(t, func() {
 			withDocker(t, d, func() {
-				Migrate("c1", "newrepo", "user", "user@x", noopCommit, port, "ctx")
+				Migrate("c1", "newrepo", nil, "user", "user@x", noopCommit, port, "ctx")
 			})
 		})
 	})
@@ -439,7 +541,7 @@ func TestMigrate_CopiesFromSourceContainer(t *testing.T) {
 	output := captureStdout(func() {
 		didExit, _ = captureExit(t, func() {
 			withDocker(t, d, func() {
-				Migrate("c1", "newrepo", "user", "user@x", noopCommit, port, "ctx")
+				Migrate("c1", "newrepo", nil, "user", "user@x", noopCommit, port, "ctx")
 			})
 		})
 	})
@@ -513,7 +615,7 @@ func TestMigrate_CopyFailureRollsBack(t *testing.T) {
 	output := captureStdout(func() {
 		didExit, code = captureExit(t, func() {
 			withDocker(t, d, func() {
-				Migrate("c1", "newrepo", "user", "user@x", noopCommit, port, "ctx")
+				Migrate("c1", "newrepo", nil, "user", "user@x", noopCommit, port, "ctx")
 			})
 		})
 	})
@@ -534,7 +636,7 @@ func TestMigrate_ActivateFailureRollsBack(t *testing.T) {
 	output := captureStdout(func() {
 		didExit, code = captureExit(t, func() {
 			withDocker(t, d, func() {
-				Migrate("c1", "newrepo", "user", "user@x", noopCommit, port, "ctx")
+				Migrate("c1", "newrepo", nil, "user", "user@x", noopCommit, port, "ctx")
 			})
 		})
 	})

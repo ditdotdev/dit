@@ -21,7 +21,7 @@ type Provider interface {
 	Install(properties []string, verbose bool)
 	List(context string)
 	Log(repo string, tags []string)
-	Migrate(repo string, name string)
+	Migrate(repo string, name string, volumes []string)
 	Pull(repo string, commit string, remoteName string, tags []string, metadataOnly bool)
 	Push(repo string, commit string, remoteName string, tags []string, metadataOnly bool)
 	RemoteAdd(repo string, uri string, remoteName string, params map[string]string)

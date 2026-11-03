@@ -15,6 +15,8 @@ teardown_file() {
   docker rm -f migrate-src 2>/dev/null || true
   "$D3" rm -f migrate-bad-dest 2>/dev/null || true
   docker rm -f migrate-bad 2>/dev/null || true
+  "$D3" rm -f migrate-novol-dest 2>/dev/null || true
+  docker rm -f migrate-novol 2>/dev/null || true
 }
 
 # ========================================
@@ -199,4 +201,70 @@ wait_for_postgres() {
   docker rm -f migrate-src 2>/dev/null || true
   docker rm -f migrate-bad 2>/dev/null || true
   true
+}
+
+# ----------------------------------------
+# --volume: migrate an image that declares no VOLUME (#258)
+# ----------------------------------------
+#
+# nginx:alpine declares no VOLUME, so its document root lives in the
+# container's writable layer. Without --volume, migrate must refuse with a
+# hint; with --volume /usr/share/nginx/html, the data must survive.
+
+MIGRATE_NOVOL_IMAGE="nginx:alpine"
+MIGRATE_NOVOL_PATH="/usr/share/nginx/html"
+
+@test "--volume source: run unmanaged container from an image with no VOLUME" {
+  run docker run -d --name migrate-novol "$MIGRATE_NOVOL_IMAGE"
+  assert_success
+  run docker inspect --format '{{len .Config.Volumes}}' "$MIGRATE_NOVOL_IMAGE"
+  assert_success
+  assert_output "0"
+}
+
+@test "--volume source: write data into the writable layer and stop the container" {
+  run docker exec migrate-novol sh -c "echo 'migrated via --volume' > $MIGRATE_NOVOL_PATH/marker.txt"
+  assert_success
+  run docker stop migrate-novol
+  assert_success
+}
+
+@test "dit migrate without --volume refuses an image with no VOLUME and hints" {
+  run "$D3" migrate -s migrate-novol migrate-novol-dest
+  assert_failure
+  assert_output --partial "No volumes found for image"
+  assert_output --partial "pass --volume"
+}
+
+@test "dit migrate rejects a relative --volume path" {
+  run "$D3" migrate -s migrate-novol -v usr/share/nginx/html migrate-novol-dest
+  assert_failure
+  assert_output --partial "must be absolute"
+  run "$D3" ls
+  refute_output --partial "migrate-novol-dest"
+}
+
+@test "dit migrate --volume captures an image with no VOLUME" {
+  run "$D3" migrate -s migrate-novol -v "$MIGRATE_NOVOL_PATH" migrate-novol-dest
+  assert_success
+  assert_output --partial "Creating docker volume migrate-novol-dest_v0 with path $MIGRATE_NOVOL_PATH"
+  assert_output --partial "migrated to controlled environment migrate-novol-dest"
+}
+
+@test "migrated --volume repo holds the writable-layer data" {
+  run docker exec migrate-novol-dest cat "$MIGRATE_NOVOL_PATH/marker.txt"
+  assert_success
+  assert_output "migrated via --volume"
+}
+
+@test "dit commit on --volume migrated repo succeeds" {
+  run "$D3" commit -m "Migrated without a declared volume" migrate-novol-dest
+  assert_success
+}
+
+@test "cleanup --volume migrate repo" {
+  run "$D3" rm -f migrate-novol-dest
+  assert_success
+  run docker rm -f migrate-novol
+  assert_success
 }

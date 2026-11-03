@@ -32,6 +32,7 @@ var (
 	envVars      []string
 	name         string
 	source       string
+	volumes      []string
 	remote       string
 	updateOnly   bool
 	removeImages bool
