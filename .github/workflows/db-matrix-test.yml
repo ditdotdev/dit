@@ -644,6 +644,19 @@ jobs:
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           AWS_REGION: us-west-2
 
+      # The bats output only shows the CLI's one-line summary of a server-side
+      # failure (for example "Connection reset" on an S3 pull, #264). The
+      # exception and its stack live in the server container's log, which the
+      # uninstall below deletes, so capture it first.
+      - name: Server logs on failure
+        if: ${{ failure() && (!inputs.database || contains(matrix.database, inputs.database)) }}
+        run: |
+          for c in dit-docker-server dit-docker-launch; do
+            echo "::group::docker logs $c"
+            docker logs --tail 500 "$c" 2>&1 || echo "no container $c"
+            echo "::endgroup::"
+          done
+
       - name: Cleanup on failure
         if: ${{ failure() && (!inputs.database || contains(matrix.database, inputs.database)) }}
         run: |
