@@ -24,6 +24,55 @@ teardown_file() {
   sleep 5
 }
 
+# ========================================
+# docker cp against a running repository (#260)
+#
+# docker cp does not read through the container's live mount namespace. For
+# every volume it asks the volume driver to Mount the volume for the copy and
+# to Unmount it afterwards, reusing the container's own mount ID. The dit
+# volume plugin used to forward each of those straight to the server, so the
+# second mount failed and the unmount pulled the ZFS dataset out from under
+# the running database. The plugin now reference-counts mounts.
+# ========================================
+
+@test "docker cp out of a running repository succeeds (#260)" {
+  run docker exec lifecycle-test sh -c 'mkdir -p /data/configdb/.dit-cp-check && echo cp-marker > /data/configdb/.dit-cp-check/marker'
+  assert_success
+
+  run bash -c 'MSYS_NO_PATHCONV=1 docker cp lifecycle-test:/data/configdb/.dit-cp-check/marker - | tar -xO'
+  assert_success
+  assert_output "cp-marker"
+}
+
+@test "docker cp into a running repository succeeds (#260)" {
+  # The host directory lives under the repo (not /tmp): on Windows Docker
+  # Desktop only paths under the user's drive are visible to docker cp.
+  local src="$REPO_ROOT/.dit-cp-check-lifecycle"
+  rm -rf "$src"
+  mkdir -p "$src"
+  echo "cp-in-marker" > "$src/in-marker"
+  run bash -c "MSYS_NO_PATHCONV=1 docker cp '$(get_docker_path "$src")/.' lifecycle-test:/data/configdb/.dit-cp-check/"
+  rm -rf "$src"
+  assert_success
+
+  run docker exec lifecycle-test cat /data/configdb/.dit-cp-check/in-marker
+  assert_success
+  assert_output "cp-in-marker"
+}
+
+@test "volume is still mounted for the container after docker cp (#260)" {
+  # The Unmount that follows docker cp must not deactivate the volume the
+  # running container still uses: the file written before the copies is
+  # still there, and the database still answers.
+  run docker exec lifecycle-test cat /data/configdb/.dit-cp-check/marker
+  assert_success
+  assert_output "cp-marker"
+
+  run docker exec lifecycle-test mongosh --quiet --eval 'db.runCommand({ping:1}).ok'
+  assert_success
+  assert_output "1"
+}
+
 @test "dit status shows running" {
   run "$D3" status lifecycle-test
   assert_success
