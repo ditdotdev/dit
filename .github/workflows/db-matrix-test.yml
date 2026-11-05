@@ -610,10 +610,30 @@ jobs:
 
       - name: Run database matrix test for ${{ matrix.database }}
         if: ${{ !inputs.database || contains(matrix.database, inputs.database) }}
+        # One retry. A few jobs in every full run lose their S3 pull to a
+        # "Connection reset" (#264), and a job of 145 that fails on the
+        # network makes the run red for nothing. The retry is loud, not
+        # silent: the first attempt's output stays in the log, the server
+        # log is printed between attempts so the cause is still on record,
+        # and a warning annotation marks the job in the run summary. The
+        # bats teardown_file removes the repositories, the S3 prefix and the
+        # marker directories, so the second attempt starts clean.
         run: |
           export PATH=$GITHUB_WORKSPACE/build:$PATH
           echo "Testing database: $DATABASE_VERSION"
-          bats tests/endtoend/db-matrix/db-matrix.bats
+          for attempt in 1 2; do
+            if bats tests/endtoend/db-matrix/db-matrix.bats; then
+              exit 0
+            fi
+            if [ "$attempt" -eq 1 ]; then
+              echo "::warning title=db-matrix retry::$DATABASE_VERSION failed on attempt 1, retrying once"
+              echo "::group::docker logs dit-docker-server after attempt 1"
+              docker logs --tail 500 dit-docker-server 2>&1 || true
+              echo "::endgroup::"
+              docker ps -a --format '{{.Names}} {{.Status}}'
+            fi
+          done
+          exit 1
         env:
           DATABASE_VERSION: ${{ matrix.database }}
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
@@ -643,6 +663,19 @@ jobs:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           AWS_REGION: us-west-2
+
+      # The bats output only shows the CLI's one-line summary of a server-side
+      # failure (for example "Connection reset" on an S3 pull, #264). The
+      # exception and its stack live in the server container's log, which the
+      # uninstall below deletes, so capture it first.
+      - name: Server logs on failure
+        if: ${{ failure() && (!inputs.database || contains(matrix.database, inputs.database)) }}
+        run: |
+          for c in dit-docker-server dit-docker-launch; do
+            echo "::group::docker logs $c"
+            docker logs --tail 500 "$c" 2>&1 || echo "no container $c"
+            echo "::endgroup::"
+          done
 
       - name: Cleanup on failure
         if: ${{ failure() && (!inputs.database || contains(matrix.database, inputs.database)) }}
