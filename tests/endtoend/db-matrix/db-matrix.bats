@@ -84,12 +84,18 @@ test_database() {
   rm -rf "$cp_src"
   mkdir -p "$cp_src/.dit-cp-check"
   echo "$db_version" > "$cp_src/.dit-cp-check/marker"
+  # Each dit cp restarts the container, and the commit below must be taken
+  # from a settled engine, so every restart waits for the engine to accept a
+  # query, not just for the container to be Up. db2 12.1 re-runs db2icrt
+  # (~300 s) on every start; a commit taken while that is still running
+  # captures a half-updated instance that never comes back after checkout
+  # (ditdotdev/dit#280).
   local cp_vol
   for cp_vol in $cp_vols; do
     "$D3" cp -s "$cp_src" -d "$cp_vol" "$repo_name" || { rm -rf "$cp_src"; return 1; }
+    wait_for_engine "$repo_name" "$db_version" "dit cp" || { rm -rf "$cp_src"; return 1; }
   done
   rm -rf "$cp_src"
-  wait_for_up "$repo_name" 60 || return 1
 
   # Commit
   local commit_output
@@ -302,6 +308,14 @@ read_marker() {
   out=$(MSYS_NO_PATHCONV=1 docker cp "$container:$path" - 2>/dev/null | tar -xO 2>/dev/null)
   docker start "$container" >/dev/null 2>&1
   printf '%s' "$out"
+}
+
+# Wait until a container is Up and its engine answers a query after <stage>
+# restarted it. Images with no readiness probe pass once the container is Up.
+wait_for_engine() {
+  local c="$1" img="$2" stage="$3"
+  wait_for_up "$c" 60 || return 1
+  db_wait_ready "$c" "$img" || { echo "  $img did not accept connections after $stage"; return 1; }
 }
 
 # Wait until a container reports Up, or fail after $2 seconds.
