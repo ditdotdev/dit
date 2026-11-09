@@ -13,10 +13,10 @@ dit repo set-visibility <org> <repo> [flags]
 ### Options
 
 ```
-  -h, --help            help for set-visibility
-      --private         Make the repository private
-      --public          Make the repository public
-      --server string   Server URL
+  -h, --help[=true|false]      help for set-visibility
+      --private[=true|false]   Make the repository private
+      --public[=true|false]    Make the repository public
+      --server string          Server URL
 ```
 
 ### Options inherited from parent commands

@@ -13,8 +13,8 @@ dit org list [flags]
 ### Options
 
 ```
-  -h, --help            help for list
-      --server string   Server URL
+  -h, --help[=true|false]   help for list
+      --server string       Server URL
 ```
 
 ### Options inherited from parent commands

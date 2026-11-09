@@ -13,8 +13,8 @@ dit auth logout [flags]
 ### Options
 
 ```
-  -h, --help            help for logout
-      --server string   Server URL to logout from
+  -h, --help[=true|false]   help for logout
+      --server string       Server URL to logout from
 ```
 
 ### Options inherited from parent commands

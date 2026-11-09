@@ -9,7 +9,7 @@ dit context default [CONTEXTNAME] [flags]
 ### Options
 
 ```
-  -h, --help   help for default
+  -h, --help[=true|false]   help for default
 ```
 
 ### Options inherited from parent commands

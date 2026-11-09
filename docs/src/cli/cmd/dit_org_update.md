@@ -15,7 +15,7 @@ dit org update <org-name> [flags]
 ```
       --description string    New description for the organization
       --display-name string   New display name for the organization
-  -h, --help                  help for update
+  -h, --help[=true|false]     help for update
       --server string         Server URL
 ```
 

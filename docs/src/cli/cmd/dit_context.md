@@ -5,7 +5,7 @@ Manage dit contexts
 ### Options
 
 ```
-  -h, --help   help for context
+  -h, --help[=true|false]   help for context
 ```
 
 ### Options inherited from parent commands

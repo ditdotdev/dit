@@ -13,9 +13,9 @@ dit fork <remote-url> [flags]
 ### Options
 
 ```
-  -h, --help          help for fork
-      --name string   Custom name for the forked repository
-      --org string    Target organization/namespace for the fork
+  -h, --help[=true|false]   help for fork
+      --name string         Custom name for the forked repository
+      --org string          Target organization/namespace for the fork
 ```
 
 ### Options inherited from parent commands

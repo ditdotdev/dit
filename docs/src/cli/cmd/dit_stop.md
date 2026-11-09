@@ -9,7 +9,7 @@ dit stop [REPOSITORY] [flags]
 ### Options
 
 ```
-  -h, --help   help for stop
+  -h, --help[=true|false]   help for stop
 ```
 
 ### Options inherited from parent commands

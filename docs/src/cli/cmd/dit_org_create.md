@@ -14,7 +14,7 @@ dit org create <name> [flags]
 
 ```
       --display-name string   Display name for the organization
-  -h, --help                  help for create
+  -h, --help[=true|false]     help for create
       --server string         Server URL
 ```
 

@@ -9,7 +9,7 @@ Manage organizations on a dit remote server.
 ### Options
 
 ```
-  -h, --help   help for org
+  -h, --help[=true|false]   help for org
 ```
 
 ### Options inherited from parent commands

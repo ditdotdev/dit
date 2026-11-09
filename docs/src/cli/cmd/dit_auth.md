@@ -9,7 +9,7 @@ Manage authentication credentials for dit remote servers.
 ### Options
 
 ```
-  -h, --help   help for auth
+  -h, --help[=true|false]   help for auth
 ```
 
 ### Options inherited from parent commands

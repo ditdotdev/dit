@@ -13,8 +13,8 @@ dit org delete <org-name> [flags]
 ### Options
 
 ```
-  -h, --help            help for delete
-      --server string   Server URL
+  -h, --help[=true|false]   help for delete
+      --server string       Server URL
 ```
 
 ### Options inherited from parent commands

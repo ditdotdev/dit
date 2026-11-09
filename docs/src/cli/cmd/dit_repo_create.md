@@ -13,9 +13,9 @@ dit repo create <org> <repo> [flags]
 ### Options
 
 ```
-  -h, --help            help for create
-      --private         Create the repository as private
-      --server string   Server URL
+  -h, --help[=true|false]      help for create
+      --private[=true|false]   Create the repository as private
+      --server string          Server URL
 ```
 
 ### Options inherited from parent commands

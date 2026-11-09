@@ -9,9 +9,9 @@ dit delete [REPOSITORY] [flags]
 ### Options
 
 ```
-  -c, --commit string   commit GUID to delete
-  -h, --help            help for delete
-  -t, --tags strings    tags to remove from a commit
+  -c, --commit string       commit GUID to delete
+  -h, --help[=true|false]   help for delete
+  -t, --tags strings        tags to remove from a commit
 ```
 
 ### Options inherited from parent commands

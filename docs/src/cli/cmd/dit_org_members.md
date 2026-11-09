@@ -13,9 +13,9 @@ dit org members <org-name> [flags]
 ### Options
 
 ```
-  -h, --help            help for members
-  -o, --output string   Output format: json for machine-readable output (keyed on userId)
-      --server string   Server URL
+  -h, --help[=true|false]   help for members
+  -o, --output string       Output format: json for machine-readable output (keyed on userId)
+      --server string       Server URL
 ```
 
 ### Options inherited from parent commands

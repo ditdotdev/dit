@@ -9,11 +9,11 @@ dit push [REPOSITORY] [flags]
 ### Options
 
 ```
-  -c, --commit string   commit GUID to push, defaults to latest
-  -r, --remote string   name of the remote provider, defaults to origin
-  -u, --update-only     update tags only, do not push data
-  -t, --tags strings    filter commits to select commit to push
-  -h, --help            help for push
+  -c, --commit string              commit GUID to push, defaults to latest
+  -r, --remote string              name of the remote provider, defaults to origin
+  -u, --update-only[=true|false]   update tags only, do not push data
+  -t, --tags strings               filter commits to select commit to push
+  -h, --help[=true|false]          help for push
 ```
 
 ### Options inherited from parent commands

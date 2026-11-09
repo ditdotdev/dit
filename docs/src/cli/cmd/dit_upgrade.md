@@ -9,9 +9,9 @@ dit upgrade [flags]
 ### Options
 
 ```
-  -f, --force         destroy all repositories
-  -p, --path string   full installation path of Dit
-  -h, --help          help for upgrade
+  -f, --force[=true|false]   destroy all repositories
+  -p, --path string          full installation path of Dit
+  -h, --help[=true|false]    help for upgrade
 ```
 
 ### Options inherited from parent commands

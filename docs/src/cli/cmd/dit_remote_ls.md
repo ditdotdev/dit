@@ -9,9 +9,9 @@ dit remote ls [REPOSITORY] [flags]
 ### Options
 
 ```
-  -r, --remote string   name of the remote provider, defaults to origin (default "origin")
-  -t, --tags strings    tag to filter latest commit, if commit is not specified
-  -h, --help            help for ls
+  -r, --remote string       name of the remote provider, defaults to origin (default "origin")
+  -t, --tags strings        tag to filter latest commit, if commit is not specified
+  -h, --help[=true|false]   help for ls
 ```
 
 ### Options inherited from parent commands

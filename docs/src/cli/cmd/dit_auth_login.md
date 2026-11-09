@@ -13,9 +13,9 @@ dit auth login [flags]
 ### Options
 
 ```
-      --api-key string   API key for authentication (required)
-  -h, --help             help for login
-      --server string    Server URL
+      --api-key string      API key for authentication (required)
+  -h, --help[=true|false]   help for login
+      --server string       Server URL
 ```
 
 ### Options inherited from parent commands

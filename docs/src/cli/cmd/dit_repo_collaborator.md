@@ -9,7 +9,7 @@ Add, remove, and list collaborators on a dit remote repository.
 ### Options
 
 ```
-  -h, --help   help for collaborator
+  -h, --help[=true|false]   help for collaborator
 ```
 
 ### Options inherited from parent commands

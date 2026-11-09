@@ -13,9 +13,9 @@ dit repo list [flags]
 ### Options
 
 ```
-  -h, --help            help for list
-      --org string      Filter by organization
-      --server string   Server URL
+  -h, --help[=true|false]   help for list
+      --org string          Filter by organization
+      --server string       Server URL
 ```
 
 ### Options inherited from parent commands

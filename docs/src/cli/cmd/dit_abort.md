@@ -9,7 +9,7 @@ dit abort [REPOSITORY] [flags]
 ### Options
 
 ```
-  -h, --help   help for abort
+  -h, --help[=true|false]   help for abort
 ```
 
 ### Options inherited from parent commands

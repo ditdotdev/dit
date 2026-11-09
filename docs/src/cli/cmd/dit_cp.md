@@ -10,7 +10,7 @@ dit cp [REPOSITORY] [flags]
 
 ```
   -d, --destination string   destination of the files inside of the container
-  -h, --help                 help for cp
+  -h, --help[=true|false]    help for cp
   -s, --source string        source location of the files on the local machine (required)
 ```
 

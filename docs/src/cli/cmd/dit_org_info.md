@@ -13,8 +13,8 @@ dit org info <org-name> [flags]
 ### Options
 
 ```
-  -h, --help            help for info
-      --server string   Server URL
+  -h, --help[=true|false]   help for info
+      --server string       Server URL
 ```
 
 ### Options inherited from parent commands
