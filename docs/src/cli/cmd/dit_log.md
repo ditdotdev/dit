@@ -9,8 +9,8 @@ dit log [REPOSITORY] [flags]
 ### Options
 
 ```
-  -h, --help           help for log
-  -t, --tags strings   tag to set
+  -h, --help[=true|false]   help for log
+  -t, --tags strings        tag to set
 ```
 
 ### Options inherited from parent commands

@@ -29,7 +29,7 @@ dit migrate [REPOSITORY] [flags]
 ### Options
 
 ```
-  -h, --help                 help for migrate
+  -h, --help[=true|false]    help for migrate
   -s, --source string        source docker database container (required)
   -v, --volume stringArray   absolute container path to copy instead of the image's declared volumes (repeatable)
 ```

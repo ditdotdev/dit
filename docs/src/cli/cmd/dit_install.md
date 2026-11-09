@@ -9,9 +9,9 @@ dit install [flags]
 ### Options
 
 ```
-  -h, --help              help for install
-      --registry string   Registry URL for dit docker image, defaults to ditdotdev (default "ditdotdev")
-  -v, --verbose           Verbose output of Dit Server installation steps.
+  -h, --help[=true|false]      help for install
+      --registry string        Registry URL for dit docker image, defaults to ditdotdev (default "ditdotdev")
+  -v, --verbose[=true|false]   Verbose output of Dit Server installation steps.
 ```
 
 ### Options inherited from parent commands

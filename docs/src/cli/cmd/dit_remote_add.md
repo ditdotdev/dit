@@ -11,7 +11,7 @@ dit remote add [URI] [REPOSITORY] [flags]
 ```
   -r, --remote string        name of the remote provider, defaults to origin
   -p, --parameters strings   provider specific parameters. key=value format
-  -h, --help                 help for add
+  -h, --help[=true|false]    help for add
 ```
 
 ### Options inherited from parent commands

@@ -13,9 +13,9 @@ dit repo delete <org> <repo> [flags]
 ### Options
 
 ```
-      --force           Skip confirmation
-  -h, --help            help for delete
-      --server string   Server URL
+      --force[=true|false]   Skip confirmation
+  -h, --help[=true|false]    help for delete
+      --server string        Server URL
 ```
 
 ### Options inherited from parent commands

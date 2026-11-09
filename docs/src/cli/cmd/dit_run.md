@@ -19,13 +19,13 @@ dit run [IMAGE] [flags]
 ### Options
 
 ```
-  -n, --name string            optional new name for repository
-  -e, --env strings            container specific environment variables
-  -P, --disable-port-mapping   disable default port mapping from container to localhost
-      --privileged             run container in privileged mode with extended permissions
-      --pull string            image pull policy: missing (use the local image, pull only if absent; clone uses the digest recorded in the commit), always (re-pull the tag; clone uses the recorded digest), never (local images only) (default "missing")
-  -t, --tags strings           filter latest commit by tags
-  -h, --help                   help for run
+  -n, --name string                         optional new name for repository
+  -e, --env strings                         container specific environment variables
+  -P, --disable-port-mapping[=true|false]   disable default port mapping from container to localhost
+      --privileged[=true|false]             run container in privileged mode with extended permissions
+      --pull string                         image pull policy: missing (use the local image, pull only if absent; clone uses the digest recorded in the commit), always (re-pull the tag; clone uses the recorded digest), never (local images only) (default "missing")
+  -t, --tags strings                        filter latest commit by tags
+  -h, --help[=true|false]                   help for run
 ```
 
 ### Options inherited from parent commands

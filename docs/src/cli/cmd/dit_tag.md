@@ -9,9 +9,9 @@ dit tag [REPOSITORY] [flags]
 ### Options
 
 ```
-  -c, --commit string   commit to checkout
-  -h, --help            help for tag
-  -t, --tags strings    tag to filter latest commit, if commit is not specified
+  -c, --commit string       commit to checkout
+  -h, --help[=true|false]   help for tag
+  -t, --tags strings        tag to filter latest commit, if commit is not specified
 ```
 
 ### Options inherited from parent commands

@@ -9,8 +9,8 @@ Dit CLI
 ### Options
 
 ```
-      --context string   Dit Provider Context
-  -h, --help             help for dit
+      --context string      Dit Provider Context
+  -h, --help[=true|false]   help for dit
 ```
 
 ### SEE ALSO

@@ -9,8 +9,8 @@ dit rm [REPOSITORY] [flags]
 ### Options
 
 ```
-  -f, --force   Destroy all repositories
-  -h, --help    help for rm
+  -f, --force[=true|false]   Destroy all repositories
+  -h, --help[=true|false]    help for rm
 ```
 
 ### Options inherited from parent commands

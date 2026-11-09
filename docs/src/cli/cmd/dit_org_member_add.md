@@ -14,10 +14,10 @@ dit org member add <org> <user> [flags]
 ### Options
 
 ```
-      --github-login    Treat <user> as a GitHub login instead of a user ID
-  -h, --help            help for add
-      --role string     Role: member, admin, or owner (default "member")
-      --server string   Server URL
+      --github-login[=true|false]   Treat <user> as a GitHub login instead of a user ID
+  -h, --help[=true|false]           help for add
+      --role string                 Role: member, admin, or owner (default "member")
+      --server string               Server URL
 ```
 
 ### Options inherited from parent commands

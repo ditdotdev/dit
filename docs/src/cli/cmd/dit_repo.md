@@ -9,7 +9,7 @@ Create, delete, and list repositories on a dit remote server.
 ### Options
 
 ```
-  -h, --help   help for repo
+  -h, --help[=true|false]   help for repo
 ```
 
 ### Options inherited from parent commands

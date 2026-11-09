@@ -13,7 +13,7 @@ dit repo collaborator add <org> <repo> <userId> [flags]
 ### Options
 
 ```
-  -h, --help                help for add
+  -h, --help[=true|false]   help for add
       --permission string   Permission level: read, write, or admin (default "read")
       --server string       Server URL
 ```

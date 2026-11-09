@@ -13,9 +13,9 @@ dit org member set-role <org> <userId> [flags]
 ### Options
 
 ```
-  -h, --help            help for set-role
-      --role string     New role: member, admin, or owner
-      --server string   Server URL
+  -h, --help[=true|false]   help for set-role
+      --role string         New role: member, admin, or owner
+      --server string       Server URL
 ```
 
 ### Options inherited from parent commands

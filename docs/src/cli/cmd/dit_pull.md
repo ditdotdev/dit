@@ -9,11 +9,11 @@ dit pull [REPOSITORY] [flags]
 ### Options
 
 ```
-  -c, --commit string   commit GUID to pull from, defaults to latest
-  -r, --remote string   name of the remote provider, defaults to origin
-  -u, --update-only     update tags only, do not pull data
-  -t, --tags strings    filter commits to select commit to pull
-  -h, --help            help for pull
+  -c, --commit string              commit GUID to pull from, defaults to latest
+  -r, --remote string              name of the remote provider, defaults to origin
+  -u, --update-only[=true|false]   update tags only, do not pull data
+  -t, --tags strings               filter commits to select commit to pull
+  -h, --help[=true|false]          help for pull
 ```
 
 ### Options inherited from parent commands

@@ -13,9 +13,9 @@ dit repo commits <org> <repo> [flags]
 ### Options
 
 ```
-  -h, --help            help for commits
-  -o, --output string   Output format: json for machine-readable output
-      --server string   Server URL
+  -h, --help[=true|false]   help for commits
+  -o, --output string       Output format: json for machine-readable output
+      --server string       Server URL
 ```
 
 ### Options inherited from parent commands

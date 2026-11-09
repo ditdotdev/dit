@@ -9,9 +9,9 @@ dit commit [REPOSITORY] [flags]
 ### Options
 
 ```
-  -h, --help             help for commit
-  -m, --message string   commit message
-  -t, --tags strings     tag to set
+  -h, --help[=true|false]   help for commit
+  -m, --message string      commit message
+  -t, --tags strings        tag to set
 ```
 
 ### Options inherited from parent commands

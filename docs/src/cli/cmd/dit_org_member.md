@@ -9,7 +9,7 @@ Add, update, and remove members of an organization on a dit remote server.
 ### Options
 
 ```
-  -h, --help   help for member
+  -h, --help[=true|false]   help for member
 ```
 
 ### Options inherited from parent commands

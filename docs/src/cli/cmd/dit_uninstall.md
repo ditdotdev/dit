@@ -9,9 +9,9 @@ dit uninstall [flags]
 ### Options
 
 ```
-  -f, --force           destroy all repositories
-  -h, --help            help for uninstall
-      --remove-images   remove dit docker images
+  -f, --force[=true|false]           destroy all repositories
+  -h, --help[=true|false]            help for uninstall
+      --remove-images[=true|false]   remove dit docker images
 ```
 
 ### Options inherited from parent commands

@@ -9,8 +9,8 @@ dit remote log [REPOSITORY] [flags]
 ### Options
 
 ```
-  -h, --help           help for log
-  -t, --tags strings   tag to filter latest commit, if commit is not specified
+  -h, --help[=true|false]   help for log
+  -t, --tags strings        tag to filter latest commit, if commit is not specified
 ```
 
 ### Options inherited from parent commands

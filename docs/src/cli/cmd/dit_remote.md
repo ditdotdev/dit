@@ -5,7 +5,7 @@ Add, log, ls and rm remotes
 ### Options
 
 ```
-  -h, --help   help for remote
+  -h, --help[=true|false]   help for remote
 ```
 
 ### Options inherited from parent commands

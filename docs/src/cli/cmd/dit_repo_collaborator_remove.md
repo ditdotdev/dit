@@ -13,8 +13,8 @@ dit repo collaborator remove <org> <repo> <userId> [flags]
 ### Options
 
 ```
-  -h, --help            help for remove
-      --server string   Server URL
+  -h, --help[=true|false]   help for remove
+      --server string       Server URL
 ```
 
 ### Options inherited from parent commands
