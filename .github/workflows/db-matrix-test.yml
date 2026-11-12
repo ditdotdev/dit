@@ -480,7 +480,7 @@ jobs:
         if: ${{ !inputs.database || contains(matrix.database, inputs.database) }}
         uses: actions/setup-go@v7
         with:
-          go-version: '1.26.10'
+          go-version: '1.26.11'
 
       - name: Configure Go for private repos
         if: ${{ !inputs.database || contains(matrix.database, inputs.database) }}
