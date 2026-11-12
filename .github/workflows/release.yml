@@ -59,6 +59,12 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Verify release tag
+        if: github.event_name == 'push'
+        uses: ditdotdev/.github/actions/verify-release-tag@master
+        with:
+          prefix: v
+
       - uses: actions/setup-go@v7
         with:
           go-version: '1.26.10'
