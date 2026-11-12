@@ -12,7 +12,7 @@ permissions:
   contents: read
 
 env:
-  GO_VERSION: '1.26.10'
+  GO_VERSION: '1.26.11'
   GOPRIVATE: github.com/ditdotdev/*
   GONOPROXY: github.com/ditdotdev/*
   GONOSUMDB: github.com/ditdotdev/*
