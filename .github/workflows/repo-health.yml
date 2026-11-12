@@ -11,7 +11,7 @@ on:
 
 jobs:
   health:
-    uses: ditdotdev/.github/.github/workflows/repo-health.yml@master
+    uses: ditdotdev/.github/.github/workflows/repo-health.yml@fix/1259-remove-health-aws-secrets
     with:
       language: go
       coverage-floor: 90
